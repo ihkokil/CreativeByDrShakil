@@ -1,39 +1,86 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import styles from "./Upcoming.module.css";
 import { motion } from "framer-motion";
-
-const upcoming = [
-    { title: "Gastroenterology Crash Course", date: "April 15", seats: 12 },
-    { title: "FCPS II Surgery Viva Secrets", date: "May 02", seats: 5 },
-    { title: "ECG Mastery for Residency", date: "June 20", seats: 45 },
-];
+import { Calendar, UserCheck } from "lucide-react";
 
 export default function Upcoming() {
-    return (
-        <section className="section-padding" style={{ background: "rgba(59, 130, 246, 0.02)" }}>
-            <div className={styles.header}>
-                <h2 className={styles.title}>Upcoming Live Courses</h2>
-                <p className={styles.subtitle}>Reserved seats are filling up fast. Register early to secure your spot.</p>
-            </div>
+    const [timeLeft, setTimeLeft] = useState({
+        days: 12,
+        hours: 5,
+        minutes: 45,
+        seconds: 30,
+    });
 
-            <div className={styles.list}>
-                {upcoming.map((course, index) => (
-                    <motion.div
-                        key={index}
-                        className={`${styles.item} glass`}
-                        whileHover={{ scale: 1.02 }}
-                    >
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+                if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59, minutes_val: prev.minutes - 1 };
+                // Simple decrement for demo
+                return { ...prev, seconds: 59 };
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+    return (
+        <section className="section-padding">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h2 className={styles.title}>Featured Upcoming Course</h2>
+                    <p className={styles.subtitle}>Our most anticipated batch is starting soon.</p>
+                </div>
+
+                <div className={styles.featuredBox}>
+                    <div className={styles.timerWrapper}>
+                        <div className={styles.timerLabel}>BATCH STARTS IN</div>
+                        <div className={styles.timer}>
+                            <div className={styles.timeUnit}>
+                                <span>{timeLeft.days}</span>
+                                <label>Days</label>
+                            </div>
+                            <div className={styles.timeUnit}>
+                                <span>{timeLeft.hours}</span>
+                                <label>Hours</label>
+                            </div>
+                            <div className={styles.timeUnit}>
+                                <span>{timeLeft.minutes}</span>
+                                <label>Mins</label>
+                            </div>
+                            <div className={styles.timerSeparator}>:</div>
+                            <div className={styles.timeUnit}>
+                                <span>{timeLeft.seconds}</span>
+                                <label>Secs</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.content}>
                         <div className={styles.info}>
-                            <h3>{course.title}</h3>
-                            <p>Commencing {course.date}</p>
+                            <span className={styles.category}>Cardiology Part II</span>
+                            <h3>Advanced Clinical Cardiology Masterclass</h3>
+                            <p>A comprehensive 3-month program covering high-yield clinical cases and viva secrets for FCPS Part II candidates.</p>
+
+                            <div className={styles.meta}>
+                                <div className={styles.metaItem}>
+                                    <Calendar size={18} />
+                                    <span>Commencing: April 15, 2026</span>
+                                </div>
+                                <div className={styles.metaItem}>
+                                    <UserCheck size={18} />
+                                    <span>Only 8 Seats Left</span>
+                                </div>
+                            </div>
                         </div>
-                        <div className={styles.status}>
-                            <span className={styles.seats}>{course.seats} Seats Left</span>
-                            <button className={styles.remindBtn}>Notify Me</button>
+
+                        <div className={styles.actions}>
+                            <button className={styles.enrollBtn}>Register Now</button>
+                            <button className={styles.detailsBtn}>View Syllabus</button>
                         </div>
-                    </motion.div>
-                ))}
+                    </div>
+                </div>
             </div>
         </section>
     );
