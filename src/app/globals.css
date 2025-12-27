@@ -5,9 +5,9 @@
   --primary: #3b82f6;
   --secondary: #6366f1;
   --accent: #8b5cf6;
-  --glass: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --card-bg: rgba(18, 18, 18, 0.8);
+  --glass: rgba(15, 15, 15, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --card-bg: rgba(20, 20, 20, 0.9);
   --text-muted: #a0a0a0;
   --transition: 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -18,8 +18,8 @@
   --primary: #2563eb;
   --secondary: #4f46e5;
   --accent: #7c3aed;
-  --glass: rgba(0, 0, 0, 0.02);
-  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(0, 0, 0, 0.12);
   --card-bg: #ffffff;
   --text-muted: #64748b;
 }
