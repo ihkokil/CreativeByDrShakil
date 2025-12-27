@@ -1,0 +1,93 @@
+.navbar {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 1400px;
+    padding: 12px 24px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+}
+
+.container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.centerLinks {
+    display: flex;
+    gap: 32px;
+    align-items: center;
+}
+
+.link {
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0.75;
+    transition: opacity var(--transition);
+}
+
+.link:hover {
+    opacity: 1;
+}
+
+.navBtn {
+    background: transparent;
+    border: none;
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background var(--transition);
+}
+
+.navBtn:hover {
+    background: var(--glass);
+}
+
+.rightActions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.accountBtn {
+    background: var(--foreground);
+    color: var(--background);
+    border: none;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.accountBtn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+@media (max-width: 1024px) {
+    .centerLinks {
+        display: none;
+    }
+}

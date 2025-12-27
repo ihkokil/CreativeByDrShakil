@@ -2,22 +2,35 @@
     background: var(--glass);
     border: 1px solid var(--glass-border);
     color: var(--foreground);
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
-    transition: transform 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-.toggle:hover {
-    transform: scale(1.05);
-    background: var(--glass-border);
+.placeholder {
+    width: 44px;
+    height: 44px;
 }
 
-.toggle:active {
-    transform: scale(0.95);
+.iconContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sunIcon {
+    color: #f59e0b;
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
+}
+
+.moonIcon {
+    color: #6366f1;
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));
 }
