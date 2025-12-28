@@ -5,6 +5,7 @@ import styles from "./Courses.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Clock, Tag } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 const courseData = [
     { id: 1, title: "FCPS Part I: Internal Medicine", category: "FCPS", price: "৳5,000", rating: 4.8, duration: "6 Months" },
@@ -81,7 +82,9 @@ export default function Courses() {
                             </div>
                             <div className={styles.cardFooter}>
                                 <span className={styles.price}>{course.price}</span>
-                                <button className={styles.enrollBtn}>Enroll Now</button>
+                                <Link href="/study" className={styles.enrollBtn}>
+                                    Enroll Now
+                                </Link>
                             </div>
                         </motion.div>
                     ))}
