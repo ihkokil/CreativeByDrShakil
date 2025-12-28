@@ -3,7 +3,7 @@
 import { useState } from "react";
 import styles from "./FAQ.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Minus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 const faqs = [
     {
@@ -27,34 +27,48 @@ export default function FAQ() {
         <section className="section-padding">
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h2 className={styles.title}>Frequently Asked Questions</h2>
-                    <p className={styles.subtitle}>Everything you need to know about the platform and preparation.</p>
+                    <h2 className={styles.title}>Frequently Asked <span className="gradient-text">Questions</span></h2>
+                    <p className={styles.subtitle}>Common queries about our exam preparation system and platform features.</p>
                 </div>
 
                 <div className={styles.list}>
-                    {faqs.map((faq, index) => (
-                        <div key={index} className={`${styles.item} glass`}>
-                            <button
-                                className={styles.question}
-                                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                            >
-                                <span>{faq.question}</span>
-                                {openIndex === index ? <Minus size={20} /> : <Plus size={20} />}
-                            </button>
-                            <AnimatePresence>
-                                {openIndex === index && (
+                    {faqs.map((faq, index) => {
+                        const isOpen = openIndex === index;
+                        return (
+                            <div key={index} className={`${styles.item} ${isOpen ? styles.activeItem : ""}`}>
+                                <button
+                                    className={styles.question}
+                                    onClick={() => setOpenIndex(isOpen ? null : index)}
+                                    aria-expanded={isOpen}
+                                >
+                                    <span className={styles.questionText}>{faq.question}</span>
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        className={styles.answer}
+                                        animate={{ rotate: isOpen ? 45 : 0, color: isOpen ? "var(--primary)" : "currentColor" }}
+                                        transition={{ duration: 0.3, ease: "circOut" }}
+                                        className={styles.iconWrapper}
                                     >
-                                        <p>{faq.answer}</p>
+                                        <Plus size={24} />
                                     </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    ))}
+                                </button>
+                                <AnimatePresence initial={false}>
+                                    {isOpen && (
+                                        <motion.div
+                                            key="content"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
+                                            className={styles.answerWrapper}
+                                        >
+                                            <div className={styles.answer}>
+                                                <p>{faq.answer}</p>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </section>
