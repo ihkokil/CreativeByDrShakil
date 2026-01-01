@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 
+const outfit = Outfit({ subsets: ["latin"] });
+
 export const metadata: Metadata = {
-    title: "Creative Learning | Master Your Skills",
-    description: "A premium learning platform for the web and mobile.",
+    title: "Creative Learning | Medical Education simplified",
+    description: "A premium learning platform for doctors.",
 };
 
 export default function RootLayout({
@@ -13,7 +16,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body>{children}</body>
+            <body className={outfit.className}>{children}</body>
         </html>
     );
 }
