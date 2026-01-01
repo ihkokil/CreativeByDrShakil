@@ -24,3 +24,9 @@ yarn-error.log*
 # Logs
 logs
 *.log
+
+# Next.js
+.next/
+out/
+build/
+.env*.local
