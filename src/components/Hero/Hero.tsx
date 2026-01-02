@@ -4,6 +4,9 @@ import { motion } from "framer-motion";
 import styles from "./Hero.module.css";
 import { ArrowRight, PlayCircle } from "lucide-react";
 
+import Link from "next/link";
+import Image from "next/image";
+
 export default function Hero() {
     const cards = [
         { title: "BCPS Part I", color: "var(--primary)", delay: 0 },
@@ -29,10 +32,10 @@ export default function Hero() {
                     </p>
                     <div className={styles.actions}>
                         <button className={styles.primaryBtn}>
-                            Start Learning <ArrowRight size={18} />
+                            Select Course <ArrowRight size={18} />
                         </button>
                         <button className={styles.secondaryBtn}>
-                            <PlayCircle size={18} /> Watch Preview
+                            <PlayCircle size={18} /> Contact Us
                         </button>
                     </div>
                 </motion.div>
@@ -56,7 +59,14 @@ export default function Hero() {
                             }}
                             style={{ zIndex: cards.length - index }}
                         >
-                            <div className={styles.cardHeader} style={{ background: card.color }}></div>
+                            <div className={styles.cardHeader} style={{ position: "relative", height: "140px" }}>
+                                <Image
+                                    src="/placeholder.svg"
+                                    alt={card.title}
+                                    fill
+                                    style={{ objectFit: "cover" }}
+                                />
+                            </div>
                             <div className={styles.cardBody}>
                                 <h3>{card.title}</h3>
                                 <p>Latest high-yield question paper included.</p>

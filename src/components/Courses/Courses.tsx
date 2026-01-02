@@ -3,7 +3,8 @@
 import { useState } from "react";
 import styles from "./Courses.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Clock, BarChart } from "lucide-react";
+import { BookOpen, Clock, Tag } from "lucide-react";
+import Image from "next/image";
 
 const courseData = [
     { id: 1, title: "FCPS Part I: Internal Medicine", category: "FCPS", price: "৳5,000", rating: 4.8 },
@@ -25,17 +26,22 @@ export default function Courses() {
     return (
         <section className="section-padding">
             <div className={styles.header}>
-                <h2 className={styles.sectionTitle}>Curated Course Library</h2>
-                <div className={styles.tabs}>
-                    {categories.map(cat => (
-                        <button
-                            key={cat}
-                            className={`${styles.tab} ${filter === cat ? styles.activeTab : ""}`}
-                            onClick={() => setFilter(cat)}
-                        >
-                            {cat}
-                        </button>
-                    ))}
+                <div className={styles.titles}>
+                    <h2 className={styles.sectionTitle}>All Courses</h2>
+                    <p className={styles.subtitle}>Browse our complete catalog of professional medical training.</p>
+                </div>
+                <div className={styles.tabsSection}>
+                    <div className={styles.tabs}>
+                        {categories.map(cat => (
+                            <button
+                                key={cat}
+                                className={`${styles.tab} ${filter === cat ? styles.activeTab : ""}`}
+                                onClick={() => setFilter(cat)}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -51,9 +57,23 @@ export default function Courses() {
                             transition={{ duration: 0.3 }}
                             className={`${styles.card} glass`}
                         >
+                            <div className={styles.imageWrapper}>
+                                <Image
+                                    src="/placeholder.svg"
+                                    alt={course.title}
+                                    fill
+                                    style={{ objectFit: "cover" }}
+                                />
+                                <div className={styles.categoryBadge}>
+                                    <Tag size={12} />
+                                    {course.category}
+                                </div>
+                            </div>
                             <div className={styles.cardInfo}>
-                                <span className={styles.category}>{course.category}</span>
-                                <h3>{course.title}</h3>
+                                <div className={styles.cardHeader}>
+                                    <span className={styles.categoryName}>{course.category} Practice</span>
+                                    <h3>{course.title}</h3>
+                                </div>
                                 <div className={styles.meta}>
                                     <span><BookOpen size={14} /> 24 Lessons</span>
                                     <span><Clock size={14} /> 12h Content</span>
@@ -61,7 +81,7 @@ export default function Courses() {
                             </div>
                             <div className={styles.cardFooter}>
                                 <span className={styles.price}>{course.price}</span>
-                                <button className={styles.enrollBtn}>View Details</button>
+                                <button className={styles.enrollBtn}>Enroll Now</button>
                             </div>
                         </motion.div>
                     ))}
