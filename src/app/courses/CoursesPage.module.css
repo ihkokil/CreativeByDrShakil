@@ -4,7 +4,7 @@
 }
 
 .header {
-    padding: 160px 5% 60px;
+    padding: 160px 24px 60px;
     background: linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent);
     text-align: center;
 }
@@ -24,12 +24,12 @@
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1650px;
     margin: 0 auto 100px;
     display: grid;
-    grid-template-columns: 300px 1fr;
+    grid-template-columns: 280px 1fr;
     gap: 40px;
-    padding: 0 5%;
+    padding: 0 24px;
 }
 
 /* Sidebar */
