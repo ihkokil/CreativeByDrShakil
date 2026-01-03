@@ -5,12 +5,16 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
-import { ChevronDown, User, LayoutGrid } from "lucide-react";
+import { ChevronDown, User, LayoutGrid, LogOut, Layout } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const { user, signOut } = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -43,10 +47,22 @@ export default function Navbar() {
 
                     <div className={styles.rightActions}>
                         <ThemeToggle />
-                        <button className={styles.accountBtn} onClick={() => setIsAuthOpen(true)}>
-                            <User size={18} />
-                            Login
-                        </button>
+
+                        {user ? (
+                            <div className={styles.userSection}>
+                                <Link href="/dashboard" className={styles.dashboardLink}>
+                                    <Layout size={18} /> Dashboard
+                                </Link>
+                                <button className={styles.logoutBtn} onClick={() => signOut()}>
+                                    <LogOut size={18} />
+                                </button>
+                            </div>
+                        ) : (
+                            <button className={styles.accountBtn} onClick={() => setIsAuthOpen(true)}>
+                                <User size={18} />
+                                Login
+                            </button>
+                        )}
                     </div>
                 </div>
             </nav>
