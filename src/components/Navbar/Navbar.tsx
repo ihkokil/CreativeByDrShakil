@@ -8,7 +8,7 @@ import { ChevronDown, User, LayoutGrid } from "lucide-react";
 
 export default function Navbar() {
     return (
-        <nav className={`${styles.navbar} glass`}>
+        <nav className={styles.navbar}>
             <div className={styles.container}>
                 <Link href="/" className={styles.logo}>
                     <span className="gradient-text">Dr. Shakil's</span> Academy
