@@ -19,9 +19,22 @@
 }
 
 .logo {
-    font-size: 1.6rem;
-    font-weight: 800;
     margin-bottom: 24px;
+}
+
+.logoImg {
+    object-fit: contain;
+    filter: brightness(0) invert(var(--theme-is-dark, 1));
+}
+
+[data-theme='light'] .logoImg {
+    filter: none;
+    /* Keep original colors if light, or force black/white */
+}
+
+/* Footer is often dark, so keeping logo white-ish is usually safer */
+.logoImg {
+    filter: brightness(0) invert(1);
 }
 
 .tagline {

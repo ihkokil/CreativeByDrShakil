@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
 import { ChevronDown, User, LayoutGrid } from "lucide-react";
@@ -21,7 +22,7 @@ export default function Navbar() {
         <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ""}`}>
             <div className={styles.container}>
                 <Link href="/" className={styles.logo}>
-                    <span className="gradient-text">Dr. Shakil's</span> Academy
+                    <Image src="/logo.png" alt="Dr. Shakil's Academy" width={160} height={45} priority className={styles.logoImg} />
                 </Link>
 
                 <div className={styles.centerLinks}>
