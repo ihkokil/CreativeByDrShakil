@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
-import { ChevronDown, User, LayoutGrid, LogOut, Layout } from "lucide-react";
+import { ChevronDown, User, LayoutGrid, LogOut, Layout, Users } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -51,7 +51,10 @@ export default function Navbar() {
                         {user ? (
                             <div className={styles.userSection}>
                                 <Link href="/dashboard" className={styles.dashboardLink}>
-                                    <Layout size={18} /> Dashboard
+                                    <Layout size={18} /> Student
+                                </Link>
+                                <Link href="/teacher/dashboard" className={styles.dashboardLink} style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '15px' }}>
+                                    <Users size={18} /> Teacher
                                 </Link>
                                 <button className={styles.logoutBtn} onClick={() => signOut()}>
                                     <LogOut size={18} />
