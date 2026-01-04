@@ -7,5 +7,5 @@
     </linearGradient>
   </defs>
 
-  <rect width="600" height="400" rx="24" fill="url(#smoothGrad)"/>
+  <rect width="600" height="600" rx="24" fill="url(#smoothGrad)"/>
 </svg>

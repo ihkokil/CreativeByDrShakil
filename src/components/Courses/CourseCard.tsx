@@ -9,9 +9,10 @@ import { motion } from "framer-motion";
 
 interface Props {
     course: Course;
+    viewMode?: "grid" | "list";
 }
 
-export default function CourseCard({ course }: Props) {
+export default function CourseCard({ course, viewMode = "grid" }: Props) {
     return (
         <motion.div
             layout
@@ -19,7 +20,7 @@ export default function CourseCard({ course }: Props) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             whileHover={{ y: -5 }}
-            className={`${styles.card} glass`}
+            className={`${styles.card} ${viewMode === 'list' ? styles.listCard : ''} glass`}
         >
             <div className={styles.imageWrapper}>
                 <Image

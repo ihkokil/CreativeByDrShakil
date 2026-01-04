@@ -107,7 +107,7 @@
     color: var(--background);
     border: none;
     padding: 10px 20px;
-    border-radius: 10px;
+    border-radius: 100px;
     font-size: 0.85rem;
     font-weight: 800;
     cursor: pointer;
@@ -117,4 +117,51 @@
 .enrollBtn:hover {
     opacity: 0.9;
     transform: translateY(-2px);
+}
+
+/* List Mode Styles */
+.listCard {
+    flex-direction: row !important;
+    height: 240px !important;
+    align-items: stretch !important;
+}
+
+.listCard .imageWrapper {
+    width: 320px !important;
+    height: 100% !important;
+    flex-shrink: 0 !important;
+}
+
+.listCard .cardInfo {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+
+.listCard .cardFooter {
+    border-top: none !important;
+    border-left: 1px solid var(--glass-border) !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: 15px !important;
+    width: 200px !important;
+}
+
+@media (max-width: 768px) {
+    .listCard {
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    .listCard .imageWrapper {
+        width: 100% !important;
+        height: 200px !important;
+    }
+
+    .listCard .cardFooter {
+        border-left: none !important;
+        border-top: 1px solid var(--glass-border) !important;
+        flex-direction: row !important;
+        width: 100% !important;
+    }
 }

@@ -34,6 +34,12 @@ export const INSTRUCTORS: Record<string, Instructor> = {
         name: "Dr. Fatima",
         role: "Pediatrics Specialist",
         image: "/placeholder.svg",
+    },
+    dr_arif: {
+        id: "dr_arif",
+        name: "Dr. Arif Billah",
+        role: "Gynae & Obs Specialist",
+        image: "/placeholder.svg",
     }
 };
 
@@ -73,7 +79,7 @@ export const COURSES: Course[] = [
         price: "Free",
         rating: 4.9,
         duration: "4 Months",
-        mainInstructor: INSTRUCTORS.dr_shakil,
+        mainInstructor: INSTRUCTORS.dr_arif,
     },
     {
         id: 5,
@@ -93,5 +99,23 @@ export const COURSES: Course[] = [
         duration: "3 Months",
         mainInstructor: INSTRUCTORS.dr_shakil,
         subInstructors: [INSTRUCTORS.dr_fatima]
+    },
+    {
+        id: 7,
+        title: "FCPS Surgery: Viva Secrets",
+        category: "Part II",
+        price: "৳3,500",
+        rating: 4.9,
+        duration: "2 Months",
+        mainInstructor: INSTRUCTORS.dr_shakil,
+    },
+    {
+        id: 8,
+        title: "Emergency Medicine Fast-track",
+        category: "Residency",
+        price: "৳4,000",
+        rating: 4.7,
+        duration: "3 Months",
+        mainInstructor: INSTRUCTORS.dr_rahman,
     },
 ];
