@@ -1,21 +1,104 @@
 .footer {
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--background);
     border-top: 1px solid var(--glass-border);
-    padding: 80px 5% 0;
+    padding-top: 0;
     margin-top: 100px;
 }
 
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1.5fr 2fr;
-    gap: 80px;
-    padding-bottom: 60px;
+/* Newsletter Section */
+.newsletter {
+    background: var(--primary);
+    padding: 60px 5%;
+    position: relative;
+    overflow: hidden;
 }
 
-.brandSide {
-    max-width: 400px;
+.newsletter::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+.newsletterContent {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+    position: relative;
+    z-index: 1;
+}
+
+.newsletterText h3 {
+    color: white;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+    letter-spacing: -1px;
+}
+
+.newsletterText p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+}
+
+.newsletterForm {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.newsletterForm input {
+    flex: 1;
+    padding: 16px 24px;
+    border-radius: 14px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: white;
+    font-family: inherit;
+    font-size: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.newsletterForm input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.newsletterForm button {
+    padding: 16px 32px;
+    border-radius: 14px;
+    border: none;
+    background: white;
+    color: var(--primary);
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.newsletterForm button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Main Footer */
+.mainFooter {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 80px 5%;
+    display: grid;
+    grid-template-columns: 1.5fr 2fr;
+    gap: 100px;
 }
 
 .logo {
@@ -24,37 +107,38 @@
 
 .logoImg {
     object-fit: contain;
-    filter: brightness(0) invert(var(--theme-is-dark, 1));
+    filter: brightness(0) invert(var(--theme-is-dark, 0));
+    /* Adapts to light/dark mode */
 }
 
-[data-theme='light'] .logoImg {
+/* Force specific colors in light mode if needed */
+:global([data-theme='light']) .logoImg {
     filter: none;
-    /* Keep original colors if light, or force black/white */
 }
 
-/* Footer is often dark, so keeping logo white-ish is usually safer */
-.logoImg {
-    filter: brightness(0) invert(1);
-}
-
-.tagline {
+.description {
     color: var(--text-muted);
-    line-height: 1.6;
+    font-size: 1.05rem;
+    line-height: 1.7;
     margin-bottom: 30px;
 }
 
-.social {
+.contactInfo {
     display: flex;
-    gap: 20px;
+    flex-direction: column;
+    gap: 15px;
 }
 
-.social a {
+.contactItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--foreground);
+    font-weight: 500;
+}
+
+.contactItem span {
     color: var(--text-muted);
-    transition: color var(--transition);
-}
-
-.social a:hover {
-    color: var(--primary);
 }
 
 .linksGrid {
@@ -63,41 +147,123 @@
     gap: 40px;
 }
 
-.linksGrid h4 {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 24px;
+.linkColumn h4 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 25px;
+    color: var(--foreground);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.linksGrid ul {
+.linkColumn ul {
     list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-.linksGrid li {
-    margin-bottom: 12px;
+.linkColumn a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s, transform 0.2s;
+    display: inline-block;
 }
 
-.linksGrid a {
+.linkColumn a:hover {
+    color: var(--primary);
+    transform: translateX(5px);
+}
+
+.socialGrid {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.socialIcon {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground);
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.socialIcon:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: translateY(-5px);
+}
+
+/* Bottom Bar */
+.bottomBar {
+    border-top: 1px solid var(--glass-border);
+    padding: 40px 5%;
+}
+
+.bottomContent {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     color: var(--text-muted);
     font-size: 0.95rem;
-    transition: color var(--transition);
 }
 
-.linksGrid a:hover {
+.legalLinks {
+    display: flex;
+    gap: 30px;
+}
+
+.legalLinks a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.legalLinks a:hover {
     color: var(--foreground);
 }
 
-.bottomBar {
-    border-top: 1px solid var(--glass-border);
-    padding: 30px 0;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.9rem;
+@media (max-width: 1200px) {
+    .mainFooter {
+        gap: 60px;
+    }
 }
 
 @media (max-width: 1024px) {
-    .container {
+    .newsletterContent {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .mainFooter {
         grid-template-columns: 1fr;
-        gap: 60px;
+        gap: 80px;
+    }
+}
+
+@media (max-width: 768px) {
+    .newsletterText h3 {
+        font-size: 1.5rem;
+    }
+
+    .linksGrid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .bottomContent {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
     }
 }
