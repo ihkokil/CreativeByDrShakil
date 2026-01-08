@@ -23,11 +23,12 @@ import { motion } from "framer-motion";
 import { COURSES, INSTRUCTORS } from "@/constants/courses";
 import Image from "next/image";
 import Link from "next/link";
+import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 
 export default function TeacherDashboard() {
     const { user, loading } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'students' | 'assignments'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'students' | 'assignments' | 'library'>('overview');
 
     useEffect(() => {
         if (!loading && !user) {
@@ -111,6 +112,12 @@ export default function TeacherDashboard() {
                         onClick={() => setActiveTab('assignments')}
                     >
                         Assignments
+                    </button>
+                    <button
+                        className={`${styles.tabBtn} ${activeTab === 'library' ? styles.activeTab : ''}`}
+                        onClick={() => setActiveTab('library')}
+                    >
+                        Video Library
                     </button>
                 </div>
 
@@ -216,6 +223,10 @@ export default function TeacherDashboard() {
                         <h2>Assignment <span className="gradient-text">Grading</span></h2>
                         <p>Review and grade submissions from your students.</p>
                     </div>
+                )}
+
+                {activeTab === 'library' && (
+                    <VideoLibraryManager />
                 )}
             </div>
 
