@@ -15,7 +15,7 @@
 
 .modal {
     width: 100%;
-    max-width: 450px;
+    max-width: 540px;
     padding: 40px;
     border-radius: 30px;
     position: relative;
@@ -61,6 +61,17 @@
     gap: 15px;
 }
 
+.row {
+    display: flex;
+    gap: 15px;
+    width: 100%;
+}
+
+.halfWidth {
+    flex: 1;
+    min-width: 0;
+}
+
 .inputGroup {
     position: relative;
 }
@@ -91,6 +102,26 @@
     background: rgba(255, 255, 255, 0.08);
 }
 
+.eyeBtn {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color 0.2s;
+}
+
+.eyeBtn:hover {
+    color: var(--foreground);
+}
+
 .message {
     padding: 12px;
     border-radius: 10px;
@@ -108,6 +139,31 @@
     background: rgba(34, 197, 94, 0.1);
     color: #22c55e;
     border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.strengthContainer {
+    margin-top: 8px;
+    padding: 0 5px;
+}
+
+.strengthMeter {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.strengthFill {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strengthText {
+    font-size: 0.75rem;
+    margin-top: 5px;
+    text-align: right;
+    font-weight: 500;
 }
 
 .submitBtn {
