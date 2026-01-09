@@ -1,7 +1,7 @@
 :root {
   /* Dark Mode (Default) */
   --background: #050505;
-  --alt-background: #0a0a0a;
+  --alt-background: #141414;
   --foreground: #ffffff;
   --primary: #3b82f6;
   --secondary: #6366f1;
@@ -15,7 +15,7 @@
 
 [data-theme='light'] {
   --background: #f8fafc;
-  --alt-background: #f1f5f9;
+  --alt-background: #e2e8f0;
   --foreground: #0f172a;
   --primary: #2563eb;
   --secondary: #4f46e5;
