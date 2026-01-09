@@ -40,13 +40,7 @@
 
 .logoImg {
     object-fit: contain;
-    filter: brightness(0) invert(var(--theme-is-dark, 0));
     /* Light mode: black logo, Dark mode: white logo */
-}
-
-/* We need a way to detect theme for the filter */
-[data-theme='dark'] .logoImg {
-    filter: brightness(0) invert(1);
 }
 
 .centerLinks {
