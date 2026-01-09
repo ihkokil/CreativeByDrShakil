@@ -43,7 +43,9 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     <span className={styles.instructorName}>{course.mainInstructor.name}</span>
                 </div>
 
-                <h3 className={styles.courseTitle}>{course.title}</h3>
+                <Link href={`/courses/${course.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <h3 className={styles.courseTitle}>{course.title}</h3>
+                </Link>
 
                 <div className={styles.meta}>
                     <div className={styles.metaItem}>
