@@ -77,19 +77,6 @@ export default function TeacherDashboard() {
                             <h1>Instructor <span className="gradient-text">Dashboard</span></h1>
                             <p>Welcome back, {teacherName}. Here&apos;s what&apos;s happening with your courses.</p>
                         </div>
-                        <div className={styles.stats}>
-                            {stats.map((stat, index) => (
-                                <div key={index} className={styles.statCard}>
-                                    <div className={styles.statIcon} style={{ color: stat.color }}>
-                                        {stat.icon}
-                                    </div>
-                                    <div>
-                                        <h3>{stat.value}</h3>
-                                        <label>{stat.label}</label>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
                     </header>
 
                     {activeTab === 'overview' && (
