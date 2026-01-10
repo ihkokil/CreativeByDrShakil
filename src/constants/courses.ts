@@ -16,6 +16,7 @@ export interface Course {
     title: string;
     category: string;
     price: string;
+    originalPrice?: string;
     rating: number;
     duration: string;
     mainInstructor: Instructor;
@@ -65,6 +66,7 @@ export const COURSES: Course[] = [
         title: "FCPS Part I: Internal Medicine",
         category: "FCPS",
         price: "৳5,000",
+        originalPrice: "৳8,000",
         rating: 4.8,
         duration: "6 Months",
         mainInstructor: INSTRUCTORS.dr_rahman,
@@ -129,6 +131,7 @@ export const COURSES: Course[] = [
         title: "Pediatrics Residency Masterclass",
         category: "Residency",
         price: "৳6,000",
+        originalPrice: "৳10,000",
         rating: 4.7,
         duration: "6 Months",
         mainInstructor: INSTRUCTORS.dr_fatima,
@@ -149,6 +152,7 @@ export const COURSES: Course[] = [
         title: "Radiology Image-based Quiz",
         category: "Exams",
         price: "৳2,500",
+        originalPrice: "৳4,000",
         rating: 5.0,
         duration: "2 Months",
         mainInstructor: INSTRUCTORS.dr_rahman,
