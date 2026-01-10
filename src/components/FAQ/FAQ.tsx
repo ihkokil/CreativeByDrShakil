@@ -43,7 +43,7 @@ export default function FAQ() {
                                 >
                                     <span className={styles.questionText}>{faq.question}</span>
                                     <motion.div
-                                        animate={{ rotate: isOpen ? 45 : 0, color: isOpen ? "var(--primary)" : "currentColor" }}
+                                        animate={{ rotate: isOpen ? 45 : 0, color: isOpen ? "var(--primary)" : "var(--foreground)" }}
                                         transition={{ duration: 0.3, ease: "circOut" }}
                                         className={styles.iconWrapper}
                                     >
