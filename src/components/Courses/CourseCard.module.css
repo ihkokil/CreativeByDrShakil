@@ -16,9 +16,9 @@
     position: absolute;
     top: 15px;
     right: 15px;
-    background: rgba(0, 0, 0, 0.6);
+    background: color-mix(in srgb, var(--background) 74%, transparent);
     backdrop-filter: blur(8px);
-    color: white;
+    color: var(--foreground);
     padding: 6px 14px;
     border-radius: 100px;
     font-size: 0.7rem;
@@ -89,7 +89,7 @@
 
 .cardFooter {
     padding: 20px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -102,7 +102,7 @@
 
 .originalPrice {
     font-size: 0.85rem;
-    color: var(--text-secondary);
+    color: var(--text-muted);
     text-decoration: line-through;
     opacity: 0.7;
     margin-bottom: -2px;
@@ -111,7 +111,7 @@
 .price {
     font-size: 1.2rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--foreground);
 }
 
 .enrollBtn {
