@@ -233,36 +233,53 @@
 .priceSection {
     margin-bottom: 25px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.originalPrice {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    text-decoration: line-through;
+    opacity: 0.7;
 }
 
 .price {
-    font-size: 2.5rem;
-    font-weight: 700;
+    font-size: 2.8rem;
+    font-weight: 800;
     color: var(--text-primary);
+    background: linear-gradient(to right, #fff, #a7f3d0);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .enrollBtn {
     width: 100%;
-    padding: 16px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
+    padding: 18px;
+    background: transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--primary-color);
     border-radius: 12px;
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: 20px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 25px;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .enrollBtn:hover {
-    background: var(--primary-hover, #059669);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-3px) scale(1.02);
 }
 
 .includesList {
