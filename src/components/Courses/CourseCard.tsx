@@ -22,9 +22,9 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
             whileHover={{ y: -5 }}
             className={`${styles.card} ${viewMode === 'list' ? styles.listCard : ''} glass`}
         >
-            <div className={styles.imageWrapper}>
+            <Link href={`/courses/${course.slug}`} className={styles.imageWrapper}>
                 <Image
-                    src="/placeholder.svg"
+                    src={course.category === "FCPS" || course.category === "Exams" ? "/placeholder.svg" : "/placeholder.svg"}
                     alt={course.title}
                     fill
                     style={{ objectFit: "cover" }}
@@ -33,7 +33,7 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     <Tag size={12} />
                     {course.category}
                 </div>
-            </div>
+            </Link>
 
             <div className={styles.cardInfo}>
                 <div className={styles.instructorSection}>
@@ -61,8 +61,8 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
 
             <div className={styles.cardFooter}>
                 <span className={styles.price}>{course.price}</span>
-                <Link href="/study" className={styles.enrollBtn}>
-                    Enroll Now
+                <Link href={`/courses/${course.slug}`} className={styles.enrollBtn}>
+                    View Details
                 </Link>
             </div>
         </motion.div>
