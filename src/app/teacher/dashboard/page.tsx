@@ -51,6 +51,10 @@ export default function TeacherDashboard() {
         course.subInstructors?.some(ins => ins.name === teacherName)
     ) : [COURSES[1], COURSES[5], COURSES[6]]; // Default mock for demo
 
+    // Calculate quick stats for sidebar
+    const totalCourses = myCourses.length;
+    const activeStudents = myCourses.reduce((acc) => acc + 120, 0); // Mock: 120 students per course
+
     const stats = [
         { label: "Total Revenue", value: "৳1,25,000", icon: <DollarSign size={24} />, color: "#8b5cf6" },
         { label: "Active Students", value: "842", icon: <Users size={24} />, color: "#ec4899" },
@@ -66,7 +70,14 @@ export default function TeacherDashboard() {
 
     return (
         <div className={styles.layout}>
-            <TeacherSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <TeacherSidebar 
+                activeTab={activeTab} 
+                setActiveTab={setActiveTab}
+                teacherName={teacherName}
+                teacherEmail={user.email || "teacher@example.com"}
+                activeStudents={activeStudents}
+                totalCourses={totalCourses}
+            />
 
             <main className={styles.mainContentArea}>
                 <Navbar />
