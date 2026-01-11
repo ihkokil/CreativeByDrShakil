@@ -7,7 +7,7 @@
 
 /* Newsletter Section */
 .newsletter {
-    background: var(--primary);
+    background: linear-gradient(120deg, var(--primary), var(--secondary));
     padding: 60px 5%;
     position: relative;
     overflow: hidden;
@@ -60,7 +60,7 @@
     padding: 16px 24px;
     border-radius: 14px;
     border: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.14);
     backdrop-filter: blur(10px);
     color: white;
     font-family: inherit;
@@ -69,7 +69,7 @@
 }
 
 .newsletterForm input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .newsletterForm button {
@@ -107,8 +107,11 @@
 
 .logoImg {
     object-fit: contain;
-    object-position: left;
-    /* Adapts to light/dark mode */
+    filter: none;
+}
+
+[data-theme='dark'] .logoImg {
+    filter: brightness(0) invert(1);
 }
 
 .description {
@@ -197,6 +200,7 @@
     color: white;
     border-color: var(--primary);
     transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
 }
 
 /* Bottom Bar */

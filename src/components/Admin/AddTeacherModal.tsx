@@ -4,7 +4,7 @@ import { useState } from "react";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, User, Send } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
     isOpen: boolean;
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
+    const { session } = useAuth();
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
@@ -24,8 +25,6 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
         setMessage(null);
 
         try {
-            // Get the current session token
-            const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
                 setMessage({ type: 'error', text: 'You must be logged in.' });
                 setLoading(false);
