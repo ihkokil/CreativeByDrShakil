@@ -178,6 +178,7 @@
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .socialIcon {
@@ -191,6 +192,15 @@
     justify-content: center;
     color: var(--foreground);
     transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.socialIcon svg {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .socialIcon:hover {
