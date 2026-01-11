@@ -191,6 +191,9 @@ export default function CourseDetailPage() {
                     </div>
                     <div className={styles.sidebarContent}>
                         <div className={styles.priceSection}>
+                            {course.originalPrice && (
+                                <div className={styles.originalPrice}>{course.originalPrice}</div>
+                            )}
                             <div className={styles.price}>{course.price === "Free" ? "Free" : course.price}</div>
                         </div>
                         
