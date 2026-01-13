@@ -13,7 +13,7 @@
     padding: 20px 0;
     transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     z-index: 2000;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .sidebar.expanded {
@@ -61,6 +61,7 @@
     align-items: center;
     padding: 0 15px;
     margin-bottom: 30px;
+    margin-top: 10px;
 }
 
 .profileHeader {
@@ -69,6 +70,13 @@
     justify-content: center;
     width: 100%;
     position: relative;
+}
+
+.sidebarToggleDock {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 0 15px;
 }
 
 .avatarWrapper {
@@ -110,10 +118,12 @@
     border-radius: 10px;
     transition: all 0.2s;
     flex-shrink: 0;
-    position: absolute;
-    right: -5px;
-    top: -5px;
-    z-index: 10;
+    width: 40px;
+    height: 40px;
+}
+
+.sidebar.expanded .sidebarToggleDock {
+    justify-content: flex-end;
 }
 
 
