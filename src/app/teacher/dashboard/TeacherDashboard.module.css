@@ -25,9 +25,30 @@
 }
 
 .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 140px 5% 100px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 140px 40px 100px;
+}
+
+.tabPanel {
+    width: 100%;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 32px;
+}
+
+.tabPanel h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.tabPanel p {
+    color: var(--text-muted);
+    font-size: 1rem;
+    max-width: 70ch;
 }
 
 .header {
@@ -306,6 +327,10 @@
 }
 
 @media (max-width: 768px) {
+    .container {
+        padding: 120px 16px 80px;
+    }
+
     .header {
         flex-direction: column;
         align-items: flex-start;
