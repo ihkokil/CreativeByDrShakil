@@ -5,7 +5,7 @@
 
 .header {
     padding: 160px 24px 60px;
-    background: linear-gradient(to bottom, rgba(59, 130, 246, 0.05), transparent);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--primary) 11%, transparent), transparent);
     text-align: center;
 }
 
@@ -69,6 +69,7 @@
     border-radius: 12px;
     color: var(--foreground);
     font-family: inherit;
+    font-size: 0.95rem;
     transition: border-color 0.2s;
 }
 
@@ -178,7 +179,7 @@
 }
 
 .filterBtn:hover {
-    background: var(--glass-border);
+    background: var(--surface-soft);
 }
 
 .filterBtn.active {
@@ -206,7 +207,7 @@
 }
 
 .clearBtn:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: color-mix(in srgb, #ef4444 10%, transparent);
     border-style: solid;
 }
 
@@ -246,7 +247,7 @@
 }
 
 .toggleBtn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
 }
 
 .activeToggle {
