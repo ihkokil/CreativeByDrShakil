@@ -10,10 +10,18 @@ export default function Home() {
     return (
         <main className={styles.main}>
             <Navbar />
-            <Hero />
-            <Upcoming />
-            <Courses />
-            <FAQ />
+            <section className={`${styles.sectionShell} ${styles.heroShell}`}>
+                <Hero />
+            </section>
+            <section className={`${styles.sectionShell} ${styles.upcomingShell}`}>
+                <Upcoming />
+            </section>
+            <section className={`${styles.sectionShell} ${styles.coursesShell}`}>
+                <Courses />
+            </section>
+            <section className={`${styles.sectionShell} ${styles.faqShell}`}>
+                <FAQ />
+            </section>
             <Footer />
         </main>
     );

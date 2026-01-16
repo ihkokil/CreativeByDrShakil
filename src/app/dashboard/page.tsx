@@ -11,10 +11,9 @@ import { motion } from "framer-motion";
 import { COURSES } from "@/constants/courses";
 import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 
 export default function StudentDashboard() {
-    const { user, loading } = useAuth();
+    const { user, loading, refreshSession } = useAuth();
     const router = useRouter();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'profile'>('overview');
@@ -27,8 +26,8 @@ export default function StudentDashboard() {
         if (!loading && !user) {
             router.push("/");
         } else if (user) {
-            setFullName(user.user_metadata?.full_name || "");
-            setPhone(user.user_metadata?.phone || "");
+            setFullName(user.user_metadata?.full_name || user.email?.split('@')[0] || "");
+            setPhone(user.user_metadata?.phone || user.phone || "");
         }
     }, [user, loading, router]);
 
@@ -37,14 +36,22 @@ export default function StudentDashboard() {
         setSaving(true);
         setMessage(null);
         
-        const { error } = await supabase.auth.updateUser({
-            data: { full_name: fullName, phone: phone }
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch('/api/user/update-profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ fullName, phone }),
         });
+        const data = await response.json();
         
-        if (error) {
-            setMessage({ type: 'error', text: error.message });
+        if (!response.ok) {
+            setMessage({ type: 'error', text: data.error || 'Failed to update profile.' });
         } else {
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            await refreshSession();
         }
         setSaving(false);
     };
