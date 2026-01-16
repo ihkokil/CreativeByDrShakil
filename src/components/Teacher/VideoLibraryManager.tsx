@@ -109,6 +109,9 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
 };
 
 export default function VideoLibraryManager() {
+    // New State for Drill-down structure
+    const [activeRootId, setActiveRootId] = useState<string | null>(null);
+
     // Initial mock state acting as our Master Video Library root
     const [libraryData, setLibraryData] = useState<CurriculumNode[]>([
         {
@@ -184,8 +187,11 @@ export default function VideoLibraryManager() {
         setIsVideoModalOpen(true);
     };
 
-    const handleDeleteClick = (id: string) => {
+    const handleDeleteClick = (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         if (confirm("Are you sure you want to delete this item? This will also delete all nested content inside it.")) {
+            // Also reset active root if we delete the file we are currently looking inside
+            if (id === activeRootId) setActiveRootId(null);
             setLibraryData(prev => deleteNode(prev, id));
         }
     };
@@ -201,7 +207,9 @@ export default function VideoLibraryManager() {
             children: []
         };
 
-        if (activeParentId) {
+        if (activeParentId && activeRootId) {
+            setLibraryData(prev => addNodeToParent(prev, activeParentId, newFolder));
+        } else if (activeParentId && !activeRootId) {
             setLibraryData(prev => addNodeToParent(prev, activeParentId, newFolder));
         } else {
             setLibraryData(prev => [...prev, newFolder]);
@@ -231,6 +239,8 @@ export default function VideoLibraryManager() {
         setIsVideoModalOpen(false);
     };
 
+    const activeRootNode = libraryData.find(root => root.id === activeRootId);
+
     return (
         <div className={styles.managerContainer}>
             <div className={styles.header}>
@@ -238,31 +248,103 @@ export default function VideoLibraryManager() {
                     <h2>Master <span className="gradient-text">Video Library</span></h2>
                     <p>Organize all of your self-hosted and YouTube video lectures here. You can construct course curriculums later using this library.</p>
                 </div>
-                <button className={styles.primaryBtn} onClick={() => handleAddFolderClick()}>
-                    <Plus size={18} /> New Root Category
-                </button>
-            </div>
-
-            <div className={styles.treeContainer}>
-                {libraryData.length === 0 ? (
-                    <div className={styles.emptyState}>
-                        <FolderOpen size={48} className={styles.emptyIcon} />
-                        <h3>Your Library is Empty</h3>
-                        <p>Create a root category to start organizing your videos.</p>
-                    </div>
-                ) : (
-                    libraryData.map(node => (
-                        <LibraryItem
-                            key={node.id}
-                            node={node}
-                            depth={0}
-                            onAddFolder={handleAddFolderClick}
-                            onAddVideo={handleAddVideoClick}
-                            onDelete={handleDeleteClick}
-                        />
-                    ))
+                {!activeRootId && (
+                    <button className={styles.primaryBtn} onClick={() => handleAddFolderClick()}>
+                        <Plus size={18} /> New Root Category
+                    </button>
                 )}
             </div>
+
+            {!activeRootId ? (
+                // Root Categories Card Grid View
+                <>
+                    {libraryData.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <FolderOpen size={48} className={styles.emptyIcon} />
+                            <h3>Your Library is Empty</h3>
+                            <p>Create a root category to start organizing your videos.</p>
+                        </div>
+                    ) : (
+                        <div className={styles.libraryGrid}>
+                            {libraryData.map(node => (
+                                <motion.div
+                                    key={node.id}
+                                    className={styles.rootCard}
+                                    onClick={() => setActiveRootId(node.id)}
+                                    layoutId={`card-${node.id}`}
+                                >
+                                    <div className={styles.rootActions}>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title="Edit"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button
+                                            className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                                            onClick={(e) => handleDeleteClick(node.id, e)}
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+
+                                    <div className={styles.rootIconWrapper}>
+                                        <FolderOpen size={28} />
+                                    </div>
+                                    <div>
+                                        <h3 className={styles.rootTitle}>{node.title}</h3>
+                                        <span className={styles.rootMeta}>{node.children?.length || 0} items inside</span>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
+                </>
+            ) : (
+                // Active Nested Tree View
+                <motion.div
+                    className={styles.treeContainer}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                >
+                    <div className={styles.activeViewHeader}>
+                        <button className={styles.backBtn} onClick={() => setActiveRootId(null)}>
+                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Root Folders
+                        </button>
+                        <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
+                        <div className={styles.actions}>
+                            <button className={styles.actionBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Add Subfolder">
+                                <Folder size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
+                            </button>
+                            <button className={styles.actionBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Video">
+                                <Video size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {activeRootNode?.children?.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <FolderOpen size={48} className={styles.emptyIcon} />
+                            <h3>Category is Empty</h3>
+                            <p>Add subfolders or videos to construct this section.</p>
+                        </div>
+                    ) : (
+                        activeRootNode?.children?.map(node => (
+                            <LibraryItem
+                                key={node.id}
+                                node={node}
+                                depth={0}
+                                onAddFolder={handleAddFolderClick}
+                                onAddVideo={handleAddVideoClick}
+                                onDelete={handleDeleteClick}
+                            />
+                        ))
+                    )}
+                </motion.div>
+            )}
 
             {/* Folder Modal */}
             <AnimatePresence>
