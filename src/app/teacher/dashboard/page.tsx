@@ -2,35 +2,27 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
+import { useEffect, useMemo, useState } from "react";
+import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./TeacherDashboard.module.css";
 import {
-    Users,
+    LayoutDashboard,
     BookOpen,
+    Users,
+    ClipboardList,
+    Video,
     DollarSign,
     Star,
-    Plus,
-    BarChart3,
-    MessageSquare,
     CheckCircle,
-    ArrowRight,
-    Search,
-    BookMarked
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { COURSES, INSTRUCTORS } from "@/constants/courses";
-import Image from "next/image";
-import Link from "next/link";
+import { COURSES } from "@/constants/courses";
 import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
-import TeacherSidebar from "@/components/Teacher/TeacherSidebar";
+import Image from "next/image";
 
 export default function TeacherDashboard() {
-    const { user, loading } = useAuth();
+    const { user, loading, signOut } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'students' | 'assignments' | 'library'>('overview');
-    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+    const [activeTab, setActiveTab] = useState<"overview" | "courses" | "students" | "assignments" | "library">("overview");
 
     useEffect(() => {
         if (!loading && !user) {
@@ -38,178 +30,116 @@ export default function TeacherDashboard() {
         }
     }, [user, loading, router]);
 
+    const navItems = useMemo(
+        () => [
+            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
+            { key: "courses", label: "Courses", icon: BookOpen, mobilePrimary: true },
+            { key: "students", label: "Students", icon: Users, mobilePrimary: true },
+            { key: "assignments", label: "Assignments", icon: ClipboardList },
+            { key: "library", label: "Library", icon: Video },
+        ],
+        []
+    );
+
     if (loading || !user) {
         return <div className={styles.loader}>Loading Teacher Dashboard...</div>;
     }
 
-    // Mock teacher data (assume Dr. Shakil for demonstration if metadata not set)
-    const teacherName = user.user_metadata?.full_name || user.email?.split('@')[0] || "Dr. Shakil Ahmed";
-    const myCourses = COURSES.filter(course =>
-        course.mainInstructor.name === teacherName ||
-        course.subInstructors?.some(ins => ins.name === teacherName)
-    ).length > 0 ? COURSES.filter(course =>
-        course.mainInstructor.name === teacherName ||
-        course.subInstructors?.some(ins => ins.name === teacherName)
-    ) : [COURSES[1], COURSES[5], COURSES[6]]; // Default mock for demo
+    const teacherName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Dr. Shakil Ahmed";
+    const myCourses = COURSES.filter(
+        (course) =>
+            course.mainInstructor.name === teacherName ||
+            course.subInstructors?.some((ins) => ins.name === teacherName)
+    );
+    const fallbackCourses = myCourses.length > 0 ? myCourses : [COURSES[1], COURSES[5], COURSES[6]];
 
-    // Calculate quick stats for sidebar
-    const totalCourses = myCourses.length;
-    const activeStudents = myCourses.reduce((acc) => acc + 120, 0); // Mock: 120 students per course
-
-    const stats = [
-        { label: "Total Revenue", value: "৳1,25,000", icon: <DollarSign size={24} />, color: "#8b5cf6" },
-        { label: "Active Students", value: "842", icon: <Users size={24} />, color: "#ec4899" },
-        { label: "Avg. Course Rating", value: "4.9", icon: <Star size={24} />, color: "#f59e0b" },
-        { label: "Total Lessons", value: "156", icon: <BookOpen size={24} />, color: "#10b981" },
-    ];
-
-    const recentActivity = [
-        { id: 1, type: 'enrollment', user: 'Dr. Rahul', course: 'Surgery High Yield', time: '2 mins ago' },
-        { id: 2, type: 'review', user: 'Dr. Sarah', course: 'Anatomy Foundation', time: '1 hour ago', rating: 5 },
-        { id: 3, type: 'submission', user: 'Dr. Faisal', course: 'Viva Secrets', time: '3 hours ago' },
-    ];
+    const handleLogout = async () => {
+        await signOut();
+        router.push("/");
+    };
 
     return (
-        <div className={styles.layout}>
-            <TeacherSidebar 
-                activeTab={activeTab} 
-                setActiveTab={setActiveTab}
-                teacherName={teacherName}
-                teacherEmail={user.email || "teacher@example.com"}
-                activeStudents={activeStudents}
-                totalCourses={totalCourses}
-                isExpanded={isSidebarExpanded}
-                onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
-            />
+        <DashboardShell
+            title="Teacher Dashboard"
+            subtitle="Manage your courses, students, and content library in one app shell."
+            roleLabel="Teacher"
+            userName={teacherName}
+            userEmail={user.email}
+            items={navItems}
+            activeKey={activeTab}
+            onSelect={(key) => setActiveTab(key as "overview" | "courses" | "students" | "assignments" | "library")}
+            onLogout={handleLogout}
+        >
+            {activeTab === "overview" && (
+                <div className={styles.stack}>
+                    <section className={styles.metricsGrid}>
+                        <div className={styles.metricCard}><DollarSign size={20} /><div><h3>৳1,25,000</h3><p>Total Revenue</p></div></div>
+                        <div className={styles.metricCard}><Users size={20} /><div><h3>842</h3><p>Active Students</p></div></div>
+                        <div className={styles.metricCard}><Star size={20} /><div><h3>4.9</h3><p>Average Rating</p></div></div>
+                        <div className={styles.metricCard}><BookOpen size={20} /><div><h3>{fallbackCourses.length}</h3><p>Courses</p></div></div>
+                    </section>
 
-            {/* Spacer div takes up the same width as the fixed sidebar to push content right */}
-            <div className={`${styles.sidebarSpacer} ${!isSidebarExpanded ? styles.sidebarSpacerCollapsed : ''}`} />
-
-            <main className={styles.mainContentArea}>
-                {/* Navbar wrapper constrains the fixed navbar to the content area */}
-                <div className={`${styles.navbarWrapper} ${!isSidebarExpanded ? styles.navbarWrapperCollapsed : ''}`}>
-                    <Navbar />
-                </div>
-
-                <div className={styles.container}>
-                    <header className={styles.header}>
-                        <div className={styles.welcome}>
-                            <h1>Instructor <span className="gradient-text">Dashboard</span></h1>
-                            <p>Welcome back, {teacherName}. Here&apos;s what&apos;s happening with your courses.</p>
-                        </div>
-                    </header>
-
-                    {activeTab === 'overview' && (
-                        <div className={styles.dashboardGrid}>
-                            <section className={styles.mainContent}>
-                                <div className={styles.sectionHeader}>
-                                    <h2>Your <span className="gradient-text">Courses</span></h2>
-                                    <Link href="#" className={styles.viewAll}>View Analysis <ArrowRight size={16} /></Link>
-                                </div>
-
-                                <div className={styles.courseList}>
-                                    {myCourses.map(course => (
-                                        <motion.div
-                                            key={course.id}
-                                            className={styles.courseCard}
-                                            whileHover={{ y: -5 }}
-                                        >
-                                            <div className={styles.courseThumb}>
-                                                <Image src="/placeholder.svg" alt={course.title} fill style={{ objectFit: 'cover' }} />
-                                            </div>
-                                            <div className={styles.courseInfo}>
-                                                <span className={styles.category}>{course.category}</span>
-                                                <h3>{course.title}</h3>
-                                                <div className={styles.courseStats}>
-                                                    <div className={styles.courseStat}>
-                                                        <Users size={14} /> 120 Students
-                                                    </div>
-                                                    <div className={styles.courseStat}>
-                                                        <CheckCircle size={14} /> 85% Comp.
-                                                    </div>
-                                                </div>
-                                                <button className={styles.manageBtn}>Manage Content</button>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </section>
-
-                            <aside className={styles.sidebar}>
-                                <button className={styles.createCourseBtn}>
-                                    <Plus size={20} /> Create New Course
-                                </button>
-
-                                <div className={styles.sidebarCard}>
-                                    <h3>Recent Activity</h3>
-                                    <div className={styles.activityList}>
-                                        {recentActivity.map(activity => (
-                                            <div key={activity.id} className={styles.activityItem}>
-                                                <div className={styles.activityIcon}>
-                                                    {activity.type === 'enrollment' ? <Users size={18} /> :
-                                                        activity.type === 'review' ? <Star size={18} /> :
-                                                            <BookMarked size={18} />}
-                                                </div>
-                                                <div className={styles.activityInfo}>
-                                                    <h4>{activity.user}</h4>
-                                                    <p>{activity.type === 'enrollment' ? 'Enrolled in' :
-                                                        activity.type === 'review' ? 'Reviewed' :
-                                                            'Submitted assignment for'} {activity.course}</p>
-                                                    <span>{activity.time}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Your Courses</h2>
+                        <div className={styles.courseGrid}>
+                            {fallbackCourses.map((course) => (
+                                <article key={course.id} className={styles.courseCard}>
+                                    <div className={styles.thumb}>
+                                        <Image src="/placeholder.svg" alt={course.title} fill style={{ objectFit: "cover" }} />
                                     </div>
-                                </div>
-
-                                <div className={styles.sidebarCard}>
-                                    <h3>Messages</h3>
-                                    <div className={styles.activityList}>
-                                        <div className={styles.activityItem}>
-                                            <div className={styles.activityIcon}>
-                                                <MessageSquare size={18} />
-                                            </div>
-                                            <div className={styles.activityInfo}>
-                                                <h4>Academic Support</h4>
-                                                <p>You have 3 new questions from students.</p>
-                                                <span>Just now</span>
-                                            </div>
+                                    <div className={styles.courseBody}>
+                                        <span className={styles.category}>{course.category}</span>
+                                        <h3>{course.title}</h3>
+                                        <div className={styles.metaRow}>
+                                            <span><Users size={14} /> 120 Students</span>
+                                            <span><CheckCircle size={14} /> 85% Completion</span>
                                         </div>
+                                        <button className={styles.primaryBtn}>Manage Content</button>
                                     </div>
-                                </div>
-                            </aside>
+                                </article>
+                            ))}
                         </div>
-                    )}
-
-                    {activeTab === 'courses' && (
-                        <div className={styles.tabPanel}>
-                            <h2>Course <span className="gradient-text">Management</span></h2>
-                            <p>This is where you can create, edit, and publish your medical courses.</p>
-                            {/* More detailed course management UI could go here */}
-                        </div>
-                    )}
-
-                    {activeTab === 'students' && (
-                        <div className={styles.tabPanel}>
-                            <h2>Student <span className="gradient-text">Analytics</span></h2>
-                            <p>Track student progress, attendance, and exam performance across all your courses.</p>
-                        </div>
-                    )}
-
-                    {activeTab === 'assignments' && (
-                        <div className={styles.tabPanel}>
-                            <h2>Assignment <span className="gradient-text">Grading</span></h2>
-                            <p>Review and grade submissions from your students.</p>
-                        </div>
-                    )}
-
-                    {activeTab === 'library' && (
-                        <VideoLibraryManager />
-                    )}
+                    </section>
                 </div>
+            )}
 
-                <Footer />
-            </main>
-        </div>
+            {activeTab === "courses" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Course Management</h2>
+                    <div className={styles.simpleCards}>
+                        <div className={styles.simpleCard}><strong>8</strong><span>Draft Modules</span></div>
+                        <div className={styles.simpleCard}><strong>24</strong><span>Published Lessons</span></div>
+                        <div className={styles.simpleCard}><strong>3</strong><span>Requires Review</span></div>
+                    </div>
+                </section>
+            )}
+
+            {activeTab === "students" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Student Analytics</h2>
+                    <div className={styles.simpleCards}>
+                        <div className={styles.simpleCard}><strong>842</strong><span>Total Active Students</span></div>
+                        <div className={styles.simpleCard}><strong>76%</strong><span>Weekly Retention</span></div>
+                        <div className={styles.simpleCard}><strong>91%</strong><span>Assignment Submission</span></div>
+                    </div>
+                </section>
+            )}
+
+            {activeTab === "assignments" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Assignment Center</h2>
+                    <div className={styles.assignmentList}>
+                        <article className={styles.assignmentCard}><h3>Clinical Case Reflection</h3><p>32 pending reviews · due in 2 days</p></article>
+                        <article className={styles.assignmentCard}><h3>Rapid Revision Quiz</h3><p>18 pending reviews · due in 4 days</p></article>
+                    </div>
+                </section>
+            )}
+
+            {activeTab === "library" && (
+                <section className={styles.panelNoPad}>
+                    <VideoLibraryManager />
+                </section>
+            )}
+        </DashboardShell>
     );
 }
