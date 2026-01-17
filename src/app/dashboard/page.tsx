@@ -2,221 +2,243 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
+import { useEffect, useMemo, useState } from "react";
+import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./Dashboard.module.css";
-import { BookOpen, Clock, Star, Trophy, ArrowRight, Play, User as UserIcon, Phone } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+    LayoutDashboard,
+    UserCog,
+    TrendingUp,
+    ClipboardList,
+    BookOpen,
+    Trophy,
+    Clock,
+    ArrowRight,
+    Phone,
+    User as UserIcon,
+} from "lucide-react";
 import { COURSES } from "@/constants/courses";
-import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+import Image from "next/image";
 
 export default function StudentDashboard() {
-    const { user, loading } = useAuth();
+    const { user, loading, refreshSession, signOut } = useAuth();
     const router = useRouter();
 
-    const [activeTab, setActiveTab] = useState<'overview' | 'profile'>('overview');
+    const [activeTab, setActiveTab] = useState<"overview" | "profile" | "progress" | "exams">("overview");
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
     useEffect(() => {
         if (!loading && !user) {
             router.push("/");
-        } else if (user) {
-            setFullName(user.user_metadata?.full_name || "");
-            setPhone(user.user_metadata?.phone || "");
+            return;
+        }
+
+        if (user) {
+            setFullName(user.user_metadata?.full_name || user.email?.split("@")[0] || "");
+            setPhone(user.user_metadata?.phone || user.phone || "");
         }
     }, [user, loading, router]);
+
+    const navItems = useMemo(
+        () => [
+            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
+            { key: "profile", label: "Profile", icon: UserCog, mobilePrimary: true },
+            { key: "progress", label: "Progress", icon: TrendingUp, mobilePrimary: true },
+            { key: "exams", label: "Exams", icon: ClipboardList },
+        ],
+        []
+    );
+
+    const myCourses = useMemo(() => COURSES.slice(0, 3), []);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         setMessage(null);
-        
-        const { error } = await supabase.auth.updateUser({
-            data: { full_name: fullName, phone: phone }
+
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch("/api/user/update-profile", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ fullName, phone }),
         });
-        
-        if (error) {
-            setMessage({ type: 'error', text: error.message });
+        const data = await response.json();
+
+        if (!response.ok) {
+            setMessage({ type: "error", text: data.error || "Failed to update profile." });
         } else {
-            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setMessage({ type: "success", text: "Profile updated successfully!" });
+            await refreshSession();
         }
+
         setSaving(false);
+    };
+
+    const handleLogout = async () => {
+        await signOut();
+        router.push("/");
     };
 
     if (loading || !user) {
         return <div className={styles.loader}>Loading Dashboard...</div>;
     }
 
-    const myCourses = [COURSES[0], COURSES[1]]; // Mock data for enrolled courses
-
     return (
-        <main className={styles.main}>
-            <Navbar />
-
-            <div className={styles.container}>
-                <header className={styles.header}>
-                    <div className={styles.welcome}>
-                        <h1>Welcome back, <span className="gradient-text">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Doctor'}</span></h1>
-                        <p>You have 2 courses currently in progress. Keep up the momentum!</p>
-                    </div>
-                    <div className={styles.stats}>
-                        <div className={styles.statCard}>
-                            <Trophy className={styles.statIcon} />
+        <DashboardShell
+            title="Student Dashboard"
+            subtitle="Track your courses, progress, and exam readiness from one place."
+            roleLabel="Student"
+            userName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Student"}
+            userEmail={user.email}
+            items={navItems}
+            activeKey={activeTab}
+            onSelect={(key) => setActiveTab(key as "overview" | "profile" | "progress" | "exams")}
+            onLogout={handleLogout}
+        >
+            {activeTab === "overview" && (
+                <div className={styles.stack}>
+                    <section className={styles.metricsGrid}>
+                        <div className={styles.metricCard}>
+                            <Trophy size={20} />
                             <div>
                                 <h3>12</h3>
-                                <label>Certificates</label>
+                                <p>Certificates</p>
                             </div>
                         </div>
-                        <div className={styles.statCard}>
-                            <BookOpen className={styles.statIcon} />
+                        <div className={styles.metricCard}>
+                            <BookOpen size={20} />
+                            <div>
+                                <h3>{myCourses.length}</h3>
+                                <p>Active Courses</p>
+                            </div>
+                        </div>
+                        <div className={styles.metricCard}>
+                            <TrendingUp size={20} />
                             <div>
                                 <h3>85%</h3>
-                                <label>Avg. Score</label>
+                                <p>Average Score</p>
                             </div>
                         </div>
-                    </div>
-                </header>
-
-                <div className={styles.tabNav}>
-                    <button 
-                        className={`${styles.tabBtn} ${activeTab === 'overview' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTab('overview')}
-                    >
-                        Overview
-                    </button>
-                    <button 
-                        className={`${styles.tabBtn} ${activeTab === 'profile' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTab('profile')}
-                    >
-                        Profile Settings
-                    </button>
-                </div>
-
-                {activeTab === 'overview' ? (
-                    <div className={styles.dashboardGrid}>
-                    {/* Left Column: My Courses */}
-                    <section className={styles.myCourses}>
-                        <div className={styles.sectionHeader}>
-                            <h2>My <span className="gradient-text">Courses</span></h2>
-                            <Link href="/courses" className={styles.viewAll}>Find more <ArrowRight size={16} /></Link>
-                        </div>
-
-                        <div className={styles.courseList}>
-                            {myCourses.map(course => (
-                                <motion.div
-                                    key={course.id}
-                                    className={`${styles.courseCard} glass`}
-                                    whileHover={{ y: -5 }}
-                                >
-                                    <div className={styles.courseThumb}>
-                                        <Image src="/placeholder.svg" alt={course.title} fill style={{ objectFit: 'cover' }} />
-                                        <div className={styles.playOverlay}>
-                                            <Play fill="white" size={30} />
-                                        </div>
-                                    </div>
-                                    <div className={styles.courseInfo}>
-                                        <span className={styles.category}>{course.category}</span>
-                                        <h3>{course.title}</h3>
-                                        <div className={styles.progressContainer}>
-                                            <div className={styles.progressBar} style={{ width: '45%' }}></div>
-                                        </div>
-                                        <div className={styles.courseMeta}>
-                                            <span>45% Completed</span>
-                                            <Link href="/study" className={styles.resumeBtn}>Resume</Link>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
+                        <div className={styles.metricCard}>
+                            <Clock size={20} />
+                            <div>
+                                <h3>24h</h3>
+                                <p>Study This Week</p>
+                            </div>
                         </div>
                     </section>
 
-                    {/* Right Column: Sidebar info */}
-                    <aside className={styles.sidebar}>
-                        <div className={styles.sidebarCard}>
-                            <h3>Upcoming Exams</h3>
-                            <div className={styles.examList}>
-                                <div className={styles.examItem}>
-                                    <div className={styles.date}>Mar 15</div>
-                                    <div className={styles.examTitle}>BCPS Part I Mock</div>
-                                </div>
-                                <div className={styles.examItem}>
-                                    <div className={styles.date}>Mar 28</div>
-                                    <div className={styles.examTitle}>Surgery Masterquiz</div>
-                                </div>
-                            </div>
-                            <button className={styles.sidebarBtn}>View All Exams</button>
+                    <section className={styles.panel}>
+                        <div className={styles.panelHeader}>
+                            <h2>Continue Learning</h2>
+                            <Link href="/courses" className={styles.inlineLink}>
+                                Browse courses <ArrowRight size={14} />
+                            </Link>
                         </div>
 
-                        <div className={`${styles.sidebarCard} ${styles.blueCard}`}>
-                            <h3>Need help?</h3>
-                            <p>Our academic advisors are available 10am - 8pm for clinical guidance.</p>
-                            <button className={styles.supportBtn}>Contact Support</button>
+                        <div className={styles.courseGrid}>
+                            {myCourses.map((course) => (
+                                <article key={course.id} className={styles.courseCard}>
+                                    <div className={styles.thumb}>
+                                        <Image src="/placeholder.svg" alt={course.title} fill style={{ objectFit: "cover" }} />
+                                    </div>
+                                    <div className={styles.courseBody}>
+                                        <span className={styles.category}>{course.category}</span>
+                                        <h3>{course.title}</h3>
+                                        <div className={styles.progressTrack}>
+                                            <div className={styles.progressFill} style={{ width: "45%" }} />
+                                        </div>
+                                        <div className={styles.courseMeta}>
+                                            <span>45% completed</span>
+                                            <Link href="/study" className={styles.resumeBtn}>Resume</Link>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
                         </div>
-                    </aside>
+                    </section>
                 </div>
-                ) : (
-                    <div className={`${styles.profileSection} glass`}>
-                        <h2>Profile <span className="gradient-text">Settings</span></h2>
-                        <form className={styles.profileForm} onSubmit={handleUpdateProfile}>
-                            <div className={styles.formGroup}>
-                                <label>Full Name</label>
-                                <div className={styles.inputWrapper}>
-                                    <UserIcon size={18} className={styles.inputIcon} />
-                                    <input 
-                                        type="text" 
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
-                                        placeholder="Dr. John Doe"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Email Address</label>
-                                <div className={styles.inputWrapper}>
-                                    <input 
-                                        type="email" 
-                                        value={user?.email || ""}
-                                        disabled
-                                        className={styles.disabledInput}
-                                    />
-                                </div>
-                                <span className={styles.helpText}>Email cannot be changed directly.</span>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Phone Number</label>
-                                <div className={styles.inputWrapper}>
-                                    <Phone size={18} className={styles.inputIcon} />
-                                    <input 
-                                        type="tel" 
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        placeholder="+1 234 567 890"
-                                    />
-                                </div>
-                            </div>
+            )}
 
-                            {message && (
-                                <div className={`${styles.message} ${styles[message.type]}`}>
-                                    {message.text}
-                                </div>
-                            )}
+            {activeTab === "profile" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Profile Settings</h2>
+                    <form className={styles.profileForm} onSubmit={handleUpdateProfile}>
+                        <div className={styles.formGroup}>
+                            <label>Full Name</label>
+                            <div className={styles.inputWrap}>
+                                <UserIcon size={16} className={styles.inputIcon} />
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="Dr. John Doe"
+                                    required
+                                />
+                            </div>
+                        </div>
 
-                            <button type="submit" className={styles.saveBtn} disabled={saving}>
-                                {saving ? "Saving..." : "Save Changes"}
-                            </button>
-                        </form>
+                        <div className={styles.formGroup}>
+                            <label>Email Address</label>
+                            <input type="email" value={user.email || ""} disabled className={styles.disabledInput} />
+                            <small>Email cannot be changed directly.</small>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label>Phone Number</label>
+                            <div className={styles.inputWrap}>
+                                <Phone size={16} className={styles.inputIcon} />
+                                <input
+                                    type="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    placeholder="+1 234 567 890"
+                                />
+                            </div>
+                        </div>
+
+                        {message && <div className={`${styles.message} ${styles[message.type]}`}>{message.text}</div>}
+
+                        <button type="submit" className={styles.primaryBtn} disabled={saving}>
+                            {saving ? "Saving..." : "Save Changes"}
+                        </button>
+                    </form>
+                </section>
+            )}
+
+            {activeTab === "progress" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Progress Snapshot</h2>
+                    <div className={styles.simpleCards}>
+                        <div className={styles.simpleCard}><strong>18</strong><span>Lessons Completed</span></div>
+                        <div className={styles.simpleCard}><strong>6</strong><span>Mock Tests Taken</span></div>
+                        <div className={styles.simpleCard}><strong>3</strong><span>Courses On Track</span></div>
                     </div>
-                )}
-            </div>
+                </section>
+            )}
 
-            <Footer />
-        </main>
+            {activeTab === "exams" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Upcoming Exams</h2>
+                    <div className={styles.examCards}>
+                        <article className={styles.examCard}>
+                            <h3>BCPS Part I Mock</h3>
+                            <p>March 15 · Timed mock with analytics</p>
+                        </article>
+                        <article className={styles.examCard}>
+                            <h3>Surgery Masterquiz</h3>
+                            <p>March 28 · High-yield revision sprint</p>
+                        </article>
+                    </div>
+                </section>
+            )}
+        </DashboardShell>
     );
 }

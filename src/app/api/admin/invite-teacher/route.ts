@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { prisma } from '@/lib/prisma';
+import {
+    extractBearerToken,
+    extractCookieToken,
+    hashPassword,
+    verifyAuthToken,
+} from '@/lib/auth-server';
 
 export async function POST(request: NextRequest) {
     try {
@@ -12,70 +18,42 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-        if (!serviceRoleKey) {
-            return NextResponse.json(
-                { error: 'Server configuration error: missing service role key.' },
-                { status: 500 }
-            );
-        }
-
-        const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-            auth: { autoRefreshToken: false, persistSession: false },
-        });
-
-        // Verify the requesting user is an admin
-        const authHeader = request.headers.get('Authorization');
-        if (!authHeader) {
+        const bearerToken = extractBearerToken(request);
+        const cookieToken = await extractCookieToken();
+        const token = bearerToken || cookieToken;
+        if (!token) {
             return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
         }
 
-        const token = authHeader.replace('Bearer ', '');
-        const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-        if (authError || !requestingUser) {
-            return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-        }
-
-        // Check if requesting user is admin
-        const { data: adminProfile } = await supabaseAdmin
-            .from('profiles')
-            .select('role')
-            .eq('id', requestingUser.id)
-            .single();
-
-        if (!adminProfile || adminProfile.role !== 'admin') {
+        const payload = verifyAuthToken(token);
+        if (payload.role !== 'admin') {
             return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
         }
 
-        // Invite the teacher via email (sends password set link)
-        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+        const existingTeacher = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (existingTeacher) {
+            return NextResponse.json({ error: 'A user with this email already exists.' }, { status: 409 });
+        }
+
+        // Temporary password should be rotated using a reset flow.
+        const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+        const passwordHash = await hashPassword(tempPassword);
+
+        await prisma.user.create({
             data: {
-                full_name: fullName,
+                email,
+                fullName,
+                passwordHash,
+                role: 'teacher',
             },
         });
 
-        if (inviteError) {
-            return NextResponse.json(
-                { error: inviteError.message },
-                { status: 400 }
-            );
-        }
-
-        // Insert teacher profile
-        if (inviteData.user) {
-            await supabaseAdmin.from('profiles').upsert({
-                id: inviteData.user.id,
-                full_name: fullName,
-                role: 'teacher',
-            }, { onConflict: 'id' });
-        }
-
         return NextResponse.json({
             success: true,
-            message: `Invitation sent to ${email}. They will receive a link to set their password.`,
+            message: `Teacher ${fullName} created successfully. Add password reset email workflow before production invite flow.`,
         });
     } catch (err: any) {
         return NextResponse.json(
