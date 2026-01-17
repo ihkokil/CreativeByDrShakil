@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+
 import styles from "./TeacherSidebar.module.css";
 import {
     LayoutDashboard,
@@ -27,6 +27,8 @@ interface TeacherSidebarProps {
     teacherEmail?: string;
     activeStudents: number;
     totalCourses: number;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
 }
 
 export default function TeacherSidebar({ 
@@ -35,10 +37,11 @@ export default function TeacherSidebar({
     teacherName,
     teacherEmail = "teacher@example.com",
     activeStudents = 0,
-    totalCourses = 0
+    totalCourses = 0,
+    isExpanded,
+    onToggleExpand
 }: TeacherSidebarProps) {
     const { signOut } = useAuth();
-    const [isExpanded, setIsExpanded] = useState(true);
 
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={22} /> },
@@ -68,7 +71,7 @@ export default function TeacherSidebar({
             {/* Toggle button for mobile */}
             <button
                 className={styles.mobileToggle}
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => onToggleExpand()}
                 aria-label="Toggle sidebar"
             >
                 {isExpanded ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
@@ -78,7 +81,7 @@ export default function TeacherSidebar({
                 <div className={styles.sidebarToggleDock}>
                     <button
                         className={styles.toggleBtn}
-                        onClick={() => setIsExpanded(!isExpanded)}
+                        onClick={() => onToggleExpand()}
                         aria-label="Toggle sidebar expansion"
                         title={isExpanded ? "Collapse" : "Expand"}
                     >
