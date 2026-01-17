@@ -21,6 +21,7 @@ interface DashboardShellProps {
     roleLabel: string;
     userName: string;
     userEmail?: string;
+    userAvatarUrl?: string | null;
     items: DashboardNavItem[];
     activeKey: string;
     onSelect: (key: string) => void;
@@ -34,6 +35,7 @@ export default function DashboardShell({
     roleLabel,
     userName,
     userEmail,
+    userAvatarUrl,
     items,
     activeKey,
     onSelect,
@@ -77,7 +79,20 @@ export default function DashboardShell({
                 </div>
 
                 <div className={styles.profileCard}>
-                    <div className={styles.avatar}>{initials}</div>
+                    <div className={styles.avatar}>
+                        {userAvatarUrl ? (
+                            <Image
+                                src={userAvatarUrl}
+                                alt={`${userName} profile`}
+                                fill
+                                unoptimized
+                                className={styles.avatarImage}
+                                sizes="38px"
+                            />
+                        ) : (
+                            initials
+                        )}
+                    </div>
                     <div className={styles.profileInfo}>
                         <strong>{userName}</strong>
                         <span>{userEmail || "Logged in"}</span>
