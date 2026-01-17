@@ -167,7 +167,7 @@
 }
 
 .header {
-    padding: 20px 40px;
+    padding: 20px var(--layout-gutter-desktop);
     border-bottom: 1px solid var(--glass-border);
     display: flex;
     justify-content: space-between;
@@ -199,8 +199,8 @@
 }
 
 .contentArea {
-    padding: 40px;
-    max-width: 1000px;
+    padding: 40px var(--layout-gutter-desktop);
+    max-width: var(--layout-max-width);
     margin: 0 auto;
     width: 100%;
 }
@@ -269,7 +269,7 @@
 
 .navBar {
     margin-top: auto;
-    padding: 30px 40px;
+    padding: 30px var(--layout-gutter-desktop);
     border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: space-between;
@@ -302,5 +302,13 @@
 @media (max-width: 1024px) {
     .sidebar {
         display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .header,
+    .contentArea,
+    .navBar {
+        padding-inline: var(--layout-gutter-mobile);
     }
 }

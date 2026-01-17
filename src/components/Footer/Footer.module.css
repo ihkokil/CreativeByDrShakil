@@ -7,8 +7,8 @@
 
 /* Newsletter Section */
 .newsletter {
-    background: var(--primary);
-    padding: 60px 5%;
+    background: linear-gradient(120deg, var(--primary), var(--secondary));
+    padding: 60px var(--layout-gutter-desktop);
     position: relative;
     overflow: hidden;
 }
@@ -25,7 +25,8 @@
 }
 
 .newsletterContent {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
+    width: 100%;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -60,7 +61,7 @@
     padding: 16px 24px;
     border-radius: 14px;
     border: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.14);
     backdrop-filter: blur(10px);
     color: white;
     font-family: inherit;
@@ -69,7 +70,7 @@
 }
 
 .newsletterForm input::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.75);
 }
 
 .newsletterForm button {
@@ -93,9 +94,10 @@
 
 /* Main Footer */
 .mainFooter {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
+    width: 100%;
     margin: 0 auto;
-    padding: 80px 5%;
+    padding: 80px var(--layout-gutter-desktop);
     display: grid;
     grid-template-columns: 1.5fr 2fr;
     gap: 100px;
@@ -107,13 +109,11 @@
 
 .logoImg {
     object-fit: contain;
-    filter: brightness(0) invert(var(--theme-is-dark, 0));
-    /* Adapts to light/dark mode */
+    filter: none;
 }
 
-/* Force specific colors in light mode if needed */
-:global([data-theme='light']) .logoImg {
-    filter: none;
+[data-theme='dark'] .logoImg {
+    filter: brightness(0) invert(1);
 }
 
 .description {
@@ -180,6 +180,7 @@
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .socialIcon {
@@ -191,8 +192,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0;
+    line-height: 0;
     color: var(--foreground);
     transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.socialIcon svg {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .socialIcon:hover {
@@ -200,16 +212,18 @@
     color: white;
     border-color: var(--primary);
     transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
 }
 
 /* Bottom Bar */
 .bottomBar {
     border-top: 1px solid var(--glass-border);
-    padding: 40px 5%;
+    padding: 40px var(--layout-gutter-desktop);
 }
 
 .bottomContent {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
+    width: 100%;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -252,6 +266,12 @@
 }
 
 @media (max-width: 768px) {
+    .newsletter,
+    .mainFooter,
+    .bottomBar {
+        padding-inline: var(--layout-gutter-mobile);
+    }
+
     .newsletterText h3 {
         font-size: 1.5rem;
     }
