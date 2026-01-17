@@ -1,5 +1,11 @@
 .container {
-    max-width: 900px;
+    max-width: var(--layout-max-width);
+    margin: 0 auto;
+    width: 100%;
+}
+
+.list {
+    max-width: 980px;
     margin: 0 auto;
 }
 
