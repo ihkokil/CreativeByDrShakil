@@ -21,16 +21,20 @@
 }
 
 .sidebarHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: block;
     margin-bottom: 18px;
 }
 
 .brandLink {
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--foreground);
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+}
+
+.brandLink img {
+    width: auto;
+    height: 34px;
+    object-fit: contain;
 }
 
 .rolePill {
@@ -41,6 +45,12 @@
     background: color-mix(in srgb, var(--primary) 14%, transparent);
     padding: 6px 10px;
     border-radius: 999px;
+}
+
+.topbarRight {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .profileCard {
@@ -226,6 +236,11 @@
 
     .topbar p {
         font-size: 0.84rem;
+    }
+
+    .rolePill {
+        padding: 5px 8px;
+        font-size: 0.68rem;
     }
 
     .mobileMoreBtn {
