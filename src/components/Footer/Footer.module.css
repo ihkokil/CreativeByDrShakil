@@ -8,7 +8,7 @@
 /* Newsletter Section */
 .newsletter {
     background: linear-gradient(120deg, var(--primary), var(--secondary));
-    padding: 60px 5%;
+    padding: 60px var(--layout-gutter-desktop);
     position: relative;
     overflow: hidden;
 }
@@ -25,7 +25,8 @@
 }
 
 .newsletterContent {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
+    width: 100%;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -93,9 +94,10 @@
 
 /* Main Footer */
 .mainFooter {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
+    width: 100%;
     margin: 0 auto;
-    padding: 80px 5%;
+    padding: 80px var(--layout-gutter-desktop);
     display: grid;
     grid-template-columns: 1.5fr 2fr;
     gap: 100px;
@@ -214,11 +216,12 @@
 /* Bottom Bar */
 .bottomBar {
     border-top: 1px solid var(--glass-border);
-    padding: 40px 5%;
+    padding: 40px var(--layout-gutter-desktop);
 }
 
 .bottomContent {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
+    width: 100%;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -261,6 +264,12 @@
 }
 
 @media (max-width: 768px) {
+    .newsletter,
+    .mainFooter,
+    .bottomBar {
+        padding-inline: var(--layout-gutter-mobile);
+    }
+
     .newsletterText h3 {
         font-size: 1.5rem;
     }
