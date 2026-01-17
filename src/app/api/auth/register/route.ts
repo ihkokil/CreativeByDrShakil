@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hashPassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
+import { hashPassword } from '@/lib/auth-server';
+import { createTokenPair } from '@/lib/token-utils';
+import { sendVerificationEmail } from '@/lib/auth-emails';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,9 +12,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email, password, and full name are required.' }, { status: 400 });
     }
 
+    const normalizedEmail = String(email).trim().toLowerCase();
+
     const existingUser = await prisma.user.findFirst({
       where: {
-        OR: [{ email }, ...(phone ? [{ phone }] : [])],
+        OR: [{ email: normalizedEmail }, ...(phone ? [{ phone }] : [])],
       },
     });
 
@@ -21,22 +25,40 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(password);
+    const { token, tokenHash } = createTokenPair();
+    const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const user = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash,
         fullName,
         phone: phone || null,
         bmdcNumber: bmdc || null,
         role: 'student',
+        emailVerified: false,
+        emailVerificationTokenHash: tokenHash,
+        emailVerificationExpires: verifyExpiry,
       },
     });
 
-    const token = signAuthToken({ sub: user.id, role: user.role, email: user.email });
+    let verificationMailSent = true;
+    try {
+      await sendVerificationEmail({
+        email: user.email,
+        fullName: user.fullName,
+        token,
+      });
+    } catch {
+      verificationMailSent = false;
+    }
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
+      requiresVerification: true,
+      message: verificationMailSent
+        ? 'Account created. Please verify your email before logging in.'
+        : 'Account created, but verification email could not be sent. Please use resend verification.',
       user: {
         id: user.id,
         email: user.email,
@@ -48,18 +70,7 @@ export async function POST(request: NextRequest) {
           bmdc_number: user.bmdcNumber,
         },
       },
-      token,
     });
-
-    response.cookies.set(AUTH_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    return response;
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
