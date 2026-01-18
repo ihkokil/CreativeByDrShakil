@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, Github, Chrome, User, Phone, FileText, Eye, EyeOff } from "lucide-react";
@@ -10,9 +10,10 @@ import Link from "next/link";
 interface Props {
     isOpen: boolean;
     onClose: () => void;
+    defaultMode?: "login" | "register";
 }
 
-export default function AuthModal({ isOpen, onClose }: Props) {
+export default function AuthModal({ isOpen, onClose, defaultMode = "login" }: Props) {
     const { refreshSession } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
@@ -31,6 +32,24 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsLogin(defaultMode !== "register");
+        }
+    }, [defaultMode, isOpen]);
+
+    const resetRegistrationForm = () => {
+        setEmail("");
+        setPassword("");
+        setFullName("");
+        setPhone("");
+        setBmdc("");
+        setConfirmPassword("");
+        setShowPassword(false);
+        setShowConfirmPassword(false);
+        setPendingVerificationEmail("");
+    };
 
     const getPasswordStrength = (pass: string) => {
         let score = 0;
@@ -104,6 +123,8 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                     type: 'success',
                     text: data.message || 'Account created. Please verify your email before logging in.',
                 });
+                resetRegistrationForm();
+                setIsLogin(true);
             }
         }
         setLoading(false);
