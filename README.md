@@ -1,6 +1,6 @@
-# CreativeByDrShakil
+# Creative By Dr. Shakil [creativebydrshakil.com]
 
-CreativeByDrShakil is a Next.js learning platform with role-based dashboards for students, teachers, and admins. It includes authentication, profile management, teacher management, and a responsive dashboard shell designed for both desktop and mobile.
+Creative By Dr. Shakil is a Next.js learning platform with role-based dashboards for students, teachers, and admins. It includes authentication, profile management, teacher management, and a responsive dashboard shell designed for both desktop and mobile.
 
 ## Highlights
 
