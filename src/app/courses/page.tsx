@@ -11,30 +11,28 @@ import { AnimatePresence, motion } from "framer-motion";
 
 export default function AllCoursesPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-    const [activeInstructor, setActiveInstructor] = useState("All");
-    const [activeDuration, setActiveDuration] = useState("All");
+    const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
+    const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
     const categories = ["FCPS", "Exams", "Residency", "Part II"];
-    const instructors = ["All", ...Object.values(INSTRUCTORS).map(i => i.name)];
-    const durations = ["All", "2 Months", "3 Months", "4 Months", "6 Months"];
+    const instructors = Object.values(INSTRUCTORS).map(i => i.name);
+    const durations = ["2 Months", "3 Months", "4 Months", "6 Months"];
 
-    const toggleCategory = (cat: string) => {
-        setSelectedCategories(prev =>
-            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-        );
+    const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
+        setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
     };
 
     const filteredCourses = useMemo(() => {
         return COURSES.filter(course => {
             const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
-            const matchInstructor = activeInstructor === "All" || course.mainInstructor.name === activeInstructor;
-            const matchDuration = activeDuration === "All" || course.duration === activeDuration;
+            const matchInstructor = selectedInstructors.length === 0 || selectedInstructors.includes(course.mainInstructor.name);
+            const matchDuration = selectedDurations.length === 0 || selectedDurations.includes(course.duration);
             const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchInstructor && matchDuration && matchSearch;
         });
-    }, [selectedCategories, activeInstructor, activeDuration, searchQuery]);
+    }, [selectedCategories, selectedInstructors, selectedDurations, searchQuery]);
 
     return (
         <main className={styles.main}>
@@ -68,12 +66,12 @@ export default function AllCoursesPage() {
                         <div className={styles.filterGroup}>
                             <h4>Categories</h4>
                             <div className={styles.checkboxList}>
-                                {categories.map(cat => (
+                                {categories.map((cat) => (
                                     <label key={cat} className={styles.checkboxItem}>
                                         <input
                                             type="checkbox"
                                             checked={selectedCategories.includes(cat)}
-                                            onChange={() => toggleCategory(cat)}
+                                            onChange={() => toggleSelection(cat, setSelectedCategories)}
                                         />
                                         <span className={styles.checkmark}></span>
                                         {cat}
@@ -84,41 +82,45 @@ export default function AllCoursesPage() {
 
                         <div className={styles.filterGroup}>
                             <h4>Instructors</h4>
-                            <div className={styles.filterOptions}>
-                                {instructors.map(ins => (
-                                    <button
-                                        key={ins}
-                                        className={`${styles.filterBtn} ${activeInstructor === ins ? styles.active : ""}`}
-                                        onClick={() => setActiveInstructor(ins)}
-                                    >
+                            <div className={styles.checkboxList}>
+                                {instructors.map((ins) => (
+                                    <label key={ins} className={styles.checkboxItem}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedInstructors.includes(ins)}
+                                            onChange={() => toggleSelection(ins, setSelectedInstructors)}
+                                        />
+                                        <span className={styles.checkmark}></span>
                                         {ins}
-                                    </button>
+                                    </label>
                                 ))}
                             </div>
                         </div>
 
                         <div className={styles.filterGroup}>
                             <h4>Duration</h4>
-                            <div className={styles.filterOptions}>
-                                {durations.map(dur => (
-                                    <button
-                                        key={dur}
-                                        className={`${styles.filterBtn} ${activeDuration === dur ? styles.active : ""}`}
-                                        onClick={() => setActiveDuration(dur)}
-                                    >
+                            <div className={styles.checkboxList}>
+                                {durations.map((dur) => (
+                                    <label key={dur} className={styles.checkboxItem}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedDurations.includes(dur)}
+                                            onChange={() => toggleSelection(dur, setSelectedDurations)}
+                                        />
+                                        <span className={styles.checkmark}></span>
                                         {dur}
-                                    </button>
+                                    </label>
                                 ))}
                             </div>
                         </div>
 
-                        {(selectedCategories.length > 0 || activeInstructor !== "All" || activeDuration !== "All" || searchQuery) && (
+                        {(selectedCategories.length > 0 || selectedInstructors.length > 0 || selectedDurations.length > 0 || searchQuery) && (
                             <button
                                 className={styles.clearBtn}
                                 onClick={() => {
                                     setSelectedCategories([]);
-                                    setActiveInstructor("All");
-                                    setActiveDuration("All");
+                                    setSelectedInstructors([]);
+                                    setSelectedDurations([]);
                                     setSearchQuery("");
                                 }}
                             >

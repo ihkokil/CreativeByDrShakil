@@ -1,95 +1,8 @@
 .footer {
     background: var(--background);
     border-top: 1px solid var(--glass-border);
-    padding-top: 0;
+    padding-top: 24px;
     margin-top: 100px;
-}
-
-/* Newsletter Section */
-.newsletter {
-    background: linear-gradient(120deg, var(--primary), var(--secondary));
-    padding: 60px var(--layout-gutter-desktop);
-    position: relative;
-    overflow: hidden;
-}
-
-.newsletter::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-    pointer-events: none;
-}
-
-.newsletterContent {
-    max-width: var(--layout-max-width);
-    width: 100%;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 40px;
-    position: relative;
-    z-index: 1;
-}
-
-.newsletterText h3 {
-    color: white;
-    font-size: 2rem;
-    font-weight: 800;
-    margin-bottom: 10px;
-    letter-spacing: -1px;
-}
-
-.newsletterText p {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 1.1rem;
-}
-
-.newsletterForm {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-    max-width: 500px;
-}
-
-.newsletterForm input {
-    flex: 1;
-    padding: 16px 24px;
-    border-radius: 14px;
-    border: none;
-    background: rgba(255, 255, 255, 0.14);
-    backdrop-filter: blur(10px);
-    color: white;
-    font-family: inherit;
-    font-size: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.newsletterForm input::placeholder {
-    color: rgba(255, 255, 255, 0.75);
-}
-
-.newsletterForm button {
-    padding: 16px 32px;
-    border-radius: 14px;
-    border: none;
-    background: white;
-    color: var(--primary);
-    font-weight: 800;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.newsletterForm button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 /* Main Footer */
@@ -254,11 +167,6 @@
 }
 
 @media (max-width: 1024px) {
-    .newsletterContent {
-        flex-direction: column;
-        text-align: center;
-    }
-
     .mainFooter {
         grid-template-columns: 1fr;
         gap: 80px;
@@ -266,14 +174,9 @@
 }
 
 @media (max-width: 768px) {
-    .newsletter,
     .mainFooter,
     .bottomBar {
         padding-inline: var(--layout-gutter-mobile);
-    }
-
-    .newsletterText h3 {
-        font-size: 1.5rem;
     }
 
     .linksGrid {
