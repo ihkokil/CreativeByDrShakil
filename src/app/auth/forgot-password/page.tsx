@@ -55,6 +55,9 @@ export default function ForgotPasswordPage() {
                 <div className={styles.linkRow}>
                     <Link href="/" className={styles.link}>Back to home</Link>
                 </div>
+                <div className={styles.linkRow}>
+                    <Link href="/?auth=login" className={styles.link}>Sign in</Link>
+                </div>
             </section>
         </main>
     );
