@@ -1,488 +1,225 @@
-.main {
-    min-height: 100vh;
-    background: var(--background);
-}
-
 .loader {
+    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 100vh;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    color: #8b5cf6;
+    color: var(--primary);
 }
 
-.container {
-    max-width: var(--layout-max-width);
-    width: 100%;
-    margin: 0 auto;
-    padding: var(--layout-page-top) var(--layout-gutter-desktop) var(--layout-page-bottom);
-}
-
-/* Header */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 60px;
-    gap: 40px;
-}
-
-.welcome h1 {
-    font-size: 3rem;
-    font-weight: 900;
-    letter-spacing: -2px;
-    margin-bottom: 10px;
-}
-
-.welcome p {
-    color: var(--text-muted);
-    font-size: 1.1rem;
-}
-
-.stats {
-    display: flex;
+.stack {
+    display: grid;
     gap: 20px;
-    flex-wrap: wrap;
 }
 
-.statCard {
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    padding: 20px 30px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    min-width: 200px;
-    flex: 1;
-}
-
-.statIcon {
-    width: 50px;
-    height: 50px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.statCard h3 {
-    font-size: 1.5rem;
-    font-weight: 900;
-    line-height: 1;
-}
-
-.statCard label {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 600;
-}
-
-/* Tabs */
-.tabNav {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 30px;
-    border-bottom: 1px solid var(--glass-border);
-    padding-bottom: 10px;
-    overflow-x: auto;
-}
-
-.tabBtn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    font-weight: 700;
-    padding: 10px 20px;
-    cursor: pointer;
-    position: relative;
-    transition: color 0.3s;
-    white-space: nowrap;
-}
-
-.tabBtn:hover {
-    color: var(--foreground);
-}
-
-.tabBtn.activeTab {
-    color: #8b5cf6;
-}
-
-.tabBtn.activeTab::after {
-    content: '';
-    position: absolute;
-    bottom: -11px;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: #8b5cf6;
-    border-radius: 3px 3px 0 0;
-}
-
-/* Teacher Management */
-.teacherSection {
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.sectionHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
-
-.sectionHeader h2 {
-    font-size: 1.75rem;
-    font-weight: 800;
-}
-
-.addTeacherBtn {
-    padding: 14px 28px;
-    background: #8b5cf6;
-    color: white;
-    border: none;
-    border-radius: 14px;
-    font-weight: 800;
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25);
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.addTeacherBtn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(139, 92, 246, 0.35);
-}
-
-/* Teacher Table */
-.teacherTable {
-    width: 100%;
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    overflow: hidden;
-}
-
-.teacherTable table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.teacherTable th {
-    text-align: left;
-    padding: 18px 24px;
-    font-size: 0.8rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--glass-border);
-    background: rgba(139, 92, 246, 0.03);
-}
-
-.teacherTable td {
-    padding: 18px 24px;
-    font-size: 0.95rem;
-    border-bottom: 1px solid var(--glass-border);
-}
-
-.teacherTable tr:last-child td {
-    border-bottom: none;
-}
-
-.teacherTable tr:hover td {
-    background: rgba(139, 92, 246, 0.03);
-}
-
-.teacherName {
-    display: flex;
-    align-items: center;
+.metricsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
 }
 
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+.metricCard {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+}
+
+.metricCard h3 {
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.metricCard p {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.panel {
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    padding: 20px;
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 10px;
+}
+
+.panelHeader h2,
+.panelTitle {
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.primaryBtn {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--primary);
     color: white;
     font-weight: 800;
-    font-size: 0.9rem;
-    flex-shrink: 0;
+    cursor: pointer;
 }
 
-.teacherNameText h4 {
-    font-size: 0.95rem;
-    font-weight: 700;
-    margin-bottom: 2px;
-}
-
-.teacherNameText span {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.statusBadge {
-    padding: 6px 14px;
-    border-radius: 100px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    display: inline-block;
-}
-
-.statusActive {
-    background: rgba(34, 197, 94, 0.1);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.2);
-}
-
-.statusPending {
-    background: rgba(234, 179, 8, 0.1);
-    color: #eab308;
-    border: 1px solid rgba(234, 179, 8, 0.2);
-}
-
-.emptyState {
-    text-align: center;
-    padding: 80px 40px;
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: 24px;
-}
-
-.emptyIcon {
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    opacity: 0.5;
-}
-
-.emptyState h3 {
-    font-size: 1.3rem;
-    font-weight: 800;
-    margin-bottom: 10px;
-}
-
-.emptyState p {
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    margin-bottom: 30px;
-}
-
-/* Overview Section */
-.overviewGrid {
+.actionGrid {
     display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 50px;
-}
-
-.mainContent h2 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin-bottom: 30px;
-}
-
-.quickActions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .actionCard {
-    background: var(--glass);
     border: 1px solid var(--glass-border);
-    padding: 30px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: flex-start;
-    gap: 20px;
-}
-
-.actionCard:hover {
-    border-color: #8b5cf6;
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.1);
-}
-
-.actionIcon {
-    width: 50px;
-    height: 50px;
     border-radius: 14px;
+    background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+    padding: 14px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    gap: 10px;
+    cursor: pointer;
 }
 
 .actionCard h3 {
-    font-size: 1.05rem;
-    font-weight: 800;
-    margin-bottom: 6px;
+    font-size: 0.95rem;
+    margin-bottom: 3px;
 }
 
 .actionCard p {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: var(--text-muted);
-    line-height: 1.5;
 }
 
-/* Sidebar */
-.sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
+.teacherGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
 }
 
-.sidebarCard {
-    background: var(--glass);
+.teacherCard {
     border: 1px solid var(--glass-border);
-    padding: 30px;
-    border-radius: 24px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+    padding: 14px;
+    display: grid;
+    gap: 10px;
 }
 
-.sidebarCard h3 {
-    font-size: 1.1rem;
-    font-weight: 800;
-    margin-bottom: 20px;
-}
-
-.activityList {
+.teacherHead {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    align-items: center;
+    gap: 10px;
 }
 
-.activityItem {
-    display: flex;
-    gap: 15px;
-}
-
-.activityItemIcon {
-    width: 40px;
-    height: 40px;
-    background: rgba(139, 92, 246, 0.1);
+.avatar {
+    width: 36px;
+    height: 36px;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #8b5cf6;
-    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 800;
 }
 
-.activityInfo h4 {
-    font-size: 0.9rem;
+.teacherHead h3 {
+    font-size: 0.92rem;
+}
+
+.teacherHead p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.teacherMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+
+.rolePill {
+    text-transform: capitalize;
+    padding: 3px 8px;
+    border-radius: 999px;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
     font-weight: 700;
-    margin-bottom: 2px;
 }
 
-.activityInfo p {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-.activityInfo span {
-    font-size: 0.7rem;
-    color: var(--text-muted);
-}
-
-.purpleCard {
-    background: linear-gradient(135deg, #8b5cf6, #6366f1);
-    border: none;
-    color: white;
-}
-
-.purpleCard h3 {
-    color: white;
-}
-
-.purpleCard p {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.9rem;
-    line-height: 1.6;
-    margin-bottom: 25px;
-}
-
-.settingsBtn {
-    width: 100%;
-    padding: 14px;
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+.infoBox {
+    border: 1px dashed var(--glass-border);
     border-radius: 14px;
-    color: white;
-    font-weight: 700;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s;
+    padding: 22px;
+    text-align: center;
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
-.settingsBtn:hover {
-    background: rgba(255, 255, 255, 0.3);
+.simpleCards,
+.settingCards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
 }
 
-/* Responsive */
+.simpleCard,
+.settingCard {
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+    padding: 14px;
+    display: grid;
+    gap: 6px;
+}
+
+.simpleCard strong {
+    font-size: 1.2rem;
+}
+
+.simpleCard span,
+.settingCard p {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.settingCard h3 {
+    font-size: 0.95rem;
+}
+
 @media (max-width: 1100px) {
-    .overviewGrid {
-        grid-template-columns: 1fr;
+    .metricsGrid,
+    .teacherGrid,
+    .simpleCards,
+    .settingCards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 120px var(--layout-gutter-mobile) 80px;
-    }
-
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .welcome h1 {
-        font-size: 2.2rem;
-    }
-
-    .statCard {
-        min-width: 100%;
-    }
-
-    .quickActions {
+@media (max-width: 700px) {
+    .metricsGrid,
+    .actionGrid,
+    .teacherGrid,
+    .simpleCards,
+    .settingCards {
         grid-template-columns: 1fr;
     }
 
-    .sectionHeader {
+    .panelHeader {
         flex-direction: column;
         align-items: flex-start;
-        gap: 15px;
-    }
-
-    .teacherTable {
-        overflow-x: auto;
-    }
-
-    .teacherTable table {
-        min-width: 600px;
     }
 }
