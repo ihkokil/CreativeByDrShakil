@@ -14,9 +14,10 @@
 }
 
 .container {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
+    width: 100%;
     margin: 0 auto;
-    padding: 140px 5% 100px;
+    padding: var(--layout-page-top) var(--layout-gutter-desktop) var(--layout-page-bottom);
 }
 
 .header {
@@ -448,6 +449,10 @@
 }
 
 @media (max-width: 768px) {
+    .container {
+        padding: 120px var(--layout-gutter-mobile) 80px;
+    }
+
     .header {
         flex-direction: column;
         align-items: flex-start;
