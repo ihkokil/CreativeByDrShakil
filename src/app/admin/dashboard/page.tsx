@@ -2,22 +2,20 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback } from "react";
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./AdminDashboard.module.css";
 import {
+    LayoutDashboard,
     Users,
+    BarChart3,
+    Settings,
+    UserPlus,
     BookOpen,
     DollarSign,
-    Shield,
-    Plus,
-    UserPlus,
-    Settings,
-    BarChart3,
     GraduationCap,
+    Shield,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 
 interface TeacherProfile {
@@ -29,23 +27,23 @@ interface TeacherProfile {
 }
 
 export default function AdminDashboard() {
-    const { user, loading, role } = useAuth();
+    const { user, loading, role, signOut } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'overview' | 'teachers'>('overview');
+    const [activeTab, setActiveTab] = useState<"overview" | "teachers" | "analytics" | "settings">("overview");
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
 
     useEffect(() => {
-        if (!loading && (!user || role !== 'admin')) {
+        if (!loading && (!user || role !== "admin")) {
             router.push("/");
         }
     }, [user, loading, role, router]);
 
     const fetchTeachers = useCallback(async () => {
         setTeachersLoading(true);
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch('/api/admin/teachers', {
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch("/api/admin/teachers", {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await response.json();
@@ -59,238 +57,147 @@ export default function AdminDashboard() {
     }, []);
 
     useEffect(() => {
-        if (user && role === 'admin') {
+        if (user && role === "admin") {
             fetchTeachers();
         }
     }, [user, role, fetchTeachers]);
 
-    if (loading || !user || role !== 'admin') {
+    const navItems = useMemo(
+        () => [
+            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
+            { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
+            { key: "analytics", label: "Analytics", icon: BarChart3, mobilePrimary: true },
+            { key: "settings", label: "Settings", icon: Settings },
+        ],
+        [teachers.length]
+    );
+
+    const getInitials = (name: string) => {
+        return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
+    const handleLogout = async () => {
+        await signOut();
+        router.push("/");
+    };
+
+    if (loading || !user || role !== "admin") {
         return <div className={styles.loader}>Loading Admin Panel...</div>;
     }
 
-    const stats = [
-        { label: "Teachers", value: teachers.length.toString(), icon: <Users size={24} />, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
-        { label: "Students", value: "842", icon: <GraduationCap size={24} />, color: "#ec4899", bg: "rgba(236, 72, 153, 0.1)" },
-        { label: "Courses", value: "24", icon: <BookOpen size={24} />, color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" },
-        { label: "Revenue", value: "৳5,25,000", icon: <DollarSign size={24} />, color: "#10b981", bg: "rgba(16, 185, 129, 0.1)" },
-    ];
-
-    const getInitials = (name: string) => {
-        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    };
-
     return (
-        <main className={styles.main}>
-            <Navbar />
-
-            <div className={styles.container}>
-                <header className={styles.header}>
-                    <div className={styles.welcome}>
-                        <h1>Admin <span className="gradient-text">Dashboard</span></h1>
-                        <p>Welcome back, {user.user_metadata?.full_name || 'Admin'}. Manage your platform from here.</p>
-                    </div>
-                    <div className={styles.stats}>
-                        {stats.map((stat, index) => (
-                            <div key={index} className={styles.statCard}>
-                                <div className={styles.statIcon} style={{ color: stat.color, background: stat.bg }}>
-                                    {stat.icon}
-                                </div>
-                                <div>
-                                    <h3>{stat.value}</h3>
-                                    <label>{stat.label}</label>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </header>
-
-                <div className={styles.tabNav}>
-                    <button
-                        className={`${styles.tabBtn} ${activeTab === 'overview' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTab('overview')}
-                    >
-                        Overview
-                    </button>
-                    <button
-                        className={`${styles.tabBtn} ${activeTab === 'teachers' ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTab('teachers')}
-                    >
-                        Manage Teachers
-                    </button>
-                </div>
-
-                {activeTab === 'overview' && (
-                    <div className={styles.overviewGrid}>
-                        <section className={styles.mainContent}>
-                            <h2>Quick <span className="gradient-text">Actions</span></h2>
-                            <div className={styles.quickActions}>
-                                <motion.div
-                                    className={styles.actionCard}
-                                    whileHover={{ y: -5 }}
-                                    onClick={() => { setActiveTab('teachers'); setIsAddTeacherOpen(true); }}
-                                >
-                                    <div className={styles.actionIcon} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-                                        <UserPlus size={24} />
-                                    </div>
-                                    <div>
-                                        <h3>Add New Teacher</h3>
-                                        <p>Invite a teacher to the platform via email</p>
-                                    </div>
-                                </motion.div>
-
-                                <motion.div
-                                    className={styles.actionCard}
-                                    whileHover={{ y: -5 }}
-                                    onClick={() => setActiveTab('teachers')}
-                                >
-                                    <div className={styles.actionIcon} style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }}>
-                                        <Users size={24} />
-                                    </div>
-                                    <div>
-                                        <h3>View All Teachers</h3>
-                                        <p>Manage existing teacher accounts</p>
-                                    </div>
-                                </motion.div>
-
-                                <motion.div
-                                    className={styles.actionCard}
-                                    whileHover={{ y: -5 }}
-                                >
-                                    <div className={styles.actionIcon} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                                        <BookOpen size={24} />
-                                    </div>
-                                    <div>
-                                        <h3>Manage Courses</h3>
-                                        <p>Create and edit course content</p>
-                                    </div>
-                                </motion.div>
-
-                                <motion.div
-                                    className={styles.actionCard}
-                                    whileHover={{ y: -5 }}
-                                >
-                                    <div className={styles.actionIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                                        <BarChart3 size={24} />
-                                    </div>
-                                    <div>
-                                        <h3>View Analytics</h3>
-                                        <p>Track platform performance metrics</p>
-                                    </div>
-                                </motion.div>
-                            </div>
+        <>
+            <DashboardShell
+                title="Admin Dashboard"
+                subtitle="Control teachers, operations, and platform health with one consistent dashboard shell."
+                roleLabel="Admin"
+                userName={user.user_metadata?.full_name || "Admin"}
+                userEmail={user.email}
+                items={navItems}
+                activeKey={activeTab}
+                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "analytics" | "settings")}
+                onLogout={handleLogout}
+            >
+                {activeTab === "overview" && (
+                    <div className={styles.stack}>
+                        <section className={styles.metricsGrid}>
+                            <div className={styles.metricCard}><Users size={20} /><div><h3>{teachers.length}</h3><p>Teachers</p></div></div>
+                            <div className={styles.metricCard}><GraduationCap size={20} /><div><h3>842</h3><p>Students</p></div></div>
+                            <div className={styles.metricCard}><BookOpen size={20} /><div><h3>24</h3><p>Courses</p></div></div>
+                            <div className={styles.metricCard}><DollarSign size={20} /><div><h3>৳5,25,000</h3><p>Revenue</p></div></div>
                         </section>
 
-                        <aside className={styles.sidebar}>
-                            <div className={styles.sidebarCard}>
-                                <h3>Recent Teachers</h3>
-                                <div className={styles.activityList}>
-                                    {teachers.length > 0 ? teachers.slice(0, 3).map(teacher => (
-                                        <div key={teacher.id} className={styles.activityItem}>
-                                            <div className={styles.activityItemIcon}>
-                                                <Users size={18} />
-                                            </div>
-                                            <div className={styles.activityInfo}>
-                                                <h4>{teacher.full_name}</h4>
-                                                <span>Added {new Date(teacher.created_at).toLocaleDateString()}</span>
-                                            </div>
-                                        </div>
-                                    )) : (
-                                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>No teachers added yet.</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className={`${styles.sidebarCard} ${styles.purpleCard}`}>
-                                <h3>Platform Settings</h3>
-                                <p>Configure email templates, branding, and access controls for your platform.</p>
-                                <button className={styles.settingsBtn}>
-                                    <Settings size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                                    Open Settings
+                        <section className={styles.panel}>
+                            <div className={styles.panelHeader}>
+                                <h2>Quick Actions</h2>
+                                <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
+                                    <UserPlus size={16} /> Add Teacher
                                 </button>
                             </div>
-                        </aside>
+                            <div className={styles.actionGrid}>
+                                <article className={styles.actionCard} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
+                                    <UserPlus size={18} />
+                                    <div><h3>Invite Teacher</h3><p>Send onboarding invite with role setup.</p></div>
+                                </article>
+                                <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
+                                    <Users size={18} />
+                                    <div><h3>Manage Faculty</h3><p>Review teacher status and access.</p></div>
+                                </article>
+                                <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
+                                    <BarChart3 size={18} />
+                                    <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
+                                </article>
+                                <article className={styles.actionCard} onClick={() => setActiveTab("settings")}>
+                                    <Shield size={18} />
+                                    <div><h3>Security</h3><p>Review permissions and controls.</p></div>
+                                </article>
+                            </div>
+                        </section>
                     </div>
                 )}
 
-                {activeTab === 'teachers' && (
-                    <div className={styles.teacherSection}>
-                        <div className={styles.sectionHeader}>
-                            <h2>Manage <span className="gradient-text">Teachers</span></h2>
-                            <button
-                                className={styles.addTeacherBtn}
-                                onClick={() => setIsAddTeacherOpen(true)}
-                            >
-                                <Plus size={20} />
-                                Add Teacher
+                {activeTab === "teachers" && (
+                    <section className={styles.panel}>
+                        <div className={styles.panelHeader}>
+                            <h2>Teacher Accounts</h2>
+                            <button className={styles.primaryBtn} onClick={() => setIsAddTeacherOpen(true)}>
+                                <UserPlus size={16} /> Add Teacher
                             </button>
                         </div>
 
                         {teachersLoading ? (
-                            <div className={styles.loader} style={{ height: 'auto', padding: '60px' }}>
-                                Loading teachers...
-                            </div>
+                            <div className={styles.infoBox}>Loading teachers...</div>
                         ) : teachers.length > 0 ? (
-                            <div className={styles.teacherTable}>
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Teacher</th>
-                                            <th>Role</th>
-                                            <th>Joined</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {teachers.map(teacher => (
-                                            <tr key={teacher.id}>
-                                                <td>
-                                                    <div className={styles.teacherName}>
-                                                        <div className={styles.avatar}>
-                                                            {getInitials(teacher.full_name || 'T')}
-                                                        </div>
-                                                        <div className={styles.teacherNameText}>
-                                                            <h4>{teacher.full_name}</h4>
-                                                            <span>{teacher.email || 'Email pending'}</span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td style={{ textTransform: 'capitalize', fontWeight: 600 }}>
-                                                    {teacher.role}
-                                                </td>
-                                                <td style={{ color: 'var(--text-muted)' }}>
-                                                    {new Date(teacher.created_at).toLocaleDateString('en-US', {
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: 'numeric'
-                                                    })}
-                                                </td>
-                                                <td>
-                                                    <span className={`${styles.statusBadge} ${styles.statusActive}`}>
-                                                        Active
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className={styles.teacherGrid}>
+                                {teachers.map((teacher) => (
+                                    <article key={teacher.id} className={styles.teacherCard}>
+                                        <div className={styles.teacherHead}>
+                                            <div className={styles.avatar}>{getInitials(teacher.full_name || "T")}</div>
+                                            <div>
+                                                <h3>{teacher.full_name}</h3>
+                                                <p>{teacher.email || "Email pending"}</p>
+                                            </div>
+                                        </div>
+                                        <div className={styles.teacherMeta}>
+                                            <span className={styles.rolePill}>{teacher.role}</span>
+                                            <span>Joined {new Date(teacher.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                    </article>
+                                ))}
                             </div>
                         ) : (
-                            <div className={styles.emptyState}>
-                                <Users size={60} className={styles.emptyIcon} />
-                                <h3>No Teachers Yet</h3>
-                                <p>Start building your teaching team by inviting your first teacher.</p>
-                                <button
-                                    className={styles.addTeacherBtn}
-                                    onClick={() => setIsAddTeacherOpen(true)}
-                                >
-                                    <UserPlus size={20} />
-                                    Add Your First Teacher
-                                </button>
-                            </div>
+                            <div className={styles.infoBox}>No teachers added yet.</div>
                         )}
-                    </div>
+                    </section>
                 )}
-            </div>
+
+                {activeTab === "analytics" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Analytics Snapshot</h2>
+                        <div className={styles.simpleCards}>
+                            <div className={styles.simpleCard}><strong>74%</strong><span>Weekly Active Users</span></div>
+                            <div className={styles.simpleCard}><strong>4.8</strong><span>Average Course Rating</span></div>
+                            <div className={styles.simpleCard}><strong>+12%</strong><span>Monthly Revenue Growth</span></div>
+                        </div>
+                    </section>
+                )}
+
+                {activeTab === "settings" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Platform Settings</h2>
+                        <div className={styles.settingCards}>
+                            <article className={styles.settingCard}><h3>Email Templates</h3><p>Configure onboarding and notification templates.</p></article>
+                            <article className={styles.settingCard}><h3>Roles & Access</h3><p>Manage admin/teacher permissions and scopes.</p></article>
+                            <article className={styles.settingCard}><h3>Branding</h3><p>Control logo, colors, and platform metadata.</p></article>
+                        </div>
+                    </section>
+                )}
+            </DashboardShell>
 
             <AddTeacherModal
                 isOpen={isAddTeacherOpen}
@@ -300,8 +207,6 @@ export default function AdminDashboard() {
                     fetchTeachers();
                 }}
             />
-
-            <Footer />
-        </main>
+        </>
     );
 }
