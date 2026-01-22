@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = verifyAuthToken(token);
-    const { fullName, phone } = await request.json();
+    const { fullName, phone, bmdcNumber, profileImage } = await request.json();
 
     if (!fullName) {
       return NextResponse.json({ error: 'Full name is required.' }, { status: 400 });
@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
       data: {
         fullName,
         phone: phone || null,
+        bmdcNumber: bmdcNumber || null,
+        profileImage: profileImage || null,
       },
       select: {
         id: true,
@@ -32,6 +34,7 @@ export async function POST(request: NextRequest) {
         role: true,
         fullName: true,
         bmdcNumber: true,
+        profileImage: true,
       },
     });
 
@@ -46,6 +49,7 @@ export async function POST(request: NextRequest) {
           full_name: user.fullName,
           phone: user.phone,
           bmdc_number: user.bmdcNumber,
+          profile_image: user.profileImage,
         },
       },
     });
