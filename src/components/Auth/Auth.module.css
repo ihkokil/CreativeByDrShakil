@@ -167,6 +167,23 @@
     font-weight: 500;
 }
 
+.forgotWrap {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.forgotLink {
+    color: var(--primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.forgotLink:hover {
+    text-decoration: underline;
+}
+
 .submitBtn {
     margin-top: 10px;
     padding: 16px;
@@ -193,6 +210,16 @@
     opacity: 0.7;
     cursor: not-allowed;
     transform: none;
+}
+
+.secondaryBtn {
+    padding: 12px;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    color: var(--primary);
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
 }
 
 .divider {
