@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         role: true,
         fullName: true,
         bmdcNumber: true,
+        profileImage: true,
       },
     });
 
@@ -40,6 +41,7 @@ export async function GET(request: NextRequest) {
           full_name: user.fullName,
           phone: user.phone,
           bmdc_number: user.bmdcNumber,
+          profile_image: user.profileImage,
         },
       },
       role: user.role,

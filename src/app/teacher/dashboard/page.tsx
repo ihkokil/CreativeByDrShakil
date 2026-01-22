@@ -11,6 +11,7 @@ import {
     Users,
     ClipboardList,
     Video,
+    UserCog,
     DollarSign,
     Star,
     CheckCircle,
@@ -37,6 +38,7 @@ export default function TeacherDashboard() {
             { key: "students", label: "Students", icon: Users, mobilePrimary: true },
             { key: "assignments", label: "Assignments", icon: ClipboardList },
             { key: "library", label: "Library", icon: Video },
+            { key: "user", label: "User Page", icon: UserCog },
         ],
         []
     );
@@ -65,9 +67,16 @@ export default function TeacherDashboard() {
             roleLabel="Teacher"
             userName={teacherName}
             userEmail={user.email}
+            userAvatarUrl={user.user_metadata?.profile_image || null}
             items={navItems}
             activeKey={activeTab}
-            onSelect={(key) => setActiveTab(key as "overview" | "courses" | "students" | "assignments" | "library")}
+            onSelect={(key) => {
+                if (key === "user") {
+                    router.push("/teacher/dashboard/user");
+                    return;
+                }
+                setActiveTab(key as "overview" | "courses" | "students" | "assignments" | "library");
+            }}
             onLogout={handleLogout}
         >
             {activeTab === "overview" && (
