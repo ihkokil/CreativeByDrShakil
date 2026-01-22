@@ -127,23 +127,27 @@ export default function DashboardShell({
 
             <div className={styles.mainArea}>
                 <header className={styles.topbar}>
-                    <div>
-                        <h1>{title}</h1>
-                        {subtitle ? <p>{subtitle}</p> : null}
-                    </div>
-                    <div className={styles.topbarRight}>
-                        <span className={styles.rolePill}>{roleLabel}</span>
-                        <button
-                            className={styles.mobileMoreBtn}
-                            onClick={() => setIsDrawerOpen(true)}
-                            aria-label="Open dashboard menu"
-                        >
-                            <Menu size={22} />
-                        </button>
+                    <div className={styles.topbarInner}>
+                        <div>
+                            <h1>{title}</h1>
+                            {subtitle ? <p>{subtitle}</p> : null}
+                        </div>
+                        <div className={styles.topbarRight}>
+                            <span className={styles.rolePill}>{roleLabel}</span>
+                            <button
+                                className={styles.mobileMoreBtn}
+                                onClick={() => setIsDrawerOpen(true)}
+                                aria-label="Open dashboard menu"
+                            >
+                                <Menu size={22} />
+                            </button>
+                        </div>
                     </div>
                 </header>
 
-                <div className={styles.content}>{children}</div>
+                <div className={styles.content}>
+                    <div className={styles.contentInner}>{children}</div>
+                </div>
             </div>
 
             <nav className={styles.mobileBottomNav}>
