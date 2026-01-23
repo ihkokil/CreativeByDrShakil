@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { Suspense, useState, useMemo } from "react";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
@@ -36,7 +36,9 @@ export default function AllCoursesPage() {
 
     return (
         <main className={styles.main}>
-            <Navbar />
+            <Suspense fallback={null}>
+                <Navbar />
+            </Suspense>
 
             <header className={styles.header}>
                 <div className={styles.headerContent}>
