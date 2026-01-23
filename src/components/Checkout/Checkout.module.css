@@ -1,0 +1,207 @@
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalContent {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bkashDisplay {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 2px solid #E84C3D;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.bkashNumber {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  font-family: monospace;
+  margin: 0.5rem 0;
+  color: #E84C3D;
+}
+
+.copyBtn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.copyBtn:hover {
+  background: #45a049;
+}
+
+.amountContainer {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f0f0f0;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.qrCode {
+  text-align: center;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.qrCode img {
+  max-width: 150px;
+  height: auto;
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+}
+
+.couponInput {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+.couponInput input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.couponInput button {
+  padding: 0.5rem 1rem;
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.couponInput button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.couponApplied {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #e8f5e9;
+  border-radius: 4px;
+  border-left: 4px solid #4CAF50;
+}
+
+.couponApplied button {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.paymentForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.paymentForm div {
+  display: flex;
+  flex-direction: column;
+}
+
+.paymentForm label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #333;
+}
+
+.paymentForm input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.paymentForm input:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.paymentForm button {
+  padding: 0.75rem;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.paymentForm button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.total {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #e3f2fd;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.error {
+  color: #f44336;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
