@@ -31,6 +31,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   orders       Order[]
+  deviceSessions DeviceSession[]
+  sessionSettings SessionLockSettings?
 }
 
 model Course {
@@ -94,4 +96,35 @@ model PaymentConfig {
   qrCodeUrl       String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+enum DeviceType {
+  desktop
+  mobile
+}
+
+model DeviceSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceType      DeviceType
+  browserName     String
+  userAgent       String   @db.LongText
+  ipAddress       String
+  isLocked        Boolean  @default(false)
+  loggedOutAt     DateTime?
+  createdAt       DateTime @default(now())
+  lastActivityAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, deviceType])
+}
+
+model SessionLockSettings {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  autoLockFirstBrowser    Boolean  @default(true)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
