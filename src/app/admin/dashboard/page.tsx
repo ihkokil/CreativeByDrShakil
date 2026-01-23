@@ -10,6 +10,7 @@ import {
     Users,
     BarChart3,
     Settings,
+    TicketPercent,
     UserPlus,
     BookOpen,
     DollarSign,
@@ -17,6 +18,7 @@ import {
     Shield,
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
+import CouponManager from "@/components/Admin/CouponManager";
 
 interface TeacherProfile {
     id: string;
@@ -29,7 +31,7 @@ interface TeacherProfile {
 export default function AdminDashboard() {
     const { user, loading, role, signOut } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"overview" | "teachers" | "analytics" | "settings">("overview");
+    const [activeTab, setActiveTab] = useState<"overview" | "teachers" | "coupons" | "analytics" | "settings">("overview");
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
@@ -66,6 +68,7 @@ export default function AdminDashboard() {
         () => [
             { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
             { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
+            { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
             { key: "analytics", label: "Analytics", icon: BarChart3, mobilePrimary: true },
             { key: "settings", label: "Settings", icon: Settings },
         ],
@@ -101,7 +104,7 @@ export default function AdminDashboard() {
                 userAvatarUrl={user.user_metadata?.profile_image || null}
                 items={navItems}
                 activeKey={activeTab}
-                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "analytics" | "settings")}
+                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "analytics" | "settings")}
                 onLogout={handleLogout}
             >
                 {activeTab === "overview" && (
@@ -185,6 +188,13 @@ export default function AdminDashboard() {
                             <div className={styles.simpleCard}><strong>4.8</strong><span>Average Course Rating</span></div>
                             <div className={styles.simpleCard}><strong>+12%</strong><span>Monthly Revenue Growth</span></div>
                         </div>
+                    </section>
+                )}
+
+                {activeTab === "coupons" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Coupon Management</h2>
+                        <CouponManager />
                     </section>
                 )}
 
