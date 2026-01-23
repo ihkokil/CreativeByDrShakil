@@ -8,7 +8,7 @@ import styles from "./Navbar.module.css";
 import { ChevronDown, User, LayoutGrid, LogOut, Layout } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
@@ -17,7 +17,6 @@ export default function Navbar() {
     const { user, role, signOut } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const searchParams = useSearchParams();
 
     const dashboardHref = role === "admin"
         ? "/admin/dashboard"
@@ -34,16 +33,24 @@ export default function Navbar() {
     }, []);
 
     useEffect(() => {
-        const authParam = searchParams.get("auth");
+        const authParam = typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("auth")
+            : null;
+
         if (authParam === "login" || authParam === "register") {
             setAuthMode(authParam);
             setIsAuthOpen(true);
         }
-    }, [searchParams]);
+    }, [pathname]);
 
     const handleCloseAuth = () => {
         setIsAuthOpen(false);
-        if (searchParams.get("auth")) {
+
+        const hasAuthParam = typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).has("auth")
+            : false;
+
+        if (hasAuthParam) {
             router.replace(pathname);
         }
     };
