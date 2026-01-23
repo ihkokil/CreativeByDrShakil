@@ -178,6 +178,10 @@
     font-size: 0.82rem;
     font-weight: 700;
     text-decoration: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
 }
 
 .forgotLink:hover {

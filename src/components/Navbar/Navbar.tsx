@@ -8,13 +8,16 @@ import styles from "./Navbar.module.css";
 import { ChevronDown, User, LayoutGrid, LogOut, Layout, Users, Shield } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [authMode, setAuthMode] = useState<"login" | "register">("login");
     const { user, role, signOut } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -23,6 +26,21 @@ export default function Navbar() {
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    useEffect(() => {
+        const authParam = searchParams.get("auth");
+        if (authParam === "login" || authParam === "register") {
+            setAuthMode(authParam);
+            setIsAuthOpen(true);
+        }
+    }, [searchParams]);
+
+    const handleCloseAuth = () => {
+        setIsAuthOpen(false);
+        if (searchParams.get("auth")) {
+            router.replace(pathname);
+        }
+    };
 
     return (
         <>
@@ -66,7 +84,13 @@ export default function Navbar() {
                                 </button>
                             </div>
                         ) : (
-                            <button className={styles.accountBtn} onClick={() => setIsAuthOpen(true)}>
+                            <button
+                                className={styles.accountBtn}
+                                onClick={() => {
+                                    setAuthMode("login");
+                                    setIsAuthOpen(true);
+                                }}
+                            >
                                 <User size={18} />
                                 Login
                             </button>
@@ -75,7 +99,7 @@ export default function Navbar() {
                 </div>
             </nav>
 
-            <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+            <AuthModal isOpen={isAuthOpen} onClose={handleCloseAuth} defaultMode={authMode} />
         </>
     );
 }

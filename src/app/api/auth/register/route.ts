@@ -6,10 +6,14 @@ import { sendVerificationEmail } from '@/lib/auth-emails';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, fullName, phone, bmdc } = await request.json();
+    const { email, password, fullName, phone, bmdc, role } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Email, password, and full name are required.' }, { status: 400 });
+    }
+
+    if (role && role !== 'student') {
+      return NextResponse.json({ error: 'Only student accounts can be created through public registration.' }, { status: 403 });
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
