@@ -49,7 +49,6 @@ export default function StudentDashboard() {
             { key: "profile", label: "Profile", icon: UserCog, mobilePrimary: true },
             { key: "progress", label: "Progress", icon: TrendingUp, mobilePrimary: true },
             { key: "exams", label: "Exams", icon: ClipboardList },
-            { key: "user", label: "User Page", icon: UserCog },
         ],
         []
     );
@@ -101,13 +100,7 @@ export default function StudentDashboard() {
             userAvatarUrl={user.user_metadata?.profile_image || null}
             items={navItems}
             activeKey={activeTab}
-            onSelect={(key) => {
-                if (key === "user") {
-                    router.push("/dashboard/user");
-                    return;
-                }
-                setActiveTab(key as "overview" | "profile" | "progress" | "exams");
-            }}
+            onSelect={(key) => setActiveTab(key as "overview" | "profile" | "progress" | "exams")}
             onLogout={handleLogout}
         >
             {activeTab === "overview" && (
@@ -177,7 +170,7 @@ export default function StudentDashboard() {
 
             {activeTab === "profile" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Profile Settings</h2>
+                    <h2 className={styles.panelTitle}>Profile & User Settings</h2>
                     <form className={styles.profileForm} onSubmit={handleUpdateProfile}>
                         <div className={styles.formGroup}>
                             <label>Full Name</label>
