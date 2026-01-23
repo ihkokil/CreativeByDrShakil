@@ -30,4 +30,59 @@ model User {
   passwordResetExpires       DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  orders       Order[]
+}
+
+model Course {
+  id           String   @id @default(cuid())
+  title        String
+  description  String   @db.LongText
+  price        Float
+  instructor   String
+  duration     String
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Order {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId        String
+  course          Course   @relation(fields: [courseId], references: [id])
+  status          String   @default("pending")
+  totalAmount     Float
+  couponCode      String?
+  discountAmount  Float    @default(0)
+  payment         Payment?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  phoneNumber   String
+  transactionId String
+  amount        Float
+  status        String   @default("pending")
+  submittedAt   DateTime @default(now())
+  approvedAt    DateTime?
+}
+
+model Coupon {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  discountAmount  Float
+  maxUses         Int      @default(-1)
+  usedCount       Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

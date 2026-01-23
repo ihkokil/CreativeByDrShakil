@@ -51,3 +51,21 @@ export async function extractCookieToken() {
   const cookieStore = await cookies();
   return cookieStore.get(AUTH_COOKIE_NAME)?.value || null;
 }
+
+export async function getSession() {
+  const token = await extractCookieToken();
+  if (!token) return null;
+
+  try {
+    const payload = verifyAuthToken(token);
+    return {
+      user: {
+        id: payload.sub,
+        role: payload.role,
+        email: payload.email,
+      },
+    };
+  } catch (error) {
+    return null;
+  }
+}
