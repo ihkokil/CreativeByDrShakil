@@ -3,7 +3,7 @@
 import { useState } from "react";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, User, Send } from "lucide-react";
+import { X, Mail, User, Send, Building2, Briefcase, GraduationCap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Props {
@@ -16,6 +16,9 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
     const { session } = useAuth();
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
+    const [designation, setDesignation] = useState("");
+    const [institution, setInstitution] = useState("");
+    const [degrees, setDegrees] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -37,7 +40,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({ fullName, email }),
+                body: JSON.stringify({ fullName, email, designation, institution, degrees }),
             });
 
             const data = await response.json();
@@ -48,6 +51,9 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                 setMessage({ type: 'success', text: data.message || 'Teacher invited successfully!' });
                 setFullName("");
                 setEmail("");
+                setDesignation("");
+                setInstitution("");
+                setDegrees("");
                 // Refresh the teacher list after a short delay
                 setTimeout(() => {
                     onSuccess();
@@ -64,6 +70,9 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
         setMessage(null);
         setFullName("");
         setEmail("");
+        setDesignation("");
+        setInstitution("");
+        setDegrees("");
         onClose();
     };
 
@@ -112,6 +121,36 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
+                                />
+                            </div>
+
+                            <div className={styles.inputGroup}>
+                                <Briefcase className={styles.inputIcon} size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Designation (e.g. Assistant Professor)"
+                                    value={designation}
+                                    onChange={(e) => setDesignation(e.target.value)}
+                                />
+                            </div>
+
+                            <div className={styles.inputGroup}>
+                                <Building2 className={styles.inputIcon} size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Institution / Workplace"
+                                    value={institution}
+                                    onChange={(e) => setInstitution(e.target.value)}
+                                />
+                            </div>
+
+                            <div className={styles.inputGroup}>
+                                <GraduationCap className={styles.inputIcon} size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Degrees (e.g. MBBS, FCPS)"
+                                    value={degrees}
+                                    onChange={(e) => setDegrees(e.target.value)}
                                 />
                             </div>
 
