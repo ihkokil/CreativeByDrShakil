@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, User, Send, Building2, Briefcase, GraduationCap, Link as LinkIcon } from "lucide-react";
+import { X, Mail, User, Send, Building2, Briefcase, GraduationCap, ImagePlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Teacher {
@@ -44,6 +44,17 @@ export default function EditTeacherModal({ isOpen, onClose, onSuccess, teacher }
             setProfileImage(teacher.profile_image || "");
         }
     }, [teacher]);
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -117,6 +128,20 @@ export default function EditTeacherModal({ isOpen, onClose, onSuccess, teacher }
                         </div>
 
                         <form className={styles.form} onSubmit={handleSubmit}>
+                            <div className={styles.imageUploadWrapper}>
+                                <label className={styles.imageLabel}>
+                                    {profileImage ? (
+                                        <img src={profileImage} alt="Profile preview" className={styles.imagePreview} />
+                                    ) : (
+                                        <div className={styles.imagePlaceholder}>
+                                            <ImagePlus size={24} style={{ marginBottom: "5px" }} />
+                                            <div>Upload Photo</div>
+                                        </div>
+                                    )}
+                                    <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                                </label>
+                            </div>
+
                             <div className={styles.inputGroup}>
                                 <User className={styles.inputIcon} size={18} />
                                 <input
@@ -166,16 +191,6 @@ export default function EditTeacherModal({ isOpen, onClose, onSuccess, teacher }
                                     placeholder="Degrees (e.g. MBBS, FCPS)"
                                     value={degrees}
                                     onChange={(e) => setDegrees(e.target.value)}
-                                />
-                            </div>
-                            
-                            <div className={styles.inputGroup}>
-                                <LinkIcon className={styles.inputIcon} size={18} />
-                                <input
-                                    type="url"
-                                    placeholder="Profile Image URL"
-                                    value={profileImage}
-                                    onChange={(e) => setProfileImage(e.target.value)}
                                 />
                             </div>
 
