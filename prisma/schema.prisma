@@ -86,3 +86,12 @@ model Coupon {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model PaymentConfig {
+  id              String   @id @default("default")
+  provider        String   @default("bkash")
+  sendMoneyNumber String
+  qrCodeUrl       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
