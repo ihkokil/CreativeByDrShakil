@@ -10,25 +10,29 @@ import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function AllCoursesPage() {
-    const [activeCategory, setActiveCategory] = useState("All");
-    const [activeInstructor, setActiveInstructor] = useState("All");
-    const [activeDuration, setActiveDuration] = useState("All");
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
+    const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-    const categories = ["All", "FCPS", "Exams", "Residency", "Part II"];
-    const instructors = ["All", ...Object.values(INSTRUCTORS).map(i => i.name)];
-    const durations = ["All", "2 Months", "3 Months", "4 Months", "6 Months"];
+    const categories = ["FCPS", "Exams", "Residency", "Part II"];
+    const instructors = Object.values(INSTRUCTORS).map(i => i.name);
+    const durations = ["2 Months", "3 Months", "4 Months", "6 Months"];
+
+    const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
+        setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
+    };
 
     const filteredCourses = useMemo(() => {
         return COURSES.filter(course => {
-            const matchCategory = activeCategory === "All" || course.category === activeCategory;
-            const matchInstructor = activeInstructor === "All" || course.mainInstructor.name === activeInstructor;
-            const matchDuration = activeDuration === "All" || course.duration === activeDuration;
+            const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
+            const matchInstructor = selectedInstructors.length === 0 || selectedInstructors.includes(course.mainInstructor.name);
+            const matchDuration = selectedDurations.length === 0 || selectedDurations.includes(course.duration);
             const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchInstructor && matchDuration && matchSearch;
         });
-    }, [activeCategory, activeInstructor, activeDuration, searchQuery]);
+    }, [selectedCategories, selectedInstructors, selectedDurations, searchQuery]);
 
     return (
         <main className={styles.main}>
@@ -61,50 +65,62 @@ export default function AllCoursesPage() {
 
                         <div className={styles.filterGroup}>
                             <h4>Categories</h4>
-                            <select
-                                className={styles.selectControl}
-                                value={activeCategory}
-                                onChange={(e) => setActiveCategory(e.target.value)}
-                            >
+                            <div className={styles.checkboxList}>
                                 {categories.map((cat) => (
-                                    <option key={cat} value={cat}>{cat}</option>
+                                    <label key={cat} className={styles.checkboxItem}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCategories.includes(cat)}
+                                            onChange={() => toggleSelection(cat, setSelectedCategories)}
+                                        />
+                                        <span className={styles.checkmark}></span>
+                                        {cat}
+                                    </label>
                                 ))}
-                            </select>
+                            </div>
                         </div>
 
                         <div className={styles.filterGroup}>
                             <h4>Instructors</h4>
-                            <select
-                                className={styles.selectControl}
-                                value={activeInstructor}
-                                onChange={(e) => setActiveInstructor(e.target.value)}
-                            >
+                            <div className={styles.checkboxList}>
                                 {instructors.map((ins) => (
-                                    <option key={ins} value={ins}>{ins}</option>
+                                    <label key={ins} className={styles.checkboxItem}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedInstructors.includes(ins)}
+                                            onChange={() => toggleSelection(ins, setSelectedInstructors)}
+                                        />
+                                        <span className={styles.checkmark}></span>
+                                        {ins}
+                                    </label>
                                 ))}
-                            </select>
+                            </div>
                         </div>
 
                         <div className={styles.filterGroup}>
                             <h4>Duration</h4>
-                            <select
-                                className={styles.selectControl}
-                                value={activeDuration}
-                                onChange={(e) => setActiveDuration(e.target.value)}
-                            >
+                            <div className={styles.checkboxList}>
                                 {durations.map((dur) => (
-                                    <option key={dur} value={dur}>{dur}</option>
+                                    <label key={dur} className={styles.checkboxItem}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedDurations.includes(dur)}
+                                            onChange={() => toggleSelection(dur, setSelectedDurations)}
+                                        />
+                                        <span className={styles.checkmark}></span>
+                                        {dur}
+                                    </label>
                                 ))}
-                            </select>
+                            </div>
                         </div>
 
-                        {(activeCategory !== "All" || activeInstructor !== "All" || activeDuration !== "All" || searchQuery) && (
+                        {(selectedCategories.length > 0 || selectedInstructors.length > 0 || selectedDurations.length > 0 || searchQuery) && (
                             <button
                                 className={styles.clearBtn}
                                 onClick={() => {
-                                    setActiveCategory("All");
-                                    setActiveInstructor("All");
-                                    setActiveDuration("All");
+                                    setSelectedCategories([]);
+                                    setSelectedInstructors([]);
+                                    setSelectedDurations([]);
                                     setSearchQuery("");
                                 }}
                             >
