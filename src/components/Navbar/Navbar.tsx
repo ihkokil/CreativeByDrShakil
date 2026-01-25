@@ -29,7 +29,7 @@ export default function Navbar() {
             <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ""}`}>
                 <div className={styles.container}>
                     <Link href="/" className={styles.logo}>
-                        <Image src="/logo.png" alt="Dr. Shakil's Academy" width={160} height={45} priority className={styles.logoImg} />
+                        <Image src="/logo.png" alt="Creative By Dr. Shakil" width={160} height={45} priority className={styles.logoImg} />
                     </Link>
 
                     <div className={styles.centerLinks}>
