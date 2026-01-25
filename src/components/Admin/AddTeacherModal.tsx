@@ -3,7 +3,7 @@
 import { useState } from "react";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, User, Send, Building2, Briefcase, GraduationCap } from "lucide-react";
+import { X, Mail, User, Send, Building2, Briefcase, GraduationCap, ImagePlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 interface Props {
@@ -19,8 +19,20 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
     const [designation, setDesignation] = useState("");
     const [institution, setInstitution] = useState("");
     const [degrees, setDegrees] = useState("");
+    const [profileImage, setProfileImage] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setProfileImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,7 +52,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({ fullName, email, designation, institution, degrees }),
+                body: JSON.stringify({ fullName, email, designation, institution, degrees, profileImage }),
             });
 
             const data = await response.json();
@@ -54,6 +66,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                 setDesignation("");
                 setInstitution("");
                 setDegrees("");
+                setProfileImage("");
                 // Refresh the teacher list after a short delay
                 setTimeout(() => {
                     onSuccess();
@@ -73,6 +86,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
         setDesignation("");
         setInstitution("");
         setDegrees("");
+        setProfileImage("");
         onClose();
     };
 
@@ -102,6 +116,20 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                         </div>
 
                         <form className={styles.form} onSubmit={handleSubmit}>
+                            <div className={styles.imageUploadWrapper}>
+                                <label className={styles.imageLabel}>
+                                    {profileImage ? (
+                                        <img src={profileImage} alt="Profile preview" className={styles.imagePreview} />
+                                    ) : (
+                                        <div className={styles.imagePlaceholder}>
+                                            <ImagePlus size={24} style={{ marginBottom: "5px" }} />
+                                            <div>Upload Photo</div>
+                                        </div>
+                                    )}
+                                    <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                                </label>
+                            </div>
+
                             <div className={styles.inputGroup}>
                                 <User className={styles.inputIcon} size={18} />
                                 <input
