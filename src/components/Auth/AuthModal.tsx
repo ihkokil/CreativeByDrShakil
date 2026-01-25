@@ -5,6 +5,7 @@ import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, Github, Chrome, User, Phone, FileText, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 
 interface Props {
     isOpen: boolean;
@@ -29,6 +30,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
 
     const getPasswordStrength = (pass: string) => {
         let score = 0;
@@ -67,6 +69,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
         setLoading(true);
         setMessage(null);
+        setPendingVerificationEmail("");
 
         const response = await fetch(isLogin ? '/api/auth/login' : '/api/auth/register', {
             method: 'POST',
@@ -82,16 +85,47 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
         if (!response.ok) {
             setMessage({ type: 'error', text: data.error || 'Authentication failed.' });
+            if (data.code === 'email_not_verified' && data.email) {
+                setPendingVerificationEmail(data.email);
+            }
         } else {
             if (data.token) {
                 localStorage.setItem('auth_token', data.token);
             }
-            await refreshSession();
-            setMessage({
-                type: 'success',
-                text: isLogin ? 'Successfully logged in!' : 'Account created successfully!'
-            });
-            setTimeout(onClose, 1200);
+            if (isLogin) {
+                await refreshSession();
+                setMessage({
+                    type: 'success',
+                    text: 'Successfully logged in!',
+                });
+                setTimeout(onClose, 1200);
+            } else {
+                setMessage({
+                    type: 'success',
+                    text: data.message || 'Account created. Please verify your email before logging in.',
+                });
+            }
+        }
+        setLoading(false);
+    };
+
+    const handleResendVerification = async () => {
+        if (!pendingVerificationEmail) {
+            return;
+        }
+
+        setLoading(true);
+        const response = await fetch('/api/auth/resend-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: pendingVerificationEmail }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            setMessage({ type: 'success', text: data.message || 'Verification email sent.' });
+        } else {
+            setMessage({ type: 'error', text: data.error || 'Could not resend verification email.' });
         }
         setLoading(false);
     };
@@ -207,6 +241,14 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                                         </div>
                                     </div>
                                 )}
+
+                                {isLogin && (
+                                    <div className={styles.forgotWrap}>
+                                        <Link href="/auth/forgot-password" className={styles.forgotLink} onClick={onClose}>
+                                            Forgot password?
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
 
                             {!isLogin && (
@@ -234,6 +276,12 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                                 <div className={`${styles.message} ${styles[message.type]}`}>
                                     {message.text}
                                 </div>
+                            )}
+
+                            {pendingVerificationEmail && (
+                                <button type="button" className={styles.secondaryBtn} onClick={handleResendVerification}>
+                                    Resend verification email
+                                </button>
                             )}
 
                             <button className={styles.submitBtn} disabled={loading}>
