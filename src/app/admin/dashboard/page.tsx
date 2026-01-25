@@ -98,6 +98,7 @@ export default function AdminDashboard() {
                 roleLabel="Admin"
                 userName={user.user_metadata?.full_name || "Admin"}
                 userEmail={user.email}
+                userAvatarUrl={user.user_metadata?.profile_image || null}
                 items={navItems}
                 activeKey={activeTab}
                 onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "analytics" | "settings")}

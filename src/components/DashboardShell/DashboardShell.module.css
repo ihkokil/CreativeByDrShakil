@@ -65,6 +65,8 @@
 }
 
 .avatar {
+    position: relative;
+    overflow: hidden;
     width: 38px;
     height: 38px;
     border-radius: 12px;
@@ -75,6 +77,10 @@
     color: white;
     font-size: 0.9rem;
     font-weight: 800;
+}
+
+.avatarImage {
+    object-fit: cover;
 }
 
 .profileInfo {
@@ -175,14 +181,20 @@
     position: sticky;
     top: 0;
     z-index: 900;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 24px 32px;
+    padding: 20px 28px;
     background: color-mix(in srgb, var(--background) 88%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--glass-border);
+}
+
+.topbarInner {
+    width: min(1220px, 100%);
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .topbar h1 {
@@ -202,7 +214,12 @@
 }
 
 .content {
-    padding: 28px 32px 110px;
+    padding: 24px 28px 110px;
+}
+
+.contentInner {
+    width: min(1220px, 100%);
+    margin: 0 auto;
 }
 
 .mobileBottomNav {
@@ -228,6 +245,11 @@
 
     .topbar {
         padding: 18px 16px;
+    }
+
+    .topbarInner,
+    .contentInner {
+        width: 100%;
     }
 
     .topbar h1 {

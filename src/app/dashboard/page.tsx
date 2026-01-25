@@ -49,6 +49,7 @@ export default function StudentDashboard() {
             { key: "profile", label: "Profile", icon: UserCog, mobilePrimary: true },
             { key: "progress", label: "Progress", icon: TrendingUp, mobilePrimary: true },
             { key: "exams", label: "Exams", icon: ClipboardList },
+            { key: "user", label: "User Page", icon: UserCog },
         ],
         []
     );
@@ -97,9 +98,16 @@ export default function StudentDashboard() {
             roleLabel="Student"
             userName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Student"}
             userEmail={user.email}
+            userAvatarUrl={user.user_metadata?.profile_image || null}
             items={navItems}
             activeKey={activeTab}
-            onSelect={(key) => setActiveTab(key as "overview" | "profile" | "progress" | "exams")}
+            onSelect={(key) => {
+                if (key === "user") {
+                    router.push("/dashboard/user");
+                    return;
+                }
+                setActiveTab(key as "overview" | "profile" | "progress" | "exams");
+            }}
             onLogout={handleLogout}
         >
             {activeTab === "overview" && (
