@@ -3,32 +3,23 @@
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./Footer.module.css";
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight } from "lucide-react";
+import { Facebook, Twitter, Instagram, Youtube, Mail } from "lucide-react";
 
 export default function Footer() {
     return (
         <footer className={styles.footer}>
-
             <div className={styles.mainFooter}>
                 <div className={styles.brandSide}>
                     <div className={styles.logo}>
-                        <Image src="/logo.png" alt="Dr. Shakil's Academy" width={180} height={50} className={styles.logoImg} />
+                        <Image src="/logo.png" alt="Creative By Dr. Shakil" width={180} height={50} className={styles.logoImg} />
                     </div>
                     <p className={styles.description}>
                         Empowering the next generation of medical specialists through evidence-based training and clinical excellence since 2018.
                     </p>
                     <div className={styles.contactInfo}>
                         <div className={styles.contactItem}>
-                            <Phone size={18} />
-                            <span>+880 1XXX-XXXXXX</span>
-                        </div>
-                        <div className={styles.contactItem}>
                             <Mail size={18} />
                             <span>contact@drshakil.com</span>
-                        </div>
-                        <div className={styles.contactItem}>
-                            <MapPin size={18} />
-                            <span>Dhaka, Bangladesh</span>
                         </div>
                     </div>
                 </div>
@@ -66,7 +57,7 @@ export default function Footer() {
 
             <div className={styles.bottomBar}>
                 <div className={styles.bottomContent}>
-                    <p>&copy; {new Date().getFullYear()} CreativeByDrShakil. Developed for medical excellence.</p>
+                    <p>&copy; {new Date().getFullYear()} Creative By Dr. Shakil | creativebydrshakil.com. Developed for medical excellence.</p>
                     <div className={styles.legalLinks}>
                         <Link href="#">Privacy</Link>
                         <Link href="#">Cookies</Link>

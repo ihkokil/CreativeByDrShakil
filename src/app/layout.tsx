@@ -6,8 +6,8 @@ import { AuthProvider } from "@/context/AuthContext";
 const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "Creative Learning | Medical Education simplified",
-    description: "A premium learning platform for doctors.",
+    title: "Creative By Dr. Shakil | Medical Education Simplified",
+    description: "Creative By Dr. Shakil (creativebydrshakil.com) — a premium learning platform for doctors.",
 };
 
 export default function RootLayout({
