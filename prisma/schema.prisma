@@ -22,10 +22,11 @@ model User {
   fullName     String
   role         UserRole @default(student)
   bmdcNumber   String?
-  emailVerified Boolean  @default(true)
-  emailVerificationTokenHash String? @db.VarChar(255)
+  profileImage               String?  @db.LongText
+  emailVerified              Boolean  @default(true)
+  emailVerificationTokenHash String?  @db.VarChar(255)
   emailVerificationExpires   DateTime?
-  passwordResetTokenHash     String? @db.VarChar(255)
+  passwordResetTokenHash     String?  @db.VarChar(255)
   passwordResetExpires       DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

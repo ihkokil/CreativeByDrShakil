@@ -97,6 +97,7 @@ export default function StudentDashboard() {
             roleLabel="Student"
             userName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Student"}
             userEmail={user.email}
+            userAvatarUrl={user.user_metadata?.profile_image || null}
             items={navItems}
             activeKey={activeTab}
             onSelect={(key) => setActiveTab(key as "overview" | "profile" | "progress" | "exams")}
@@ -169,7 +170,7 @@ export default function StudentDashboard() {
 
             {activeTab === "profile" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Profile Settings</h2>
+                    <h2 className={styles.panelTitle}>Profile & User Settings</h2>
                     <form className={styles.profileForm} onSubmit={handleUpdateProfile}>
                         <div className={styles.formGroup}>
                             <label>Full Name</label>
