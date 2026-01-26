@@ -21,6 +21,13 @@ export interface SessionInfo {
   lastActivityAt: Date;
 }
 
+export interface AutoLockResolution {
+  effectiveAutoLockFirstBrowser: boolean;
+  hasUserOverride: boolean;
+  userAutoLockFirstBrowser: boolean | null;
+  globalAutoLockFirstBrowser: boolean;
+}
+
 /**
  * Create a new device session
  */
@@ -125,6 +132,52 @@ export async function getActiveSessionByDeviceType(userId: string, deviceType: D
 }
 
 /**
+ * Get all active sessions of a specific device type for a user
+ */
+export async function getActiveSessionsByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo[]> {
+  const sessions = await prisma.deviceSession.findMany({
+    where: {
+      userId,
+      deviceType,
+      loggedOutAt: null,
+      isLocked: false,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return sessions.map((s) => ({
+    id: s.id,
+    userId: s.userId,
+    deviceType: s.deviceType,
+    browserName: s.browserName,
+    ipAddress: s.ipAddress,
+    isLocked: s.isLocked,
+    loggedOutAt: s.loggedOutAt,
+    createdAt: s.createdAt,
+    lastActivityAt: s.lastActivityAt,
+  }));
+}
+
+/**
+ * Terminate all active sessions of a specific device type for a user
+ */
+export async function terminateActiveSessionsByDeviceType(userId: string, deviceType: DeviceType): Promise<string[]> {
+  const sessions = await getActiveSessionsByDeviceType(userId, deviceType);
+  const sessionIds = sessions.map((s) => s.id);
+
+  if (sessionIds.length === 0) {
+    return [];
+  }
+
+  await prisma.deviceSession.updateMany({
+    where: { id: { in: sessionIds } },
+    data: { loggedOutAt: new Date() },
+  });
+
+  return sessionIds;
+}
+
+/**
  * Get session by ID
  */
 export async function getSessionById(sessionId: string): Promise<SessionInfo | null> {
@@ -212,16 +265,8 @@ export async function updateSessionActivity(sessionId: string): Promise<void> {
  * Returns user-specific setting if exists, otherwise returns global setting (default: true)
  */
 export async function getAutoLockSetting(userId: string): Promise<boolean> {
-  const userSetting = await prisma.sessionLockSettings.findUnique({
-    where: { userId },
-  });
-
-  if (userSetting !== null) {
-    return userSetting.autoLockFirstBrowser;
-  }
-
-  // Default to true if no user setting exists
-  return true;
+  const resolution = await resolveAutoLockSetting(userId);
+  return resolution.effectiveAutoLockFirstBrowser;
 }
 
 /**
@@ -238,6 +283,55 @@ export async function setAutoLockSetting(userId: string, enabled: boolean): Prom
       autoLockFirstBrowser: enabled,
     },
   });
+}
+
+/**
+ * Get global Lock First Browser setting
+ */
+export async function getGlobalAutoLockSetting(): Promise<boolean> {
+  const setting = await prisma.globalSessionLockSettings.findUnique({
+    where: { id: 'global' },
+  });
+
+  return setting?.autoLockFirstBrowser ?? true;
+}
+
+/**
+ * Update global Lock First Browser setting
+ */
+export async function setGlobalAutoLockSetting(enabled: boolean): Promise<void> {
+  await prisma.globalSessionLockSettings.upsert({
+    where: { id: 'global' },
+    create: {
+      id: 'global',
+      autoLockFirstBrowser: enabled,
+    },
+    update: {
+      autoLockFirstBrowser: enabled,
+    },
+  });
+}
+
+/**
+ * Resolve effective lock setting for a user with global fallback
+ */
+export async function resolveAutoLockSetting(userId: string): Promise<AutoLockResolution> {
+  const [userSetting, globalAutoLockFirstBrowser] = await Promise.all([
+    prisma.sessionLockSettings.findUnique({ where: { userId } }),
+    getGlobalAutoLockSetting(),
+  ]);
+
+  const hasUserOverride = Boolean(userSetting);
+  const userAutoLockFirstBrowser = userSetting?.autoLockFirstBrowser ?? null;
+  const effectiveAutoLockFirstBrowser =
+    userAutoLockFirstBrowser ?? globalAutoLockFirstBrowser;
+
+  return {
+    effectiveAutoLockFirstBrowser,
+    hasUserOverride,
+    userAutoLockFirstBrowser,
+    globalAutoLockFirstBrowser,
+  };
 }
 
 /**
