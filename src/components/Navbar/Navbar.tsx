@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
-import { ChevronDown, User, LayoutGrid, LogOut, Layout, Users, Shield } from "lucide-react";
+import { ChevronDown, User, LayoutGrid, LogOut, Layout } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -18,6 +18,12 @@ export default function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+
+    const dashboardHref = role === "admin"
+        ? "/admin/dashboard"
+        : role === "teacher"
+            ? "/teacher/dashboard"
+            : "/dashboard";
 
     useEffect(() => {
         const handleScroll = () => {
@@ -68,16 +74,8 @@ export default function Navbar() {
 
                         {user ? (
                             <div className={styles.userSection}>
-                                {role === 'admin' && (
-                                    <Link href="/admin/dashboard" className={styles.dashboardLink} style={{ color: '#8b5cf6' }}>
-                                        <Shield size={18} /> Admin
-                                    </Link>
-                                )}
-                                <Link href="/dashboard" className={styles.dashboardLink} style={role === 'admin' ? { borderLeft: '1px solid var(--glass-border)', paddingLeft: '15px' } : {}}>
-                                    <Layout size={18} /> Student
-                                </Link>
-                                <Link href="/teacher/dashboard" className={styles.dashboardLink} style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '15px' }}>
-                                    <Users size={18} /> Teacher
+                                <Link href={dashboardHref} className={styles.dashboardLink}>
+                                    <Layout size={18} /> Dashboard
                                 </Link>
                                 <button className={styles.logoutBtn} onClick={() => signOut()}>
                                     <LogOut size={18} />
