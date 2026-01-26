@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./Dashboard.module.css";
 import {
@@ -21,11 +21,18 @@ import { COURSES } from "@/constants/courses";
 import Link from "next/link";
 import Image from "next/image";
 
-export default function StudentDashboard() {
+function StudentDashboardContent() {
     const { user, loading, refreshSession, signOut } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
 
-    const [activeTab, setActiveTab] = useState<"overview" | "profile" | "progress" | "exams">("overview");
+    const activeTab = (searchParams.get("tab") as "overview" | "profile" | "progress" | "exams") || "overview";
+
+    const setActiveTab = (tab: string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set("tab", tab);
+        router.push(`?${params.toString()}`);
+    };
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [saving, setSaving] = useState(false);
@@ -241,5 +248,13 @@ export default function StudentDashboard() {
                 </section>
             )}
         </DashboardShell>
+    );
+}
+
+export default function StudentDashboard() {
+    return (
+        <Suspense fallback={<div className={styles.loader}>Loading Dashboard...</div>}>
+            <StudentDashboardContent />
+        </Suspense>
     );
 }
