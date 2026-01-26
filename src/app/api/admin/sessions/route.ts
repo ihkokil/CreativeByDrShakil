@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth-server';
-import { getAllSessionsForUser, getAutoLockSetting, setAutoLockSetting } from '@/lib/session-manager';
+import {
+  resolveAutoLockSetting,
+  setAutoLockSetting,
+  getGlobalAutoLockSetting,
+  setGlobalAutoLockSetting,
+} from '@/lib/session-manager';
 
 /**
  * GET /api/admin/sessions
@@ -44,16 +49,28 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    const globalAutoLockSetting = await getGlobalAutoLockSetting();
+
     // Format response
     const response = {
-      students: students.map((student) => ({
-        id: student.id,
-        fullName: student.fullName,
-        email: student.email,
-        autoLockSetting: student.sessionSettings?.autoLockFirstBrowser ?? true, // Default true
-        activeSessions: student.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked),
-        sessions: student.deviceSessions,
-      })),
+      globalAutoLockSetting,
+      students: await Promise.all(
+        students.map(async (student) => {
+          const resolved = await resolveAutoLockSetting(student.id);
+          const activeSessions = student.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+
+          return {
+            id: student.id,
+            fullName: student.fullName,
+            email: student.email,
+            autoLockSetting: resolved.effectiveAutoLockFirstBrowser,
+            hasUserOverride: resolved.hasUserOverride,
+            userAutoLockSetting: resolved.userAutoLockFirstBrowser,
+            activeSessions,
+            sessions: activeSessions,
+          };
+        })
+      ),
     };
 
     return NextResponse.json(response);
@@ -91,9 +108,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Otherwise, update global admin user setting (treated as "global")
-    // Store in the admin's session settings for global override
-    await setAutoLockSetting(auth.user.id, autoLockFirstBrowser);
+    // Otherwise, update true global setting
+    await setGlobalAutoLockSetting(autoLockFirstBrowser);
 
     return NextResponse.json({
       success: true,

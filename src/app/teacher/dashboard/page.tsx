@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./TeacherDashboard.module.css";
 import {
@@ -20,10 +20,18 @@ import { COURSES } from "@/constants/courses";
 import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 import Image from "next/image";
 
-export default function TeacherDashboard() {
+function TeacherDashboardContent() {
     const { user, loading, signOut } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"overview" | "courses" | "students" | "assignments" | "library">("overview");
+    const searchParams = useSearchParams();
+
+    const activeTab = (searchParams.get("tab") as "overview" | "courses" | "students" | "assignments" | "library") || "overview";
+
+    const setActiveTab = (tab: string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set("tab", tab);
+        router.push(`?${params.toString()}`);
+    };
 
     useEffect(() => {
         if (!loading && !user) {
@@ -150,5 +158,13 @@ export default function TeacherDashboard() {
                 </section>
             )}
         </DashboardShell>
+    );
+}
+
+export default function TeacherDashboard() {
+    return (
+        <Suspense fallback={<div className={styles.loader}>Loading Teacher Dashboard...</div>}>
+            <TeacherDashboardContent />
+        </Suspense>
     );
 }
