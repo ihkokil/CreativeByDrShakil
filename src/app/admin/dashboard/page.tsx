@@ -18,13 +18,15 @@ import {
     Shield,
     Edit,
     Trash2,
-    MailCheck
+    MailCheck,
+    Smartphone,
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
 import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
 import CouponManager from "@/components/Admin/CouponManager";
 import Image from "next/image";
+import SessionsManager from "@/components/Admin/SessionsManager";
 
 interface TeacherProfile {
     id: string;
@@ -47,7 +49,7 @@ function AdminDashboardContent() {
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
     // Instead of useState for activeTab, derive it from searchParams
-    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "coupons" | "analytics" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -91,6 +93,7 @@ function AdminDashboardContent() {
             { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
             { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
             { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
+            { key: "sessions", label: "Sessions", icon: Smartphone, mobilePrimary: true },
             { key: "analytics", label: "Analytics", icon: BarChart3, mobilePrimary: true },
             { key: "settings", label: "Settings", icon: Settings },
         ],
@@ -108,7 +111,8 @@ function AdminDashboardContent() {
 
     const handleLogout = async () => {
         await signOut();
-        router.push("/");
+        router.replace("/");
+        router.refresh();
     };
 
     const handleResetPassword = async (teacher: TeacherProfile) => {
@@ -144,7 +148,7 @@ function AdminDashboardContent() {
                 userAvatarUrl={user.user_metadata?.profile_image || null}
                 items={navItems}
                 activeKey={activeTab}
-                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "analytics" | "settings")}
+                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings")}
                 onLogout={handleLogout}
             >
                 {activeTab === "overview" && (
@@ -269,7 +273,12 @@ function AdminDashboardContent() {
                         <CouponManager />
                     </section>
                 )}
-
+                {activeTab === "sessions" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Device Sessions</h2>
+                        <SessionsManager />
+                    </section>
+                )}
                 {activeTab === "settings" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Platform Settings</h2>
