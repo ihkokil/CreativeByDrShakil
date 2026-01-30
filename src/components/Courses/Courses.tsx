@@ -1,20 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import styles from "./Courses.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { COURSES } from "@/constants/courses";
 import CourseCard from "./CourseCard";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 
 export default function Courses() {
     const [filter, setFilter] = useState("All");
+    const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const categories = ["All", "FCPS", "Exams", "Residency"];
 
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadTeachers = async () => {
+            try {
+                const response = await fetch("/api/teachers");
+                const data = await response.json();
+                if (!cancelled && response.ok && Array.isArray(data.teachers)) {
+                    setTeachers(data.teachers);
+                }
+            } catch {
+                // Keep static fallback data if teacher directory fetch fails.
+            }
+        };
+
+        loadTeachers();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
+
     const filtered = filter === "All"
-        ? COURSES.slice(0, 3) // Just show first 3 for home
-        : COURSES.filter(c => c.category === filter).slice(0, 3);
+        ? displayCourses.slice(0, 3) // Just show first 3 for home
+        : displayCourses.filter(c => c.category === filter).slice(0, 3);
 
     return (
         <section className="section-padding">
