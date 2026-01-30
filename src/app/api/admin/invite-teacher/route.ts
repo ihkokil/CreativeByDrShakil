@@ -9,7 +9,7 @@ import {
 
 export async function POST(request: NextRequest) {
     try {
-        const { fullName, email } = await request.json();
+        const { fullName, email, designation, institution, degrees } = await request.json();
 
         if (!fullName || !email) {
             return NextResponse.json(
@@ -48,6 +48,9 @@ export async function POST(request: NextRequest) {
                 fullName,
                 passwordHash,
                 role: 'teacher',
+                designation: designation || null,
+                institution: institution || null,
+                degrees: degrees || null,
             },
         });
 
