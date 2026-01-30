@@ -9,6 +9,7 @@ export interface AuthTokenPayload extends JwtPayload {
   sub: string;
   role: 'admin' | 'teacher' | 'student';
   email: string;
+  sessionId?: string;
 }
 
 function getJwtSecret() {
@@ -27,7 +28,7 @@ export async function comparePassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
-export function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string }) {
+export function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string }) {
   const options: jwt.SignOptions = {
     expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'],
   };
