@@ -12,42 +12,62 @@ interface PaymentFormProps {
 
 export function PaymentForm({ orderId, amount, onSubmit, loading }: PaymentFormProps) {
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [sentAmount, setSentAmount] = useState(String(amount))
   const [transactionId, setTransactionId] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!phoneNumber || !transactionId) return
+    if (!phoneNumber || !transactionId || !sentAmount) return
 
     onSubmit({
       orderId,
       phoneNumber,
       transactionId,
       amount,
+      sentAmount: Number(sentAmount),
     })
   }
 
   return (
     <form onSubmit={handleSubmit} className={styles.paymentForm}>
+      <div className={styles.formGrid}>
+        <div>
+          <label>Your Phone Number</label>
+          <input
+            type="tel"
+            placeholder="+880..."
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Transaction ID</label>
+          <input
+            type="text"
+            placeholder="bKash transaction ID"
+            value={transactionId}
+            onChange={(e) => setTransactionId(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
       <div>
-        <label>Your Phone Number</label>
+        <label>Sent Amount</label>
         <input
-          type="tel"
-          placeholder="+880..."
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
+          type="number"
+          inputMode="numeric"
+          min="0"
+          step="1"
+          placeholder="Amount sent including charge"
+          value={sentAmount}
+          onChange={(e) => setSentAmount(e.target.value)}
           required
         />
+        <p className={styles.fieldHint}>Example: if the payable amount is 6000, you can enter 6045 if that is what you sent.</p>
       </div>
-      <div>
-        <label>Transaction ID</label>
-        <input
-          type="text"
-          placeholder="Transaction ID from bKash"
-          value={transactionId}
-          onChange={(e) => setTransactionId(e.target.value)}
-          required
-        />
-      </div>
+
       <button type="submit" disabled={loading}>
         {loading ? 'Submitting...' : 'Submit Payment'}
       </button>
