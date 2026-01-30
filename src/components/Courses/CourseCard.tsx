@@ -24,10 +24,11 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
         >
             <Link href={`/courses/${course.slug}`} className={styles.imageWrapper}>
                 <Image
-                    src={course.category === "FCPS" || course.category === "Exams" ? "/placeholder.svg" : "/placeholder.svg"}
+                    src={course.image || "/placeholder.svg"}
                     alt={course.title}
                     fill
                     style={{ objectFit: "cover" }}
+                    unoptimized
                 />
                 <div className={styles.categoryBadge}>
                     <Tag size={12} />
@@ -38,7 +39,7 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
             <div className={styles.cardInfo}>
                 <div className={styles.instructorSection}>
                     <div className={styles.instructorAvatar}>
-                        <Image src={course.mainInstructor.image} alt={course.mainInstructor.name} fill />
+                        <Image src={course.mainInstructor.image || "/placeholder.svg"} alt={course.mainInstructor.name} fill unoptimized />
                     </div>
                     <span className={styles.instructorName}>{course.mainInstructor.name}</span>
                 </div>
