@@ -164,4 +164,18 @@
         width: min(100% - (var(--layout-gutter-mobile) * 2), var(--layout-max-width));
         padding: 10px var(--layout-gutter-mobile);
     }
+
+    .rightActions {
+        gap: 10px;
+    }
+
+    .accountBtn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+
+    .dashboardLink {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
 }
