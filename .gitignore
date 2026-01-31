@@ -30,3 +30,4 @@ logs
 out/
 build/
 .env*.local
+*.tsbuildinfo
