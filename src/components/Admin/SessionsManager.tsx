@@ -22,6 +22,8 @@ interface StudentData {
   fullName: string;
   email: string;
   autoLockSetting: boolean;
+  hasUserOverride: boolean;
+  userAutoLockSetting: boolean | null;
   activeSessions: SessionData[];
   sessions: SessionData[];
 }
@@ -47,6 +49,7 @@ export default function SessionsManager() {
 
       const data = await response.json();
       setStudents(data.students || []);
+      setGlobalAutoLock(data.globalAutoLockSetting ?? true);
     } catch (err: any) {
       setError(err.message || 'Failed to load sessions');
     } finally {
@@ -114,7 +117,7 @@ export default function SessionsManager() {
 
   const getSessionStatus = (session: SessionData) => {
     if (session.isLocked) return 'locked';
-    if (session.loggedOutAt) return 'logged-out';
+    if (session.loggedOutAt) return 'loggedout';
     return 'active';
   };
 
@@ -160,8 +163,8 @@ export default function SessionsManager() {
           </thead>
           <tbody>
             {students.map((student) => {
-              const desktopSessions = student.sessions.filter((s) => s.deviceType === 'desktop');
-              const mobileSessions = student.sessions.filter((s) => s.deviceType === 'mobile');
+              const desktopSessions = student.activeSessions.filter((s) => s.deviceType === 'desktop');
+              const mobileSessions = student.activeSessions.filter((s) => s.deviceType === 'mobile');
 
               return (
                 <tr key={student.id}>
@@ -213,6 +216,7 @@ export default function SessionsManager() {
                     >
                       <Settings2 size={14} />
                       {student.autoLockSetting ? 'ON' : 'OFF'}
+                      {student.hasUserOverride ? '' : ' (GLOBAL)'}
                     </button>
                   </td>
                   <td>
@@ -227,6 +231,7 @@ export default function SessionsManager() {
                             title="Lock all active sessions"
                           >
                             <Lock size={16} />
+                            <span>Lock Active</span>
                           </button>
                           <button
                             className={styles.actionBtn}
@@ -236,6 +241,7 @@ export default function SessionsManager() {
                             title="Logout all sessions"
                           >
                             <LogOut size={16} />
+                            <span>Logout Active</span>
                           </button>
                         </>
                       )}

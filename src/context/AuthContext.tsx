@@ -109,20 +109,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [user, sessionId]);
 
     const signOut = async () => {
-        try {
-            await fetch('/api/auth/logout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId }),
-            });
-        } catch {
-            // Ignore errors
-        }
+        const currentSessionId = sessionId;
+
+        // Clear local auth state first so logout feels instant on UI.
         localStorage.removeItem('auth_token');
         setUser(null);
         setSession(null);
         setSessionId(null);
+        setRole(null);
         setHasSessionTerminated(false);
+
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: currentSessionId }),
+            });
+        } catch {
+            // Ignore errors
+        }
     };
 
     return (
