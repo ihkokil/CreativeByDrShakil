@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
     try {
+        const params = await props.params;
         const bearerToken = extractBearerToken(request);
         const cookieToken = await extractCookieToken();
         const token = bearerToken || cookieToken;
@@ -37,8 +38,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
     try {
+        const params = await props.params;
         const bearerToken = extractBearerToken(request);
         const cookieToken = await extractCookieToken();
         const token = bearerToken || cookieToken;
