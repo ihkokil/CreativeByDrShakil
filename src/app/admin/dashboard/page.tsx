@@ -16,19 +16,26 @@ import {
     DollarSign,
     GraduationCap,
     Shield,
+    Edit,
+    Trash2,
+    MailCheck
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
+import EditTeacherModal from "@/components/Admin/EditTeacherModal";
+import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
 import CouponManager from "@/components/Admin/CouponManager";
+import Image from "next/image";
 
 interface TeacherProfile {
     id: string;
     full_name: string;
     role: string;
     created_at: string;
-    email?: string;
+    email: string;
     designation?: string;
     institution?: string;
     degrees?: string;
+    profile_image?: string;
 }
 
 function AdminDashboardContent() {
@@ -36,6 +43,8 @@ function AdminDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
+    const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
+    const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
     // Instead of useState for activeTab, derive it from searchParams
     const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "coupons" | "analytics" | "settings") || "overview";
@@ -100,6 +109,24 @@ function AdminDashboardContent() {
     const handleLogout = async () => {
         await signOut();
         router.push("/");
+    };
+
+    const handleResetPassword = async (teacher: TeacherProfile) => {
+        const confirmContent = window.confirm(`Send password reset email to ${teacher.email}?`);
+        if (!confirmContent) return;
+
+        try {
+            const token = localStorage.getItem("auth_token");
+            const res = await fetch(`/api/admin/teachers/${teacher.id}/reset-password`, {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const data = await res.json();
+            if (res.ok) alert(data.message || "Email dispatched!");
+            else alert(data.error || "Failed to send reset email.");
+        } catch(e) {
+            alert("Network error.");
+        }
     };
 
     if (loading || !user || role !== "admin") {
@@ -170,25 +197,51 @@ function AdminDashboardContent() {
                         {teachersLoading ? (
                             <div className={styles.infoBox}>Loading teachers...</div>
                         ) : teachers.length > 0 ? (
-                            <div className={styles.teacherGrid}>
+                            <div className={styles.teacherList}>
                                 {teachers.map((teacher) => (
-                                    <article key={teacher.id} className={styles.teacherCard}>
+                                    <article key={teacher.id} className={styles.listRow}>
                                         <div className={styles.teacherHead}>
-                                            <div className={styles.avatar}>{getInitials(teacher.full_name || "T")}</div>
-                                            <div>
+                                            <div className={styles.avatar} style={{ overflow: "hidden", position: "relative" }}>
+                                                {teacher.profile_image ? (
+                                                    <Image src={teacher.profile_image} alt={teacher.full_name} fill style={{ objectFit: 'cover' }} unoptimized/>
+                                                ) : getInitials(teacher.full_name || "T")}
+                                            </div>
+                                            <div className={styles.listCol}>
                                                 <h3>{teacher.full_name}</h3>
                                                 <p>{teacher.email || "Email pending"}</p>
-                                                {(teacher.designation || teacher.institution || teacher.degrees) && (
-                                                    <p style={{ fontSize: "0.75rem", marginTop: "4px", color: "var(--foreground)" }}>
-                                                        {teacher.designation} {teacher.designation && teacher.institution ? "at" : ""} {teacher.institution}
-                                                        {teacher.degrees && <span style={{ display: "block", color: "var(--primary)" }}>{teacher.degrees}</span>}
-                                                    </p>
-                                                )}
                                             </div>
                                         </div>
-                                        <div className={styles.teacherMeta}>
-                                            <span className={styles.rolePill}>{teacher.role}</span>
-                                            <span>Joined {new Date(teacher.created_at).toLocaleDateString()}</span>
+                                        
+                                        <div className={styles.listCol}>
+                                            {(teacher.designation || teacher.institution || teacher.degrees) ? (
+                                                <>
+                                                    <p style={{ color: "var(--foreground)", fontWeight: 500 }}>
+                                                        {teacher.designation} {teacher.designation && teacher.institution ? "at" : ""} {teacher.institution}
+                                                    </p>
+                                                    {teacher.degrees && <span style={{ color: "var(--primary)", fontSize: "0.8rem", fontWeight: 700 }}>{teacher.degrees}</span>}
+                                                </>
+                                            ) : (
+                                                <p style={{fontStyle: "italic"}}>No academic details</p>
+                                            )}
+                                        </div>
+
+                                        <div className={styles.listCol}>
+                                            <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
+                                            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                                                Joined {new Date(teacher.created_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
+
+                                        <div className={styles.actionGroup}>
+                                            <button className={styles.iconBtn} title="Send Reset Mail" onClick={() => handleResetPassword(teacher)}>
+                                                <MailCheck size={16} />
+                                            </button>
+                                            <button className={styles.iconBtn} title="Edit Teacher" onClick={() => setEditTeacherData(teacher)}>
+                                                <Edit size={16} />
+                                            </button>
+                                            <button className={`${styles.iconBtn} ${styles.deleteBtn}`} title="Delete & Reassign" onClick={() => setDeleteTeacherData(teacher)}>
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
                                     </article>
                                 ))}
@@ -236,6 +289,21 @@ function AdminDashboardContent() {
                     setIsAddTeacherOpen(false);
                     fetchTeachers();
                 }}
+            />
+
+            <EditTeacherModal
+                isOpen={!!editTeacherData}
+                onClose={() => setEditTeacherData(null)}
+                onSuccess={() => fetchTeachers()}
+                teacher={editTeacherData}
+            />
+
+            <DeleteTeacherModal
+                isOpen={!!deleteTeacherData}
+                onClose={() => setDeleteTeacherData(null)}
+                onSuccess={() => fetchTeachers()}
+                teacherTarget={deleteTeacherData}
+                allTeachers={teachers}
             />
         </>
     );

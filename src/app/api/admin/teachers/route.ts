@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         designation: true,
         institution: true,
         degrees: true,
+        profileImage: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
         designation: string | null;
         institution: string | null;
         degrees: string | null;
+        profileImage: string | null;
       }) => ({
         id: teacher.id,
         full_name: teacher.fullName,
@@ -51,6 +53,7 @@ export async function GET(request: NextRequest) {
         designation: teacher.designation,
         institution: teacher.institution,
         degrees: teacher.degrees,
+        profile_image: teacher.profileImage,
       })),
     });
   } catch (error: any) {
