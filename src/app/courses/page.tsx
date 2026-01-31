@@ -1,13 +1,14 @@
 "use client";
 
-import { Suspense, useState, useMemo, useEffect } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
-import { COURSES } from "@/constants/courses";
+import { COURSES, Course } from "@/constants/courses";
 import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 
 export default function AllCoursesPage() {
@@ -17,9 +18,47 @@ export default function AllCoursesPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
+    const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
 
-    const categories = ["FCPS", "Exams", "Residency", "Part II"];
-    const durations = ["2 Months", "3 Months", "4 Months", "6 Months"];
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadDynamicCourses = async () => {
+            try {
+                const courses = await fetchPublishedDynamicCourses();
+                if (!cancelled) {
+                    setDynamicCourses(courses);
+                }
+            } catch {
+                // Keep the static catalog if dynamic fetch fails.
+            }
+        };
+
+        loadDynamicCourses();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
+    const allCourses = useMemo(
+        () => mergeStaticAndDynamicCourses(displayCourses, dynamicCourses),
+        [displayCourses, dynamicCourses]
+    );
+
+    const categories = useMemo(
+        () => Array.from(new Set(allCourses.map((course) => course.category))).sort(),
+        [allCourses]
+    );
+    const instructors = useMemo(
+        () => Array.from(new Set(allCourses.map((course) => course.mainInstructor.name))).sort(),
+        [allCourses]
+    );
+    const durations = useMemo(
+        () => Array.from(new Set(allCourses.map((course) => course.duration))).sort(),
+        [allCourses]
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -43,25 +82,19 @@ export default function AllCoursesPage() {
         };
     }, []);
 
-    const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
-    const instructors = useMemo(
-        () => Array.from(new Set(displayCourses.map((course) => course.mainInstructor.name))),
-        [displayCourses]
-    );
-
     const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
         setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
     };
 
     const filteredCourses = useMemo(() => {
-        return displayCourses.filter(course => {
+        return allCourses.filter(course => {
             const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
             const matchInstructor = selectedInstructors.length === 0 || selectedInstructors.includes(course.mainInstructor.name);
             const matchDuration = selectedDurations.length === 0 || selectedDurations.includes(course.duration);
             const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchInstructor && matchDuration && matchSearch;
         });
-    }, [displayCourses, selectedCategories, selectedInstructors, selectedDurations, searchQuery]);
+    }, [allCourses, selectedCategories, selectedInstructors, selectedDurations, searchQuery]);
 
     return (
         <main className={styles.main}>

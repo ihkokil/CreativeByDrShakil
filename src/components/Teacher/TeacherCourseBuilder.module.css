@@ -1,0 +1,271 @@
+.builderWrap {
+    display: grid;
+    gap: 16px;
+}
+
+.sectionCard {
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    border-radius: 16px;
+    padding: 16px;
+    display: grid;
+    gap: 14px;
+}
+
+.sectionCard h2,
+.sectionCard h3 {
+    margin: 0;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.gridForm,
+.addNodeForm,
+.importWrap,
+.reuseWrap,
+.curriculumTree {
+    display: grid;
+    gap: 10px;
+}
+
+.gridForm input,
+.gridForm textarea,
+.gridForm select,
+.addNodeForm input,
+.addNodeForm select,
+.scheduleGrid input,
+.scheduleGrid select,
+.groupRow input,
+.sectionHeader select,
+.formRow select,
+.formRow input {
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 85%, transparent);
+    color: var(--foreground);
+    border-radius: 10px;
+    padding: 10px;
+    width: 100%;
+}
+
+.gridForm textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.primaryBtn,
+.secondaryBtn,
+.ghostBtn,
+.dangerBtn {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.primaryBtn {
+    background: var(--primary);
+    color: white;
+}
+
+.secondaryBtn {
+    background: color-mix(in srgb, var(--accent) 40%, transparent);
+    color: var(--foreground);
+}
+
+.ghostBtn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--foreground);
+}
+
+.dangerBtn {
+    background: color-mix(in srgb, #ef4444 35%, transparent);
+    color: #ffd4d4;
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled,
+.ghostBtn:disabled,
+.dangerBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.scheduleGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.scheduleGrid label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.groupsTable {
+    display: grid;
+    gap: 8px;
+}
+
+.groupRow {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.groupRow p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.topicGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.topicItem {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px;
+    display: grid;
+    gap: 4px;
+    background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+}
+
+.topicItem span {
+    font-weight: 700;
+}
+
+.topicItem small,
+.muted {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.uploadLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px dashed var(--glass-border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+}
+
+.uploadLabel input {
+    display: none;
+}
+
+.curriculumTree {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.nodeWrap {
+    border-top: 1px solid color-mix(in srgb, var(--glass-border) 70%, transparent);
+}
+
+.nodeWrap:first-child {
+    border-top: none;
+}
+
+.nodeRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 6px;
+}
+
+.nodeMeta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.nodeMeta span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.groupTag {
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    padding: 2px 7px;
+}
+
+.nodeActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.message {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-weight: 700;
+}
+
+.success {
+    background: color-mix(in srgb, #16a34a 25%, transparent);
+    color: #cffde0;
+}
+
+.error {
+    background: color-mix(in srgb, #ef4444 25%, transparent);
+    color: #ffd7d7;
+}
+
+@media (max-width: 1080px) {
+    .scheduleGrid,
+    .topicGrid,
+    .formRow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    .scheduleGrid,
+    .topicGrid,
+    .formRow {
+        grid-template-columns: 1fr;
+    }
+
+    .groupRow,
+    .nodeRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .nodeActions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+}

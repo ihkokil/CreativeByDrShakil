@@ -7,6 +7,8 @@ import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import { CheckoutModal } from "@/components/Checkout/CheckoutModal";
 import { COURSES, Course } from "@/constants/courses";
+import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
+import { mapDynamicCourseToCourse } from "@/lib/dynamic-course-client";
 import styles from "./CourseDetail.module.css";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { 
@@ -29,6 +31,10 @@ export default function CourseDetailPage() {
     const router = useRouter();
     const [course, setCourse] = useState<Course | null>(null);
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
+    const [dynamicCurriculum, setDynamicCurriculum] = useState<CurriculumNode[]>([]);
+    const [activeDynamicNode, setActiveDynamicNode] = useState<CurriculumNode | null>(null);
+    const [loadingCourse, setLoadingCourse] = useState(true);
+    const [notFound, setNotFound] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [expandedModules, setExpandedModules] = useState<number[]>([0]); // First module expanded by default
 
@@ -55,30 +61,96 @@ export default function CourseDetailPage() {
     }, []);
 
     useEffect(() => {
-        if (params?.slug) {
-            const courseSlug = params.slug as string;
-            const foundCourse = COURSES.find(c => c.slug === courseSlug);
-            if (foundCourse) {
-                setCourse(foundCourse);
-            } else {
-                console.error("Course not found");
-                // router.push("/courses");
+        let cancelled = false;
+
+        const loadCourse = async () => {
+            if (!params?.slug) {
+                return;
             }
-        }
+
+            const courseSlug = params.slug as string;
+            setLoadingCourse(true);
+            setNotFound(false);
+
+            const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
+            if (foundStaticCourse) {
+                if (!cancelled) {
+                    setCourse(foundStaticCourse);
+                    setDynamicCurriculum([]);
+                    setActiveDynamicNode(null);
+                    setLoadingCourse(false);
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/courses/dynamic/${courseSlug}`);
+                if (!response.ok) {
+                    if (!cancelled) {
+                        setCourse(null);
+                        setNotFound(true);
+                        setLoadingCourse(false);
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                if (!cancelled && data.course) {
+                    setCourse(mapDynamicCourseToCourse(data.course));
+                    setDynamicCurriculum(Array.isArray(data.curriculum) ? data.curriculum : []);
+                    setActiveDynamicNode(null);
+                    setLoadingCourse(false);
+                }
+            } catch {
+                if (!cancelled) {
+                    setCourse(null);
+                    setNotFound(true);
+                    setLoadingCourse(false);
+                }
+            }
+        };
+
+        loadCourse();
+
+        return () => {
+            cancelled = true;
+        };
     }, [params, router]);
 
     const displayCourse = useMemo(() => {
         if (!course) {
             return null;
         }
+        if (course.dynamicSource) {
+            return course;
+        }
         return enrichCoursesWithTeachers([course], teachers)[0] || course;
     }, [course, teachers]);
+
+    if (loadingCourse) {
+        return (
+            <main className={styles.main}>
+                <Navbar />
+                <div style={{ padding: "100px", textAlign: "center" }}>Loading...</div>
+                <Footer />
+            </main>
+        );
+    }
 
     if (!displayCourse) {
         return (
             <main className={styles.main}>
                 <Navbar />
-                <div style={{ padding: "100px", textAlign: "center" }}>Loading...</div>
+                <div style={{ padding: "100px", textAlign: "center" }}>
+                    <h2>Course not found</h2>
+                    <button
+                        style={{ marginTop: "16px" }}
+                        className={styles.enrollBtn}
+                        onClick={() => router.push("/courses")}
+                    >
+                        Back to Courses
+                    </button>
+                </div>
                 <Footer />
             </main>
         );
@@ -201,6 +273,17 @@ export default function CourseDetailPage() {
                                     </div>
                                 ))}
                             </div>
+                        </section>
+                    )}
+
+                    {dynamicCurriculum.length > 0 && (
+                        <section className={styles.section}>
+                            <h2 className={styles.sectionTitle}>Course Curriculum</h2>
+                            <CourseCurriculum
+                                data={dynamicCurriculum}
+                                onVideoSelect={setActiveDynamicNode}
+                                activeNodeId={activeDynamicNode?.id}
+                            />
                         </section>
                     )}
 
