@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, User, Send, Building2, Briefcase, GraduationCap, ImagePlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
+interface Teacher {
+    id: string;
+    full_name: string;
+    email: string;
+    designation?: string;
+    institution?: string;
+    degrees?: string;
+    profile_image?: string;
+}
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    teacher: Teacher | null;
 }
 
-export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
+export default function EditTeacherModal({ isOpen, onClose, onSuccess, teacher }: Props) {
     const { session } = useAuth();
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
@@ -22,6 +33,17 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
     const [profileImage, setProfileImage] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    useEffect(() => {
+        if (teacher) {
+            setFullName(teacher.full_name || "");
+            setEmail(teacher.email || "");
+            setDesignation(teacher.designation || "");
+            setInstitution(teacher.institution || "");
+            setDegrees(teacher.degrees || "");
+            setProfileImage(teacher.profile_image || "");
+        }
+    }, [teacher]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -40,14 +62,14 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
         setMessage(null);
 
         try {
-            if (!session) {
-                setMessage({ type: 'error', text: 'You must be logged in.' });
+            if (!session || !teacher) {
+                setMessage({ type: 'error', text: 'You must be logged in and a teacher selected.' });
                 setLoading(false);
                 return;
             }
 
-            const response = await fetch('/api/admin/invite-teacher', {
-                method: 'POST',
+            const response = await fetch(`/api/admin/teachers/${teacher.id}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`,
@@ -58,19 +80,13 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
             const data = await response.json();
 
             if (!response.ok) {
-                setMessage({ type: 'error', text: data.error || 'Failed to invite teacher.' });
+                setMessage({ type: 'error', text: data.error || 'Failed to update teacher.' });
             } else {
-                setMessage({ type: 'success', text: data.message || 'Teacher invited successfully!' });
-                setFullName("");
-                setEmail("");
-                setDesignation("");
-                setInstitution("");
-                setDegrees("");
-                setProfileImage("");
-                // Refresh the teacher list after a short delay
+                setMessage({ type: 'success', text: 'Teacher updated successfully!' });
                 setTimeout(() => {
                     onSuccess();
-                }, 2000);
+                    onClose();
+                }, 1500);
             }
         } catch (err: any) {
             setMessage({ type: 'error', text: 'Network error. Please try again.' });
@@ -81,14 +97,10 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
 
     const handleClose = () => {
         setMessage(null);
-        setFullName("");
-        setEmail("");
-        setDesignation("");
-        setInstitution("");
-        setDegrees("");
-        setProfileImage("");
         onClose();
     };
+
+    if (!teacher) return null;
 
     return (
         <AnimatePresence>
@@ -108,10 +120,10 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
 
                         <div className={styles.header}>
                             <h2 className={styles.title}>
-                                Add <span className="gradient-text">Teacher</span>
+                                Edit <span className="gradient-text">Teacher</span>
                             </h2>
                             <p className={styles.subtitle}>
-                                Enter the teacher&apos;s details. A password setup link will be sent to their email.
+                                Update the details for {teacher.full_name}.
                             </p>
                         </div>
 
@@ -189,14 +201,10 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                             )}
 
                             <button className={styles.submitBtn} type="submit" disabled={loading}>
-                                {loading ? "Sending Invitation..." : "Send Invitation"}
+                                {loading ? "Updating..." : "Update Teacher"}
                                 {!loading && <Send size={18} />}
                             </button>
                         </form>
-
-                        <p className={styles.note}>
-                            The teacher will receive an email with a link to set their password and access the platform.
-                        </p>
                     </motion.div>
                 </div>
             )}
