@@ -11,7 +11,7 @@ export interface Module {
 }
 
 export interface Course {
-    id: number;
+    id: number | string;
     slug: string;
     title: string;
     category: string;
@@ -30,6 +30,7 @@ export interface Course {
     language?: string;
     lastUpdated?: string;
     image?: string;
+    dynamicSource?: boolean;
 }
 
 export const INSTRUCTORS: Record<string, Instructor> = {
