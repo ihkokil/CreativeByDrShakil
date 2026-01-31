@@ -14,40 +14,73 @@ enum UserRole {
   student
 }
 
+enum CoursePublishStatus {
+  draft
+  scheduled
+  published
+  archived
+}
+
+enum CourseReleaseMode {
+  fixed_interval
+  groups_per_week
+  explicit_dates
+}
+
 model User {
-  id                         String               @id @default(cuid())
-  email                      String               @unique
-  phone                      String?              @unique
-  passwordHash               String
-  fullName                   String
-  role                       UserRole             @default(student)
-  bmdcNumber                 String?
-  designation                String?
-  institution                String?
-  degrees                    String?
-  profileImage               String?              @db.LongText
-  emailVerified              Boolean              @default(true)
-  emailVerificationTokenHash String?              @db.VarChar(255)
+  id           String   @id @default(cuid())
+  email        String   @unique
+  phone        String?  @unique
+  passwordHash String
+  fullName     String
+  role         UserRole @default(student)
+  bmdcNumber   String?
+  designation  String?
+  institution  String?
+  degrees      String?
+  profileImage               String?  @db.LongText
+  emailVerified              Boolean  @default(true)
+  emailVerificationTokenHash String?  @db.VarChar(255)
   emailVerificationExpires   DateTime?
   passwordResetTokenHash     String?              @db.VarChar(255)
   passwordResetExpires       DateTime?
-  createdAt                  DateTime             @default(now())
-  updatedAt                  DateTime             @updatedAt
-  orders                     Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+  teacherCourses Course[] @relation("TeacherCourses")
   deviceSessions             DeviceSession[]
   sessionSettings            SessionLockSettings?
 }
 
 model Course {
-  id          String   @id @default(cuid())
-  title       String
-  description String   @db.LongText
-  price       Float
-  instructor  String
-  duration    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  orders      Order[]
+  id           String   @id @default(cuid())
+  slug         String?  @unique
+  title        String
+  description  String   @db.LongText
+  category     String?
+  price        Float
+  instructor   String
+  language     String?
+  level        String?
+  imageUrl     String?  @db.LongText
+  duration     String
+  teacherId    String?
+  teacher      User?    @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: SetNull)
+  status       CoursePublishStatus @default(draft)
+  timezone     String             @default("Asia/Dhaka")
+  releaseMode  CourseReleaseMode?
+  releaseStartAt DateTime?
+  releaseIntervalDays Int?
+  releaseGroupsPerWeek Int?
+  releaseGroupDates Json?
+  curriculumJson Json?
+  publishedAt DateTime?
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([teacherId])
+  @@index([status])
 }
 
 model Order {

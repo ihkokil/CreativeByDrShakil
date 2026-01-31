@@ -111,7 +111,12 @@ function TeacherDashboardContent() {
                                             <span><Users size={14} /> 120 Students</span>
                                             <span><CheckCircle size={14} /> 85% Completion</span>
                                         </div>
-                                        <button className={styles.primaryBtn}>Manage Content</button>
+                                        <button
+                                            className={styles.primaryBtn}
+                                            onClick={() => router.push('/teacher/dashboard/courses/create')}
+                                        >
+                                            Manage Content
+                                        </button>
                                     </div>
                                 </article>
                             ))}
@@ -123,6 +128,15 @@ function TeacherDashboardContent() {
             {activeTab === "courses" && (
                 <section className={styles.panel}>
                     <h2 className={styles.panelTitle}>Course Management</h2>
+                    <div className={styles.actionRow}>
+                        <p>Create and schedule courses with hierarchical drip release rules.</p>
+                        <button
+                            className={styles.primaryBtn}
+                            onClick={() => router.push('/teacher/dashboard/courses/create')}
+                        >
+                            Open Course Builder
+                        </button>
+                    </div>
                     <div className={styles.simpleCards}>
                         <div className={styles.simpleCard}><strong>8</strong><span>Draft Modules</span></div>
                         <div className={styles.simpleCard}><strong>24</strong><span>Published Lessons</span></div>
