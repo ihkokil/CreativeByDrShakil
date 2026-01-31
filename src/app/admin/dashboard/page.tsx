@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./AdminDashboard.module.css";
 import {
@@ -26,13 +26,26 @@ interface TeacherProfile {
     role: string;
     created_at: string;
     email?: string;
+    designation?: string;
+    institution?: string;
+    degrees?: string;
 }
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
     const { user, loading, role, signOut } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"overview" | "teachers" | "coupons" | "analytics" | "settings">("overview");
+    const searchParams = useSearchParams();
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
+    
+    // Instead of useState for activeTab, derive it from searchParams
+    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "coupons" | "analytics" | "settings") || "overview";
+
+    const setActiveTab = (tab: string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set("tab", tab);
+        router.push(`?${params.toString()}`);
+    };
+
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
 
@@ -165,6 +178,12 @@ export default function AdminDashboard() {
                                             <div>
                                                 <h3>{teacher.full_name}</h3>
                                                 <p>{teacher.email || "Email pending"}</p>
+                                                {(teacher.designation || teacher.institution || teacher.degrees) && (
+                                                    <p style={{ fontSize: "0.75rem", marginTop: "4px", color: "var(--foreground)" }}>
+                                                        {teacher.designation} {teacher.designation && teacher.institution ? "at" : ""} {teacher.institution}
+                                                        {teacher.degrees && <span style={{ display: "block", color: "var(--primary)" }}>{teacher.degrees}</span>}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className={styles.teacherMeta}>
@@ -219,5 +238,13 @@ export default function AdminDashboard() {
                 }}
             />
         </>
+    );
+}
+
+export default function AdminDashboard() {
+    return (
+        <Suspense fallback={<div className={styles.loader}>Loading Admin Panel...</div>}>
+            <AdminDashboardContent />
+        </Suspense>
     );
 }

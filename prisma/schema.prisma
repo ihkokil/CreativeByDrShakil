@@ -8,56 +8,55 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum UserRole {
-  admin
-  teacher
-  student
-}
-
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  phone        String?  @unique
-  passwordHash String
-  fullName     String
-  role         UserRole @default(student)
-  bmdcNumber   String?
-  profileImage               String?  @db.LongText
-  emailVerified              Boolean  @default(true)
-  emailVerificationTokenHash String?  @db.VarChar(255)
+  id                         String               @id @default(cuid())
+  email                      String               @unique
+  phone                      String?              @unique
+  passwordHash               String
+  fullName                   String
+  role                       UserRole             @default(student)
+  bmdcNumber                 String?
+  designation                String?
+  institution                String?
+  degrees                    String?
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
   emailVerificationExpires   DateTime?
-  passwordResetTokenHash     String?  @db.VarChar(255)
+  emailVerificationTokenHash String?              @db.VarChar(255)
+  emailVerified              Boolean              @default(true)
   passwordResetExpires       DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  orders       Order[]
+  passwordResetTokenHash     String?              @db.VarChar(255)
+  profileImage               String?              @db.LongText
+  DeviceSession              DeviceSession[]
+  orders                     Order[]
+  SessionLockSettings        SessionLockSettings?
 }
 
 model Course {
-  id           String   @id @default(cuid())
-  title        String
-  description  String   @db.LongText
-  price        Float
-  instructor   String
-  duration     String
-  orders       Order[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.LongText
+  price       Float
+  instructor  String
+  duration    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
 }
 
 model Order {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId        String
-  course          Course   @relation(fields: [courseId], references: [id])
-  status          String   @default("pending")
-  totalAmount     Float
-  couponCode      String?
-  discountAmount  Float    @default(0)
-  payment         Payment?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  userId         String
+  courseId       String
+  status         String   @default("pending")
+  totalAmount    Float
+  couponCode     String?
+  discountAmount Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  course         Course   @relation(fields: [courseId], references: [id])
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment        Payment?
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -65,26 +64,26 @@ model Order {
 }
 
 model Payment {
-  id            String   @id @default(cuid())
-  orderId       String   @unique
-  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  orderId       String    @unique
   phoneNumber   String
   transactionId String
   amount        Float
-  status        String   @default("pending")
-  submittedAt   DateTime @default(now())
+  status        String    @default("pending")
+  submittedAt   DateTime  @default(now())
   approvedAt    DateTime?
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model Coupon {
-  id              String   @id @default(cuid())
-  code            String   @unique
-  discountAmount  Float
-  maxUses         Int      @default(-1)
-  usedCount       Int      @default(0)
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  code           String   @unique
+  discountAmount Float
+  maxUses        Int      @default(-1)
+  usedCount      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model PaymentConfig {
@@ -94,4 +93,48 @@ model PaymentConfig {
   qrCodeUrl       String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model DeviceSession {
+  id             String                   @id
+  userId         String
+  deviceType     DeviceSession_deviceType
+  browserName    String
+  userAgent      String                   @db.LongText
+  ipAddress      String
+  isLocked       Boolean                  @default(false)
+  loggedOutAt    DateTime?
+  createdAt      DateTime                 @default(now())
+  lastActivityAt DateTime                 @default(now())
+  User           User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deviceType])
+  @@index([userId])
+}
+
+model GlobalSessionLockSettings {
+  id                   String   @id @default("global")
+  autoLockFirstBrowser Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime
+}
+
+model SessionLockSettings {
+  id                   String   @id
+  userId               String   @unique
+  autoLockFirstBrowser Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime
+  User                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  admin
+  teacher
+  student
+}
+
+enum DeviceSession_deviceType {
+  desktop
+  mobile
 }
