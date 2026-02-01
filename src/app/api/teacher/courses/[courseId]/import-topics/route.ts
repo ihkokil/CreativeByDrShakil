@@ -9,7 +9,7 @@ import {
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
-import { buildCurriculumFromStarter } from '@/lib/starter-catalog';
+import { buildCurriculumFromStarter, getStarterCatalogFromDB } from '@/lib/starter-catalog';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
   if (role === 'admin') {
@@ -42,7 +42,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const existingCurriculum = parseCurriculumJson(course.curriculumJson);
-    const importedNodes = buildCurriculumFromStarter(mainTopicIds);
+    const catalog = await getStarterCatalogFromDB();
+    const importedNodes = buildCurriculumFromStarter(mainTopicIds, catalog);
     const mergedCurriculum = ensureGroupInheritance([...existingCurriculum, ...importedNodes]);
 
     const groups = collectSecondChildGroups(mergedCurriculum);
