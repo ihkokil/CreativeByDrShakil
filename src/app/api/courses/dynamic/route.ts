@@ -53,6 +53,7 @@ export async function GET() {
       })),
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+    console.error('[Courses Dynamic Error]', error?.message || error);
+    return NextResponse.json({ error: 'Failed to load courses.' }, { status: 500 });
   }
 }
