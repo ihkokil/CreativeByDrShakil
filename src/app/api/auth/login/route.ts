@@ -4,8 +4,8 @@ import { comparePassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-ser
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
   createDeviceSession,
-  getActiveSessionByDeviceType,
-  terminateSession,
+  getActiveSessionsByDeviceType,
+  terminateActiveSessionsByDeviceType,
   getAutoLockSetting,
 } from '@/lib/session-manager';
 
@@ -48,27 +48,27 @@ export async function POST(request: NextRequest) {
     const deviceInfo = parseUserAgent(userAgent);
     const ipAddress = extractClientIp(request.headers);
 
-    // Check for existing session on the same device type
-    const existingSession = await getActiveSessionByDeviceType(user.id, deviceInfo.deviceType);
+    // Check for existing sessions on the same device type
+    const activeSessionsSameDevice = await getActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
 
     // Get Lock First Browser setting for the user
     const autoLockEnabled = await getAutoLockSetting(user.id);
 
     // Handle existing session logic
-    if (existingSession) {
+    if (activeSessionsSameDevice.length > 0) {
       if (autoLockEnabled) {
         // Lock is ON - reject the login request
         return NextResponse.json(
           {
             error: 'You are already logged in on another browser on this device. Please log out from the previous session or ask admin to log you out.',
             code: 'device_already_logged_in',
-            sessionId: existingSession.id,
+            sessionId: activeSessionsSameDevice[0].id,
           },
           { status: 409 }
         );
       } else {
-        // Lock is OFF - terminate the old session and allow new login
-        await terminateSession(existingSession.id);
+        // Lock is OFF - terminate all old same-device sessions and allow new login
+        await terminateActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
       }
     }
 

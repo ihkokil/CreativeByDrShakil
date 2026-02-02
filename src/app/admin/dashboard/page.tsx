@@ -89,7 +89,8 @@ export default function AdminDashboard() {
 
     const handleLogout = async () => {
         await signOut();
-        router.push("/");
+        router.replace("/");
+        router.refresh();
     };
 
     if (loading || !user || role !== "admin") {
