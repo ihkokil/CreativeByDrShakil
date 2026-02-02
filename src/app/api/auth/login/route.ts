@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { comparePassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
+import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
+import {
+  createDeviceSession,
+  getActiveSessionsByDeviceType,
+  terminateActiveSessionsByDeviceType,
+  getAutoLockSetting,
+} from '@/lib/session-manager';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +43,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = signAuthToken({ sub: user.id, role: user.role, email: user.email });
+    // Device detection
+    const userAgent = request.headers.get('user-agent') || '';
+    const deviceInfo = parseUserAgent(userAgent);
+    const ipAddress = extractClientIp(request.headers);
+
+    // Check for existing sessions on the same device type
+    const activeSessionsSameDevice = await getActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
+
+    // Get Lock First Browser setting for the user
+    const autoLockEnabled = await getAutoLockSetting(user.id);
+
+    // Handle existing session logic
+    if (activeSessionsSameDevice.length > 0) {
+      if (autoLockEnabled) {
+        // Lock is ON - reject the login request
+        return NextResponse.json(
+          {
+            error: 'You are already logged in on another browser on this device. Please log out from the previous session or ask admin to log you out.',
+            code: 'device_already_logged_in',
+            sessionId: activeSessionsSameDevice[0].id,
+          },
+          { status: 409 }
+        );
+      } else {
+        // Lock is OFF - terminate all old same-device sessions and allow new login
+        await terminateActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
+      }
+    }
+
+    // Create new device session
+    const newSession = await createDeviceSession({
+      userId: user.id,
+      deviceType: deviceInfo.deviceType,
+      browserName: deviceInfo.browserName,
+      userAgent,
+      ipAddress,
+    });
+
+    // Sign token with session ID
+    const token = signAuthToken({
+      sub: user.id,
+      role: user.role,
+      email: user.email,
+      sessionId: newSession.id,
+    });
 
     const response = NextResponse.json({
       success: true,
@@ -53,6 +104,7 @@ export async function POST(request: NextRequest) {
         },
       },
       token,
+      sessionId: newSession.id,
     });
 
     response.cookies.set(AUTH_COOKIE_NAME, token, {
