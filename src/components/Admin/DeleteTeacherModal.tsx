@@ -67,12 +67,18 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
         setLoading(false);
     };
 
+    const handleClose = () => {
+        setMessage(null);
+        setReassignToId("");
+        onClose();
+    };
+
     if (!teacherTarget) return null;
 
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className={styles.overlay} onClick={onClose}>
+                <div className={styles.overlay} onClick={handleClose}>
                     <motion.div
                         className={`${styles.modal} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -81,14 +87,16 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button className={styles.closeBtn} onClick={onClose}>
+                        <button className={styles.closeBtn} onClick={handleClose}>
                             <X size={20} />
                         </button>
 
                         <div className={styles.header}>
-                            <AlertTriangle size={32} color="var(--danger)" style={{ marginBottom: "1rem" }} />
+                            <div className={styles.dangerIconWrap}>
+                                <AlertTriangle size={22} />
+                            </div>
                             <h2 className={styles.title}>
-                                <span style={{color: "var(--danger)"}}>Delete Teacher</span>
+                                <span className={styles.dangerTitle}>Delete Teacher</span>
                             </h2>
                             <p className={styles.subtitle}>
                                 You are about to permanently delete <strong>{teacherTarget.full_name}</strong>. This action cannot be undone.
@@ -96,15 +104,17 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                         </div>
 
                         {availableTeachers.length > 0 ? (
-                            <div className={styles.reassignSection} style={{ marginBottom: "1.5rem" }}>
-                                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", fontWeight: 600 }}>
+                            <div className={styles.reassignSection}>
+                                <p className={styles.warningCard}>
+                                    Existing courses must be reassigned before deletion.
+                                </p>
+                                <label className={styles.fieldLabel}>
                                     Reassign their courses to:
                                 </label>
                                 <select 
                                     className={styles.selectInput}
                                     value={reassignToId}
                                     onChange={(e) => setReassignToId(e.target.value)}
-                                    style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
                                 >
                                     <option value="" disabled>Select a teacher...</option>
                                     {availableTeachers.map(t => (
@@ -115,7 +125,7 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                                 </select>
                             </div>
                         ) : (
-                            <div style={{ marginBottom: "1.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+                            <div className={styles.warningCard}>
                                 No other teachers available to reassign courses to. Data might be lost.
                             </div>
                         )}
@@ -126,17 +136,15 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                             </div>
                         )}
 
-                        <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                        <div className={styles.actionsRow}>
                             <button 
-                                className={styles.submitBtn} 
-                                style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--foreground)" }} 
-                                onClick={onClose}
+                                className={`${styles.submitBtn} ${styles.secondaryBtn}`}
+                                onClick={handleClose}
                             >
                                 Cancel
                             </button>
                             <button 
-                                className={styles.submitBtn} 
-                                style={{ background: "var(--danger)", color: "white" }} 
+                                className={`${styles.submitBtn} ${styles.dangerBtn}`}
                                 onClick={handleDelete} 
                                 disabled={loading || (!reassignToId && availableTeachers.length > 0)}
                             >
