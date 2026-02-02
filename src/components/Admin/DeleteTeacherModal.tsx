@@ -148,7 +148,7 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                                 onClick={handleDelete} 
                                 disabled={loading || (!reassignToId && availableTeachers.length > 0)}
                             >
-                                {loading ? "Deleting..." : "Delete Permanently"}
+                                {loading ? "Deleting..." : "Delete"}
                                 {!loading && <Trash2 size={18} />}
                             </button>
                         </div>
