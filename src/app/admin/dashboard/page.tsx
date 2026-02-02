@@ -16,9 +16,11 @@ import {
     DollarSign,
     GraduationCap,
     Shield,
+    Smartphone,
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import CouponManager from "@/components/Admin/CouponManager";
+import SessionsManager from "@/components/Admin/SessionsManager";
 
 interface TeacherProfile {
     id: string;
@@ -31,7 +33,7 @@ interface TeacherProfile {
 export default function AdminDashboard() {
     const { user, loading, role, signOut } = useAuth();
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<"overview" | "teachers" | "coupons" | "analytics" | "settings">("overview");
+    const [activeTab, setActiveTab] = useState<"overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings">("overview");
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
@@ -69,6 +71,7 @@ export default function AdminDashboard() {
             { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
             { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
             { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
+            { key: "sessions", label: "Sessions", icon: Smartphone, mobilePrimary: true },
             { key: "analytics", label: "Analytics", icon: BarChart3, mobilePrimary: true },
             { key: "settings", label: "Settings", icon: Settings },
         ],
@@ -104,7 +107,7 @@ export default function AdminDashboard() {
                 userAvatarUrl={user.user_metadata?.profile_image || null}
                 items={navItems}
                 activeKey={activeTab}
-                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "analytics" | "settings")}
+                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings")}
                 onLogout={handleLogout}
             >
                 {activeTab === "overview" && (
@@ -197,7 +200,12 @@ export default function AdminDashboard() {
                         <CouponManager />
                     </section>
                 )}
-
+                {activeTab === "sessions" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Device Sessions</h2>
+                        <SessionsManager />
+                    </section>
+                )}
                 {activeTab === "settings" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Platform Settings</h2>
