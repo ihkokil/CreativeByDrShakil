@@ -186,3 +186,96 @@
     margin-top: 5px;
     line-height: 1.5;
 }
+
+.dangerIconWrap {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto 14px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    color: #ef4444;
+}
+
+.dangerTitle {
+    color: #f87171;
+}
+
+.warningCard {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.reassignSection {
+    margin-bottom: 24px;
+}
+
+.fieldLabel {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.selectInput {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.selectInput:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.actionsRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.secondaryBtn {
+    margin-top: 0;
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--glass-border);
+}
+
+.secondaryBtn:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+}
+
+.dangerBtn {
+    margin-top: 0;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.dangerBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(220, 38, 38, 0.34);
+}
+
+@media (max-width: 560px) {
+    .actionsRow {
+        grid-template-columns: 1fr;
+    }
+}
