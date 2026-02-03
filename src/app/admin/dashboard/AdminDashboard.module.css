@@ -160,6 +160,69 @@
     font-weight: 700;
 }
 
+.teacherList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.listRow {
+    display: grid;
+    grid-template-columns: 2.5fr 3fr 1fr 1fr;
+    align-items: center;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+    padding: 16px;
+    gap: 16px;
+}
+
+.listCol {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.listCol h3 {
+    font-size: 0.95rem;
+}
+
+.listCol p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.actionGroup {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.iconBtn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--foreground);
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.iconBtn:hover {
+    background: var(--glass);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.deleteBtn:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
 .infoBox {
     border: 1px dashed var(--glass-border);
     border-radius: 14px;
@@ -216,6 +279,15 @@
     .simpleCards,
     .settingCards {
         grid-template-columns: 1fr;
+    }
+
+    .listRow {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .actionGroup {
+        justify-content: flex-start;
     }
 
     .panelHeader {

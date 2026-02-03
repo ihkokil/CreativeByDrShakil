@@ -25,6 +25,10 @@ export async function GET(request: NextRequest) {
         role: true,
         createdAt: true,
         email: true,
+        designation: true,
+        institution: true,
+        degrees: true,
+        profileImage: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -36,12 +40,20 @@ export async function GET(request: NextRequest) {
         role: string;
         createdAt: Date;
         email: string;
+        designation: string | null;
+        institution: string | null;
+        degrees: string | null;
+        profileImage: string | null;
       }) => ({
         id: teacher.id,
         full_name: teacher.fullName,
         role: teacher.role,
         created_at: teacher.createdAt,
         email: teacher.email,
+        designation: teacher.designation,
+        institution: teacher.institution,
+        degrees: teacher.degrees,
+        profile_image: teacher.profileImage,
       })),
     });
   } catch (error: any) {
