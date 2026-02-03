@@ -40,6 +40,11 @@ interface TeacherProfile {
     profile_image?: string;
 }
 
+type ToastState = {
+    type: "success" | "error" | "info";
+    text: string;
+} | null;
+
 function AdminDashboardContent() {
     const { user, loading, role, signOut } = useAuth();
     const router = useRouter();
@@ -59,6 +64,13 @@ function AdminDashboardContent() {
 
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
+    const [toast, setToast] = useState<ToastState>(null);
+
+    useEffect(() => {
+        if (!toast) return;
+        const timer = window.setTimeout(() => setToast(null), 3200);
+        return () => window.clearTimeout(timer);
+    }, [toast]);
 
     useEffect(() => {
         if (!loading && (!user || role !== "admin")) {
@@ -126,10 +138,13 @@ function AdminDashboardContent() {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             const data = await res.json();
-            if (res.ok) alert(data.message || "Email dispatched!");
-            else alert(data.error || "Failed to send reset email.");
+            if (res.ok) {
+                setToast({ type: "success", text: data.message || "Password reset link dispatched." });
+            } else {
+                setToast({ type: "error", text: data.error || "Failed to send reset email." });
+            }
         } catch(e) {
-            alert("Network error.");
+            setToast({ type: "error", text: "Network error while sending reset email." });
         }
     };
 
@@ -139,6 +154,14 @@ function AdminDashboardContent() {
 
     return (
         <>
+            {toast && (
+                <div className={styles.toastWrap} role="status" aria-live="polite">
+                    <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : toast.type === "error" ? styles.toastError : styles.toastInfo}`}>
+                        {toast.text}
+                    </div>
+                </div>
+            )}
+
             <DashboardShell
                 title="Admin Dashboard"
                 subtitle="Control teachers, operations, and platform health with one consistent dashboard shell."

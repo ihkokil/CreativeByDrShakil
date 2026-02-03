@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { createTokenPair } from '@/lib/token-utils';
+import { sendPasswordResetEmail } from '@/lib/auth-emails';
 
 export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
     try {
@@ -23,15 +25,22 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Teacher not found.' }, { status: 404 });
         }
 
-        // Generate a mock reset token
-        const resetToken = `reset-${Math.random().toString(36).substring(2, 15)}`;
-        
-        // In a real application, you would save this token to the database along with an expiration date
-        // and then send an email containing a link with this token.
-        
-        console.log(`[MOCK EMAIL] To: ${teacher.email}`);
-        console.log(`[MOCK EMAIL] Subject: Password Reset Request`);
-        console.log(`[MOCK EMAIL] Body: Click the following link to reset your password: https://creativebds.com/reset-password?token=${resetToken}`);
+        const { token: resetToken, tokenHash } = createTokenPair();
+        const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
+
+        await prisma.user.update({
+            where: { id: teacher.id },
+            data: {
+                passwordResetTokenHash: tokenHash,
+                passwordResetExpires: resetExpiry,
+            },
+        });
+
+        await sendPasswordResetEmail({
+            email: teacher.email,
+            fullName: teacher.fullName,
+            token: resetToken,
+        });
 
         return NextResponse.json({ 
             success: true, 
