@@ -5,24 +5,40 @@ const prisma = new PrismaClient();
 
 const TEACHERS = [
   {
-    fullName: 'Dr. Shakil Ahmed',
+    fullName: 'Dr. Nahid Akhter Shakil',
     email: 'dr.shakil@creativebds.local',
     bmdcNumber: 'BMDC-TEACHER-001',
+    designation: 'Senior Surgical Consultant',
+    institution: 'Creative By Dr Shakil Academy',
+    degrees: 'MBBS, FCPS (Surgery)',
+    profileImage: '/placeholder.svg',
   },
   {
     fullName: 'Dr. Rahman',
     email: 'dr.rahman@creativebds.local',
     bmdcNumber: 'BMDC-TEACHER-002',
+    designation: 'Internal Medicine Expert',
+    institution: 'Creative By Dr Shakil Academy',
+    degrees: 'MBBS, MD (Medicine)',
+    profileImage: '/placeholder.svg',
   },
   {
     fullName: 'Dr. Fatima',
     email: 'dr.fatima@creativebds.local',
     bmdcNumber: 'BMDC-TEACHER-003',
+    designation: 'Pediatrics Specialist',
+    institution: 'Creative By Dr Shakil Academy',
+    degrees: 'MBBS, FCPS (Pediatrics)',
+    profileImage: '/placeholder.svg',
   },
   {
     fullName: 'Dr. Arif Billah',
     email: 'dr.arif@creativebds.local',
     bmdcNumber: 'BMDC-TEACHER-004',
+    designation: 'Gynae & Obs Specialist',
+    institution: 'Creative By Dr Shakil Academy',
+    degrees: 'MBBS, FCPS (OBGYN)',
+    profileImage: '/placeholder.svg',
   },
 ];
 
@@ -36,6 +52,10 @@ async function main() {
         fullName: teacher.fullName,
         role: 'teacher',
         bmdcNumber: teacher.bmdcNumber,
+        designation: teacher.designation,
+        institution: teacher.institution,
+        degrees: teacher.degrees,
+        profileImage: teacher.profileImage,
         passwordHash,
       },
       create: {
@@ -43,6 +63,10 @@ async function main() {
         email: teacher.email,
         role: 'teacher',
         bmdcNumber: teacher.bmdcNumber,
+        designation: teacher.designation,
+        institution: teacher.institution,
+        degrees: teacher.degrees,
+        profileImage: teacher.profileImage,
         passwordHash,
       },
     });
@@ -50,7 +74,7 @@ async function main() {
 
   const syncedTeachers = await prisma.user.findMany({
     where: { role: 'teacher' },
-    select: { fullName: true, email: true },
+    select: { fullName: true, email: true, designation: true, institution: true },
     orderBy: { fullName: 'asc' },
   });
 
