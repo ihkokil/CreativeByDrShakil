@@ -24,6 +24,14 @@
   --layout-gutter-mobile: 16px;
   --layout-page-top: 140px;
   --layout-page-bottom: 100px;
+  --dropdown-bg: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  --dropdown-border: color-mix(in srgb, var(--glass-border) 85%, transparent);
+  --dropdown-hover: color-mix(in srgb, var(--surface-soft) 70%, transparent);
+  --dropdown-focus: color-mix(in srgb, var(--primary) 55%, var(--glass-border));
+  --dropdown-menu-bg: color-mix(in srgb, var(--card-bg) 96%, black 4%);
+  --dropdown-menu-text: var(--foreground);
+  --dropdown-menu-active: color-mix(in srgb, var(--primary) 34%, var(--surface-soft));
+  --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 88%, var(--foreground));
 }
 
 [data-theme='light'] {
@@ -44,6 +52,14 @@
   --surface-strong: rgba(37, 99, 235, 0.08);
   --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
   --shadow-medium: 0 18px 36px rgba(15, 23, 42, 0.14);
+  --dropdown-bg: color-mix(in srgb, white 96%, var(--surface-strong));
+  --dropdown-border: color-mix(in srgb, var(--glass-border) 75%, transparent);
+  --dropdown-hover: color-mix(in srgb, var(--surface-strong) 35%, white);
+  --dropdown-focus: color-mix(in srgb, var(--primary) 45%, var(--glass-border));
+  --dropdown-menu-bg: color-mix(in srgb, white 96%, var(--surface-soft));
+  --dropdown-menu-text: var(--foreground);
+  --dropdown-menu-active: color-mix(in srgb, var(--primary) 20%, white);
+  --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 92%, var(--foreground));
 }
 
 * {
@@ -68,6 +84,14 @@ body {
   font-family: 'Outfit', sans-serif;
   -webkit-font-smoothing: antialiased;
   transition: background-color var(--transition), color var(--transition);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
 }
 
 @keyframes pageGradientDrift {
@@ -150,4 +174,65 @@ a {
 
 .subtle-border {
   border: 1px solid var(--glass-border);
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  min-height: 44px;
+  border-radius: 12px;
+  font-weight: 500;
+  padding-right: 2.3rem;
+  background-color: var(--dropdown-bg);
+  color: var(--foreground);
+  border-color: var(--dropdown-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 17px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+select:hover {
+  background-color: var(--dropdown-hover);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--dropdown-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dropdown-focus) 20%, transparent);
+}
+
+select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--dropdown-focus) 44%, transparent);
+  outline-offset: 1px;
+}
+
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+select option,
+select optgroup {
+  background: var(--dropdown-menu-bg);
+  color: var(--dropdown-menu-text);
+}
+
+select option[value=''] {
+  color: var(--dropdown-placeholder);
+}
+
+select option:checked {
+  background: var(--dropdown-menu-active);
+  color: var(--dropdown-menu-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  select {
+    transition: none;
+  }
 }
