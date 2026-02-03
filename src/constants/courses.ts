@@ -3,6 +3,7 @@ export interface Instructor {
     name: string;
     role: string;
     image: string;
+    aliases?: string[];
 }
 
 export interface Module {
@@ -38,6 +39,7 @@ export const INSTRUCTORS: Record<string, Instructor> = {
         name: "Dr. Shakil Ahmed",
         role: "Senior Surgical Consultant",
         image: "/placeholder.svg",
+        aliases: ["Dr. Nahid Akhter Shakil", "Nahid Akhter Shakil"],
     },
     dr_rahman: {
         id: "dr_rahman",

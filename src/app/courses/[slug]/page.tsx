@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/Navbar/Navbar";
@@ -8,6 +8,7 @@ import Footer from "@/components/Footer/Footer";
 import { CheckoutModal } from "@/components/Checkout/CheckoutModal";
 import { COURSES, Course } from "@/constants/courses";
 import styles from "./CourseDetail.module.css";
+import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { 
     Clock, 
     Star, 
@@ -27,8 +28,31 @@ export default function CourseDetailPage() {
     const params = useParams();
     const router = useRouter();
     const [course, setCourse] = useState<Course | null>(null);
+    const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [expandedModules, setExpandedModules] = useState<number[]>([0]); // First module expanded by default
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadTeachers = async () => {
+            try {
+                const response = await fetch("/api/teachers");
+                const data = await response.json();
+                if (!cancelled && response.ok && Array.isArray(data.teachers)) {
+                    setTeachers(data.teachers);
+                }
+            } catch {
+                // Keep static fallback data if teacher directory fetch fails.
+            }
+        };
+
+        loadTeachers();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         if (params?.slug) {
@@ -43,7 +67,14 @@ export default function CourseDetailPage() {
         }
     }, [params, router]);
 
-    if (!course) {
+    const displayCourse = useMemo(() => {
+        if (!course) {
+            return null;
+        }
+        return enrichCoursesWithTeachers([course], teachers)[0] || course;
+    }, [course, teachers]);
+
+    if (!displayCourse) {
         return (
             <main className={styles.main}>
                 <Navbar />
@@ -66,9 +97,9 @@ export default function CourseDetailPage() {
     };
 
     const checkoutCourse = {
-        id: String(course.id),
-        title: course.title,
-        price: normalizePrice(course.price),
+        id: String(displayCourse.id),
+        title: displayCourse.title,
+        price: normalizePrice(displayCourse.price),
     };
 
     return (
@@ -78,33 +109,33 @@ export default function CourseDetailPage() {
             {/* Hero Section */}
             <header className={styles.hero}>
                 <div className={styles.heroContent}>
-                    <span className={styles.category}>{course.category}</span>
-                    <h1 className={styles.title}>{course.title}</h1>
+                    <span className={styles.category}>{displayCourse.category}</span>
+                    <h1 className={styles.title}>{displayCourse.title}</h1>
                     <div className={styles.meta}>
                         <div className={styles.metaItem}>
                             <Star size={18} color="#f59e0b" fill="#f59e0b" />
-                            <span>{course.rating} Rating</span>
+                            <span>{displayCourse.rating} Rating</span>
                         </div>
-                        {course.enrolledCount && (
+                        {displayCourse.enrolledCount && (
                             <div className={styles.metaItem}>
                                 <Users size={18} />
-                                <span>{course.enrolledCount.toLocaleString()} Students</span>
+                                <span>{displayCourse.enrolledCount.toLocaleString()} Students</span>
                             </div>
                         )}
                         <div className={styles.metaItem}>
                             <Clock size={18} />
-                            <span>{course.duration}</span>
+                            <span>{displayCourse.duration}</span>
                         </div>
-                        {course.level && (
+                        {displayCourse.level && (
                             <div className={styles.metaItem}>
                                 <BarChart size={18} />
-                                <span>{course.level}</span>
+                                <span>{displayCourse.level}</span>
                             </div>
                         )}
-                        {course.language && (
+                        {displayCourse.language && (
                             <div className={styles.metaItem}>
                                 <Globe size={18} />
-                                <span>{course.language}</span>
+                                <span>{displayCourse.language}</span>
                             </div>
                         )}
                     </div>
@@ -118,19 +149,19 @@ export default function CourseDetailPage() {
                 <div className={styles.leftContent}>
                     
                     {/* Overview */}
-                    {course.description && (
+                    {displayCourse.description && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Overview</h2>
-                            <p className={styles.description}>{course.description}</p>
+                            <p className={styles.description}>{displayCourse.description}</p>
                         </section>
                     )}
 
                     {/* What You'll Learn */}
-                    {course.learningObjectives && course.learningObjectives.length > 0 && (
+                    {displayCourse.learningObjectives && displayCourse.learningObjectives.length > 0 && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>What You'll Learn</h2>
                             <ul className={styles.objectivesList}>
-                                {course.learningObjectives.map((obj, idx) => (
+                                {displayCourse.learningObjectives.map((obj, idx) => (
                                     <li key={idx} className={styles.objectiveItem}>
                                         <CheckCircle2 size={20} className={styles.checkIcon} />
                                         <span>{obj}</span>
@@ -141,11 +172,11 @@ export default function CourseDetailPage() {
                     )}
 
                     {/* Curriculum */}
-                    {course.curriculum && course.curriculum.length > 0 && (
+                    {displayCourse.curriculum && displayCourse.curriculum.length > 0 && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
                             <div className={styles.curriculum}>
-                                {course.curriculum.map((module, idx) => (
+                                {displayCourse.curriculum.map((module, idx) => (
                                     <div key={idx} className={styles.module}>
                                         <div 
                                             className={styles.moduleHeader}
@@ -178,15 +209,16 @@ export default function CourseDetailPage() {
                         <h2 className={styles.sectionTitle}>Instructor</h2>
                         <div className={styles.instructorCard}>
                             <Image 
-                                src={course.mainInstructor.image} 
-                                alt={course.mainInstructor.name}
+                                src={displayCourse.mainInstructor.image || "/placeholder.svg"} 
+                                alt={displayCourse.mainInstructor.name}
                                 width={80}
                                 height={80}
                                 className={styles.instructorImage}
+                                unoptimized
                             />
                             <div className={styles.instructorInfo}>
-                                <h3>{course.mainInstructor.name}</h3>
-                                <p className={styles.instructorRole}>{course.mainInstructor.role}</p>
+                                <h3>{displayCourse.mainInstructor.name}</h3>
+                                <p className={styles.instructorRole}>{displayCourse.mainInstructor.role}</p>
                             </div>
                         </div>
                     </section>
@@ -196,19 +228,20 @@ export default function CourseDetailPage() {
                 <aside className={styles.sidebar}>
                     <div className={styles.sidebarImageWrapper}>
                         <Image
-                            src={course.image || "/placeholder.svg"}
-                            alt={course.title}
+                            src={displayCourse.image || "/placeholder.svg"}
+                            alt={displayCourse.title}
                             fill
                             style={{ objectFit: "cover" }}
                             className={styles.sidebarImage}
+                            unoptimized
                         />
                     </div>
                     <div className={styles.sidebarContent}>
                         <div className={styles.priceSection}>
-                            {course.originalPrice && (
-                                <div className={styles.originalPrice}>{course.originalPrice}</div>
+                            {displayCourse.originalPrice && (
+                                <div className={styles.originalPrice}>{displayCourse.originalPrice}</div>
                             )}
-                            <div className={styles.price}>{course.price === "Free" ? "Free" : course.price}</div>
+                            <div className={styles.price}>{displayCourse.price === "Free" ? "Free" : displayCourse.price}</div>
                         </div>
                         
                         <button
@@ -222,7 +255,7 @@ export default function CourseDetailPage() {
                         <ul className={styles.includesList}>
                             <li className={styles.includesItem}>
                                 <MonitorPlay size={18} className={styles.includesIcon} />
-                                <span>{course.duration} of on-demand video</span>
+                                <span>{displayCourse.duration} of on-demand video</span>
                             </li>
                             <li className={styles.includesItem}>
                                 <FileText size={18} className={styles.includesIcon} />

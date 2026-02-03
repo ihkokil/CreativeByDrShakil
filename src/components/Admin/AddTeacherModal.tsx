@@ -23,6 +23,13 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+    const showMessage = (msg: { type: 'success' | 'error'; text: string }) => {
+        setMessage(msg);
+        setTimeout(() => {
+            setMessage(null);
+        }, 3000);
+    };
+
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -41,7 +48,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
 
         try {
             if (!session) {
-                setMessage({ type: 'error', text: 'You must be logged in.' });
+                showMessage({ type: 'error', text: 'You must be logged in.' });
                 setLoading(false);
                 return;
             }
@@ -58,9 +65,9 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
             const data = await response.json();
 
             if (!response.ok) {
-                setMessage({ type: 'error', text: data.error || 'Failed to invite teacher.' });
+                showMessage({ type: 'error', text: data.error || 'Failed to invite teacher.' });
             } else {
-                setMessage({ type: 'success', text: data.message || 'Teacher invited successfully!' });
+                showMessage({ type: 'success', text: data.message || 'Teacher invited successfully!' });
                 setFullName("");
                 setEmail("");
                 setDesignation("");
@@ -73,7 +80,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                 }, 2000);
             }
         } catch (err: any) {
-            setMessage({ type: 'error', text: 'Network error. Please try again.' });
+            showMessage({ type: 'error', text: 'Network error. Please try again.' });
         }
 
         setLoading(false);
