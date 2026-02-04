@@ -40,6 +40,12 @@ interface TeacherProfile {
     profile_image?: string;
 }
 
+type ResetConfirmTarget = {
+    id: string;
+    email: string;
+    full_name: string;
+};
+
 type ToastState = {
     type: "success" | "error" | "info";
     text: string;
@@ -65,6 +71,8 @@ function AdminDashboardContent() {
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
     const [toast, setToast] = useState<ToastState>(null);
+    const [resetConfirmTarget, setResetConfirmTarget] = useState<ResetConfirmTarget | null>(null);
+    const [isSendingReset, setIsSendingReset] = useState(false);
 
     useEffect(() => {
         if (!toast) return;
@@ -127,10 +135,8 @@ function AdminDashboardContent() {
         router.refresh();
     };
 
-    const handleResetPassword = async (teacher: TeacherProfile) => {
-        const confirmContent = window.confirm(`Send password reset email to ${teacher.email}?`);
-        if (!confirmContent) return;
-
+    const sendResetPassword = async (teacher: ResetConfirmTarget) => {
+        setIsSendingReset(true);
         try {
             const token = localStorage.getItem("auth_token");
             const res = await fetch(`/api/admin/teachers/${teacher.id}/reset-password`, {
@@ -145,7 +151,18 @@ function AdminDashboardContent() {
             }
         } catch(e) {
             setToast({ type: "error", text: "Network error while sending reset email." });
+        } finally {
+            setIsSendingReset(false);
+            setResetConfirmTarget(null);
         }
+    };
+
+    const handleResetPassword = (teacher: TeacherProfile) => {
+        setResetConfirmTarget({
+            id: teacher.id,
+            email: teacher.email,
+            full_name: teacher.full_name,
+        });
     };
 
     if (loading || !user || role !== "admin") {
@@ -337,6 +354,34 @@ function AdminDashboardContent() {
                 teacherTarget={deleteTeacherData}
                 allTeachers={teachers}
             />
+
+            {resetConfirmTarget && (
+                <div className={styles.confirmBackdrop} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title">
+                    <div className={styles.confirmDialog}>
+                        <h3 id="reset-confirm-title">Send reset email?</h3>
+                        <p>
+                            Send a password reset link to <strong>{resetConfirmTarget.email}</strong> for {" "}
+                            {resetConfirmTarget.full_name}.
+                        </p>
+                        <div className={styles.confirmActions}>
+                            <button
+                                className={styles.confirmCancelBtn}
+                                onClick={() => setResetConfirmTarget(null)}
+                                disabled={isSendingReset}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmPrimaryBtn}
+                                onClick={() => sendResetPassword(resetConfirmTarget)}
+                                disabled={isSendingReset}
+                            >
+                                {isSendingReset ? "Sending..." : "Send Email"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
