@@ -20,6 +20,9 @@ import {
     Trash2,
     MailCheck,
     Smartphone,
+    CheckCircle2,
+    AlertTriangle,
+    X,
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
@@ -172,9 +175,17 @@ function AdminDashboardContent() {
     return (
         <>
             {toast && (
-                <div className={styles.toastWrap} role="status" aria-live="polite">
+                <div className={styles.toastWrap} role="status" aria-live={toast.type === "error" ? "assertive" : "polite"}>
                     <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : toast.type === "error" ? styles.toastError : styles.toastInfo}`}>
-                        {toast.text}
+                        <div className={styles.toastBody}>
+                            <span className={styles.toastIcon}>
+                                {toast.type === "success" ? <CheckCircle2 size={16} /> : toast.type === "error" ? <AlertTriangle size={16} /> : <MailCheck size={16} />}
+                            </span>
+                            <span>{toast.text}</span>
+                        </div>
+                        <button className={styles.toastClose} onClick={() => setToast(null)} aria-label="Dismiss notification">
+                            <X size={14} />
+                        </button>
                     </div>
                 </div>
             )}
