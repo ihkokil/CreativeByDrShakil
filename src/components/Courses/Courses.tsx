@@ -1,20 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "./Courses.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { COURSES } from "@/constants/courses";
+import { COURSES, Course } from "@/constants/courses";
 import CourseCard from "./CourseCard";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
 
 export default function Courses() {
     const [filter, setFilter] = useState("All");
+    const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
     const categories = ["All", "FCPS", "Exams", "Residency"];
 
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadDynamicCourses = async () => {
+            try {
+                const courses = await fetchPublishedDynamicCourses();
+                if (!cancelled) {
+                    setDynamicCourses(courses);
+                }
+            } catch {
+                // Keep the static featured set if dynamic fetch fails.
+            }
+        };
+
+        loadDynamicCourses();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const allCourses = useMemo(
+        () => mergeStaticAndDynamicCourses(COURSES, dynamicCourses),
+        [dynamicCourses]
+    );
+
     const filtered = filter === "All"
-        ? COURSES.slice(0, 3) // Just show first 3 for home
-        : COURSES.filter(c => c.category === filter).slice(0, 3);
+        ? allCourses.slice(0, 3)
+        : allCourses.filter(c => c.category === filter).slice(0, 3);
 
     return (
         <section className="section-padding">
