@@ -27,8 +27,44 @@
     color: var(--foreground);
     font-weight: 700;
     font-size: 0.9rem;
-    padding: 12px 14px;
+    padding: 10px 12px;
     box-shadow: var(--shadow-soft);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    animation: toastIn 180ms ease-out;
+}
+
+.toastBody {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toastIcon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.95;
+}
+
+.toastClose {
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.toastClose:hover {
+    border-color: var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 74%, transparent);
 }
 
 .toastSuccess {
@@ -44,6 +80,17 @@
 .toastInfo {
     border-color: rgba(59, 130, 246, 0.35);
     background: color-mix(in srgb, #3b82f6 16%, var(--glass));
+}
+
+@keyframes toastIn {
+    from {
+        transform: translateY(-8px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .confirmBackdrop {
@@ -382,13 +429,13 @@
 @media (max-width: 700px) {
     .toastWrap {
         left: 12px;
-        right: 12px;
-        top: 84px;
+        right: auto;
+        top: auto;
+        bottom: 12px;
     }
 
     .toast {
-        min-width: 0;
-        width: 100%;
+        min-width: min(320px, calc(100vw - 24px));
     }
 
     .metricsGrid,
