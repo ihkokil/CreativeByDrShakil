@@ -23,6 +23,7 @@ import {
     CheckCircle2,
     AlertTriangle,
     X,
+    Inbox,
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
@@ -30,6 +31,7 @@ import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
 import CouponManager from "@/components/Admin/CouponManager";
 import Image from "next/image";
 import SessionsManager from "@/components/Admin/SessionsManager";
+import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
 
 interface TeacherProfile {
     id: string;
@@ -63,7 +65,7 @@ function AdminDashboardContent() {
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
     // Instead of useState for activeTab, derive it from searchParams
-    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -117,6 +119,7 @@ function AdminDashboardContent() {
             { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
             { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
             { key: "sessions", label: "Sessions", icon: Smartphone, mobilePrimary: true },
+            { key: "support", label: "Support", icon: Inbox, mobilePrimary: true },
             { key: "analytics", label: "Analytics", icon: BarChart3, mobilePrimary: true },
             { key: "settings", label: "Settings", icon: Settings },
         ],
@@ -199,7 +202,7 @@ function AdminDashboardContent() {
                 userAvatarUrl={user.user_metadata?.profile_image || null}
                 items={navItems}
                 activeKey={activeTab}
-                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings")}
+                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "sessions" | "support" | "analytics" | "settings")}
                 onLogout={handleLogout}
             >
                 {activeTab === "overview" && (
@@ -328,6 +331,12 @@ function AdminDashboardContent() {
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Device Sessions</h2>
                         <SessionsManager />
+                    </section>
+                )}
+                {activeTab === "support" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Contact Requests</h2>
+                        <ContactRequestsManager />
                     </section>
                 )}
                 {activeTab === "settings" && (
