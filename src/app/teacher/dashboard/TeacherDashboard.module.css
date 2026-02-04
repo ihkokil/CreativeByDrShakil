@@ -60,6 +60,25 @@
     margin-bottom: 16px;
 }
 
+.actionRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.actionRow p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.actionRow .primaryBtn {
+    width: auto;
+    padding: 10px 14px;
+    white-space: nowrap;
+}
+
 .courseGrid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -181,5 +200,14 @@
     .courseGrid,
     .simpleCards {
         grid-template-columns: 1fr;
+    }
+
+    .actionRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actionRow .primaryBtn {
+        width: 100%;
     }
 }
