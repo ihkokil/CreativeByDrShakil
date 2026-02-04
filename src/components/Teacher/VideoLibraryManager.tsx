@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import styles from "./VideoLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, ChevronDown, ChevronRight, X } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, ChevronDown, ChevronRight, X, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document';
@@ -12,6 +12,46 @@ export interface CurriculumNode {
     duration?: string;
     url?: string;
     children?: CurriculumNode[];
+}
+
+interface FlatNode {
+    id: string;
+    title: string;
+    type: string;
+    url: string | null;
+    duration: string | null;
+    parentId: string | null;
+    sortOrder: number;
+}
+
+/** Convert flat DB rows into a nested tree */
+function buildTree(flatNodes: FlatNode[]): CurriculumNode[] {
+    const map = new Map<string, CurriculumNode>();
+    const roots: CurriculumNode[] = [];
+
+    // First pass: create all nodes
+    for (const node of flatNodes) {
+        map.set(node.id, {
+            id: node.id,
+            title: node.title,
+            type: node.type as CurriculumNode['type'],
+            url: node.url || undefined,
+            duration: node.duration || undefined,
+            children: node.type === 'folder' ? [] : undefined,
+        });
+    }
+
+    // Second pass: assign children
+    for (const node of flatNodes) {
+        const treeNode = map.get(node.id)!;
+        if (node.parentId && map.has(node.parentId)) {
+            map.get(node.parentId)!.children!.push(treeNode);
+        } else if (!node.parentId) {
+            roots.push(treeNode);
+        }
+    }
+
+    return roots;
 }
 
 interface NodeProps {
@@ -69,11 +109,9 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
                     <button className={styles.actionBtn} title="Edit">
                         <Edit2 size={14} />
                     </button>
-                    {node.id !== 'root' && (
-                        <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => onDelete(node.id)} title="Delete">
-                            <Trash2 size={14} />
-                        </button>
-                    )}
+                    <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => onDelete(node.id)} title="Delete">
+                        <Trash2 size={14} />
+                    </button>
                     {isFolder && (
                         <div className={styles.chevron}>
                             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -109,32 +147,13 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
 };
 
 export default function VideoLibraryManager() {
-    // New State for Drill-down structure
+    // Drill-down state
     const [activeRootId, setActiveRootId] = useState<string | null>(null);
 
-    // Initial mock state acting as our Master Video Library root
-    const [libraryData, setLibraryData] = useState<CurriculumNode[]>([
-        {
-            id: 'root-medicine',
-            title: 'Medicine Library',
-            type: 'folder',
-            children: [
-                {
-                    id: 'medicine-blood',
-                    title: 'Blood',
-                    type: 'folder',
-                    children: [
-                        {
-                            id: 'blood-rbc',
-                            title: 'RBC',
-                            type: 'folder',
-                            children: []
-                        }
-                    ]
-                }
-            ]
-        }
-    ]);
+    // Data from API
+    const [libraryData, setLibraryData] = useState<CurriculumNode[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     // Modal States
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
@@ -148,34 +167,40 @@ export default function VideoLibraryManager() {
     const [videoUrl, setVideoUrl] = useState("");
     const [videoDuration, setVideoDuration] = useState("");
 
-    // Recursive function to add a node to a specific parent
-    const addNodeToParent = (nodes: CurriculumNode[], parentId: string, newNode: CurriculumNode): CurriculumNode[] => {
-        return nodes.map(node => {
-            if (node.id === parentId) {
-                return {
-                    ...node,
-                    children: [...(node.children || []), newNode]
-                };
-            }
-            if (node.children) {
-                return {
-                    ...node,
-                    children: addNodeToParent(node.children, parentId, newNode)
-                };
-            }
-            return node;
-        });
-    };
+    // Submitting state
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Recursive function to delete a node by ID
-    const deleteNode = (nodes: CurriculumNode[], idToRemove: string): CurriculumNode[] => {
-        return nodes.filter(node => node.id !== idToRemove).map(node => {
-            if (node.children) {
-                return { ...node, children: deleteNode(node.children, idToRemove) };
+    const getAuthHeaders = useCallback((): HeadersInit => {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+    }, []);
+
+    // Fetch library data from API
+    const fetchLibrary = useCallback(async () => {
+        try {
+            setError(null);
+            const res = await fetch('/api/teacher/video-library', {
+                headers: getAuthHeaders(),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to load library.');
             }
-            return node;
-        });
-    };
+
+            const data = await res.json();
+            const tree = buildTree(data.nodes);
+            setLibraryData(tree);
+        } catch (err: any) {
+            setError(err.message || 'Failed to load library.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [getAuthHeaders]);
+
+    useEffect(() => {
+        fetchLibrary();
+    }, [fetchLibrary]);
 
     const handleAddFolderClick = (parentId?: string) => {
         setActiveParentId(parentId || null);
@@ -187,59 +212,126 @@ export default function VideoLibraryManager() {
         setIsVideoModalOpen(true);
     };
 
-    const handleDeleteClick = (id: string, e?: React.MouseEvent) => {
+    const handleDeleteClick = async (id: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
-        if (confirm("Are you sure you want to delete this item? This will also delete all nested content inside it.")) {
-            // Also reset active root if we delete the file we are currently looking inside
+        if (!confirm("Are you sure you want to delete this item? This will also delete all nested content inside it.")) return;
+
+        try {
             if (id === activeRootId) setActiveRootId(null);
-            setLibraryData(prev => deleteNode(prev, id));
+
+            const res = await fetch(`/api/teacher/video-library/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to delete.');
+            }
+
+            // Refetch to stay in sync
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to delete item.');
         }
     };
 
-    const submitFolder = (e: React.FormEvent) => {
+    const submitFolder = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!folderTitle.trim()) return;
+        if (!folderTitle.trim() || isSubmitting) return;
 
-        const newFolder: CurriculumNode = {
-            id: `folder-${Date.now()}`,
-            title: folderTitle,
-            type: 'folder',
-            children: []
-        };
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/api/teacher/video-library', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    title: folderTitle.trim(),
+                    type: 'folder',
+                    parentId: activeParentId || null,
+                }),
+            });
 
-        if (activeParentId && activeRootId) {
-            setLibraryData(prev => addNodeToParent(prev, activeParentId, newFolder));
-        } else if (activeParentId && !activeRootId) {
-            setLibraryData(prev => addNodeToParent(prev, activeParentId, newFolder));
-        } else {
-            setLibraryData(prev => [...prev, newFolder]);
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to create folder.');
+            }
+
+            setFolderTitle("");
+            setIsFolderModalOpen(false);
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to create folder.');
+        } finally {
+            setIsSubmitting(false);
         }
-
-        setFolderTitle("");
-        setIsFolderModalOpen(false);
     };
 
-    const submitVideo = (e: React.FormEvent) => {
+    const submitVideo = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!videoTitle.trim() || !activeParentId) return;
+        if (!videoTitle.trim() || !activeParentId || isSubmitting) return;
 
-        const newVideo: CurriculumNode = {
-            id: `video-${Date.now()}`,
-            title: videoTitle,
-            type: videoType,
-            url: videoUrl,
-            duration: videoDuration
-        };
+        setIsSubmitting(true);
+        try {
+            const res = await fetch('/api/teacher/video-library', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    title: videoTitle.trim(),
+                    type: videoType,
+                    url: videoUrl.trim() || null,
+                    duration: videoDuration.trim() || null,
+                    parentId: activeParentId,
+                }),
+            });
 
-        setLibraryData(prev => addNodeToParent(prev, activeParentId, newVideo));
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to add video.');
+            }
 
-        setVideoTitle("");
-        setVideoUrl("");
-        setVideoDuration("");
-        setIsVideoModalOpen(false);
+            setVideoTitle("");
+            setVideoUrl("");
+            setVideoDuration("");
+            setIsVideoModalOpen(false);
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to add video.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const activeRootNode = libraryData.find(root => root.id === activeRootId);
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className={styles.managerContainer}>
+                <div className={styles.emptyState}>
+                    <Loader2 size={48} className={styles.emptyIcon} style={{ animation: 'spin 1s linear infinite' }} />
+                    <h3>Loading Video Library...</h3>
+                    <p>Fetching your organized video content.</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className={styles.managerContainer}>
+                <div className={styles.emptyState}>
+                    <X size={48} className={styles.emptyIcon} style={{ color: '#ef4444' }} />
+                    <h3>Failed to Load Library</h3>
+                    <p>{error}</p>
+                    <button className={styles.primaryBtn} onClick={() => { setIsLoading(true); fetchLibrary(); }} style={{ marginTop: '1rem' }}>
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.managerContainer}>
@@ -372,7 +464,9 @@ export default function VideoLibraryManager() {
                                         required autoFocus
                                     />
                                 </div>
-                                <button type="submit" className={styles.submitBtn}>Create Folder</button>
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                                    {isSubmitting ? 'Creating...' : 'Create Folder'}
+                                </button>
                             </form>
                         </motion.div>
                     </div>
@@ -433,7 +527,9 @@ export default function VideoLibraryManager() {
                                         required
                                     />
                                 </div>
-                                <button type="submit" className={styles.submitBtn}>Add Video</button>
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                                    {isSubmitting ? 'Adding...' : 'Add Video'}
+                                </button>
                             </form>
                         </motion.div>
                     </div>
