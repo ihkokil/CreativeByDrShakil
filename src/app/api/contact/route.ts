@@ -10,6 +10,7 @@ import {
 } from '@/lib/contact-emails';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 const ALLOWED_ISSUES: ContactIssueType[] = ['query', 'technical_assistance', 'billing', 'course_access', 'other'];
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
@@ -28,6 +29,12 @@ export async function POST(request: NextRequest) {
   const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'contact-submissions', submissionId);
 
   try {
+    // Check Content-Length before parsing
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Request payload too large. Maximum 50MB allowed.' }, { status: 413 });
+    }
+
     const formData = await request.formData();
     const fullName = String(formData.get('fullName') || '').trim();
     const phone = String(formData.get('phone') || '').trim();
@@ -111,6 +118,15 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     await fs.rm(uploadDir, { recursive: true, force: true }).catch(() => undefined);
-    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+    console.error('[Contact Submission Error]', {
+      message: error?.message,
+      code: error?.code,
+      status: error?.status,
+    });
+    // Check if it's a payload size error
+    if (error?.message?.includes('PAYLOAD') || error?.code === 'PAYLOAD_TOO_LARGE') {
+      return NextResponse.json({ error: 'Images are too large. Please reduce file sizes or upload fewer images.' }, { status: 413 });
+    }
+    return NextResponse.json({ error: error?.message || 'Failed to process your submission. Please try again.' }, { status: 500 });
   }
 }
