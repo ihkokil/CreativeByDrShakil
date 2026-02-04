@@ -53,7 +53,15 @@ export async function GET() {
       })),
     });
   } catch (error: any) {
-    console.error('[Courses Dynamic Error]', error?.message || error);
-    return NextResponse.json({ error: 'Failed to load courses.' }, { status: 500 });
+    console.error('[Courses Dynamic Error]', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack,
+    });
+    return NextResponse.json(
+      { error: 'Failed to load courses. Please try again.' },
+      { status: 500 }
+    );
   }
 }
