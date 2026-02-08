@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { getStarterCatalogSummary, STARTER_CATALOG } from '@/lib/starter-catalog';
+import { getStarterCatalogFromDB, getStarterCatalogSummary } from '@/lib/starter-catalog';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,11 +12,14 @@ export async function GET(request: NextRequest) {
     const verbose = request.nextUrl.searchParams.get('verbose') === '1';
 
     if (verbose) {
-      return NextResponse.json({ topics: STARTER_CATALOG });
+      const catalog = await getStarterCatalogFromDB();
+      return NextResponse.json({ topics: catalog });
     }
 
-    return NextResponse.json({ topics: getStarterCatalogSummary() });
+    const summary = await getStarterCatalogSummary();
+    return NextResponse.json({ topics: summary });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+    console.error('[StarterCatalog Error]', error?.message || error);
+    return NextResponse.json({ error: 'Failed to load starter catalog.' }, { status: 500 });
   }
 }
