@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, AlertTriangle } from "lucide-react";
@@ -25,8 +25,33 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
     const [loading, setLoading] = useState(false);
     const [reassignToId, setReassignToId] = useState("");
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const availableTeachers = allTeachers.filter(t => t.id !== teacherTarget?.id);
+
+    const clearCloseTimer = () => {
+        if (closeTimerRef.current) {
+            clearTimeout(closeTimerRef.current);
+            closeTimerRef.current = null;
+        }
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        clearCloseTimer();
+        setLoading(false);
+        setMessage(null);
+        setReassignToId("");
+    }, [isOpen, teacherTarget?.id]);
+
+    useEffect(() => {
+        return () => {
+            clearCloseTimer();
+        };
+    }, []);
 
     const handleDelete = async () => {
         if (!reassignToId && availableTeachers.length > 0) {
@@ -34,12 +59,15 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
             return;
         }
 
+        if (!session || !teacherTarget) {
+            setMessage({ type: 'error', text: 'You must be logged in and select a teacher.' });
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
 
         try {
-            if (!session || !teacherTarget) return;
-
             const response = await fetch(`/api/admin/teachers/${teacherTarget.id}`, {
                 method: 'DELETE',
                 headers: {
@@ -55,19 +83,22 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                 setMessage({ type: 'error', text: data.error || 'Failed to delete teacher.' });
             } else {
                 setMessage({ type: 'success', text: data.message || 'Teacher deleted successfully.' });
-                setTimeout(() => {
+                clearCloseTimer();
+                closeTimerRef.current = setTimeout(() => {
                     onSuccess();
                     onClose();
                 }, 1500);
             }
         } catch (err) {
             setMessage({ type: 'error', text: 'Network error. Please try again.' });
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     const handleClose = () => {
+        clearCloseTimer();
+        setLoading(false);
         setMessage(null);
         setReassignToId("");
         onClose();
