@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, AlertTriangle } from "lucide-react";
@@ -25,8 +25,33 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
     const [loading, setLoading] = useState(false);
     const [reassignToId, setReassignToId] = useState("");
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const availableTeachers = allTeachers.filter(t => t.id !== teacherTarget?.id);
+
+    const clearCloseTimer = () => {
+        if (closeTimerRef.current) {
+            clearTimeout(closeTimerRef.current);
+            closeTimerRef.current = null;
+        }
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        clearCloseTimer();
+        setLoading(false);
+        setMessage(null);
+        setReassignToId("");
+    }, [isOpen, teacherTarget?.id]);
+
+    useEffect(() => {
+        return () => {
+            clearCloseTimer();
+        };
+    }, []);
 
     const handleDelete = async () => {
         if (!reassignToId && availableTeachers.length > 0) {
@@ -34,12 +59,15 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
             return;
         }
 
+        if (!session || !teacherTarget) {
+            setMessage({ type: 'error', text: 'You must be logged in and select a teacher.' });
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
 
         try {
-            if (!session || !teacherTarget) return;
-
             const response = await fetch(`/api/admin/teachers/${teacherTarget.id}`, {
                 method: 'DELETE',
                 headers: {
@@ -55,16 +83,25 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                 setMessage({ type: 'error', text: data.error || 'Failed to delete teacher.' });
             } else {
                 setMessage({ type: 'success', text: data.message || 'Teacher deleted successfully.' });
-                setTimeout(() => {
+                clearCloseTimer();
+                closeTimerRef.current = setTimeout(() => {
                     onSuccess();
                     onClose();
                 }, 1500);
             }
         } catch (err) {
             setMessage({ type: 'error', text: 'Network error. Please try again.' });
+        } finally {
+            setLoading(false);
         }
+    };
 
+    const handleClose = () => {
+        clearCloseTimer();
         setLoading(false);
+        setMessage(null);
+        setReassignToId("");
+        onClose();
     };
 
     if (!teacherTarget) return null;
@@ -72,7 +109,7 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className={styles.overlay} onClick={onClose}>
+                <div className={styles.overlay} onClick={handleClose}>
                     <motion.div
                         className={`${styles.modal} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -81,14 +118,16 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button className={styles.closeBtn} onClick={onClose}>
+                        <button className={styles.closeBtn} onClick={handleClose}>
                             <X size={20} />
                         </button>
 
                         <div className={styles.header}>
-                            <AlertTriangle size={32} color="var(--danger)" style={{ marginBottom: "1rem" }} />
+                            <div className={styles.dangerIconWrap}>
+                                <AlertTriangle size={22} />
+                            </div>
                             <h2 className={styles.title}>
-                                <span style={{color: "var(--danger)"}}>Delete Teacher</span>
+                                <span className={styles.dangerTitle}>Delete Teacher</span>
                             </h2>
                             <p className={styles.subtitle}>
                                 You are about to permanently delete <strong>{teacherTarget.full_name}</strong>. This action cannot be undone.
@@ -96,15 +135,17 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                         </div>
 
                         {availableTeachers.length > 0 ? (
-                            <div className={styles.reassignSection} style={{ marginBottom: "1.5rem" }}>
-                                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", fontWeight: 600 }}>
+                            <div className={styles.reassignSection}>
+                                <p className={styles.warningCard}>
+                                    Existing courses must be reassigned before deletion.
+                                </p>
+                                <label className={styles.fieldLabel}>
                                     Reassign their courses to:
                                 </label>
                                 <select 
                                     className={styles.selectInput}
                                     value={reassignToId}
                                     onChange={(e) => setReassignToId(e.target.value)}
-                                    style={{ width: "100%", padding: "0.75rem", borderRadius: "8px", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
                                 >
                                     <option value="" disabled>Select a teacher...</option>
                                     {availableTeachers.map(t => (
@@ -115,7 +156,7 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                                 </select>
                             </div>
                         ) : (
-                            <div style={{ marginBottom: "1.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>
+                            <div className={styles.warningCard}>
                                 No other teachers available to reassign courses to. Data might be lost.
                             </div>
                         )}
@@ -126,21 +167,19 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                             </div>
                         )}
 
-                        <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                        <div className={styles.actionsRow}>
                             <button 
-                                className={styles.submitBtn} 
-                                style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--foreground)" }} 
-                                onClick={onClose}
+                                className={`${styles.submitBtn} ${styles.secondaryBtn}`}
+                                onClick={handleClose}
                             >
                                 Cancel
                             </button>
                             <button 
-                                className={styles.submitBtn} 
-                                style={{ background: "var(--danger)", color: "white" }} 
+                                className={`${styles.submitBtn} ${styles.dangerBtn}`}
                                 onClick={handleDelete} 
                                 disabled={loading || (!reassignToId && availableTeachers.length > 0)}
                             >
-                                {loading ? "Deleting..." : "Delete Permanently"}
+                                {loading ? "Deleting..." : "Delete"}
                                 {!loading && <Trash2 size={18} />}
                             </button>
                         </div>
