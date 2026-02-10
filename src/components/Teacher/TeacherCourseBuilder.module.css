@@ -3,6 +3,34 @@
     gap: 16px;
 }
 
+.stepper {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.stepBtn {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--card-bg) 78%, transparent);
+    color: var(--foreground);
+    padding: 10px;
+    text-align: left;
+    display: grid;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.stepBtn span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.stepActive {
+    border-color: color-mix(in srgb, var(--primary) 60%, var(--glass-border));
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
 .sectionCard {
     border: 1px solid var(--glass-border);
     background: var(--glass);
@@ -26,6 +54,7 @@
 }
 
 .gridForm,
+.detailGrid,
 .addNodeForm,
 .importWrap,
 .reuseWrap,
@@ -37,6 +66,8 @@
 .gridForm input,
 .gridForm textarea,
 .gridForm select,
+.detailGrid input,
+.detailGrid textarea,
 .addNodeForm input,
 .addNodeForm select,
 .scheduleGrid input,
@@ -58,10 +89,27 @@
     resize: vertical;
 }
 
+.detailGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detailGrid textarea {
+    min-height: 80px;
+    resize: vertical;
+    grid-column: 1 / -1;
+}
+
 .formRow {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
+}
+
+.wizardNav {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .primaryBtn,
@@ -244,16 +292,20 @@
 }
 
 @media (max-width: 1080px) {
+    .stepper,
     .scheduleGrid,
     .topicGrid,
+    .detailGrid,
     .formRow {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 700px) {
+    .stepper,
     .scheduleGrid,
     .topicGrid,
+    .detailGrid,
     .formRow {
         grid-template-columns: 1fr;
     }
