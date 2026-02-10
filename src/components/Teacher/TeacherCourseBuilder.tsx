@@ -15,6 +15,9 @@ interface TeacherCourseSummary {
     title: string;
     category: string | null;
     description: string;
+    imageUrl: string | null;
+    language: string | null;
+    level: string | null;
     price: number;
     duration: string;
     status: "draft" | "scheduled" | "published" | "archived";
@@ -39,6 +42,8 @@ interface ReleaseGroupSummary {
     nodeId: string;
     index: number;
 }
+
+type BuilderStep = 1 | 2 | 3 | 4;
 
 const toLocalInputDateTime = (isoDate?: string | null) => {
     if (!isoDate) return "";
@@ -153,6 +158,19 @@ export default function TeacherCourseBuilder() {
     const [newCoursePrice, setNewCoursePrice] = useState("0");
     const [newCourseDuration, setNewCourseDuration] = useState("3 Months");
     const [newCourseDescription, setNewCourseDescription] = useState("");
+    const [newCourseImageUrl, setNewCourseImageUrl] = useState("");
+    const [newCourseLanguage, setNewCourseLanguage] = useState("");
+    const [newCourseLevel, setNewCourseLevel] = useState("");
+
+    const [builderStep, setBuilderStep] = useState<BuilderStep>(1);
+    const [courseTitle, setCourseTitle] = useState("");
+    const [courseCategory, setCourseCategory] = useState("");
+    const [coursePrice, setCoursePrice] = useState("0");
+    const [courseDuration, setCourseDuration] = useState("");
+    const [courseDescription, setCourseDescription] = useState("");
+    const [courseLanguage, setCourseLanguage] = useState("");
+    const [courseLevel, setCourseLevel] = useState("");
+    const [courseImageUrl, setCourseImageUrl] = useState("");
 
     const [targetParentId, setTargetParentId] = useState("root");
     const [newNodeType, setNewNodeType] = useState<"folder" | "youtube" | "self-hosted" | "document">("folder");
@@ -249,6 +267,14 @@ export default function TeacherCourseBuilder() {
             setCurriculum([]);
             setGroups([]);
             setComputedGroupDates({});
+            setCourseTitle("");
+            setCourseCategory("");
+            setCoursePrice("0");
+            setCourseDuration("");
+            setCourseDescription("");
+            setCourseLanguage("");
+            setCourseLevel("");
+            setCourseImageUrl("");
             return;
         }
 
@@ -269,6 +295,14 @@ export default function TeacherCourseBuilder() {
         setIntervalDays(String(data.course?.releaseIntervalDays || 7));
         setGroupsPerWeek(String(data.course?.releaseGroupsPerWeek || 2));
         setCourseStatus((data.course?.status || "draft") as "draft" | "scheduled" | "published" | "archived");
+        setCourseTitle(data.course?.title || "");
+        setCourseCategory(data.course?.category || "");
+        setCoursePrice(String(data.course?.price || 0));
+        setCourseDuration(data.course?.duration || "");
+        setCourseDescription(data.course?.description || "");
+        setCourseLanguage(data.course?.language || "");
+        setCourseLevel(data.course?.level || "");
+        setCourseImageUrl(data.course?.imageUrl || "");
     };
 
     useEffect(() => {
@@ -348,6 +382,9 @@ export default function TeacherCourseBuilder() {
                     price: Number(newCoursePrice),
                     duration: newCourseDuration,
                     description: newCourseDescription,
+                    language: newCourseLanguage,
+                    level: newCourseLevel,
+                    imageUrl: newCourseImageUrl,
                 }),
             });
 
@@ -360,9 +397,55 @@ export default function TeacherCourseBuilder() {
             setSelectedCourseId(data.course.id);
             setNewCourseTitle("");
             setNewCourseDescription("");
+            setNewCourseImageUrl("");
+            setNewCourseLanguage("");
+            setNewCourseLevel("");
+            setBuilderStep(2);
             setMessage({ type: "success", text: "Course created successfully." });
         } catch (error: any) {
             setMessage({ type: "error", text: error.message || "Failed to create course." });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveCourseDetails = async () => {
+        if (!selectedCourseId) return;
+
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/teacher/courses/${selectedCourseId}`, {
+                method: "PATCH",
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    title: courseTitle,
+                    category: courseCategory,
+                    price: Number(coursePrice),
+                    duration: courseDuration,
+                    description: courseDescription,
+                    language: courseLanguage,
+                    level: courseLevel,
+                    imageUrl: courseImageUrl,
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Failed to save course image.");
+            }
+
+            await loadCourses();
+            setCourseTitle(data.course?.title || "");
+            setCourseCategory(data.course?.category || "");
+            setCoursePrice(String(data.course?.price || 0));
+            setCourseDuration(data.course?.duration || "");
+            setCourseDescription(data.course?.description || "");
+            setCourseLanguage(data.course?.language || "");
+            setCourseLevel(data.course?.level || "");
+            setCourseImageUrl(data.course?.imageUrl || "");
+            setMessage({ type: "success", text: "Course details updated." });
+        } catch (error: any) {
+            setMessage({ type: "error", text: error.message || "Failed to save course details." });
         } finally {
             setLoading(false);
         }
@@ -602,8 +685,33 @@ export default function TeacherCourseBuilder() {
         }
     };
 
+    const steps: Array<{ id: BuilderStep; title: string; description: string }> = [
+        { id: 1, title: "Create", description: "Create or select a course" },
+        { id: 2, title: "Details", description: "Set metadata and schedule" },
+        { id: 3, title: "Curriculum", description: "Build modules and lessons" },
+        { id: 4, title: "Publish", description: "Review and finalize status" },
+    ];
+
+    const selectedCourse = courses.find((course) => course.id === selectedCourseId) || null;
+
     return (
         <div className={styles.builderWrap}>
+            <section className={styles.sectionCard}>
+                <div className={styles.stepper}>
+                    {steps.map((step) => (
+                        <button
+                            key={step.id}
+                            type="button"
+                            className={`${styles.stepBtn} ${builderStep === step.id ? styles.stepActive : ""}`}
+                            onClick={() => setBuilderStep(step.id)}
+                        >
+                            <strong>{step.id}. {step.title}</strong>
+                            <span>{step.description}</span>
+                        </button>
+                    ))}
+                </div>
+            </section>
+
             <section className={styles.sectionCard}>
                 <h2>Create Teacher Course</h2>
                 <form className={styles.gridForm} onSubmit={handleCreateCourse}>
@@ -637,15 +745,38 @@ export default function TeacherCourseBuilder() {
                         onChange={(event) => setNewCourseDuration(event.target.value)}
                         required
                     />
+                    <input
+                        type="text"
+                        placeholder="Language (optional)"
+                        value={newCourseLanguage}
+                        onChange={(event) => setNewCourseLanguage(event.target.value)}
+                    />
+                    <input
+                        type="text"
+                        placeholder="Level (optional)"
+                        value={newCourseLevel}
+                        onChange={(event) => setNewCourseLevel(event.target.value)}
+                    />
                     <textarea
                         placeholder="Short description"
                         value={newCourseDescription}
                         onChange={(event) => setNewCourseDescription(event.target.value)}
                     />
+                    <input
+                        type="url"
+                        placeholder="Thumbnail/Image URL"
+                        value={newCourseImageUrl}
+                        onChange={(event) => setNewCourseImageUrl(event.target.value)}
+                    />
                     <button type="submit" className={styles.primaryBtn} disabled={loading}>
                         <Plus size={15} /> Create Course
                     </button>
                 </form>
+                <div className={styles.wizardNav}>
+                    <button type="button" className={styles.secondaryBtn} onClick={() => setBuilderStep(2)} disabled={!selectedCourseId}>
+                        Continue to Details
+                    </button>
+                </div>
             </section>
 
             <section className={styles.sectionCard}>
@@ -664,8 +795,70 @@ export default function TeacherCourseBuilder() {
                     </select>
                 </div>
 
-                {selectedCourseId && (
+                {builderStep === 1 && (
+                    <p className={styles.muted}>Start by creating a new course or selecting an existing one from the dropdown, then continue to details.</p>
+                )}
+
+                {selectedCourseId && builderStep === 2 && (
                     <>
+                        <div className={styles.importWrap}>
+                            <h3>Course Details</h3>
+                            <div className={styles.detailGrid}>
+                                <input
+                                    type="text"
+                                    placeholder="Course title"
+                                    value={courseTitle}
+                                    onChange={(event) => setCourseTitle(event.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Category"
+                                    value={courseCategory}
+                                    onChange={(event) => setCourseCategory(event.target.value)}
+                                />
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    placeholder="Price"
+                                    value={coursePrice}
+                                    onChange={(event) => setCoursePrice(event.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Duration"
+                                    value={courseDuration}
+                                    onChange={(event) => setCourseDuration(event.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Language"
+                                    value={courseLanguage}
+                                    onChange={(event) => setCourseLanguage(event.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Level"
+                                    value={courseLevel}
+                                    onChange={(event) => setCourseLevel(event.target.value)}
+                                />
+                                <input
+                                    type="url"
+                                    placeholder="Thumbnail/Image URL"
+                                    value={courseImageUrl}
+                                    onChange={(event) => setCourseImageUrl(event.target.value)}
+                                />
+                                <textarea
+                                    placeholder="Short description"
+                                    value={courseDescription}
+                                    onChange={(event) => setCourseDescription(event.target.value)}
+                                />
+                            </div>
+                            <button className={styles.primaryBtn} type="button" onClick={handleSaveCourseDetails} disabled={loading}>
+                                <Save size={15} /> Save Course Details
+                            </button>
+                        </div>
+
                         <div className={styles.scheduleGrid}>
                             <div>
                                 <label>Release Mode</label>
@@ -715,6 +908,21 @@ export default function TeacherCourseBuilder() {
                                 <Save size={15} /> Save Schedule & Status
                             </button>
                         </div>
+
+                        <div className={styles.wizardNav}>
+                            <button type="button" className={styles.secondaryBtn} onClick={() => setBuilderStep(1)}>
+                                Back to Create
+                            </button>
+                            <button type="button" className={styles.primaryBtn} onClick={() => setBuilderStep(3)}>
+                                Continue to Curriculum
+                            </button>
+                        </div>
+                    </>
+                )}
+
+                {selectedCourseId && builderStep === 3 && (
+                    <>
+                        <p className={styles.muted}>Build the learning path by importing starter topics and adding lessons anywhere in the tree.</p>
 
                         <div className={styles.groupsTable}>
                             <h3>Second-child release groups</h3>
@@ -868,6 +1076,42 @@ export default function TeacherCourseBuilder() {
                                     />
                                 ))
                             )}
+                        </div>
+
+                        <div className={styles.wizardNav}>
+                            <button type="button" className={styles.secondaryBtn} onClick={() => setBuilderStep(2)}>
+                                Back to Details
+                            </button>
+                            <button type="button" className={styles.primaryBtn} onClick={() => setBuilderStep(4)}>
+                                Continue to Publish
+                            </button>
+                        </div>
+                    </>
+                )}
+
+                {selectedCourseId && builderStep === 4 && (
+                    <>
+                        <div className={styles.importWrap}>
+                            <h3>Final Review</h3>
+                            <p className={styles.muted}>Review the course status, then save schedule and publish state to make this course visible when ready.</p>
+                            <div className={styles.groupsTable}>
+                                <div className={styles.groupRow}>
+                                    <div>
+                                        <strong>{selectedCourse?.title || courseTitle || "Untitled course"}</strong>
+                                        <p>{curriculum.length} top-level topics • {groups.length} release groups</p>
+                                    </div>
+                                    <span className={styles.groupTag}>Status: {courseStatus}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.wizardNav}>
+                            <button type="button" className={styles.secondaryBtn} onClick={() => setBuilderStep(3)}>
+                                Back to Curriculum
+                            </button>
+                            <button type="button" className={styles.primaryBtn} onClick={handleSaveSchedule} disabled={loading}>
+                                <Save size={15} /> Save & Finalize
+                            </button>
                         </div>
                     </>
                 )}
