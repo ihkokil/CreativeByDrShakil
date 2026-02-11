@@ -1,0 +1,348 @@
+"use client";
+
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowRight, Upload, Calendar } from "lucide-react";
+import Image from "next/image";
+import styles from "./CreateCourseStep1.module.css";
+
+interface Category {
+  id: string;
+  name: string;
+  displayName: string;
+}
+
+function CreateCourseStep1Content() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const courseId = searchParams.get("courseId");
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [title, setTitle] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [price, setPrice] = useState(0);
+  const [salePrice, setSalePrice] = useState<number | null>(null);
+  const [duration, setDuration] = useState("");
+  const [courseStartDate, setCourseStartDate] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
+
+  // Fetch categories and course data
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // Fetch categories
+        const catResponse = await fetch("/api/categories");
+        if (catResponse.ok) {
+          const data = await catResponse.json();
+          setCategories(data.categories);
+        }
+
+        // If editing, fetch existing course
+        if (courseId) {
+          const token = localStorage.getItem("auth_token");
+          const courseResponse = await fetch(`/api/teacher/courses/${courseId}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+
+          if (courseResponse.ok) {
+            const data = await courseResponse.json();
+            const course = data.course;
+            setTitle(course.title || "");
+            setCategoryId(course.categoryId || "");
+            setPrice(course.price || 0);
+            setSalePrice(course.salePrice || null);
+            setDuration(course.duration || "");
+            setCourseStartDate(course.courseStartDate ? course.courseStartDate.split("T")[0] : "");
+            setImagePreview(course.imageUrl || "");
+          }
+        }
+
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, [courseId]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!title.trim() || !categoryId) {
+      setError("Title and category are required");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem("auth_token");
+      let imageUrl = imagePreview;
+
+      // Upload image if new one selected
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!uploadResponse.ok) throw new Error("Image upload failed");
+        const uploadData = await uploadResponse.json();
+        imageUrl = uploadData.url;
+      }
+
+      // Create or update course
+      const method = courseId ? "PUT" : "POST";
+      const endpoint = courseId ? `/api/teacher/courses/${courseId}` : "/api/teacher/courses";
+      const url = `/api/teacher/courses${courseId ? `/${courseId}` : ""}`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify({
+          title: title.trim(),
+          categoryId,
+          price: parseFloat(price.toString()),
+          salePrice: salePrice ? parseFloat(salePrice.toString()) : null,
+          duration: duration.trim(),
+          courseStartDate: courseStartDate ? new Date(courseStartDate).toISOString() : null,
+          imageUrl,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save course");
+      }
+
+      const data = await response.json();
+      const newCourseId = courseId || data.course.id;
+
+      // Navigate to step 2
+      router.push(`/teacher/dashboard/courses/create/content?courseId=${newCourseId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save course");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return <div className={styles.loading}>Loading...</div>;
+  }
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Create Course</h1>
+          <p className={styles.subtitle}>Step 1 of 3: Basic Information</p>
+        </div>
+        <div className={styles.progress}>
+          <div className={styles.progressBar}>
+            <div className={styles.progressFill} style={{ width: "33%" }} />
+          </div>
+          <span className={styles.progressText}>33%</span>
+        </div>
+      </div>
+
+      {error && <div className={styles.errorMessage}>{error}</div>}
+
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Course Details</h2>
+          <p className={styles.sectionDesc}>Enter basic information about your course</p>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              Course Title <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="E.g., Advanced Diagnostic Techniques"
+              className={styles.input}
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              Category <span className={styles.required}>*</span>
+            </label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className={styles.select}
+              required
+            >
+              <option value="">Select a category</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.displayName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Course Thumbnail</h2>
+          <p className={styles.sectionDesc}>Upload a cover image for your course</p>
+
+          <div className={styles.uploadArea}>
+            {imagePreview ? (
+              <div className={styles.previewContainer}>
+                <Image
+                  src={imagePreview}
+                  alt="Course thumbnail"
+                  width={300}
+                  height={200}
+                  className={styles.previewImage}
+                />
+                <button
+                  type="button"
+                  className={styles.changeBtn}
+                  onClick={() => document.getElementById("imageInput")?.click()}
+                >
+                  <Upload size={20} /> Change
+                </button>
+              </div>
+            ) : (
+              <label className={styles.uploadLabel} htmlFor="imageInput">
+                <Upload size={32} />
+                <span>Click to upload or drag and drop</span>
+                <small>PNG, JPG, GIF up to 5MB</small>
+              </label>
+            )}
+            <input
+              id="imageInput"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className={styles.hiddenInput}
+            />
+          </div>
+        </div>
+
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Pricing</h2>
+          <p className={styles.sectionDesc}>Set the course price and discount</p>
+
+          <div className={styles.priceRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                Price <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                placeholder="0"
+                className={styles.input}
+                min="0"
+                step="0.01"
+                required
+              />
+              <p className={styles.hint}>৳ BDT</p>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Sale Price (Optional)</label>
+              <input
+                type="number"
+                value={salePrice || ""}
+                onChange={(e) => setSalePrice(e.target.value ? parseFloat(e.target.value) : null)}
+                placeholder="Discounted price"
+                className={styles.input}
+                min="0"
+                step="0.01"
+              />
+              <p className={styles.hint}>Leave empty for no discount</p>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Duration & Schedule</h2>
+          <p className={styles.sectionDesc}>Course length and start date</p>
+
+          <div className={styles.durationRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                Duration <span className={styles.required}>*</span>
+              </label>
+              <input
+                type="text"
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="E.g., 8 weeks, 12 hours"
+                className={styles.input}
+                required
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Start Date</label>
+              <div className={styles.dateInputWrapper}>
+                <Calendar size={20} />
+                <input
+                  type="date"
+                  value={courseStartDate}
+                  onChange={(e) => setCourseStartDate(e.target.value)}
+                  className={styles.dateInput}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.actions}>
+          <button
+            type="submit"
+            className={styles.submitBtn}
+            disabled={submitting || loading}
+          >
+            {submitting ? "Saving..." : "Next"}
+            <ArrowRight size={20} />
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+export default function CreateCourseStep1() {
+  return (
+    <Suspense fallback={<div style={{ padding: "20px" }}>Loading...</div>}>
+      <CreateCourseStep1Content />
+    </Suspense>
+  );
+}

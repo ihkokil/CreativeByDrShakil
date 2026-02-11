@@ -1,0 +1,483 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.header {
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--foreground);
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.progressBar {
+  flex: 1;
+  max-width: 300px;
+  height: 8px;
+  background: var(--glass);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.3s ease;
+}
+
+.progressText {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 50px;
+  text-align: right;
+}
+
+.loading,
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: var(--text-muted);
+}
+
+.error {
+  color: #ef4444;
+}
+
+.errorMessage {
+  padding: 14px 16px;
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+  border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
+  border-radius: 12px;
+  color: #ef4444;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.reviewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.validationSection {
+  border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
+  border-radius: 16px;
+  padding: 24px;
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+
+.validationHeader {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.validationHeader svg {
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.validationTitle {
+  font-weight: 700;
+  color: #ef4444;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.validationDesc {
+  color: #dc2626;
+  font-size: 0.9rem;
+  margin: 4px 0 0 0;
+}
+
+.validationList {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+}
+
+.validationItem {
+  padding: 8px 12px;
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.validationItem::before {
+  content: "✗ ";
+  margin-right: 8px;
+}
+
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 12px;
+}
+
+.editBtn:hover {
+  opacity: 0.9;
+}
+
+.reviewSection {
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 24px;
+  background: color-mix(in srgb, var(--card-bg) 50%, transparent);
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 20px 0;
+}
+
+.overviewGrid {
+  display: grid;
+  gap: 20px;
+}
+
+.overviewCard {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.previewImage {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  background: var(--glass);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.noImage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.overviewInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.courseTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.courseCategory {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.courseMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.metaItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metaLabel {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.metaValue {
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.pricingRow {
+  margin-top: 12px;
+}
+
+.priceLabel {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.salePrice {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.originalPrice {
+  font-size: 1rem;
+  color: var(--text-muted);
+  text-decoration: line-through;
+  margin-left: 8px;
+}
+
+.contentCard {
+  padding: 16px;
+  background: var(--background);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.contentCard:last-child {
+  margin-bottom: 0;
+}
+
+.contentTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+}
+
+.contentBody {
+  color: var(--foreground);
+  line-height: 1.6;
+}
+
+.contentBody :global(p) {
+  margin: 0 0 12px 0;
+}
+
+.contentBody :global(p:last-child) {
+  margin-bottom: 0;
+}
+
+.contentBody :global(h1),
+.contentBody :global(h2),
+.contentBody :global(h3),
+.contentBody :global(h4) {
+  margin: 12px 0 8px 0;
+  color: var(--foreground);
+}
+
+.contentBody :global(ul),
+.contentBody :global(ol) {
+  margin: 8px 0 8px 20px;
+  padding: 0;
+}
+
+.contentBody :global(li) {
+  margin: 4px 0;
+}
+
+.outcomesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.outcomesList li {
+  padding: 8px 12px 8px 32px;
+  position: relative;
+  color: var(--foreground);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.outcomesList li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #10b981;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.instructorsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.instructorCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--background);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+.instructorIndex {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.instructorName {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.instructorDesignation {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.backBtn,
+.publishBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.backBtn {
+  background: transparent;
+  color: var(--foreground);
+}
+
+.backBtn:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+
+.publishBtn {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.publishBtn:hover:not(.disabled):not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
+.publishBtn.disabled,
+.publishBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 20px 16px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .overviewCard {
+    grid-template-columns: 1fr;
+  }
+
+  .instructorsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .backBtn,
+  .publishBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
