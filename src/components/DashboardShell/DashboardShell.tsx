@@ -6,6 +6,7 @@ import Image from "next/image";
 import styles from "./DashboardShell.module.css";
 import { LogOut, Menu, X, MoreHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle/ThemeToggle";
 
 type DashboardNavItem = {
     key: string;
@@ -134,6 +135,7 @@ export default function DashboardShell({
                         </div>
                         <div className={styles.topbarRight}>
                             <span className={styles.rolePill}>{roleLabel}</span>
+                            <ThemeToggle />
                             <button
                                 className={styles.mobileMoreBtn}
                                 onClick={() => setIsDrawerOpen(true)}
