@@ -37,7 +37,7 @@ export async function sendMail({
   html,
   text,
 }: {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
   text: string;
