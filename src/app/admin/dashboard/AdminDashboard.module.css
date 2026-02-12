@@ -46,6 +46,75 @@
     background: color-mix(in srgb, #3b82f6 16%, var(--glass));
 }
 
+.confirmBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 3200;
+    background: rgba(6, 10, 20, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.confirmDialog {
+    width: min(520px, 100%);
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-soft);
+    padding: 20px;
+    display: grid;
+    gap: 12px;
+}
+
+.confirmDialog h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.confirmDialog p {
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.confirmActions {
+    margin-top: 4px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.confirmCancelBtn,
+.confirmPrimaryBtn {
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--glass-border);
+}
+
+.confirmCancelBtn {
+    background: transparent;
+    color: var(--foreground);
+}
+
+.confirmPrimaryBtn {
+    background: var(--primary);
+    color: white;
+    border-color: color-mix(in srgb, var(--primary) 80%, black);
+}
+
+.confirmCancelBtn:disabled,
+.confirmPrimaryBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .stack {
     display: grid;
     gap: 20px;
@@ -342,5 +411,14 @@
     .panelHeader {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .confirmActions {
+        flex-direction: column-reverse;
+    }
+
+    .confirmCancelBtn,
+    .confirmPrimaryBtn {
+        width: 100%;
     }
 }
