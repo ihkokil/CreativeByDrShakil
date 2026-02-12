@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
@@ -10,6 +11,7 @@ import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
+import { CategorySummary, fetchCategories } from "@/lib/categories";
 
 export default function AllCoursesPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -19,6 +21,8 @@ export default function AllCoursesPage() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
+    const [categoryList, setCategoryList] = useState<CategorySummary[]>([]);
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         let cancelled = false;
@@ -41,15 +45,45 @@ export default function AllCoursesPage() {
         };
     }, []);
 
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadCategories = async () => {
+            try {
+                const list = await fetchCategories();
+                if (!cancelled) {
+                    setCategoryList(list);
+                }
+            } catch {
+                // Keep derived filters if category fetch fails.
+            }
+        };
+
+        loadCategories();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        const category = searchParams.get("category");
+        if (!category) return;
+        setSelectedCategories([category]);
+    }, [searchParams]);
+
     const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
     const allCourses = useMemo(
         () => mergeStaticAndDynamicCourses(displayCourses, dynamicCourses),
         [displayCourses, dynamicCourses]
     );
 
-    const categories = useMemo(
-        () => Array.from(new Set(allCourses.map((course) => course.category))).sort(),
-        [allCourses]
+    const categoryOptions = useMemo(
+        () => Array.from(new Set([
+            ...categoryList.map((category) => category.displayName),
+            ...allCourses.map((course) => course.category),
+        ])).sort(),
+        [allCourses, categoryList]
     );
     const instructors = useMemo(
         () => Array.from(new Set(allCourses.map((course) => course.mainInstructor.name))).sort(),
@@ -130,7 +164,7 @@ export default function AllCoursesPage() {
                         <div className={styles.filterGroup}>
                             <h4>Categories</h4>
                             <div className={styles.checkboxList}>
-                                {categories.map((cat) => (
+                                {categoryOptions.map((cat) => (
                                     <label key={cat} className={styles.checkboxItem}>
                                         <input
                                             type="checkbox"
