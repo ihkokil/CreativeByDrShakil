@@ -69,6 +69,9 @@ export async function GET(request: NextRequest) {
       sessionId: payload.sessionId,
     });
   } catch {
-    return NextResponse.json({ user: null, role: null }, { status: 200 });
+    return NextResponse.json(
+      { error: 'Failed to validate session.' },
+      { status: 500 }
+    );
   }
 }
