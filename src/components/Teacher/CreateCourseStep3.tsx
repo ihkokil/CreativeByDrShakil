@@ -134,12 +134,12 @@ function CreateCourseStep3Content() {
 
       <div className={styles.reviewContent}>
         {/* Basic Info */}
-        <div className={styles.section}>
+        <div className={styles.reviewSection}>
           <h2 className={styles.sectionTitle}>Course Information</h2>
 
-          <div className={styles.courseCard}>
+          <div className={styles.overviewCard}>
             {course.imageUrl && (
-              <div className={styles.imageContainer}>
+              <div className={styles.previewImage}>
                 <Image
                   src={course.imageUrl}
                   alt={course.title}
@@ -150,14 +150,14 @@ function CreateCourseStep3Content() {
               </div>
             )}
 
-            <div className={styles.courseInfo}>
+            <div className={styles.overviewInfo}>
               <h3 className={styles.courseTitle}>{course.title}</h3>
               <p className={styles.courseCategory}>{course.category?.displayName || "General"}</p>
 
-              <div className={styles.courseDetails}>
-                <div className={styles.detail}>
-                  <span className={styles.detailLabel}>Price:</span>
-                  <span className={styles.detailValue}>
+              <div className={styles.courseMeta}>
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Price:</span>
+                  <span className={styles.metaValue}>
                     ৳{course.price}
                     {course.salePrice && (
                       <span className={styles.salePrice}>
@@ -167,14 +167,14 @@ function CreateCourseStep3Content() {
                     )}
                   </span>
                 </div>
-                <div className={styles.detail}>
-                  <span className={styles.detailLabel}>Duration:</span>
-                  <span className={styles.detailValue}>{course.duration}</span>
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Duration:</span>
+                  <span className={styles.metaValue}>{course.duration}</span>
                 </div>
                 {course.courseStartDate && (
-                  <div className={styles.detail}>
-                    <span className={styles.detailLabel}>Start Date:</span>
-                    <span className={styles.detailValue}>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Start Date:</span>
+                    <span className={styles.metaValue}>
                       {new Date(course.courseStartDate).toLocaleDateString()}
                     </span>
                   </div>
@@ -185,15 +185,15 @@ function CreateCourseStep3Content() {
         </div>
 
         {/* Overview */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Course Overview</h2>
-          <div className={styles.reviewText}>{course.overview}</div>
+        <div className={styles.contentCard}>
+          <h2 className={styles.contentTitle}>Course Overview</h2>
+          <div className={styles.contentBody}>{course.overview}</div>
         </div>
 
         {/* Learning Outcomes */}
         {course.learningOutcomes && (
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>Learning Outcomes</h2>
+          <div className={styles.contentCard}>
+            <h2 className={styles.contentTitle}>Learning Outcomes</h2>
             <ul className={styles.outcomesList}>
               {course.learningOutcomes.split("\n").map((outcome, index) => (
                 <li key={index}>{outcome.trim()}</li>
@@ -203,9 +203,9 @@ function CreateCourseStep3Content() {
         )}
 
         {/* Instructors */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Instructors</h2>
-          <div className={styles.instructorsList}>
+        <div className={styles.contentCard}>
+          <h2 className={styles.contentTitle}>Instructors</h2>
+          <div className={styles.instructorsGrid}>
             {course.instructors.map((instructor, index) => (
               <div key={index} className={styles.instructorCard}>
                 <div className={styles.instructorIndex}>{index + 1}</div>
