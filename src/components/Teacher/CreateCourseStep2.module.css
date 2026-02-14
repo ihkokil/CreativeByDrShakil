@@ -229,7 +229,7 @@
   background: color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
-.formActions {
+.actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -290,7 +290,7 @@
     flex-direction: column;
   }
 
-  .formActions {
+  .actions {
     flex-direction: column-reverse;
   }
 
