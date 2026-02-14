@@ -293,10 +293,32 @@
 .actions {
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
   margin-top: 32px;
   padding-top: 24px;
   border-top: 1px solid var(--glass-border);
 }
+
+.cancelBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  color: var(--foreground);
+}
+
 
 .submitBtn {
   display: flex;
@@ -353,6 +375,7 @@
   }
 
   .backBtn,
+  .cancelBtn,
   .nextBtn, .submitBtn {
     width: 100%;
     justify-content: center;

@@ -70,24 +70,7 @@ function TeacherDashboardContent() {
     };
 
     return (
-        <DashboardShell
-            title="Teacher Dashboard"
-            subtitle="Manage your courses, students, and content library in one app shell."
-            roleLabel="Teacher"
-            userName={teacherName}
-            userEmail={user.email}
-            userAvatarUrl={user.user_metadata?.profile_image || null}
-            items={navItems}
-            activeKey={activeTab}
-            onSelect={(key) => {
-                if (key === "user") {
-                    router.push("/teacher/dashboard/user");
-                    return;
-                }
-                setActiveTab(key as "overview" | "courses" | "students" | "assignments" | "library");
-            }}
-            onLogout={handleLogout}
-        >
+        <div className={styles.pageContent}>
             {activeTab === "overview" && (
                 <div className={styles.stack}>
                     <section className={styles.metricsGrid}>
@@ -156,7 +139,7 @@ function TeacherDashboardContent() {
                     <VideoLibraryManager />
                 </section>
             )}
-        </DashboardShell>
+        </div>
     );
 }
 
