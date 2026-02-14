@@ -259,6 +259,82 @@
   cursor: not-allowed;
 }
 
+.priceRow, .durationRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dateInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--background);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--text-muted);
+}
+
+.dateInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 10px 0;
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.dateInput:focus {
+  outline: none;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.submitBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.submitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+}
+
+
 @media (max-width: 768px) {
   .container {
     padding: 20px 16px;
@@ -268,16 +344,16 @@
     font-size: 1.5rem;
   }
 
-  .formRow {
+  .formRow, .priceRow, .durationRow {
     grid-template-columns: 1fr;
   }
 
-  .formActions {
+  .formActions, .actions {
     flex-direction: column-reverse;
   }
 
   .backBtn,
-  .nextBtn {
+  .nextBtn, .submitBtn {
     width: 100%;
     justify-content: center;
   }
