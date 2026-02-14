@@ -225,6 +225,15 @@ function CreateCourseStep3Content() {
         <div className={styles.actions}>
           <button
             type="button"
+            onClick={() => router.push("/teacher/dashboard")}
+            className={styles.cancelBtn}
+            disabled={publishing || hasErrors}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
             onClick={() =>
               router.push(`/teacher/dashboard/courses/create/content?courseId=${courseId}`)
             }
