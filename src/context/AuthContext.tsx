@@ -49,6 +49,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [role, setRole] = useState<string | null>(null);
     const [hasSessionTerminated, setHasSessionTerminated] = useState(false);
 
+    const sameUser = (a: AppUser | null, b: AppUser | null) => {
+        if (!a && !b) return true;
+        if (!a || !b) return false;
+
+        return (
+            a.id === b.id &&
+            a.email === b.email &&
+            a.phone === b.phone &&
+            a.role === b.role &&
+            a.user_metadata?.full_name === b.user_metadata?.full_name &&
+            a.user_metadata?.phone === b.user_metadata?.phone &&
+            a.user_metadata?.bmdc_number === b.user_metadata?.bmdc_number &&
+            a.user_metadata?.profile_image === b.user_metadata?.profile_image
+        );
+    };
+
     const refreshSession = async (silent = false) => {
         if (!silent) {
             setLoading(true);
@@ -82,15 +98,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             const data = await response.json();
 
-            setUser(data.user || null);
-            setRole(data.role || null);
-            setSessionId(data.sessionId || null);
+            const nextUser: AppUser | null = data.user || null;
+            const nextRole: string | null = data.role || null;
+            const nextSessionId: string | null = data.sessionId || null;
+            const nextToken: string | null = data.token || null;
 
-            if (data.token) {
-                localStorage.setItem('auth_token', data.token);
-                setSession({ access_token: data.token });
+            setUser((current) => (sameUser(current, nextUser) ? current : nextUser));
+            setRole((current) => (current === nextRole ? current : nextRole));
+            setSessionId((current) => (current === nextSessionId ? current : nextSessionId));
+
+            if (nextToken) {
+                if (localStorage.getItem('auth_token') !== nextToken) {
+                    localStorage.setItem('auth_token', nextToken);
+                }
+                setSession((current) =>
+                    current?.access_token === nextToken ? current : { access_token: nextToken }
+                );
             } else {
-                setSession(null);
+                setSession((current) => (current ? null : current));
             }
         } catch {
             // Keep current auth state on transient client-side fetch failures.
@@ -114,7 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [user, sessionId]);
+    }, [sessionId]);
 
     const signOut = async () => {
         const currentSessionId = sessionId;
