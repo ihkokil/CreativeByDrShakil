@@ -402,6 +402,7 @@
 }
 
 .backBtn,
+.cancelBtn,
 .publishBtn {
   display: flex;
   align-items: center;
@@ -413,6 +414,16 @@
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.cancelBtn {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.cancelBtn:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  color: var(--foreground);
 }
 
 .backBtn {
@@ -476,6 +487,7 @@
   }
 
   .backBtn,
+  .cancelBtn,
   .publishBtn {
     width: 100%;
     justify-content: center;
