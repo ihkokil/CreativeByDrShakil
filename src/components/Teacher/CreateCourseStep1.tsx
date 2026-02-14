@@ -105,9 +105,6 @@ function CreateCourseStep1Content() {
         imageUrl = uploadData.url;
       }
 
-      // Create or update course
-      const method = courseId ? "PUT" : "POST";
-      const endpoint = courseId ? `/api/teacher/courses/${courseId}` : "/api/teacher/courses";
       const url = `/api/teacher/courses${courseId ? `/${courseId}` : ""}`;
 
       const response = await fetch(url, {

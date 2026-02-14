@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import styles from "../Study.module.css";
 import {
     ChevronRight,
-    PlayCircle,
     FileText,
     Video,
     ArrowLeft,
