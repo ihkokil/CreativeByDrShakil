@@ -317,6 +317,14 @@ function CreateCourseStep1Content() {
 
         <div className={styles.actions}>
           <button
+            type="button"
+            onClick={() => router.push("/teacher/dashboard")}
+            className={styles.cancelBtn}
+            disabled={submitting || loading}
+          >
+            Cancel
+          </button>
+          <button
             type="submit"
             className={styles.submitBtn}
             disabled={submitting || loading}
