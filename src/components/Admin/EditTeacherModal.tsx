@@ -88,7 +88,7 @@ export default function EditTeacherModal({ isOpen, onClose, onSuccess, teacher }
                     onClose();
                 }, 1500);
             }
-        } catch (err: any) {
+        } catch {
             setMessage({ type: 'error', text: 'Network error. Please try again.' });
         }
 

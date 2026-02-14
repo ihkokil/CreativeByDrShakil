@@ -157,7 +157,7 @@ function AdminDashboardContent() {
             } else {
                 setToast({ type: "error", text: data.error || "Failed to send reset email." });
             }
-        } catch(e) {
+        } catch {
             setToast({ type: "error", text: "Network error while sending reset email." });
         } finally {
             setIsSendingReset(false);

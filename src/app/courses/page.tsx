@@ -8,13 +8,15 @@ import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
 import { COURSES, Course } from "@/constants/courses";
 import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 
 function AllCoursesContent() {
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const searchParams = useSearchParams();
+    const initialCategory = searchParams.get("category");
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(() => (initialCategory ? [initialCategory] : []));
     const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
     const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -22,8 +24,6 @@ function AllCoursesContent() {
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
     const [categoryList, setCategoryList] = useState<CategorySummary[]>([]);
-    const searchParams = useSearchParams();
-
     useEffect(() => {
         let cancelled = false;
 
@@ -65,12 +65,6 @@ function AllCoursesContent() {
             cancelled = true;
         };
     }, []);
-
-    useEffect(() => {
-        const category = searchParams.get("category");
-        if (!category) return;
-        setSelectedCategories([category]);
-    }, [searchParams]);
 
     const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
     const allCourses = useMemo(
