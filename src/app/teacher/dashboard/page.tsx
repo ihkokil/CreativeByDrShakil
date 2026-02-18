@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, Suspense } from "react";
 import DashboardShell from "@/components/DashboardShell/DashboardShell";
+import CoursesTab from "@/components/Teacher/CoursesTab";
 import styles from "./TeacherDashboard.module.css";
 import {
     LayoutDashboard,
@@ -126,23 +127,7 @@ function TeacherDashboardContent() {
             )}
 
             {activeTab === "courses" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Course Management</h2>
-                    <div className={styles.actionRow}>
-                        <p>Create and schedule courses with hierarchical drip release rules.</p>
-                        <button
-                            className={styles.primaryBtn}
-                            onClick={() => router.push('/teacher/dashboard/courses/create')}
-                        >
-                            Open Course Builder
-                        </button>
-                    </div>
-                    <div className={styles.simpleCards}>
-                        <div className={styles.simpleCard}><strong>8</strong><span>Draft Modules</span></div>
-                        <div className={styles.simpleCard}><strong>24</strong><span>Published Lessons</span></div>
-                        <div className={styles.simpleCard}><strong>3</strong><span>Requires Review</span></div>
-                    </div>
-                </section>
+                <CoursesTab />
             )}
 
             {activeTab === "students" && (

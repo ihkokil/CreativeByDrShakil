@@ -41,10 +41,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { courseId } = await params;
-    const course = await getCourseForPayload(courseId, payload.sub, payload.role);
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        category: true,
+        instructors: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
+    // Check authorization
+    if (payload.role !== 'admin' && course.teacherId !== payload.sub) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
     const curriculum = parseCurriculumJson(course.curriculumJson);
