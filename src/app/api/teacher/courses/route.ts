@@ -35,22 +35,9 @@ export async function GET(request: NextRequest) {
     const courses = await prisma.course.findMany({
       where,
       orderBy: { updatedAt: 'desc' },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
+      include: {
         category: true,
-        description: true,
-        price: true,
-        duration: true,
-        status: true,
-        releaseMode: true,
-        releaseStartAt: true,
-        releaseIntervalDays: true,
-        releaseGroupsPerWeek: true,
-        timezone: true,
-        publishedAt: true,
-        updatedAt: true,
+        instructors: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -69,20 +56,37 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const title = typeof body.title === 'string' ? body.title.trim() : '';
-    const description = typeof body.description === 'string' ? body.description.trim() : '';
-    const category = typeof body.category === 'string' ? body.category.trim() : null;
+    const categoryId = typeof body.categoryId === 'string' ? body.categoryId.trim() : null;
     const duration = typeof body.duration === 'string' ? body.duration.trim() : '';
-    const language = typeof body.language === 'string' ? body.language.trim() : null;
-    const level = typeof body.level === 'string' ? body.level.trim() : null;
     const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl.trim() : null;
+    const courseStartDate = typeof body.courseStartDate === 'string' ? new Date(body.courseStartDate) : null;
 
     if (!title) {
       return NextResponse.json({ error: 'Course title is required.' }, { status: 400 });
     }
 
+    if (!categoryId) {
+      return NextResponse.json({ error: 'Category is required.' }, { status: 400 });
+    }
+
     const numericPrice = Number(body.price);
+    const numericSalePrice = body.salePrice ? Number(body.salePrice) : null;
+
     if (Number.isNaN(numericPrice) || numericPrice < 0) {
       return NextResponse.json({ error: 'Price must be a valid positive number.' }, { status: 400 });
+    }
+
+    if (numericSalePrice !== null && (Number.isNaN(numericSalePrice) || numericSalePrice < 0)) {
+      return NextResponse.json({ error: 'Sale price must be a valid positive number.' }, { status: 400 });
+    }
+
+    // Verify category exists
+    const category = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!category) {
+      return NextResponse.json({ error: 'Category not found.' }, { status: 404 });
     }
 
     const teacher = await prisma.user.findUnique({
@@ -100,33 +104,23 @@ export async function POST(request: NextRequest) {
       data: {
         slug,
         title,
-        description: description || 'Course description will be added soon.',
-        category,
+        description: 'Course description will be added soon.',
+        categoryId,
         price: numericPrice,
+        salePrice: numericSalePrice,
         instructor: teacher.fullName,
-        language,
-        level,
         imageUrl,
         duration: duration || 'Self paced',
+        courseStartDate: courseStartDate && !Number.isNaN(courseStartDate.getTime()) ? courseStartDate : null,
         teacherId: payload.sub,
         status: 'draft',
         timezone: 'Asia/Dhaka',
         curriculumJson: [] as Prisma.InputJsonValue,
         releaseGroupDates: {} as Prisma.InputJsonValue,
       },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
+      include: {
         category: true,
-        description: true,
-        price: true,
-        duration: true,
-        language: true,
-        level: true,
-        imageUrl: true,
-        status: true,
-        timezone: true,
+        instructors: { orderBy: { sortOrder: 'asc' } },
       },
     });
 

@@ -79,7 +79,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: course.id,
         slug: course.slug,
         title: course.title,
-        category: course.category || 'General',
+        category: course.categoryId ? course.categoryId : 'General',
         price: formatPrice(course.price),
         priceValue: course.price,
         duration: course.duration,
