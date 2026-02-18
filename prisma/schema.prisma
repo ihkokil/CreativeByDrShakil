@@ -27,6 +27,15 @@ enum CourseReleaseMode {
   explicit_dates
 }
 
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  courses     Course[]
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -57,13 +66,19 @@ model Course {
   slug         String?  @unique
   title        String
   description  String   @db.LongText
-  category     String?
+  overview     String?  @db.LongText
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   price        Float
+  salePrice    Float?
   instructor   String
+  instructors  CourseInstructor[]
   language     String?
   level        String?
   imageUrl     String?  @db.LongText
   duration     String
+  courseStartDate DateTime?
+  learningOutcomes String? @db.LongText
   teacherId    String?
   teacher      User?    @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: SetNull)
   status       CoursePublishStatus @default(draft)
@@ -80,7 +95,21 @@ model Course {
   updatedAt    DateTime @updatedAt
 
   @@index([teacherId])
+  @@index([categoryId])
   @@index([status])
+}
+
+model CourseInstructor {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  name          String
+  designation   String?
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([courseId])
 }
 
 model Order {
