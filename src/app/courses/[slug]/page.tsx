@@ -34,7 +34,6 @@ export default function CourseDetailPage() {
     const [dynamicCurriculum, setDynamicCurriculum] = useState<CurriculumNode[]>([]);
     const [activeDynamicNode, setActiveDynamicNode] = useState<CurriculumNode | null>(null);
     const [loadingCourse, setLoadingCourse] = useState(true);
-    const [notFound, setNotFound] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [expandedModules, setExpandedModules] = useState<number[]>([0]); // First module expanded by default
 
@@ -70,7 +69,6 @@ export default function CourseDetailPage() {
 
             const courseSlug = params.slug as string;
             setLoadingCourse(true);
-            setNotFound(false);
 
             const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
             if (foundStaticCourse) {
@@ -88,7 +86,6 @@ export default function CourseDetailPage() {
                 if (!response.ok) {
                     if (!cancelled) {
                         setCourse(null);
-                        setNotFound(true);
                         setLoadingCourse(false);
                     }
                     return;
@@ -104,7 +101,6 @@ export default function CourseDetailPage() {
             } catch {
                 if (!cancelled) {
                     setCourse(null);
-                    setNotFound(true);
                     setLoadingCourse(false);
                 }
             }
@@ -231,7 +227,7 @@ export default function CourseDetailPage() {
                     {/* What You'll Learn */}
                     {displayCourse.learningObjectives && displayCourse.learningObjectives.length > 0 && (
                         <section className={styles.section}>
-                            <h2 className={styles.sectionTitle}>What You'll Learn</h2>
+                            <h2 className={styles.sectionTitle}>What You&apos;ll Learn</h2>
                             <ul className={styles.objectivesList}>
                                 {displayCourse.learningObjectives.map((obj, idx) => (
                                     <li key={idx} className={styles.objectiveItem}>
