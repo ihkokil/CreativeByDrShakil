@@ -167,3 +167,31 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
+  try {
+    const payload = await requireTeacherPayload(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
+    const { courseId } = await params;
+    const existingCourse = await getCourseForPayload(courseId, payload.sub, payload.role);
+
+    if (!existingCourse) {
+      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
+    if (existingCourse.status === 'published') {
+      return NextResponse.json(
+        { error: 'Published courses cannot be deleted. Archive the course instead.' },
+        { status: 400 }
+      );
+    }
+
+    await prisma.course.delete({ where: { id: existingCourse.id } });
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
+}
