@@ -6,6 +6,7 @@ import {
     CourseReleaseModeValue,
     collectVideoNodes,
 } from "@/lib/teacher-course-builder";
+import { CategorySummary, fetchCategories } from "@/lib/categories";
 import styles from "./TeacherCourseBuilder.module.css";
 import { FolderPlus, Plus, Save, Trash2, UploadCloud, BookOpen, Calendar, Layers, FolderOpen, Video, Loader2 } from "lucide-react";
 
@@ -134,6 +135,7 @@ const NodeRow = ({
 /* ─── Main Builder ─── */
 export default function TeacherCourseBuilder() {
     const [courses, setCourses] = useState<TeacherCourseSummary[]>([]);
+    const [categories, setCategories] = useState<CategorySummary[]>([]);
     const [topics, setTopics] = useState<TopicSummary[]>([]);
     const [selectedCourseId, setSelectedCourseId] = useState<string>("");
     const [curriculum, setCurriculum] = useState<BuilderCurriculumNode[]>([]);
@@ -152,7 +154,7 @@ export default function TeacherCourseBuilder() {
     const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
 
     const [newCourseTitle, setNewCourseTitle] = useState("");
-    const [newCourseCategory, setNewCourseCategory] = useState("FCPS");
+    const [newCourseCategoryId, setNewCourseCategoryId] = useState("");
     const [newCoursePrice, setNewCoursePrice] = useState("0");
     const [newCourseDuration, setNewCourseDuration] = useState("3 Months");
     const [newCourseDescription, setNewCourseDescription] = useState("");
@@ -231,6 +233,11 @@ export default function TeacherCourseBuilder() {
         setTopics(Array.isArray(data.topics) ? data.topics : []);
     };
 
+    const loadCategories = async () => {
+        const list = await fetchCategories();
+        setCategories(list);
+    };
+
     const loadCourseContext = async (courseId: string) => {
         if (!courseId) { setCurriculum([]); setGroups([]); setComputedGroupDates({}); return; }
         const response = await fetch(`/api/teacher/courses/${courseId}/curriculum`, { method: "GET", headers: authHeaders() });
@@ -249,13 +256,19 @@ export default function TeacherCourseBuilder() {
         let cancelled = false;
         const init = async () => {
             setLoading(true);
-            try { await Promise.all([loadCourses(), loadTopics()]); if (!cancelled) setMessage(null); }
+            try { await Promise.all([loadCourses(), loadTopics(), loadCategories()]); if (!cancelled) setMessage(null); }
             catch (error: any) { if (!cancelled) setMessage({ type: "error", text: error.message || "Failed to initialize." }); }
             finally { if (!cancelled) setLoading(false); }
         };
         init();
         return () => { cancelled = true; };
     }, []);
+
+    useEffect(() => {
+        if (!newCourseCategoryId && categories[0]?.id) {
+            setNewCourseCategoryId(categories[0].id);
+        }
+    }, [categories, newCourseCategoryId]);
 
     useEffect(() => {
         let cancelled = false;
@@ -279,7 +292,7 @@ export default function TeacherCourseBuilder() {
         try {
             const response = await fetch("/api/teacher/courses", {
                 method: "POST", headers: authHeaders(),
-                body: JSON.stringify({ title: newCourseTitle, category: newCourseCategory, price: Number(newCoursePrice), duration: newCourseDuration, description: newCourseDescription }),
+                body: JSON.stringify({ title: newCourseTitle, categoryId: newCourseCategoryId, price: Number(newCoursePrice), duration: newCourseDuration, description: newCourseDescription }),
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to create course.");
@@ -428,7 +441,12 @@ export default function TeacherCourseBuilder() {
                         </div>
                         <div className={styles.formGroup}>
                             <label>Category</label>
-                            <input type="text" placeholder="e.g. FCPS, USMLE, PLAB" value={newCourseCategory} onChange={(e) => setNewCourseCategory(e.target.value)} required />
+                            <select value={newCourseCategoryId} onChange={(e) => setNewCourseCategoryId(e.target.value)} required>
+                                <option value="">Select a category</option>
+                                {categories.map((category) => (
+                                    <option key={category.id} value={category.id}>{category.displayName}</option>
+                                ))}
+                            </select>
                         </div>
                         <div className={styles.formGroup}>
                             <label>Price (BDT)</label>
