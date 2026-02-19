@@ -49,8 +49,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [role, setRole] = useState<string | null>(null);
     const [hasSessionTerminated, setHasSessionTerminated] = useState(false);
 
-    const refreshSession = async () => {
-        setLoading(true);
+    const sameUser = (a: AppUser | null, b: AppUser | null) => {
+        if (!a && !b) return true;
+        if (!a || !b) return false;
+
+        return (
+            a.id === b.id &&
+            a.email === b.email &&
+            a.phone === b.phone &&
+            a.role === b.role &&
+            a.user_metadata?.full_name === b.user_metadata?.full_name &&
+            a.user_metadata?.phone === b.user_metadata?.phone &&
+            a.user_metadata?.bmdc_number === b.user_metadata?.bmdc_number &&
+            a.user_metadata?.profile_image === b.user_metadata?.profile_image
+        );
+    };
+
+    const refreshSession = async (silent = false) => {
+        if (!silent) {
+            setLoading(true);
+        }
+
         try {
             const token = localStorage.getItem('auth_token');
             const response = await fetch('/api/auth/session', {
@@ -58,38 +77,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
 
-            const data = await response.json();
+            if (!response.ok) {
+                if (response.status === 401) {
+                    const data = await response.json();
 
-            // Check if session was revoked
-            if (response.status === 401 && data.code === 'session_revoked') {
-                setUser(null);
-                setRole(null);
-                setSession(null);
-                setSessionId(null);
-                setHasSessionTerminated(true);
-                localStorage.removeItem('auth_token');
-                setLoading(false);
+                    if (data?.code === 'session_revoked') {
+                        setUser(null);
+                        setRole(null);
+                        setSession(null);
+                        setSessionId(null);
+                        setHasSessionTerminated(true);
+                        localStorage.removeItem('auth_token');
+                    }
+                    return;
+                }
+
+                // Keep current auth state on transient server/network failures.
                 return;
             }
 
-            setUser(data.user || null);
-            setRole(data.role || null);
-            setSessionId(data.sessionId || null);
+            const data = await response.json();
 
-            if (data.token) {
-                localStorage.setItem('auth_token', data.token);
-                setSession({ access_token: data.token });
+            const nextUser: AppUser | null = data.user || null;
+            const nextRole: string | null = data.role || null;
+            const nextSessionId: string | null = data.sessionId || null;
+            const nextToken: string | null = data.token || null;
+
+            setUser((current) => (sameUser(current, nextUser) ? current : nextUser));
+            setRole((current) => (current === nextRole ? current : nextRole));
+            setSessionId((current) => (current === nextSessionId ? current : nextSessionId));
+
+            if (nextToken) {
+                if (localStorage.getItem('auth_token') !== nextToken) {
+                    localStorage.setItem('auth_token', nextToken);
+                }
+                setSession((current) =>
+                    current?.access_token === nextToken ? current : { access_token: nextToken }
+                );
             } else {
-                setSession(null);
+                setSession((current) => (current ? null : current));
             }
         } catch {
-            setUser(null);
-            setRole(null);
-            setSession(null);
-            setSessionId(null);
-            localStorage.removeItem('auth_token');
+            // Keep current auth state on transient client-side fetch failures.
         } finally {
-            setLoading(false);
+            if (!silent) {
+                setLoading(false);
+            }
         }
     };
 
@@ -102,11 +135,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!user || !sessionId) return;
 
         const interval = setInterval(() => {
-            refreshSession();
+            refreshSession(true);
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [user, sessionId]);
+    }, [sessionId]);
 
     const signOut = async () => {
         const currentSessionId = sessionId;
