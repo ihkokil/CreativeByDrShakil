@@ -89,7 +89,7 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                     onClose();
                 }, 1500);
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Network error. Please try again.' });
         } finally {
             setLoading(false);

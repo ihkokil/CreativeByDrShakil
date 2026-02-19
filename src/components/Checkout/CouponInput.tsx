@@ -30,7 +30,7 @@ export function CouponInput({ onApply, onRemove, appliedCoupon }: CouponInputPro
       } else {
         setError(data.error || 'Invalid coupon')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to validate coupon')
     } finally {
       setLoading(false)

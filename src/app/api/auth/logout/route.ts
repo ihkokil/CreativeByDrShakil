@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       maxAge: 0,
     });
     return response;
-  } catch (error: any) {
+  } catch {
     // Still logout even if there's an error
     const response = NextResponse.json({ success: true });
     response.cookies.set(AUTH_COOKIE_NAME, '', {
