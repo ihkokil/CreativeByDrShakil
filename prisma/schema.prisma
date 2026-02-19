@@ -83,6 +83,7 @@ model Course {
   title        String
   description  String   @db.LongText
   overview     String?  @db.LongText
+  isFeatured   Boolean  @default(false)
   categoryId   String?
   category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   price        Float
