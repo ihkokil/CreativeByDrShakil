@@ -217,6 +217,7 @@ function CreateCourseStep1Content() {
                   width={300}
                   height={200}
                   className={styles.previewImage}
+                  unoptimized
                 />
                 <button
                   type="button"
