@@ -5,14 +5,16 @@ const formatPrice = (price: number) => {
   if (price <= 0) {
     return 'Free';
   }
+
   return `৳${Math.round(price).toLocaleString('en-BD')}`;
 };
 
 export async function GET() {
   try {
-    const courses = await prisma.course.findMany({
+    const course = await prisma.course.findFirst({
       where: {
         status: 'published',
+        isFeatured: true,
         slug: { not: null },
       },
       orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
@@ -25,44 +27,35 @@ export async function GET() {
             profileImage: true,
           },
         },
+        category: true,
       },
     });
 
+    if (!course) {
+      return NextResponse.json({ course: null });
+    }
+
     return NextResponse.json({
-      courses: courses.map((course) => ({
+      course: {
         id: course.id,
         slug: course.slug,
         title: course.title,
-        category: course.categoryId ? course.categoryId : 'General',
+        category: course.category?.displayName || 'General',
         price: formatPrice(course.price),
         priceValue: course.price,
         duration: course.duration,
-        rating: 4.9,
-        isFeatured: course.isFeatured,
-        description: course.description,
-        language: course.language || 'English / Bengali',
-        level: course.level || 'All Levels',
+        courseStartDate: course.courseStartDate,
         image: course.imageUrl,
-        status: course.status,
-        publishedAt: course.publishedAt,
+        isFeatured: course.isFeatured,
         mainInstructor: {
           id: course.teacher?.id || `teacher-${course.id}`,
           name: course.teacher?.fullName || course.instructor,
           role: course.teacher?.designation || 'Course Instructor',
           image: course.teacher?.profileImage || '/placeholder.svg',
         },
-      })),
+      },
     });
   } catch (error: any) {
-    console.error('[Courses Dynamic Error]', {
-      message: error?.message,
-      code: error?.code,
-      meta: error?.meta,
-      stack: error?.stack,
-    });
-    return NextResponse.json(
-      { error: 'Failed to load courses. Please try again.' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
