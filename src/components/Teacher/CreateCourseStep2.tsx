@@ -2,13 +2,37 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import styles from "./CreateCourseStep2.module.css";
 
-interface Instructor {
-  id?: string;
-  name: string;
-  designation?: string;
+interface TeacherOption {
+  id: string;
+  full_name: string;
+  designation?: string | null;
+}
+
+interface TopicOption {
+  id: string;
+  title: string;
+  subTopicCount: number;
+  videoCount: number;
+}
+
+interface LibraryNode {
+  id: string;
+  title: string;
+  type: "folder" | "youtube" | "self-hosted" | "document";
+  url: string | null;
+  duration: string | null;
+  parentId: string | null;
+}
+
+interface SessionUser {
+  id: string;
+  role: string;
+  user_metadata?: {
+    full_name?: string;
+  };
 }
 
 function CreateCourseStep2Content() {
@@ -22,34 +46,88 @@ function CreateCourseStep2Content() {
 
   const [overview, setOverview] = useState("");
   const [learningOutcomes, setLearningOutcomes] = useState("");
-  const [instructors, setInstructors] = useState<Instructor[]>([
-    { name: "", designation: "" },
-  ]);
+  const [teachers, setTeachers] = useState<TeacherOption[]>([]);
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
+  const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
+  const [topicOptions, setTopicOptions] = useState<TopicOption[]>([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [videoOptions, setVideoOptions] = useState<LibraryNode[]>([]);
+  const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("auth_token");
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
+  const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
+    setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
+  };
 
   useEffect(() => {
     if (!courseId) return;
 
-    const fetchCourse = async () => {
+    const initStep = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("auth_token");
+        const headers = getAuthHeaders();
 
-        const response = await fetch(`/api/teacher/courses/${courseId}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const [sessionResponse, teachersResponse, topicsResponse, videoResponse, courseResponse] = await Promise.all([
+          fetch("/api/auth/session", { headers }),
+          fetch("/api/teachers", { headers }),
+          fetch("/api/teacher/starter-catalog", { headers }),
+          fetch("/api/teacher/video-library", { headers }),
+          fetch(`/api/teacher/courses/${courseId}`, { headers }),
+        ]);
 
-        if (!response.ok) throw new Error("Failed to fetch course");
+        if (!courseResponse.ok) throw new Error("Failed to fetch course");
 
-        const data = await response.json();
-        const course = data.course;
+        let loadedTeachers: TeacherOption[] = [];
+        if (teachersResponse.ok) {
+          const teacherData = await teachersResponse.json();
+          loadedTeachers = Array.isArray(teacherData.teachers) ? teacherData.teachers : [];
+          setTeachers(loadedTeachers);
+        }
+
+        if (topicsResponse.ok) {
+          const topicData = await topicsResponse.json();
+          setTopicOptions(Array.isArray(topicData.topics) ? topicData.topics : []);
+        }
+
+        if (videoResponse.ok) {
+          const videoData = await videoResponse.json();
+          const nodes: LibraryNode[] = Array.isArray(videoData.nodes) ? videoData.nodes : [];
+          setVideoOptions(nodes.filter((node) => node.type !== "folder" && Boolean(node.url)));
+        }
+
+        const courseData = await courseResponse.json();
+        const course = courseData.course;
 
         setOverview(course.overview || "");
         setLearningOutcomes(course.learningOutcomes || "");
-        setInstructors(
-          course.instructors && course.instructors.length > 0
-            ? course.instructors
-            : [{ name: "", designation: "" }]
-        );
+
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          const user: SessionUser | null = sessionData.user || null;
+          if (user?.id && user.role === "teacher") {
+            setCurrentTeacherId(user.id);
+          }
+        }
+
+        const selectedIdsFromCourse = Array.isArray(course.instructors)
+          ? course.instructors
+              .map((instructor: { name: string }) => {
+                const match = loadedTeachers.find((teacher: TeacherOption) => teacher.full_name === instructor.name);
+                return match?.id || null;
+              })
+              .filter((id: string | null): id is string => Boolean(id))
+          : [];
+
+        if (selectedIdsFromCourse.length > 0) {
+          setSelectedTeacherIds(selectedIdsFromCourse);
+        }
 
         setError(null);
       } catch (err) {
@@ -59,28 +137,13 @@ function CreateCourseStep2Content() {
       }
     };
 
-    fetchCourse();
+    initStep();
   }, [courseId]);
 
-  const handleInstructorChange = (
-    index: number,
-    field: "name" | "designation",
-    value: string
-  ) => {
-    const updated = [...instructors];
-    updated[index] = { ...updated[index], [field]: value };
-    setInstructors(updated);
-  };
-
-  const handleAddInstructor = () => {
-    setInstructors([...instructors, { name: "", designation: "" }]);
-  };
-
-  const handleRemoveInstructor = (index: number) => {
-    if (instructors.length > 1) {
-      setInstructors(instructors.filter((_, i) => i !== index));
-    }
-  };
+  useEffect(() => {
+    if (!currentTeacherId) return;
+    setSelectedTeacherIds((prev) => (prev.includes(currentTeacherId) ? prev : [currentTeacherId, ...prev]));
+  }, [currentTeacherId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,16 +153,19 @@ function CreateCourseStep2Content() {
       return;
     }
 
-    if (!instructors.some((i) => i.name.trim())) {
+    const selectedInstructors = teachers.filter((teacher) => selectedTeacherIds.includes(teacher.id));
+    if (!selectedInstructors.length) {
       setError("At least one instructor is required");
       return;
     }
 
     setSubmitting(true);
     try {
-      const token = localStorage.getItem("auth_token");
-
-      const validInstructors = instructors.filter((i) => i.name.trim());
+      const headers = getAuthHeaders();
+      const validInstructors = selectedInstructors.map((teacher) => ({
+        name: teacher.full_name,
+        designation: teacher.designation || "",
+      }));
 
       const response = await fetch(`/api/teacher/courses/${courseId}/content`, {
         method: "POST",
@@ -108,15 +174,47 @@ function CreateCourseStep2Content() {
           learningOutcomes,
           instructors: validInstructors,
         }),
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers,
       });
 
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to save content");
+      }
+
+      if (selectedTopicIds.length > 0) {
+        const topicImportResponse = await fetch(`/api/teacher/courses/${courseId}/import-topics`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ mainTopicIds: selectedTopicIds }),
+        });
+
+        if (!topicImportResponse.ok) {
+          const topicError = await topicImportResponse.json();
+          throw new Error(topicError.error || "Failed to import selected modules.");
+        }
+      }
+
+      const selectedVideoNodes = videoOptions.filter((node) => selectedVideoIds.includes(node.id));
+      if (selectedVideoNodes.length > 0) {
+        for (const node of selectedVideoNodes) {
+          const addVideoResponse = await fetch(`/api/teacher/courses/${courseId}/curriculum`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              title: node.title,
+              type: node.type,
+              duration: node.duration,
+              url: node.url,
+              parentId: null,
+            }),
+          });
+
+          if (!addVideoResponse.ok) {
+            const addVideoError = await addVideoResponse.json();
+            throw new Error(addVideoError.error || `Failed to add video: ${node.title}`);
+          }
+        }
       }
 
       // Redirect to step 3
@@ -190,66 +288,79 @@ function CreateCourseStep2Content() {
         <div className={styles.formSection}>
           <h2 className={styles.sectionTitle}>Instructors</h2>
           <p className={styles.sectionDesc}>
-            Add one or more instructors for this course
+            The course creator is selected by default. You can add additional instructors from existing teachers.
           </p>
 
-          <div className={styles.instructorsList}>
-            {instructors.map((instructor, index) => (
-              <div key={index} className={styles.instructorCard}>
-                <div className={styles.instructorNumber}>#{index + 1}</div>
-
-                <div className={styles.instructorForm}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>
-                      Name <span className={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={instructor.name}
-                      onChange={(e) =>
-                        handleInstructorChange(index, "name", e.target.value)
-                      }
-                      placeholder="Instructor name"
-                      className={styles.input}
-                      required
-                    />
+          <div className={styles.selectionGrid}>
+            {teachers.map((teacher) => {
+              const checked = selectedTeacherIds.includes(teacher.id);
+              const isDefaultTeacher = currentTeacherId === teacher.id;
+              return (
+                <label key={teacher.id} className={styles.selectionCard}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => {
+                      if (isDefaultTeacher) return;
+                      toggleSelection(teacher.id, setSelectedTeacherIds);
+                    }}
+                    disabled={isDefaultTeacher}
+                  />
+                  <div>
+                    <strong>{teacher.full_name}</strong>
+                    <p>{teacher.designation || "Teacher"}</p>
+                    {isDefaultTeacher && <small>Default course teacher</small>}
                   </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
 
-                  <div className={styles.formGroup}>
-                    <label className={styles.label}>Designation</label>
-                    <input
-                      type="text"
-                      value={instructor.designation || ""}
-                      onChange={(e) =>
-                        handleInstructorChange(index, "designation", e.target.value)
-                      }
-                      placeholder="E.g., Dr., Professor, Consultant"
-                      className={styles.input}
-                    />
-                  </div>
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Module Options</h2>
+          <p className={styles.sectionDesc}>
+            Select starter modules to import into this course curriculum.
+          </p>
+
+          <div className={styles.selectionGrid}>
+            {topicOptions.map((topic) => (
+              <label key={topic.id} className={styles.selectionCard}>
+                <input
+                  type="checkbox"
+                  checked={selectedTopicIds.includes(topic.id)}
+                  onChange={() => toggleSelection(topic.id, setSelectedTopicIds)}
+                />
+                <div>
+                  <strong>{topic.title}</strong>
+                  <p>{topic.subTopicCount} sub-topics · {topic.videoCount} videos</p>
                 </div>
-
-                {instructors.length > 1 && (
-                  <button
-                    type="button"
-                    className={styles.removeBtn}
-                    onClick={() => handleRemoveInstructor(index)}
-                    title="Remove instructor"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
+              </label>
             ))}
           </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={handleAddInstructor}
-            className={styles.addInstructorBtn}
-          >
-            <Plus size={20} /> Add Another Instructor
-          </button>
+        <div className={styles.formSection}>
+          <h2 className={styles.sectionTitle}>Video Library Options</h2>
+          <p className={styles.sectionDesc}>
+            Pick videos/documents from your existing library to append to this course.
+          </p>
+
+          <div className={styles.selectionGrid}>
+            {videoOptions.map((node) => (
+              <label key={node.id} className={styles.selectionCard}>
+                <input
+                  type="checkbox"
+                  checked={selectedVideoIds.includes(node.id)}
+                  onChange={() => toggleSelection(node.id, setSelectedVideoIds)}
+                />
+                <div>
+                  <strong>{node.title}</strong>
+                  <p>{node.type}{node.duration ? ` · ${node.duration}` : ""}</p>
+                </div>
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className={styles.actions}>
