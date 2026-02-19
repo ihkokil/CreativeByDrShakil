@@ -15,6 +15,7 @@ interface CourseData {
   salePrice?: number;
   duration: string;
   courseStartDate?: string;
+  isFeatured?: boolean;
   overview: string;
   learningOutcomes: string;
   instructors: Array<{ name: string; designation?: string }>;
@@ -153,6 +154,9 @@ function CreateCourseStep3Content() {
             <div className={styles.overviewInfo}>
               <h3 className={styles.courseTitle}>{course.title}</h3>
               <p className={styles.courseCategory}>{course.category?.displayName || "General"}</p>
+              {course.isFeatured && (
+                <p className={styles.courseCategory}>Featured course</p>
+              )}
 
               <div className={styles.courseMeta}>
                 <div className={styles.metaItem}>

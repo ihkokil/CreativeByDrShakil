@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     const duration = typeof body.duration === 'string' ? body.duration.trim() : '';
     const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl.trim() : null;
     const courseStartDate = typeof body.courseStartDate === 'string' ? new Date(body.courseStartDate) : null;
+    const isFeatured = body.isFeatured === true;
 
     if (!title) {
       return NextResponse.json({ error: 'Course title is required.' }, { status: 400 });
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         imageUrl,
         duration: duration || 'Self paced',
         courseStartDate: courseStartDate && !Number.isNaN(courseStartDate.getTime()) ? courseStartDate : null,
+        isFeatured,
         teacherId: payload.sub,
         status: 'draft',
         timezone: 'Asia/Dhaka',

@@ -5,6 +5,14 @@ import styles from "./Upcoming.module.css";
 import { Calendar, UserCheck } from "lucide-react";
 import { COURSES } from "@/constants/courses";
 
+type FeaturedCourse = {
+    title: string;
+    category: string;
+    duration: string;
+    price: string;
+    courseStartDate?: string | null;
+};
+
 export default function Upcoming() {
     const [timeLeft, setTimeLeft] = useState({
         days: 12,
@@ -12,6 +20,29 @@ export default function Upcoming() {
         minutes: 45,
         seconds: 30,
     });
+    const [featuredCourse, setFeaturedCourse] = useState<FeaturedCourse | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadFeaturedCourse = async () => {
+            try {
+                const response = await fetch("/api/courses/featured");
+                const data = await response.json();
+                if (!cancelled && response.ok) {
+                    setFeaturedCourse(data.course || null);
+                }
+            } catch {
+                // Keep the static fallback course if the featured lookup fails.
+            }
+        };
+
+        loadFeaturedCourse();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -24,6 +55,22 @@ export default function Upcoming() {
         }, 1000);
         return () => clearInterval(timer);
     }, []);
+
+    const course = featuredCourse || {
+        title: COURSES[0].title,
+        category: COURSES[0].category,
+        duration: COURSES[0].duration,
+        price: COURSES[0].price,
+        courseStartDate: null,
+    };
+
+    const commencesLabel = course.courseStartDate
+        ? `Commencing: ${new Date(course.courseStartDate).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+        })}`
+        : "Commencing soon";
 
     return (
         <section className="section-padding alt-bg">
@@ -59,18 +106,18 @@ export default function Upcoming() {
 
                     <div className={styles.content}>
                         <div className={styles.info}>
-                            <span className={styles.category}>{COURSES[0].category}</span>
-                            <h3>{COURSES[0].title}</h3>
-                            <p>A comprehensive {COURSES[0].duration} program covering high-yield material designed specifically for postgraduate success.</p>
+                            <span className={styles.category}>{course.category}</span>
+                            <h3>{course.title}</h3>
+                            <p>A comprehensive {course.duration} program covering high-yield material designed specifically for postgraduate success.</p>
 
                             <div className={styles.meta}>
                                 <div className={styles.metaItem}>
                                     <Calendar size={18} />
-                                    <span>Commencing: April 15, 2026</span>
+                                    <span>{commencesLabel}</span>
                                 </div>
                                 <div className={styles.metaItem}>
                                     <UserCheck size={18} />
-                                    <span>Only 8 Seats Left</span>
+                                    <span>{course.price === "Free" ? "Free enrollment available" : `Featured course: ${course.price}`}</span>
                                 </div>
                             </div>
                         </div>

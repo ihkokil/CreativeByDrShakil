@@ -23,6 +23,7 @@ function CreateCourseStep1Content() {
   const [salePrice, setSalePrice] = useState<number | null>(null);
   const [duration, setDuration] = useState("");
   const [courseStartDate, setCourseStartDate] = useState("");
+  const [isFeatured, setIsFeatured] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
 
@@ -49,6 +50,7 @@ function CreateCourseStep1Content() {
             setSalePrice(course.salePrice || null);
             setDuration(course.duration || "");
             setCourseStartDate(course.courseStartDate ? course.courseStartDate.split("T")[0] : "");
+            setIsFeatured(Boolean(course.isFeatured));
             setImagePreview(course.imageUrl || "");
           }
         }
@@ -108,7 +110,7 @@ function CreateCourseStep1Content() {
       const url = `/api/teacher/courses${courseId ? `/${courseId}` : ""}`;
 
       const response = await fetch(url, {
-        method: "POST",
+        method: courseId ? "PATCH" : "POST",
         body: JSON.stringify({
           title: title.trim(),
           categoryId,
@@ -117,6 +119,7 @@ function CreateCourseStep1Content() {
           duration: duration.trim(),
           courseStartDate: courseStartDate ? new Date(courseStartDate).toISOString() : null,
           imageUrl,
+          isFeatured,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -308,6 +311,18 @@ function CreateCourseStep1Content() {
                   className={styles.dateInput}
                 />
               </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Homepage Feature</label>
+              <label style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                />
+                <span>Show this course in the homepage upcoming featured course section</span>
+              </label>
             </div>
           </div>
         </div>
