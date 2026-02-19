@@ -13,7 +13,7 @@ import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/li
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 
-export default function AllCoursesPage() {
+function AllCoursesContent() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
     const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
@@ -273,5 +273,13 @@ export default function AllCoursesPage() {
 
             <Footer />
         </main>
+    );
+}
+
+export default function AllCoursesPage() {
+    return (
+        <Suspense fallback={null}>
+            <AllCoursesContent />
+        </Suspense>
     );
 }
