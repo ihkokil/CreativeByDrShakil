@@ -11,22 +11,6 @@ interface TeacherOption {
   designation?: string | null;
 }
 
-interface TopicOption {
-  id: string;
-  title: string;
-  subTopicCount: number;
-  videoCount: number;
-}
-
-interface LibraryNode {
-  id: string;
-  title: string;
-  type: "folder" | "youtube" | "self-hosted" | "document";
-  url: string | null;
-  duration: string | null;
-  parentId: string | null;
-}
-
 interface SessionUser {
   id: string;
   role: string;
@@ -49,10 +33,6 @@ function CreateCourseStep2Content() {
   const [teachers, setTeachers] = useState<TeacherOption[]>([]);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
   const [currentTeacherId, setCurrentTeacherId] = useState<string | null>(null);
-  const [topicOptions, setTopicOptions] = useState<TopicOption[]>([]);
-  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
-  const [videoOptions, setVideoOptions] = useState<LibraryNode[]>([]);
-  const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("auth_token");
@@ -74,11 +54,9 @@ function CreateCourseStep2Content() {
         setLoading(true);
         const headers = getAuthHeaders();
 
-        const [sessionResponse, teachersResponse, topicsResponse, videoResponse, courseResponse] = await Promise.all([
+        const [sessionResponse, teachersResponse, courseResponse] = await Promise.all([
           fetch("/api/auth/session", { headers }),
           fetch("/api/teachers", { headers }),
-          fetch("/api/teacher/starter-catalog", { headers }),
-          fetch("/api/teacher/video-library", { headers }),
           fetch(`/api/teacher/courses/${courseId}`, { headers }),
         ]);
 
@@ -89,17 +67,6 @@ function CreateCourseStep2Content() {
           const teacherData = await teachersResponse.json();
           loadedTeachers = Array.isArray(teacherData.teachers) ? teacherData.teachers : [];
           setTeachers(loadedTeachers);
-        }
-
-        if (topicsResponse.ok) {
-          const topicData = await topicsResponse.json();
-          setTopicOptions(Array.isArray(topicData.topics) ? topicData.topics : []);
-        }
-
-        if (videoResponse.ok) {
-          const videoData = await videoResponse.json();
-          const nodes: LibraryNode[] = Array.isArray(videoData.nodes) ? videoData.nodes : [];
-          setVideoOptions(nodes.filter((node) => node.type !== "folder" && Boolean(node.url)));
         }
 
         const courseData = await courseResponse.json();
@@ -182,41 +149,6 @@ function CreateCourseStep2Content() {
         throw new Error(error.error || "Failed to save content");
       }
 
-      if (selectedTopicIds.length > 0) {
-        const topicImportResponse = await fetch(`/api/teacher/courses/${courseId}/import-topics`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ mainTopicIds: selectedTopicIds }),
-        });
-
-        if (!topicImportResponse.ok) {
-          const topicError = await topicImportResponse.json();
-          throw new Error(topicError.error || "Failed to import selected modules.");
-        }
-      }
-
-      const selectedVideoNodes = videoOptions.filter((node) => selectedVideoIds.includes(node.id));
-      if (selectedVideoNodes.length > 0) {
-        for (const node of selectedVideoNodes) {
-          const addVideoResponse = await fetch(`/api/teacher/courses/${courseId}/curriculum`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              title: node.title,
-              type: node.type,
-              duration: node.duration,
-              url: node.url,
-              parentId: null,
-            }),
-          });
-
-          if (!addVideoResponse.ok) {
-            const addVideoError = await addVideoResponse.json();
-            throw new Error(addVideoError.error || `Failed to add video: ${node.title}`);
-          }
-        }
-      }
-
       // Redirect to step 3
       router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}`);
     } catch (err) {
@@ -235,13 +167,13 @@ function CreateCourseStep2Content() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Course Content</h1>
-          <p className={styles.subtitle}>Step 2 of 3: Overview & Instructors</p>
+          <p className={styles.subtitle}>Step 2 of 4: Overview & Instructors</p>
         </div>
         <div className={styles.progress}>
           <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: "66%" }} />
+            <div className={styles.progressFill} style={{ width: "50%" }} />
           </div>
-          <span className={styles.progressText}>66%</span>
+          <span className={styles.progressText}>50%</span>
         </div>
       </div>
 
@@ -314,52 +246,6 @@ function CreateCourseStep2Content() {
                 </label>
               );
             })}
-          </div>
-        </div>
-
-        <div className={styles.formSection}>
-          <h2 className={styles.sectionTitle}>Module Options</h2>
-          <p className={styles.sectionDesc}>
-            Select starter modules to import into this course curriculum.
-          </p>
-
-          <div className={styles.selectionGrid}>
-            {topicOptions.map((topic) => (
-              <label key={topic.id} className={styles.selectionCard}>
-                <input
-                  type="checkbox"
-                  checked={selectedTopicIds.includes(topic.id)}
-                  onChange={() => toggleSelection(topic.id, setSelectedTopicIds)}
-                />
-                <div>
-                  <strong>{topic.title}</strong>
-                  <p>{topic.subTopicCount} sub-topics · {topic.videoCount} videos</p>
-                </div>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.formSection}>
-          <h2 className={styles.sectionTitle}>Video Library Options</h2>
-          <p className={styles.sectionDesc}>
-            Pick videos/documents from your existing library to append to this course.
-          </p>
-
-          <div className={styles.selectionGrid}>
-            {videoOptions.map((node) => (
-              <label key={node.id} className={styles.selectionCard}>
-                <input
-                  type="checkbox"
-                  checked={selectedVideoIds.includes(node.id)}
-                  onChange={() => toggleSelection(node.id, setSelectedVideoIds)}
-                />
-                <div>
-                  <strong>{node.title}</strong>
-                  <p>{node.type}{node.duration ? ` · ${node.duration}` : ""}</p>
-                </div>
-              </label>
-            ))}
           </div>
         </div>
 
