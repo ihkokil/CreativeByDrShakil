@@ -153,13 +153,13 @@ function CreateCourseStep1Content() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Create Course</h1>
-          <p className={styles.subtitle}>Step 1 of 3: Basic Information</p>
+          <p className={styles.subtitle}>Step 1 of 4: Basic Information</p>
         </div>
         <div className={styles.progress}>
           <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: "33%" }} />
+            <div className={styles.progressFill} style={{ width: "25%" }} />
           </div>
-          <span className={styles.progressText}>33%</span>
+          <span className={styles.progressText}>25%</span>
         </div>
       </div>
 
