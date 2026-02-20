@@ -121,43 +121,113 @@
   margin: 8px 0 0 0;
 }
 
-.selectionGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.selectionList {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
 .selectionCard {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px;
+  display: grid;
+  grid-template-columns: 56px 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: 16px;
   background: var(--background);
+  position: relative;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectionCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  background: color-mix(in srgb, var(--primary) 4%, var(--background));
+}
+
+.selectionCardActive {
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 10%, transparent) inset;
 }
 
 .selectionCard input {
-  margin-top: 4px;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
 }
 
-.selectionCard strong {
-  display: block;
-  font-size: 0.92rem;
+.selectionCard:focus-within {
+  border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.selectionCheck {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  border: 1px solid var(--glass-border);
+  color: white;
+  flex-shrink: 0;
+}
+
+.selectionCardActive .selectionCheck {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-color: transparent;
+}
+
+.teacherAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   color: var(--foreground);
-}
-
-.selectionCard p {
-  margin: 2px 0 0 0;
-  color: var(--text-muted);
   font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
-.selectionCard small {
+.teacherAvatarImage {
+  object-fit: cover;
+}
+
+.teacherInfo {
+  min-width: 0;
+}
+
+.teacherInfo strong {
+  display: block;
+  font-size: 0.98rem;
+  color: var(--foreground);
+  line-height: 1.25;
+}
+
+.teacherInfo p {
+  margin: 4px 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.teacherInfo small {
   display: inline-block;
-  margin-top: 6px;
-  font-size: 0.78rem;
+  margin-top: 8px;
+  font-size: 0.77rem;
   font-weight: 700;
   color: var(--primary);
 }
@@ -341,6 +411,22 @@
 
   .instructorForm {
     flex-direction: column;
+  }
+
+  .selectionCard {
+    grid-template-columns: 48px 40px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .selectionCheck {
+    width: 48px;
+    height: 48px;
+  }
+
+  .teacherAvatar {
+    width: 40px;
+    height: 40px;
   }
 
   .actions {
