@@ -2,23 +2,23 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle, AlertCircle, Loader } from "lucide-react";
-import Image from "next/image";
+import { ArrowLeft, ArrowRight, Layers, Library } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
 
-interface CourseData {
+interface TopicOption {
   id: string;
   title: string;
-  imageUrl?: string;
-  category: { displayName: string };
-  price: number;
-  salePrice?: number;
-  duration: string;
-  courseStartDate?: string;
-  isFeatured?: boolean;
-  overview: string;
-  learningOutcomes: string;
-  instructors: Array<{ name: string; designation?: string }>;
+  subTopicCount: number;
+  videoCount: number;
+}
+
+interface LibraryNode {
+  id: string;
+  title: string;
+  type: "folder" | "youtube" | "self-hosted" | "document";
+  url: string | null;
+  duration: string | null;
+  parentId: string | null;
 }
 
 function CreateCourseStep3Content() {
@@ -26,28 +26,50 @@ function CreateCourseStep3Content() {
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
 
-  const [course, setCourse] = useState<CourseData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [publishing, setPublishing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasErrors, setHasErrors] = useState(false);
+  const [topicOptions, setTopicOptions] = useState<TopicOption[]>([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [videoOptions, setVideoOptions] = useState<LibraryNode[]>([]);
+  const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([]);
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("auth_token");
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
+  const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
+    setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
+  };
 
   useEffect(() => {
     if (!courseId) return;
 
-    const fetchCourse = async () => {
+    const initStep = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("auth_token");
+        const headers = getAuthHeaders();
 
-        const response = await fetch(`/api/teacher/courses/${courseId}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const [topicsResponse, videoResponse] = await Promise.all([
+          fetch("/api/teacher/starter-catalog", { headers }),
+          fetch("/api/teacher/video-library", { headers }),
+        ]);
 
-        if (!response.ok) throw new Error("Failed to fetch course");
+        if (topicsResponse.ok) {
+          const topicData = await topicsResponse.json();
+          setTopicOptions(Array.isArray(topicData.topics) ? topicData.topics : []);
+        }
 
-        const data = await response.json();
-        setCourse(data.course);
+        if (videoResponse.ok) {
+          const videoData = await videoResponse.json();
+          const nodes: LibraryNode[] = Array.isArray(videoData.nodes) ? videoData.nodes : [];
+          setVideoOptions(nodes.filter((node) => node.type !== "folder" && Boolean(node.url)));
+        }
+
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load course");
@@ -56,172 +78,122 @@ function CreateCourseStep3Content() {
       }
     };
 
-    fetchCourse();
+    initStep();
   }, [courseId]);
 
-  useEffect(() => {
-    if (!course) return;
-
-    // Validation check
-    const errors: string[] = [];
-    if (!course.title) errors.push("title");
-    if (!course.overview) errors.push("overview");
-    if (!course.instructors || course.instructors.length === 0) errors.push("instructors");
-
-    setHasErrors(errors.length > 0);
-  }, [course]);
-
-  const handlePublish = async () => {
+  const handleSaveAndContinue = async () => {
     if (!courseId) return;
 
-    setPublishing(true);
+    setSaving(true);
     try {
-      const token = localStorage.getItem("auth_token");
+      const headers = getAuthHeaders();
 
-      const response = await fetch(`/api/teacher/courses/${courseId}/publish`, {
-        method: "POST",
-        body: JSON.stringify({ status: "published" }),
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
+      if (selectedTopicIds.length > 0) {
+        const topicImportResponse = await fetch(`/api/teacher/courses/${courseId}/import-topics`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ mainTopicIds: selectedTopicIds }),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to publish");
+        if (!topicImportResponse.ok) {
+          const topicError = await topicImportResponse.json();
+          throw new Error(topicError.error || "Failed to import selected modules.");
+        }
       }
 
-      // Redirect to dashboard
-      router.push("/teacher/dashboard?tab=courses&published=true");
+      const selectedVideoNodes = videoOptions.filter((node) => selectedVideoIds.includes(node.id));
+      if (selectedVideoNodes.length > 0) {
+        for (const node of selectedVideoNodes) {
+          const addVideoResponse = await fetch(`/api/teacher/courses/${courseId}/curriculum`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              title: node.title,
+              type: node.type,
+              duration: node.duration,
+              url: node.url,
+              parentId: null,
+            }),
+          });
+
+          if (!addVideoResponse.ok) {
+            const addVideoError = await addVideoResponse.json();
+            throw new Error(addVideoError.error || `Failed to add video: ${node.title}`);
+          }
+        }
+      }
+
+      // Redirect to step 4 (review + publish)
+      router.push(`/teacher/dashboard/courses/create/review?courseId=${courseId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to publish course");
+      setError(err instanceof Error ? err.message : "Failed to save module and media options");
     } finally {
-      setPublishing(false);
+      setSaving(false);
     }
   };
 
   if (loading) {
-    return <div className={styles.loading}>Loading course details...</div>;
-  }
-
-  if (!course) {
-    return <div className={styles.error}>Course not found</div>;
+    return <div className={styles.loading}>Loading options...</div>;
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Review & Publish</h1>
-          <p className={styles.subtitle}>Step 3 of 3: Review all details before publishing</p>
+          <h1 className={styles.title}>Modules & Media</h1>
+          <p className={styles.subtitle}>Step 3 of 4: Select modules and media library items</p>
         </div>
         <div className={styles.progress}>
           <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: "100%" }} />
+            <div className={styles.progressFill} style={{ width: "75%" }} />
           </div>
-          <span className={styles.progressText}>100%</span>
+          <span className={styles.progressText}>75%</span>
         </div>
       </div>
 
       {error && <div className={styles.errorMessage}>{error}</div>}
 
-      {hasErrors && (
-        <div className={styles.validationWarning}>
-          <AlertCircle size={20} />
-          <span>Please complete all required fields before publishing</span>
-        </div>
-      )}
-
       <div className={styles.reviewContent}>
-        {/* Basic Info */}
-        <div className={styles.reviewSection}>
-          <h2 className={styles.sectionTitle}>Course Information</h2>
-
-          <div className={styles.overviewCard}>
-            {course.imageUrl && (
-              <div className={styles.previewImage}>
-                <Image
-                  src={course.imageUrl}
-                  alt={course.title}
-                  width={300}
-                  height={200}
-                  className={styles.courseImage}
+        <div className={styles.contentCard}>
+          <h2 className={styles.contentTitle}>Module Options</h2>
+          <p className={styles.helperText}>Select starter modules to import into this course.</p>
+          <div className={styles.selectionGrid}>
+            {topicOptions.length === 0 && <p className={styles.emptyText}>No starter modules available.</p>}
+            {topicOptions.map((topic) => (
+              <label key={topic.id} className={styles.selectionCard}>
+                <input
+                  type="checkbox"
+                  checked={selectedTopicIds.includes(topic.id)}
+                  onChange={() => toggleSelection(topic.id, setSelectedTopicIds)}
                 />
-              </div>
-            )}
-
-            <div className={styles.overviewInfo}>
-              <h3 className={styles.courseTitle}>{course.title}</h3>
-              <p className={styles.courseCategory}>{course.category?.displayName || "General"}</p>
-              {course.isFeatured && (
-                <p className={styles.courseCategory}>Featured course</p>
-              )}
-
-              <div className={styles.courseMeta}>
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Price:</span>
-                  <span className={styles.metaValue}>
-                    ৳{course.price}
-                    {course.salePrice && (
-                      <span className={styles.salePrice}>
-                        {" "}
-                        (Sale: ৳{course.salePrice})
-                      </span>
-                    )}
-                  </span>
-                </div>
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Duration:</span>
-                  <span className={styles.metaValue}>{course.duration}</span>
-                </div>
-                {course.courseStartDate && (
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Start Date:</span>
-                    <span className={styles.metaValue}>
-                      {new Date(course.courseStartDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Overview */}
-        <div className={styles.contentCard}>
-          <h2 className={styles.contentTitle}>Course Overview</h2>
-          <div className={styles.contentBody}>{course.overview}</div>
-        </div>
-
-        {/* Learning Outcomes */}
-        {course.learningOutcomes && (
-          <div className={styles.contentCard}>
-            <h2 className={styles.contentTitle}>Learning Outcomes</h2>
-            <ul className={styles.outcomesList}>
-              {course.learningOutcomes.split("\n").map((outcome, index) => (
-                <li key={index}>{outcome.trim()}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Instructors */}
-        <div className={styles.contentCard}>
-          <h2 className={styles.contentTitle}>Instructors</h2>
-          <div className={styles.instructorsGrid}>
-            {course.instructors.map((instructor, index) => (
-              <div key={index} className={styles.instructorCard}>
-                <div className={styles.instructorIndex}>{index + 1}</div>
                 <div>
-                  <h4 className={styles.instructorName}>{instructor.name}</h4>
-                  {instructor.designation && (
-                    <p className={styles.instructorDesignation}>
-                      {instructor.designation}
-                    </p>
-                  )}
+                  <strong>{topic.title}</strong>
+                  <p><Layers size={14} /> {topic.subTopicCount} sub-topics · {topic.videoCount} videos</p>
                 </div>
-              </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.contentCard}>
+          <h2 className={styles.contentTitle}>Video Library Options</h2>
+          <p className={styles.helperText}>Pick videos/documents from your existing media library.</p>
+          <div className={styles.selectionGrid}>
+            {videoOptions.length === 0 && (
+              <p className={styles.emptyText}>No video library items available. Add media first from Teacher Dashboard → Library.</p>
+            )}
+            {videoOptions.map((node) => (
+              <label key={node.id} className={styles.selectionCard}>
+                <input
+                  type="checkbox"
+                  checked={selectedVideoIds.includes(node.id)}
+                  onChange={() => toggleSelection(node.id, setSelectedVideoIds)}
+                />
+                <div>
+                  <strong>{node.title}</strong>
+                  <p><Library size={14} /> {node.type}{node.duration ? ` · ${node.duration}` : ""}</p>
+                </div>
+              </label>
             ))}
           </div>
         </div>
@@ -231,7 +203,7 @@ function CreateCourseStep3Content() {
             type="button"
             onClick={() => router.push("/teacher/dashboard")}
             className={styles.cancelBtn}
-            disabled={publishing || hasErrors}
+            disabled={saving}
           >
             Cancel
           </button>
@@ -242,26 +214,18 @@ function CreateCourseStep3Content() {
               router.push(`/teacher/dashboard/courses/create/content?courseId=${courseId}`)
             }
             className={styles.backBtn}
-            disabled={publishing || hasErrors}
+            disabled={saving}
           >
             <ArrowLeft size={20} /> Back
           </button>
 
           <button
             type="button"
-            onClick={handlePublish}
+            onClick={handleSaveAndContinue}
             className={styles.publishBtn}
-            disabled={publishing || hasErrors}
+            disabled={saving}
           >
-            {publishing ? (
-              <>
-                <Loader size={20} className={styles.spinner} /> Publishing...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={20} /> Publish Course
-              </>
-            )}
+            {saving ? "Saving..." : <><ArrowRight size={20} /> Next: Review</>}
           </button>
         </div>
       </div>
