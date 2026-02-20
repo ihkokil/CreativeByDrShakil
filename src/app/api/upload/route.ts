@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
+import { promises as fs } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { getAuthPayload } from '@/lib/route-auth';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,11 +15,11 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file');
 
-    if (!file) {
+    if (!file || !(file instanceof File)) {
       return NextResponse.json(
-        { error: 'No file provided' },
+        { error: 'No file provided or invalid file' },
         { status: 400 }
       );
     }
@@ -40,8 +42,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create upload directory structure
-    const uploadDir = join(process.cwd(), 'public/uploads/courses');
-    await mkdir(uploadDir, { recursive: true });
+    const uploadDir = join(process.cwd(), 'public', 'uploads', 'courses');
+    await fs.mkdir(uploadDir, { recursive: true });
 
     // Generate unique filename
     const ext = file.name.split('.').pop() || 'jpg';
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Convert to buffer and write
     const bytes = await file.arrayBuffer();
-    await writeFile(filepath, Buffer.from(bytes));
+    await fs.writeFile(filepath, Buffer.from(bytes));
 
     // Return the relative path for use in the app
     const relativePath = `/uploads/courses/${filename}`;
