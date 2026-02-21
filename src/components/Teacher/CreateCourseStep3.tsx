@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Calendar, Plus, Folder, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Calendar, Plus, Folder, FileText, Video } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
 
 interface StarterVideo {
@@ -55,6 +55,14 @@ function CreateCourseStep3Content() {
   
   // Manual date overrides for first-level items
   const [dateOverrides, setDateOverrides] = useState<Record<string, string>>({});
+  
+  // Per-video exclusion: keyed by subTopic.id, value is array of excluded video indices
+  const [excludedVideoIndices, setExcludedVideoIndices] = useState<Record<string, number[]>>({});
+  
+  // Inline add-video form: tracks which subTopic currently has the form open
+  const [addVideoSubTopicId, setAddVideoSubTopicId] = useState<string | null>(null);
+  const [inlineVideoTitle, setInlineVideoTitle] = useState("");
+  const [inlineVideoUrl, setInlineVideoUrl] = useState("");
   
   // Custom topic creation
   const [showCreateTopic, setShowCreateTopic] = useState(false);
@@ -118,24 +126,16 @@ function CreateCourseStep3Content() {
       const subTopics = buildSubTopicsRecursively(nodes, folder.id);
       
       // Also include direct child videos (not in any subfolder)
-      const directVideos = collectVideosRecursively(nodes, folder.id)
-        .filter(v => {
-          // Only include videos that are direct children, not nested
-          const directChildren = nodes.filter(n => n.parentId === folder.id && n.type !== "folder");
-          return directChildren.some(dc => dc.title === v.title);
-        });
+      const directChildren = nodes.filter(n => n.parentId === folder.id && n.type !== "folder");
       
-      if (directVideos.length > 0) {
-        if (subTopics.length === 0) {
-          subTopics.push({
-            id: `${folder.id}_root`,
-            title: folder.title,
-            videos: directVideos,
-            forceFolder: true,
-          });
-        } else {
-          subTopics[0].videos.unshift(...directVideos);
-        }
+      if (directChildren.length > 0) {
+        // Each direct child video becomes its own individually-selectable sub-topic
+        const directVideoSubTopics: StarterSubTopic[] = directChildren.map(child => ({
+          id: child.id,
+          title: child.title,
+          videos: [{ title: child.title, url: child.url || "" }],
+        }));
+        subTopics.push(...directVideoSubTopics);
       }
       
       return {
@@ -169,9 +169,55 @@ function CreateCourseStep3Content() {
     const prevSelected = selectedTopicIds.includes(subTopicId);
     if (prevSelected) {
       setSelectedTopicIds(prev => prev.filter(id => id !== subTopicId));
+      // Also clear any per-video exclusions for this sub-topic
+      setExcludedVideoIndices(prev => {
+        const next = { ...prev };
+        delete next[subTopicId];
+        return next;
+      });
     } else {
       setSelectedTopicIds(prev => [...prev, subTopicId]);
     }
+  };
+
+  const toggleVideoExclusion = (subTopicId: string, videoIndex: number) => {
+    setExcludedVideoIndices(prev => {
+      const current = prev[subTopicId] || [];
+      const isExcluded = current.includes(videoIndex);
+      return {
+        ...prev,
+        [subTopicId]: isExcluded
+          ? current.filter(i => i !== videoIndex)
+          : [...current, videoIndex],
+      };
+    });
+  };
+
+  const getIncludedVideoCount = (subTopicId: string, totalVideos: number): number => {
+    const excluded = excludedVideoIndices[subTopicId] || [];
+    return totalVideos - excluded.length;
+  };
+
+  const handleAddVideoToSubTopic = (mainTopicId: string, subTopicId: string) => {
+    if (!inlineVideoTitle.trim() || !inlineVideoUrl.trim()) return;
+    
+    setTopicOptions(prev => prev.map(mt => {
+      if (mt.id !== mainTopicId) return mt;
+      return {
+        ...mt,
+        subTopics: mt.subTopics.map(st => {
+          if (st.id !== subTopicId) return st;
+          return {
+            ...st,
+            videos: [...st.videos, { title: inlineVideoTitle.trim(), url: inlineVideoUrl.trim() }],
+          };
+        }),
+      };
+    }));
+    
+    setInlineVideoTitle("");
+    setInlineVideoUrl("");
+    setAddVideoSubTopicId(null);
   };
 
   const toggleTopicExpanded = (mainTopicId: string) => {
@@ -860,7 +906,7 @@ function CreateCourseStep3Content() {
                               <span style={{ flex: 1 }}>{subTopic.title}</span>
                               {hasVideos && (
                                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                  {subTopic.videos.length} video{subTopic.videos.length !== 1 ? "s" : ""}
+                                  {getIncludedVideoCount(subTopic.id, subTopic.videos.length)}/{subTopic.videos.length} video{subTopic.videos.length !== 1 ? "s" : ""}
                                 </span>
                               )}
                               {isSelected && displayDate && (
@@ -893,32 +939,42 @@ function CreateCourseStep3Content() {
                             {hasVideos && isSubExpanded && (
                               <div style={{ paddingLeft: "36px", paddingRight: "12px", paddingBottom: "10px", paddingTop: "4px", display: "flex", flexDirection: "column", gap: "6px", borderTop: "1px solid var(--glass-border)" }}>
                                 {subTopic.videos.map((video, vidIdx) => {
-                                  const videoPublishDate = isSelected ? getVideoPublishDate(mainTopic.id, subTopic.id, vidIdx) : "";
+                                  const isVideoExcluded = (excludedVideoIndices[subTopic.id] || []).includes(vidIdx);
+                                  const videoPublishDate = (isSelected && !isVideoExcluded) ? getVideoPublishDate(mainTopic.id, subTopic.id, vidIdx) : "";
                                   
                                   return (
                                     <div
                                       key={vidIdx}
                                       style={{
                                         padding: "10px 12px",
-                                        background: "rgba(0, 0, 0, 0.1)",
-                                        border: "1px solid var(--glass-border)",
+                                        background: isVideoExcluded ? "transparent" : "rgba(0, 0, 0, 0.1)",
+                                        border: `1px solid ${isVideoExcluded ? "var(--glass-border)" : "var(--glass-border)"}`,
                                         borderRadius: "6px",
                                         fontSize: "0.85rem",
                                         display: "flex",
                                         alignItems: "flex-start",
                                         gap: "10px",
+                                        opacity: isVideoExcluded ? 0.5 : 1,
+                                        transition: "opacity 0.2s ease",
                                       }}
                                     >
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected && !isVideoExcluded}
+                                        onChange={() => toggleVideoExclusion(subTopic.id, vidIdx)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{ cursor: "pointer", flexShrink: 0, marginTop: "3px" }}
+                                      />
                                       <FileText size={14} style={{ color: "var(--text-muted)", flexShrink: 0, marginTop: "2px" }} />
                                       <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ wordBreak: "break-word", fontWeight: "500", marginBottom: "3px" }}>{video.title}</div>
+                                        <div style={{ wordBreak: "break-word", fontWeight: "500", marginBottom: "3px", textDecoration: isVideoExcluded ? "line-through" : "none" }}>{video.title}</div>
                                         {video.url && (
                                           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
                                             {video.url.length > 50 ? `${video.url.substring(0, 50)}...` : video.url}
                                           </div>
                                         )}
                                       </div>
-                                      {isSelected && videoPublishDate && (
+                                      {isSelected && !isVideoExcluded && videoPublishDate && (
                                         <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
                                           <Calendar size={13} style={{ color: "var(--primary)" }} />
                                           <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--primary)" }}>
@@ -929,6 +985,116 @@ function CreateCourseStep3Content() {
                                     </div>
                                   );
                                 })}
+
+                                {/* Inline Add Video Button & Form */}
+                                {isSelected && (
+                                  <div style={{ marginTop: "4px" }}>
+                                    {addVideoSubTopicId === subTopic.id ? (
+                                      <div style={{
+                                        padding: "10px 12px",
+                                        background: "rgba(var(--primary-rgb), 0.05)",
+                                        border: "1px dashed var(--primary)",
+                                        borderRadius: "6px",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: "8px",
+                                      }}>
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                          <input
+                                            type="text"
+                                            placeholder="Video title"
+                                            value={inlineVideoTitle}
+                                            onChange={(e) => setInlineVideoTitle(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{
+                                              padding: "6px 8px",
+                                              border: "1px solid var(--glass-border)",
+                                              borderRadius: "4px",
+                                              background: "var(--background)",
+                                              color: "var(--foreground)",
+                                              fontSize: "0.8rem",
+                                            }}
+                                          />
+                                          <input
+                                            type="text"
+                                            placeholder="YouTube URL"
+                                            value={inlineVideoUrl}
+                                            onChange={(e) => setInlineVideoUrl(e.target.value)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{
+                                              padding: "6px 8px",
+                                              border: "1px solid var(--glass-border)",
+                                              borderRadius: "4px",
+                                              background: "var(--background)",
+                                              color: "var(--foreground)",
+                                              fontSize: "0.8rem",
+                                            }}
+                                          />
+                                        </div>
+                                        <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); setAddVideoSubTopicId(null); setInlineVideoTitle(""); setInlineVideoUrl(""); }}
+                                            style={{
+                                              padding: "4px 10px",
+                                              background: "var(--glass-border)",
+                                              color: "var(--foreground)",
+                                              border: "none",
+                                              borderRadius: "4px",
+                                              cursor: "pointer",
+                                              fontSize: "0.8rem",
+                                            }}
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); handleAddVideoToSubTopic(mainTopic.id, subTopic.id); }}
+                                            disabled={!inlineVideoTitle.trim() || !inlineVideoUrl.trim()}
+                                            style={{
+                                              padding: "4px 10px",
+                                              background: (inlineVideoTitle.trim() && inlineVideoUrl.trim()) ? "var(--primary)" : "var(--text-muted)",
+                                              color: "white",
+                                              border: "none",
+                                              borderRadius: "4px",
+                                              cursor: (inlineVideoTitle.trim() && inlineVideoUrl.trim()) ? "pointer" : "not-allowed",
+                                              fontSize: "0.8rem",
+                                              fontWeight: "600",
+                                            }}
+                                          >
+                                            Add
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setAddVideoSubTopicId(subTopic.id); }}
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "6px",
+                                          padding: "6px 10px",
+                                          background: "transparent",
+                                          border: "1px dashed var(--glass-border)",
+                                          borderRadius: "6px",
+                                          cursor: "pointer",
+                                          color: "var(--text-muted)",
+                                          fontSize: "0.8rem",
+                                          width: "100%",
+                                          justifyContent: "center",
+                                          transition: "all 0.2s ease",
+                                        }}
+                                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--glass-border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+                                      >
+                                        <Video size={14} />
+                                        <Plus size={12} />
+                                        Add Video
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
