@@ -2,13 +2,15 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight, ArrowLeft, Check } from "lucide-react";
+import Image from "next/image";
 import styles from "./CreateCourseStep2.module.css";
 
 interface TeacherOption {
   id: string;
   full_name: string;
   designation?: string | null;
+  profile_image?: string | null;
 }
 
 interface SessionUser {
@@ -45,6 +47,14 @@ function CreateCourseStep2Content() {
   const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
     setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
   };
+
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("") || "T";
 
   useEffect(() => {
     if (!courseId) return;
@@ -223,12 +233,12 @@ function CreateCourseStep2Content() {
             The course creator is selected by default. You can add additional instructors from existing teachers.
           </p>
 
-          <div className={styles.selectionGrid}>
+          <div className={styles.selectionList}>
             {teachers.map((teacher) => {
               const checked = selectedTeacherIds.includes(teacher.id);
               const isDefaultTeacher = currentTeacherId === teacher.id;
               return (
-                <label key={teacher.id} className={styles.selectionCard}>
+                <label key={teacher.id} className={`${styles.selectionCard} ${checked ? styles.selectionCardActive : ""}`}>
                   <input
                     type="checkbox"
                     checked={checked}
@@ -238,7 +248,23 @@ function CreateCourseStep2Content() {
                     }}
                     disabled={isDefaultTeacher}
                   />
-                  <div>
+                  <div className={styles.selectionCheck} aria-hidden="true">
+                    {checked && <Check size={22} strokeWidth={3} />}
+                  </div>
+                  <div className={styles.teacherAvatar}>
+                    {teacher.profile_image ? (
+                      <Image
+                        src={teacher.profile_image}
+                        alt={teacher.full_name}
+                        fill
+                        className={styles.teacherAvatarImage}
+                        unoptimized
+                      />
+                    ) : (
+                      <span>{getInitials(teacher.full_name)}</span>
+                    )}
+                  </div>
+                  <div className={styles.teacherInfo}>
                     <strong>{teacher.full_name}</strong>
                     <p>{teacher.designation || "Teacher"}</p>
                     {isDefaultTeacher && <small>Default course teacher</small>}
