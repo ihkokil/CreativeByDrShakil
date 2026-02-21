@@ -112,7 +112,7 @@ function CreateCourseStep4Content() {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Review & Publish</h1>
+          <h1 className={styles.title}>Review + Publish</h1>
           <p className={styles.subtitle}>Step 4 of 4: Review all details before publishing</p>
         </div>
         <div className={styles.progress}>
