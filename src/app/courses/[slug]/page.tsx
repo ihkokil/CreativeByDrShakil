@@ -334,19 +334,19 @@ export default function CourseDetailPage() {
                         <ul className={styles.includesList}>
                             <li className={styles.includesItem}>
                                 <MonitorPlay size={18} className={styles.includesIcon} />
-                                <span>{displayCourse.duration} of on-demand video</span>
+                                <span>1y access to video</span>
                             </li>
                             <li className={styles.includesItem}>
                                 <FileText size={18} className={styles.includesIcon} />
                                 <span>Comprehensive study materials</span>
                             </li>
                             <li className={styles.includesItem}>
-                                <Star size={18} className={styles.includesIcon} />
-                                <span>Full lifetime access</span>
+                                <PlayCircle size={18} className={styles.includesIcon} />
+                                <span>On demand live classes</span>
                             </li>
                             <li className={styles.includesItem}>
-                                <Award size={18} className={styles.includesIcon} />
-                                <span>Certificate of completion</span>
+                                <Users size={18} className={styles.includesIcon} />
+                                <span>Separate Q&A sessions</span>
                             </li>
                         </ul>
                     </div>
