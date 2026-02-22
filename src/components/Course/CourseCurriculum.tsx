@@ -31,7 +31,7 @@ const formatAvailability = (dateValue?: string | null) => {
         return "";
     }
 
-    return parsed.toLocaleString();
+    return parsed.toLocaleString('en-GB');
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
