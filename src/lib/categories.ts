@@ -5,7 +5,7 @@ export interface CategorySummary {
 }
 
 export async function fetchCategories(): Promise<CategorySummary[]> {
-  const response = await fetch('/api/categories');
+  const response = await fetch('/api/categories', { cache: 'no-store' });
   const data = await response.json();
 
   if (!response.ok) {
