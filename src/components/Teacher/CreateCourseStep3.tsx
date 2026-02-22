@@ -641,7 +641,7 @@ function CreateCourseStep3Content() {
                 color: "var(--foreground)", fontSize: "0.95rem", width: "100%",
               }}
             >
-              {publishStartDate ? new Date(publishStartDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Not set"}
+              {publishStartDate ? new Date(publishStartDate).toLocaleDateString('en-GB') : "Not set"}
             </div>
           </div>
 

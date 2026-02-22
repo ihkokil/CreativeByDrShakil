@@ -680,7 +680,7 @@ export default function TeacherCourseBuilder() {
                                                 <div key={group.id} className={styles.groupRow}>
                                                     <div>
                                                         <strong>{group.mainTopicTitle} › {group.title}</strong>
-                                                        <p>{computedGroupDates[group.id] ? `Computed: ${new Date(computedGroupDates[group.id]).toLocaleString()}` : "No date computed"}</p>
+                                                        <p>{computedGroupDates[group.id] ? `Computed: ${new Date(computedGroupDates[group.id]).toLocaleString('en-GB')}` : "No date computed"}</p>
                                                     </div>
                                                     <input
                                                         type="datetime-local"
