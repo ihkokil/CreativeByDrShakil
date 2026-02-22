@@ -67,7 +67,7 @@ export default function OrdersPage() {
                     </span>
                   </td>
                   <td>৳{order.totalAmount.toFixed(0)}</td>
-                  <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                  <td>{new Date(order.createdAt).toLocaleDateString('en-GB')}</td>
                 </tr>
               ))}
             </tbody>

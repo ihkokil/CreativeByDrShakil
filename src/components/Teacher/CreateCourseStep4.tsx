@@ -171,7 +171,7 @@ function CreateCourseStep4Content() {
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>Start Date:</span>
                     <span className={styles.metaValue}>
-                      {new Date(course.courseStartDate).toLocaleDateString()}
+                      {new Date(course.courseStartDate).toLocaleDateString('en-GB')}
                     </span>
                   </div>
                 )}
