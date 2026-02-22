@@ -45,6 +45,7 @@ function CreateCourseStep3Content() {
   const [topicOptions, setTopicOptions] = useState<StarterMainTopic[]>([]);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [expandedTopics, setExpandedTopics] = useState<string[]>([]);
+  const [expandedSubTopics, setExpandedSubTopics] = useState<string[]>([]);
   
   // Publish frequency controls
   const [publishFreqMode, setPublishFreqMode] = useState<"interval" | "dayOfWeek">("interval");
@@ -178,6 +179,14 @@ function CreateCourseStep3Content() {
       prev.includes(mainTopicId)
         ? prev.filter(id => id !== mainTopicId)
         : [...prev, mainTopicId]
+    );
+  };
+
+  const toggleSubTopicExpanded = (subTopicId: string) => {
+    setExpandedSubTopics(prev =>
+      prev.includes(subTopicId)
+        ? prev.filter(id => id !== subTopicId)
+        : [...prev, subTopicId]
     );
   };
 
@@ -761,6 +770,7 @@ function CreateCourseStep3Content() {
                   {isExpanded && (
                     <div style={{ paddingLeft: "28px", paddingRight: "14px", paddingBottom: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
                       {mainTopic.subTopics.map((subTopic, subIdx) => {
+                        const isSubExpanded = expandedSubTopics.includes(subTopic.id);
                         const isSelected = selectedTopicIds.includes(subTopic.id);
                         let calculatedDate = "";
                         
@@ -771,51 +781,108 @@ function CreateCourseStep3Content() {
                         
                         const overrideDate = dateOverrides[subTopic.id];
                         const displayDate = overrideDate || calculatedDate;
+                        const hasVideos = subTopic.videos && subTopic.videos.length > 0;
 
                         return (
                           <div
                             key={subTopic.id}
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "10px",
-                              padding: "10px 12px",
                               border: "1px solid var(--glass-border)",
                               borderRadius: "8px",
+                              overflow: "hidden",
                               background: isSelected ? "rgba(var(--primary-rgb), 0.05)" : "transparent",
                             }}
                           >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSubTopicSelection(subTopic.id)}
-                              style={{ cursor: "pointer" }}
-                            />
-                            <FileText size={16} style={{ color: "var(--text-muted)" }} />
-                            <span style={{ flex: 1, fontSize: "0.9rem" }}>{subTopic.title}</span>
-                            {isSelected && displayDate && (
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <Calendar size={14} style={{ color: "var(--primary)" }} />
-                                <input
-                                  type="date"
-                                  value={overrideDate || displayDate}
-                                  onChange={(e) =>
-                                    setDateOverrides(prev => ({
-                                      ...prev,
-                                      [subTopic.id]: e.target.value,
-                                    }))
-                                  }
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{
-                                    padding: "4px 6px",
-                                    border: "1px solid var(--glass-border)",
-                                    borderRadius: "4px",
-                                    background: "var(--background)",
-                                    color: "var(--foreground)",
-                                    fontSize: "0.8rem",
-                                    minWidth: "110px",
-                                  }}
-                                />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (hasVideos) toggleSubTopicExpanded(subTopic.id);
+                              }}
+                              style={{
+                                width: "100%",
+                                padding: "10px 12px",
+                                background: "transparent",
+                                border: "none",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                cursor: hasVideos ? "pointer" : "default",
+                                fontSize: "0.9rem",
+                              }}
+                            >
+                              {hasVideos && (
+                                isSubExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />
+                              )}
+                              {!hasVideos && <span style={{ width: "16px" }} />}
+                              
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSubTopicSelection(subTopic.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ cursor: "pointer" }}
+                              />
+                              <FileText size={16} style={{ color: "var(--text-muted)" }} />
+                              <span style={{ flex: 1 }}>{subTopic.title}</span>
+                              {hasVideos && (
+                                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                  {subTopic.videos.length} video{subTopic.videos.length !== 1 ? "s" : ""}
+                                </span>
+                              )}
+                              {isSelected && displayDate && (
+                                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                  <Calendar size={14} style={{ color: "var(--primary)" }} />
+                                  <input
+                                    type="date"
+                                    value={overrideDate || displayDate}
+                                    onChange={(e) =>
+                                      setDateOverrides(prev => ({
+                                        ...prev,
+                                        [subTopic.id]: e.target.value,
+                                      }))
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      padding: "2px 4px",
+                                      border: "1px solid var(--glass-border)",
+                                      borderRadius: "3px",
+                                      background: "var(--background)",
+                                      color: "var(--foreground)",
+                                      fontSize: "0.75rem",
+                                      minWidth: "95px",
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </button>
+
+                            {hasVideos && isSubExpanded && (
+                              <div style={{ paddingLeft: "36px", paddingRight: "12px", paddingBottom: "10px", paddingTop: "4px", display: "flex", flexDirection: "column", gap: "6px", borderTop: "1px solid var(--glass-border)" }}>
+                                {subTopic.videos.map((video, vidIdx) => (
+                                  <div
+                                    key={vidIdx}
+                                    style={{
+                                      padding: "8px 10px",
+                                      background: "rgba(0, 0, 0, 0.1)",
+                                      border: "1px solid var(--glass-border)",
+                                      borderRadius: "6px",
+                                      fontSize: "0.85rem",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "8px",
+                                    }}
+                                  >
+                                    <FileText size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ wordBreak: "break-word", fontWeight: "500" }}>{video.title}</div>
+                                      {video.url && (
+                                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
+                                          {video.url.length > 50 ? `${video.url.substring(0, 50)}...` : video.url}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
