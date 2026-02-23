@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
 import { getAuthPayload } from '@/lib/route-auth';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,11 +12,11 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file');
 
-    if (!file) {
+    if (!file || !(file instanceof File)) {
       return NextResponse.json(
-        { error: 'No file provided' },
+        { error: 'No file provided or invalid file' },
         { status: 400 }
       );
     }
@@ -39,27 +38,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create upload directory structure
-    const uploadDir = join(process.cwd(), 'public/uploads/courses');
-    await mkdir(uploadDir, { recursive: true });
-
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'jpg';
-    const filename = `${randomUUID()}.${ext}`;
-    const filepath = join(uploadDir, filename);
-
-    // Convert to buffer and write
-    const bytes = await file.arrayBuffer();
-    await writeFile(filepath, Buffer.from(bytes));
-
-    // Return the relative path for use in the app
-    const relativePath = `/uploads/courses/${filename}`;
+    // Convert file to Base64 data URL
+    const buffer = await file.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
     return NextResponse.json(
       { 
         success: true,
-        url: relativePath,
-        filename,
+        url: dataUrl,
+        filename: file.name,
       },
       { status: 201 }
     );

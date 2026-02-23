@@ -229,7 +229,7 @@
   background: color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
-.formActions {
+.actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -237,6 +237,7 @@
 }
 
 .backBtn,
+.cancelBtn,
 .nextBtn {
   display: flex;
   align-items: center;
@@ -248,6 +249,17 @@
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.cancelBtn {
+  background: transparent;
+  color: var(--text-muted);
+  order: 1;
+}
+
+.cancelBtn:hover {
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  color: var(--foreground);
 }
 
 .backBtn {
@@ -290,11 +302,12 @@
     flex-direction: column;
   }
 
-  .formActions {
+  .actions {
     flex-direction: column-reverse;
   }
 
   .backBtn,
+  .cancelBtn,
   .nextBtn {
     width: 100%;
     justify-content: center;
