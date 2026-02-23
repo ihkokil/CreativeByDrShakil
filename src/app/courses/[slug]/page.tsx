@@ -180,10 +180,7 @@ export default function CourseDetailPage() {
                     <span className={styles.category}>{displayCourse.category}</span>
                     <h1 className={styles.title}>{displayCourse.title}</h1>
                     <div className={styles.meta}>
-                        <div className={styles.metaItem}>
-                            <Star size={18} color="#f59e0b" fill="#f59e0b" />
-                            <span>{displayCourse.rating} Rating</span>
-                        </div>
+
                         {displayCourse.enrolledCount && (
                             <div className={styles.metaItem}>
                                 <Users size={18} />
@@ -194,12 +191,7 @@ export default function CourseDetailPage() {
                             <Clock size={18} />
                             <span>{displayCourse.duration}</span>
                         </div>
-                        {displayCourse.level && (
-                            <div className={styles.metaItem}>
-                                <BarChart size={18} />
-                                <span>{displayCourse.level}</span>
-                            </div>
-                        )}
+
                         {displayCourse.language && (
                             <div className={styles.metaItem}>
                                 <Globe size={18} />
