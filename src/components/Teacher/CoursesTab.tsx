@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Plus, MoreHorizontal, Trash2, Edit2 } from "lucide-react";
+import { BookOpen, Plus, Trash2, Edit2 } from "lucide-react";
 import Image from "next/image";
 import styles from "./CoursesTab.module.css";
 
