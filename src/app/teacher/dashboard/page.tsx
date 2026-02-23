@@ -2,17 +2,12 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, Suspense } from "react";
-import DashboardShell from "@/components/DashboardShell/DashboardShell";
+import { useEffect, Suspense } from "react";
 import CoursesTab from "@/components/Teacher/CoursesTab";
 import styles from "./TeacherDashboard.module.css";
 import {
-    LayoutDashboard,
     BookOpen,
     Users,
-    ClipboardList,
-    Video,
-    UserCog,
     DollarSign,
     Star,
     CheckCircle,
@@ -22,35 +17,17 @@ import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 import Image from "next/image";
 
 function TeacherDashboardContent() {
-    const { user, loading, signOut } = useAuth();
+    const { user, loading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
     const activeTab = (searchParams.get("tab") as "overview" | "courses" | "students" | "assignments" | "library") || "overview";
-
-    const setActiveTab = (tab: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`?${params.toString()}`);
-    };
 
     useEffect(() => {
         if (!loading && !user) {
             router.push("/");
         }
     }, [user, loading, router]);
-
-    const navItems = useMemo(
-        () => [
-            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
-            { key: "courses", label: "Courses", icon: BookOpen, mobilePrimary: true },
-            { key: "students", label: "Students", icon: Users, mobilePrimary: true },
-            { key: "assignments", label: "Assignments", icon: ClipboardList },
-            { key: "library", label: "Library", icon: Video },
-            { key: "user", label: "User Page", icon: UserCog },
-        ],
-        []
-    );
 
     if (loading || !user) {
         return <div className={styles.loader}>Loading Teacher Dashboard...</div>;
@@ -63,11 +40,6 @@ function TeacherDashboardContent() {
             course.subInstructors?.some((ins) => ins.name === teacherName)
     );
     const fallbackCourses = myCourses.length > 0 ? myCourses : [COURSES[1], COURSES[5], COURSES[6]];
-
-    const handleLogout = async () => {
-        await signOut();
-        router.push("/");
-    };
 
     return (
         <div className={styles.pageContent}>
