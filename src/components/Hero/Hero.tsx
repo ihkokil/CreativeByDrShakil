@@ -4,12 +4,13 @@ import { motion } from "framer-motion";
 import styles from "./Hero.module.css";
 import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
 import Image from "next/image";
+import { COURSES } from "@/constants/courses";
 
 export default function Hero() {
     const cards = [
         {
             id: 1,
-            title: "FCPS Surgery Masterclass",
+            title: COURSES[0].title,
             tag: "Best Seller",
             x: -40, y: -60, rotate: -6,
             scale: 1,
@@ -17,7 +18,7 @@ export default function Hero() {
         },
         {
             id: 2,
-            title: "Residency Entry Pack",
+            title: COURSES[1].title,
             tag: "High Yield",
             x: 60, y: 30, rotate: 4,
             scale: 0.95,
@@ -25,7 +26,7 @@ export default function Hero() {
         },
         {
             id: 3,
-            title: "Cardiology Part II",
+            title: COURSES[2].title,
             tag: "New",
             x: -80, y: 120, rotate: -2,
             scale: 0.9,

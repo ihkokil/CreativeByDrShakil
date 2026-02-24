@@ -3,33 +3,25 @@
 import { useState } from "react";
 import styles from "./Courses.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Clock, Tag } from "lucide-react";
-import Image from "next/image";
+import { COURSES } from "@/constants/courses";
+import CourseCard from "./CourseCard";
 import Link from "next/link";
-
-const courseData = [
-    { id: 1, title: "FCPS Part I: Internal Medicine", category: "FCPS", price: "৳5,000", rating: 4.8, duration: "6 Months" },
-    { id: 2, title: "Surgery High Yield MCQs", category: "Exams", price: "৳4,500", rating: 4.9, duration: "3 Months" },
-    { id: 3, title: "Pediatrics Residency Masterclass", category: "Residency", price: "৳6,000", rating: 4.7, duration: "6 Months" },
-    { id: 4, title: "Gynae & Obs Part II Theory", category: "Part II", price: "Free", rating: 4.9, duration: "4 Months" },
-    { id: 5, title: "Radiology Image-based Quiz", category: "Exams", price: "৳2,500", rating: 5.0, duration: "2 Months" },
-    { id: 6, title: "Foundation Series: Anatomy", category: "FCPS", price: "Free", rating: 4.6, duration: "3 Months" },
-];
+import { ArrowRight } from "lucide-react";
 
 export default function Courses() {
     const [filter, setFilter] = useState("All");
-    const categories = ["All", "FCPS", "Exams", "Residency", "Part II"];
+    const categories = ["All", "FCPS", "Exams", "Residency"];
 
     const filtered = filter === "All"
-        ? courseData
-        : courseData.filter(c => c.category === filter);
+        ? COURSES.slice(0, 3) // Just show first 3 for home
+        : COURSES.filter(c => c.category === filter).slice(0, 3);
 
     return (
         <section className="section-padding">
             <div className={styles.header}>
                 <div className={styles.titles}>
-                    <h2 className={styles.sectionTitle}>All Courses</h2>
-                    <p className={styles.subtitle}>Browse our complete catalog of professional medical training.</p>
+                    <h2 className={styles.sectionTitle}>Featured Courses</h2>
+                    <p className={styles.subtitle}>Hand-picked professional training by senior consultants.</p>
                 </div>
                 <div className={styles.tabsSection}>
                     <div className={styles.tabs}>
@@ -49,47 +41,16 @@ export default function Courses() {
             <motion.div layout className={styles.grid}>
                 <AnimatePresence mode="popLayout">
                     {filtered.map(course => (
-                        <motion.div
-                            layout
-                            key={course.id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.3 }}
-                            className={`${styles.card} glass`}
-                        >
-                            <div className={styles.imageWrapper}>
-                                <Image
-                                    src="/placeholder.svg"
-                                    alt={course.title}
-                                    fill
-                                    style={{ objectFit: "cover" }}
-                                />
-                                <div className={styles.categoryBadge}>
-                                    <Tag size={12} />
-                                    {course.category}
-                                </div>
-                            </div>
-                            <div className={styles.cardInfo}>
-                                <div className={styles.cardHeader}>
-                                    <span className={styles.categoryName}>{course.category} Practice</span>
-                                    <h3>{course.title}</h3>
-                                </div>
-                                <div className={styles.meta}>
-                                    <span><BookOpen size={14} /> 24 Lessons</span>
-                                    <span><Clock size={14} /> {course.duration}</span>
-                                </div>
-                            </div>
-                            <div className={styles.cardFooter}>
-                                <span className={styles.price}>{course.price}</span>
-                                <Link href="/study" className={styles.enrollBtn}>
-                                    Enroll Now
-                                </Link>
-                            </div>
-                        </motion.div>
+                        <CourseCard key={course.id} course={course} />
                     ))}
                 </AnimatePresence>
             </motion.div>
+
+            <div className={styles.footer}>
+                <Link href="/courses" className={styles.viewAllBtn}>
+                    View All Courses <ArrowRight size={18} />
+                </Link>
+            </div>
         </section>
     );
 }
