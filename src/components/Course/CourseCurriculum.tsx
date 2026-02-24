@@ -2,6 +2,7 @@ import { useState } from "react";
 import styles from "./CourseCurriculum.module.css";
 import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDisplayDate } from "@/lib/date-format";
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document';
 
@@ -25,13 +26,7 @@ interface NodeProps {
 
 const formatAvailability = (dateValue?: string | null) => {
     if (!dateValue) return "";
-
-    const parsed = new Date(dateValue);
-    if (Number.isNaN(parsed.getTime())) {
-        return "";
-    }
-
-    return parsed.toLocaleString('en-GB');
+    return formatDisplayDate(dateValue);
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
