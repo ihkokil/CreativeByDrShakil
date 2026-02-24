@@ -7,13 +7,13 @@ export default function Home() {
             <nav className={`${styles.nav} glass`}>
                 <div className={styles.container}>
                     <div className={styles.logo}>
-                        <span className="gradient-text">Dr. Shakil's</span> Learning
+                        <span className="gradient-text">Dr. Shakil's</span> Academy
                     </div>
                     <div className={styles.links}>
-                        <a href="#">Resources</a>
-                        <a href="#">CME Credits</a>
+                        <a href="#">Exams</a>
+                        <a href="#">MCQ Bank</a>
                         <ThemeToggle />
-                        <button className={styles.loginBtn}>Doctor Login</button>
+                        <button className={styles.loginBtn}>Student Login</button>
                     </div>
                 </div>
             </nav>
@@ -21,15 +21,15 @@ export default function Home() {
             <section className={styles.hero}>
                 <div className={styles.heroContent}>
                     <h1 className={styles.title}>
-                        Master Medicine <br />
-                        <span className="gradient-text">With Clarity</span>
+                        Crack your <br />
+                        <span className="gradient-text">FCPS Exams</span>
                     </h1>
                     <p className={styles.subtitle}>
-                        Concise, case-based learning designed for the busy clinician. Updated daily with the latest global research.
+                        The ultimate preparation platform for professional medical exams. Comprehensive MCQ banks and mock tests designed for success.
                     </p>
                     <div className={styles.cta}>
-                        <button className={styles.primaryBtn}>Start Learning</button>
-                        <button className={styles.secondaryBtn}>Explore Courses</button>
+                        <button className={styles.primaryBtn}>Enroll Now</button>
+                        <button className={styles.secondaryBtn}>Sample MCQs</button>
                     </div>
                 </div>
 
@@ -38,16 +38,16 @@ export default function Home() {
 
             <section className={styles.features}>
                 <div className={`${styles.card} glass`}>
-                    <h3>Clinical Cases</h3>
-                    <p>Real-world scenarios analyzed by senior consultants.</p>
+                    <h3>FCPS Focused</h3>
+                    <p>Curated question banks specifically for Part I and Part II exams.</p>
                 </div>
                 <div className={`${styles.card} glass`}>
-                    <h3>Flash Updates</h3>
-                    <p>30-second summaries of new medical guidelines.</p>
+                    <h3>Mock Exams</h3>
+                    <p>Simulate real exam conditions with timed practice sessions.</p>
                 </div>
                 <div className={`${styles.card} glass`}>
-                    <h3>Community</h3>
-                    <p>Connect with specialists from around the world.</p>
+                    <h3>Performance Analytics</h3>
+                    <p>Track your strengths and identify high-yield areas for improvement.</p>
                 </div>
             </section>
         </main>
