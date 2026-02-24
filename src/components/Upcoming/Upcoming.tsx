@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "./Upcoming.module.css";
 import { motion } from "framer-motion";
 import { Calendar, UserCheck } from "lucide-react";
+import { COURSES } from "@/constants/courses";
 
 export default function Upcoming() {
     const [timeLeft, setTimeLeft] = useState({
@@ -59,9 +60,9 @@ export default function Upcoming() {
 
                     <div className={styles.content}>
                         <div className={styles.info}>
-                            <span className={styles.category}>Cardiology Part II</span>
-                            <h3>Advanced Clinical Cardiology Masterclass</h3>
-                            <p>A comprehensive 3-month program covering high-yield clinical cases and viva secrets for FCPS Part II candidates.</p>
+                            <span className={styles.category}>{COURSES[0].category}</span>
+                            <h3>{COURSES[0].title}</h3>
+                            <p>A comprehensive {COURSES[0].duration} program covering high-yield material designed specifically for postgraduate success.</p>
 
                             <div className={styles.meta}>
                                 <div className={styles.metaItem}>
