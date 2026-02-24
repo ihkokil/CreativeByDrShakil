@@ -90,6 +90,75 @@
     margin-bottom: 15px;
 }
 
+/* Checkbox Styling */
+.checkboxList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.checkboxItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    position: relative;
+    padding-left: 32px;
+    user-select: none;
+}
+
+.checkboxItem input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    height: 20px;
+    width: 20px;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.checkboxItem:hover input~.checkmark {
+    border-color: var(--primary);
+}
+
+.checkboxItem input:checked~.checkmark {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkboxItem input:checked~.checkmark:after {
+    display: block;
+}
+
+.checkboxItem .checkmark:after {
+    left: 6px;
+    top: 3px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
 .filterOptions {
     display: flex;
     flex-wrap: wrap;
@@ -141,27 +210,67 @@
     border-style: solid;
 }
 
-/* Content Area */
-.resultsCount {
-    font-size: 0.95rem;
-    color: var(--text-muted);
+/* Content Area Header */
+.contentHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 30px;
 }
 
-.grid {
+.resultsCount {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.viewToggle {
+    display: flex;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.toggleBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggleBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.activeToggle {
+    background: var(--primary) !important;
+    color: white !important;
+}
+
+/* Grid/List View Switching */
+.gridView {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 30px;
 }
 
-.noResults {
-    text-align: center;
-    padding: 100px 0;
+.listView {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
-.noResults h3 {
-    font-size: 1.5rem;
-    margin-bottom: 10px;
+@media (max-width: 1280px) {
+    .gridView {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 1024px) {
@@ -179,7 +288,7 @@
         font-size: 3rem;
     }
 
-    .grid {
+    .gridView {
         grid-template-columns: 1fr;
     }
 }

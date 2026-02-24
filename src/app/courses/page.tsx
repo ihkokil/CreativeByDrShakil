@@ -6,28 +6,35 @@ import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
 import { COURSES, INSTRUCTORS } from "@/constants/courses";
-import { Filter, Search, X } from "lucide-react";
+import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function AllCoursesPage() {
-    const [activeCategory, setActiveCategory] = useState("All");
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [activeInstructor, setActiveInstructor] = useState("All");
     const [activeDuration, setActiveDuration] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-    const categories = ["All", "FCPS", "Exams", "Residency", "Part II"];
+    const categories = ["FCPS", "Exams", "Residency", "Part II"];
     const instructors = ["All", ...Object.values(INSTRUCTORS).map(i => i.name)];
     const durations = ["All", "2 Months", "3 Months", "4 Months", "6 Months"];
 
+    const toggleCategory = (cat: string) => {
+        setSelectedCategories(prev =>
+            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+        );
+    };
+
     const filteredCourses = useMemo(() => {
         return COURSES.filter(course => {
-            const matchCategory = activeCategory === "All" || course.category === activeCategory;
+            const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
             const matchInstructor = activeInstructor === "All" || course.mainInstructor.name === activeInstructor;
             const matchDuration = activeDuration === "All" || course.duration === activeDuration;
             const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchInstructor && matchDuration && matchSearch;
         });
-    }, [activeCategory, activeInstructor, activeDuration, searchQuery]);
+    }, [selectedCategories, activeInstructor, activeDuration, searchQuery]);
 
     return (
         <main className={styles.main}>
@@ -60,15 +67,17 @@ export default function AllCoursesPage() {
 
                         <div className={styles.filterGroup}>
                             <h4>Categories</h4>
-                            <div className={styles.filterOptions}>
+                            <div className={styles.checkboxList}>
                                 {categories.map(cat => (
-                                    <button
-                                        key={cat}
-                                        className={`${styles.filterBtn} ${activeCategory === cat ? styles.active : ""}`}
-                                        onClick={() => setActiveCategory(cat)}
-                                    >
+                                    <label key={cat} className={styles.checkboxItem}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedCategories.includes(cat)}
+                                            onChange={() => toggleCategory(cat)}
+                                        />
+                                        <span className={styles.checkmark}></span>
                                         {cat}
-                                    </button>
+                                    </label>
                                 ))}
                             </div>
                         </div>
@@ -103,11 +112,11 @@ export default function AllCoursesPage() {
                             </div>
                         </div>
 
-                        {(activeCategory !== "All" || activeInstructor !== "All" || activeDuration !== "All" || searchQuery) && (
+                        {(selectedCategories.length > 0 || activeInstructor !== "All" || activeDuration !== "All" || searchQuery) && (
                             <button
                                 className={styles.clearBtn}
                                 onClick={() => {
-                                    setActiveCategory("All");
+                                    setSelectedCategories([]);
                                     setActiveInstructor("All");
                                     setActiveDuration("All");
                                     setSearchQuery("");
@@ -119,16 +128,36 @@ export default function AllCoursesPage() {
                     </div>
                 </aside>
 
-                {/* Course Grid */}
+                {/* Content Area */}
                 <div className={styles.content}>
-                    <div className={styles.resultsCount}>
-                        Showing <strong>{filteredCourses.length}</strong> courses
+                    <div className={styles.contentHeader}>
+                        <div className={styles.resultsCount}>
+                            Showing <strong>{filteredCourses.length}</strong> courses
+                        </div>
+                        <div className={styles.viewToggle}>
+                            <button
+                                className={`${styles.toggleBtn} ${viewMode === 'grid' ? styles.activeToggle : ''}`}
+                                onClick={() => setViewMode('grid')}
+                                title="Grid View"
+                            >
+                                <LayoutGrid size={20} />
+                            </button>
+                            <button
+                                className={`${styles.toggleBtn} ${viewMode === 'list' ? styles.activeToggle : ''}`}
+                                onClick={() => setViewMode('list')}
+                                title="List View"
+                            >
+                                <List size={20} />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className={styles.grid}>
+                    <div className={`${styles.grid} ${viewMode === 'list' ? styles.listView : styles.gridView}`}>
                         <AnimatePresence mode="popLayout">
                             {filteredCourses.map(course => (
-                                <CourseCard key={course.id} course={course} />
+                                <div key={course.id} className={styles.cardWrapper}>
+                                    <CourseCard course={course} viewMode={viewMode} />
+                                </div>
                             ))}
                         </AnimatePresence>
                     </div>
