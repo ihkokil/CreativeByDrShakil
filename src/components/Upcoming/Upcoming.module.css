@@ -1,6 +1,11 @@
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
 .header {
     text-align: center;
-    margin-bottom: 50px;
+    margin-bottom: 60px;
 }
 
 .title {
@@ -13,60 +18,185 @@
     color: var(--text-muted);
 }
 
-.list {
-    max-width: 1000px;
-    margin: 0 auto;
+.featuredBox {
+    position: relative;
+    background: var(--glass);
+    border: 2px solid var(--primary);
+    border-radius: 32px;
+    padding: 80px 60px 60px;
+    overflow: visible;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 40px;
 }
 
-.item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px 40px;
+.timerWrapper {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--background);
+    border: 1px solid var(--glass-border);
+    padding: 20px 40px;
     border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    min-width: 400px;
+}
+
+.timerLabel {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+.timer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.timeUnit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.timeUnit span {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.timeUnit label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 5px;
+}
+
+.timerSeparator {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--glass-border);
+    margin-top: -15px;
+}
+
+.content {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 60px;
+}
+
+.category {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    display: block;
 }
 
 .info h3 {
-    font-size: 1.25rem;
-    margin-bottom: 5px;
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
 }
 
 .info p {
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    max-width: 700px;
+    margin-bottom: 30px;
 }
 
-.status {
+.meta {
     display: flex;
-    align-items: center;
     gap: 30px;
 }
 
-.seats {
-    font-weight: 800;
-    color: #ef4444;
-    font-size: 0.9rem;
+.metaItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--foreground);
+    font-weight: 600;
 }
 
-.remindBtn {
-    background: var(--glass-border);
+.metaItem:last-child span {
+    color: #ef4444;
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 220px;
+}
+
+.enrollBtn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 18px 30px;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.enrollBtn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+}
+
+.detailsBtn {
+    background: var(--glass);
     border: 1px solid var(--glass-border);
     color: var(--foreground);
-    padding: 10px 24px;
-    border-radius: 10px;
-    font-size: 0.9rem;
+    padding: 15px 30px;
+    border-radius: 16px;
+    font-size: 1rem;
     font-weight: 700;
     cursor: pointer;
 }
 
-@media (max-width: 768px) {
-    .item {
-        flex-direction: column;
+@media (max-width: 1024px) {
+    .content {
+        grid-template-columns: 1fr;
         text-align: center;
-        gap: 20px;
-        padding: 30px;
+        gap: 40px;
+    }
+
+    .meta {
+        justify-content: center;
+    }
+
+    .actions {
+        flex-direction: row;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .timerWrapper {
+        min-width: calc(100% - 40px);
+    }
+
+    .info h3 {
+        font-size: 1.8rem;
+    }
+
+    .actions {
+        flex-direction: column;
     }
 }
