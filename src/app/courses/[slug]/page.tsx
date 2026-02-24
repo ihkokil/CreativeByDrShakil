@@ -194,6 +194,34 @@ export default function CourseDetailPage() {
                             </div>
                         )}
                     </div>
+
+                    <div className={styles.heroStats}>
+                        {displayCourse.level && (
+                            <div className={styles.heroStatCard}>
+                                <BarChart size={16} />
+                                <div>
+                                    <span>Level</span>
+                                    <strong>{displayCourse.level}</strong>
+                                </div>
+                            </div>
+                        )}
+                        <div className={styles.heroStatCard}>
+                            <Star size={16} />
+                            <div>
+                                <span>Rating</span>
+                                <strong>{displayCourse.rating.toFixed(1)}</strong>
+                            </div>
+                        </div>
+                        {displayCourse.lastUpdated && (
+                            <div className={styles.heroStatCard}>
+                                <Award size={16} />
+                                <div>
+                                    <span>Updated</span>
+                                    <strong>{displayCourse.lastUpdated}</strong>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 
@@ -308,6 +336,17 @@ export default function CourseDetailPage() {
                                 <div className={styles.originalPrice}>{displayCourse.originalPrice}</div>
                             )}
                             <div className={styles.price}>{displayCourse.price === "Free" ? "Free" : displayCourse.price}</div>
+                        </div>
+
+                        <div className={styles.sidebarHighlights}>
+                            <div className={styles.sidebarHighlightItem}>
+                                <CheckCircle2 size={16} />
+                                <span>Structured curriculum with guided release flow</span>
+                            </div>
+                            <div className={styles.sidebarHighlightItem}>
+                                <Users size={16} />
+                                <span>{displayCourse.enrolledCount ? `${displayCourse.enrolledCount.toLocaleString()}+ students` : "Student access included"}</span>
+                            </div>
                         </div>
                         
                         <button
