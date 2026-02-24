@@ -36,6 +36,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             profileImage: true,
           },
         },
+        instructors: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            designation: true,
+            sortOrder: true,
+          },
+        },
         category: {
           select: {
             displayName: true,
@@ -59,6 +68,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               fullName: true,
               designation: true,
               profileImage: true,
+            },
+          },
+          instructors: {
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              designation: true,
+              sortOrder: true,
             },
           },
           category: {
@@ -94,7 +112,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         price: formatPrice(course.price),
         priceValue: course.price,
         duration: course.duration,
-        description: course.description,
+        description: course.overview || course.description,
+        overview: course.overview,
+        learningOutcomes: course.learningOutcomes,
         language: course.language || 'English / Bengali',
         image: course.imageUrl,
         status: course.status,
@@ -104,6 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         releaseIntervalDays: course.releaseIntervalDays,
         releaseGroupsPerWeek: course.releaseGroupsPerWeek,
         publishedAt: course.publishedAt,
+        instructors: course.instructors,
         mainInstructor: {
           id: course.teacher?.id || `teacher-${course.id}`,
           name: course.teacher?.fullName || course.instructor,

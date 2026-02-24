@@ -26,6 +26,15 @@ export async function GET() {
             profileImage: true,
           },
         },
+        instructors: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            designation: true,
+            sortOrder: true,
+          },
+        },
         category: {
           select: {
             displayName: true,
@@ -44,11 +53,14 @@ export async function GET() {
         priceValue: course.price,
         duration: course.duration,
         isFeatured: course.isFeatured,
-        description: course.description,
+        description: course.overview || course.description,
+        overview: course.overview,
+        learningOutcomes: course.learningOutcomes,
         language: course.language || 'English / Bengali',
         image: course.imageUrl,
         status: course.status,
         publishedAt: course.publishedAt,
+        instructors: course.instructors,
         mainInstructor: {
           id: course.teacher?.id || `teacher-${course.id}`,
           name: course.teacher?.fullName || course.instructor,
