@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Calendar, Plus, Folder, FileText, Video, Layout } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Calendar, Plus, Folder, FileText, Video, Layout, ArrowUp, ArrowDown } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
 
 export interface StarterItem {
@@ -105,17 +105,6 @@ function CreateCourseStep3Content() {
     
     return topLevelFolders.map(folder => {
       const subTopics = collectItemsRecursively(nodes, folder.id);
-      
-      const directChildren = nodes.filter(n => n.parentId === folder.id && n.type !== "folder");
-      if (directChildren.length > 0) {
-        const directItems: StarterItem[] = directChildren.map(child => ({
-          id: child.id,
-          type: child.type,
-          title: child.title,
-          url: child.url || undefined,
-        }));
-        subTopics.push(...directItems);
-      }
       
       return {
         id: folder.id,
@@ -252,6 +241,45 @@ function CreateCourseStep3Content() {
     setInlineItemUrl("");
     setInlineItemType("youtube");
     setAddInlineItemId(null);
+  };
+
+  const moveItemRecursively = (items: StarterItem[], targetId: string, direction: "up" | "down"): StarterItem[] | null => {
+    const index = items.findIndex(item => item.id === targetId);
+    if (index !== -1) {
+      if (direction === "up" && index > 0) {
+        const newItems = [...items];
+        [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+        return newItems;
+      } else if (direction === "down" && index < items.length - 1) {
+        const newItems = [...items];
+        [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+        return newItems;
+      }
+      return items; 
+    }
+
+    for (let i = 0; i < items.length; i++) {
+       if (items[i].items) {
+           const nestedResult = moveItemRecursively(items[i].items!, targetId, direction);
+           if (nestedResult) {
+              const newItems = [...items];
+              newItems[i] = { ...newItems[i], items: nestedResult };
+              return newItems;
+           }
+       }
+    }
+    return null;
+  };
+
+  const handleMoveItem = (mainTopicId: string, targetId: string, direction: "up" | "down") => {
+    setTopicOptions(prev => prev.map(mt => {
+      if (mt.id !== mainTopicId) return mt;
+      const newSubTopics = moveItemRecursively(mt.subTopics, targetId, direction);
+      return {
+        ...mt,
+        subTopics: newSubTopics || mt.subTopics
+      };
+    }));
   };
 
   const toggleTopicExpanded = (id: string) => setExpandedTopics(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -534,6 +562,20 @@ function CreateCourseStep3Content() {
                     fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
                   }}
                 />
+             </div>
+          )}
+          {isParentIncluded && (
+             <div style={{ display: "flex", gap: "2px", opacity: 0.6, flexShrink: 0, marginLeft: "4px" }}>
+                 <button
+                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopicId, item.id, "up"); }}
+                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                   title="Move Up"
+                 ><ArrowUp size={12} /></button>
+                 <button
+                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopicId, item.id, "down"); }}
+                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                   title="Move Down"
+                 ><ArrowDown size={12} /></button>
              </div>
           )}
         </div>
@@ -944,6 +986,18 @@ function CreateCourseStep3Content() {
                                   />
                                 </div>
                               )}
+                              <div style={{ display: "flex", gap: "2px", opacity: 0.6, flexShrink: 0, marginLeft: "4px" }}>
+                                 <button
+                                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopic.id, subTopic.id, "up"); }}
+                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                                   title="Move Up"
+                                 ><ArrowUp size={12} /></button>
+                                 <button
+                                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopic.id, subTopic.id, "down"); }}
+                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                                   title="Move Down"
+                                 ><ArrowDown size={12} /></button>
+                              </div>
                             </div>
 
                             {/* Render children recursively */}
