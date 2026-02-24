@@ -6,6 +6,7 @@ import { ArrowRight, Upload, Calendar } from "lucide-react";
 import Image from "next/image";
 import styles from "./CreateCourseStep1.module.css";
 import { fetchCategories, CategorySummary } from "@/lib/categories";
+import { formatDisplayDate, parseDisplayDateToIso } from "@/lib/date-format";
 
 function CreateCourseStep1Content() {
   const router = useRouter();
@@ -49,7 +50,7 @@ function CreateCourseStep1Content() {
             setPrice(course.price || 0);
             setSalePrice(course.salePrice || null);
             setDuration(course.duration || "");
-            setCourseStartDate(course.courseStartDate ? course.courseStartDate.split("T")[0] : "");
+            setCourseStartDate(formatDisplayDate(course.courseStartDate));
             setIsFeatured(Boolean(course.isFeatured));
             setImagePreview(course.imageUrl || "");
           }
@@ -117,7 +118,7 @@ function CreateCourseStep1Content() {
           price: parseFloat(price.toString()),
           salePrice: salePrice ? parseFloat(salePrice.toString()) : null,
           duration: duration.trim(),
-          courseStartDate: courseStartDate ? new Date(courseStartDate).toISOString() : null,
+          courseStartDate: parseDisplayDateToIso(courseStartDate),
           imageUrl,
           isFeatured,
         }),
@@ -306,9 +307,11 @@ function CreateCourseStep1Content() {
               <div className={styles.dateInputWrapper}>
                 <Calendar size={20} />
                 <input
-                  type="date"
+                  type="text"
                   value={courseStartDate}
                   onChange={(e) => setCourseStartDate(e.target.value)}
+                  placeholder="dd/mm/yyyy"
+                  inputMode="numeric"
                   className={styles.dateInput}
                 />
               </div>
