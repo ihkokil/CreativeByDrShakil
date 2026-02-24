@@ -35,7 +35,7 @@ const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {
   const childrenSource = Array.isArray(raw.items) ? raw.items : Array.isArray(raw.children) ? raw.children : [];
   const children = childrenSource
     .map(buildNodeFromPayload)
-    .filter((node): node is BuilderCurriculumNode => Boolean(node));
+    .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
 
   return {
     id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createNodeId(type === 'folder' ? 'folder' : 'video'),
@@ -51,28 +51,30 @@ const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {
 };
 
 const buildCurriculumFromPayloadTopics = (topics: any[]): BuilderCurriculumNode[] => {
-  return topics
-    .map((topic) => {
-      const title = typeof topic.title === 'string' ? topic.title.trim() : '';
-      if (!title) {
-        return null;
-      }
+  const normalized: BuilderCurriculumNode[] = [];
 
-      const subTopicsSource = Array.isArray(topic.subTopics) ? topic.subTopics : [];
-      const children = subTopicsSource
-        .map(buildNodeFromPayload)
-        .filter((node): node is BuilderCurriculumNode => Boolean(node));
+  topics.forEach((topic) => {
+    const title = typeof topic.title === 'string' ? topic.title.trim() : '';
+    if (!title) {
+      return;
+    }
 
-      return {
-        id: typeof topic.id === 'string' && topic.id.trim() ? topic.id.trim() : createNodeId('main'),
-        title,
-        type: 'folder' as const,
-        releaseGroupId: null,
-        releaseAt: null,
-        children,
-      };
-    })
-    .filter((node): node is BuilderCurriculumNode => Boolean(node));
+    const subTopicsSource = Array.isArray(topic.subTopics) ? topic.subTopics : [];
+    const children = subTopicsSource
+      .map(buildNodeFromPayload)
+      .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
+
+    normalized.push({
+      id: typeof topic.id === 'string' && topic.id.trim() ? topic.id.trim() : createNodeId('main'),
+      title,
+      type: 'folder',
+      releaseGroupId: null,
+      releaseAt: null,
+      children,
+    });
+  });
+
+  return normalized;
 };
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
