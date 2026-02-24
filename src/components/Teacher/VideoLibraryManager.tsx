@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import styles from "./VideoLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, ChevronDown, ChevronRight, X, Loader2 } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document';
@@ -60,9 +60,10 @@ interface NodeProps {
     onAddFolder: (parentId: string) => void;
     onAddVideo: (parentId: string) => void;
     onDelete: (id: string) => void;
+    onMove: (id: string, direction: 'up' | 'down') => void;
 }
 
-const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodeProps) => {
+const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onMove }: NodeProps) => {
     const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
 
@@ -96,6 +97,8 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
                 </div>
 
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
+                    <button className={styles.actionBtn} onClick={() => onMove(node.id, 'up')} title="Move Up"><ArrowUp size={14} /></button>
+                    <button className={styles.actionBtn} onClick={() => onMove(node.id, 'down')} title="Move Down"><ArrowDown size={14} /></button>
                     {isFolder && (
                         <>
                             <button className={styles.actionBtn} onClick={() => onAddFolder(node.id)} title="Add Subfolder">
@@ -137,6 +140,7 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
                                 onAddFolder={onAddFolder}
                                 onAddVideo={onAddVideo}
                                 onDelete={onDelete}
+                                onMove={onMove}
                             />
                         ))}
                     </motion.div>
@@ -233,6 +237,20 @@ export default function VideoLibraryManager() {
             await fetchLibrary();
         } catch (err: any) {
             alert(err.message || 'Failed to delete item.');
+        }
+    };
+
+    const handleMoveItem = async (id: string, direction: 'up' | 'down') => {
+        try {
+            const res = await fetch('/api/teacher/video-library/reorder', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id, direction }),
+            });
+            if (!res.ok) throw new Error("Failed to reorder.");
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to move item.');
         }
     };
 
@@ -368,6 +386,20 @@ export default function VideoLibraryManager() {
                                     <div className={styles.rootActions}>
                                         <button
                                             className={styles.actionBtn}
+                                            title="Move Up"
+                                            onClick={(e) => { e.stopPropagation(); handleMoveItem(node.id, 'up'); }}
+                                        >
+                                            <ArrowUp size={14} />
+                                        </button>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title="Move Down"
+                                            onClick={(e) => { e.stopPropagation(); handleMoveItem(node.id, 'down'); }}
+                                        >
+                                            <ArrowDown size={14} />
+                                        </button>
+                                        <button
+                                            className={styles.actionBtn}
                                             title="Edit"
                                             onClick={(e) => e.stopPropagation()}
                                         >
@@ -432,6 +464,7 @@ export default function VideoLibraryManager() {
                                 onAddFolder={handleAddFolderClick}
                                 onAddVideo={handleAddVideoClick}
                                 onDelete={handleDeleteClick}
+                                onMove={handleMoveItem}
                             />
                         ))
                     )}
