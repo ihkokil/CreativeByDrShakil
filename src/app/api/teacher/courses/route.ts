@@ -3,13 +3,16 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, slugify } from '@/lib/teacher-course-builder';
+import { COURSES } from '@/constants/courses';
+
+const STATIC_COURSE_SLUGS = new Set(COURSES.map((course) => course.slug));
 
 const buildUniqueSlug = async (title: string) => {
   const base = slugify(title) || `course-${Date.now()}`;
   let slug = base;
   let counter = 2;
 
-  while (await prisma.course.findUnique({ where: { slug } })) {
+  while (STATIC_COURSE_SLUGS.has(slug) || (await prisma.course.findUnique({ where: { slug } }))) {
     slug = `${base}-${counter}`;
     counter += 1;
   }
