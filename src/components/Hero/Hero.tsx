@@ -2,81 +2,131 @@
 
 import { motion } from "framer-motion";
 import styles from "./Hero.module.css";
-import { ArrowRight, PlayCircle } from "lucide-react";
-
-import Link from "next/link";
+import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
 import Image from "next/image";
 
 export default function Hero() {
     const cards = [
-        { title: "BCPS Part I", color: "var(--primary)", delay: 0 },
-        { title: "FCPS Surgery", color: "var(--secondary)", delay: 0.1 },
-        { title: "Pediatrics", color: "var(--accent)", delay: 0.2 },
+        {
+            id: 1,
+            title: "FCPS Surgery Masterclass",
+            tag: "Best Seller",
+            x: -40, y: -60, rotate: -6,
+            scale: 1,
+            delay: 0.2
+        },
+        {
+            id: 2,
+            title: "Residency Entry Pack",
+            tag: "High Yield",
+            x: 60, y: 30, rotate: 4,
+            scale: 0.95,
+            delay: 0.4
+        },
+        {
+            id: 3,
+            title: "Cardiology Part II",
+            tag: "New",
+            x: -80, y: 120, rotate: -2,
+            scale: 0.9,
+            delay: 0.6
+        },
     ];
 
     return (
         <section className={styles.hero}>
-            <div className={styles.content}>
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                >
-                    <span className={styles.badge}>Next Exam Cycle: July 2026</span>
-                    <h1 className={styles.title}>
-                        Excellence in <br />
-                        <span className="gradient-text">Medical Education</span>
-                    </h1>
-                    <p className={styles.subtitle}>
-                        Empowering residency candidates with professional MCQ banks, mock tests, and simplified concepts for FCPS & residency exams.
-                    </p>
-                    <div className={styles.actions}>
-                        <button className={styles.primaryBtn}>
-                            Select Course <ArrowRight size={18} />
-                        </button>
-                        <button className={styles.secondaryBtn}>
-                            <PlayCircle size={18} /> Contact Us
-                        </button>
-                    </div>
-                </motion.div>
-            </div>
+            {/* Background Decorative Elements */}
+            <div className={styles.glow1}></div>
+            <div className={styles.glow2}></div>
 
-            <div className={styles.carouselContainer}>
-                <div className={styles.stack}>
-                    {cards.map((card, index) => (
-                        <motion.div
-                            key={index}
-                            className={`${styles.card} glass`}
-                            initial={{ opacity: 0, x: 100, rotate: index * 5 }}
-                            animate={{ opacity: 1, x: 0, rotate: index * -5 }}
-                            transition={{ delay: card.delay, duration: 0.8, ease: "easeOut" }}
-                            whileHover={{
-                                x: -50,
-                                rotate: 0,
-                                scale: 1.05,
-                                zIndex: 10,
-                                transition: { duration: 0.3 }
-                            }}
-                            style={{ zIndex: cards.length - index }}
-                        >
-                            <div className={styles.cardHeader} style={{ position: "relative", height: "140px" }}>
-                                <Image
-                                    src="/placeholder.svg"
-                                    alt={card.title}
-                                    fill
-                                    style={{ objectFit: "cover" }}
-                                />
+            <div className={styles.container}>
+                <div className={styles.content}>
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                    >
+                        <div className={styles.badge}>
+                            <span className={styles.pulse}></span>
+                            Admission Open for July 2026
+                        </div>
+
+                        <h1 className={styles.title}>
+                            Transform Your <br />
+                            <span className="gradient-text">Medical Career</span>
+                        </h1>
+
+                        <p className={styles.description}>
+                            Join the most elite academy for FCPS and Residency prep. Our case-based approach and high-yield MCQ banks are designed by senior consultants to ensure your success.
+                        </p>
+
+                        <div className={styles.ctaGroup}>
+                            <button className={styles.primaryBtn}>
+                                Explore Courses <ArrowRight size={20} />
+                            </button>
+                            <button className={styles.secondaryBtn}>
+                                <MessageCircle size={20} /> Contact Us
+                            </button>
+                        </div>
+
+                        <div className={styles.socialProof}>
+                            <div className={styles.avatars}>
+                                {[1, 2, 3, 4].map((i) => (
+                                    <div key={i} className={styles.avatar}>
+                                        <Image src="/placeholder.svg" alt="Student" fill />
+                                    </div>
+                                ))}
+                                <div className={styles.avatarPlus}>+2k</div>
                             </div>
-                            <div className={styles.cardBody}>
-                                <h3>{card.title}</h3>
-                                <p>Latest high-yield question paper included.</p>
-                                <div className={styles.cardFooter}>
-                                    <span>4.9 ★</span>
-                                    <span>1200+ Students</span>
+                            <div className={styles.proofText}>
+                                <div className={styles.stars}>
+                                    {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={14} fill="currentColor" />)}
                                 </div>
+                                <span>Trusted by 2,000+ Doctors</span>
                             </div>
-                        </motion.div>
-                    ))}
+                        </div>
+                    </motion.div>
+                </div>
+
+                <div className={styles.visualSide}>
+                    <div className={styles.floatingGrid}>
+                        {cards.map((card) => (
+                            <motion.div
+                                key={card.id}
+                                className={`${styles.floatingCard} glass`}
+                                initial={{ opacity: 0, scale: 0.5, x: 0, y: 0 }}
+                                animate={{
+                                    opacity: 1,
+                                    scale: card.scale,
+                                    x: card.x,
+                                    y: card.y,
+                                    rotate: card.rotate
+                                }}
+                                transition={{
+                                    delay: card.delay,
+                                    duration: 1,
+                                    ease: "backOut"
+                                }}
+                                whileHover={{
+                                    scale: card.scale + 0.05,
+                                    y: card.y - 10,
+                                    rotate: 0,
+                                    zIndex: 20,
+                                    transition: { duration: 0.3 }
+                                }}
+                            >
+                                <div className={styles.cardTag}>{card.tag}</div>
+                                <div className={styles.cardImage}>
+                                    <Image src="/placeholder.svg" alt={card.title} fill />
+                                </div>
+                                <div className={styles.cardTitle}>{card.title}</div>
+                                <div className={styles.cardStats}>
+                                    <span><Users size={12} /> 400+</span>
+                                    <span className={styles.rating}>4.9/5</span>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </section>
