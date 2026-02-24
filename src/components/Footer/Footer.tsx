@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./Footer.module.css";
 import { Facebook, Twitter, Github, Mail } from "lucide-react";
 
@@ -8,7 +9,7 @@ export default function Footer() {
             <div className={styles.container}>
                 <div className={styles.brandSide}>
                     <div className={styles.logo}>
-                        <span className="gradient-text">Dr. Shakil's</span> Academy
+                        <Image src="/logo.png" alt="Dr. Shakil's Academy" width={180} height={50} className={styles.logoImg} />
                     </div>
                     <p className={styles.tagline}>
                         Excellence in medical post-graduate training and exam preparation.
