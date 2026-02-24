@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import Image from "next/image";
 import styles from "./CreateCourseStep3.module.css";
+import { formatDisplayDate } from "@/lib/date-format";
 
 interface CourseData {
   id: string;
@@ -171,7 +172,7 @@ function CreateCourseStep4Content() {
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>Start Date:</span>
                     <span className={styles.metaValue}>
-                      {new Date(course.courseStartDate).toLocaleDateString('en-GB')}
+                      {formatDisplayDate(course.courseStartDate)}
                     </span>
                   </div>
                 )}

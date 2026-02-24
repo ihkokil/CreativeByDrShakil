@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import styles from "./Upcoming.module.css";
 import { Calendar, UserCheck } from "lucide-react";
 import { COURSES } from "@/constants/courses";
+import { formatDisplayDate } from "@/lib/date-format";
 
 type FeaturedCourse = {
     title: string;
@@ -65,7 +66,7 @@ export default function Upcoming() {
     };
 
     const commencesLabel = course.courseStartDate
-        ? `Commencing: ${new Date(course.courseStartDate).toLocaleDateString('en-GB')}`
+        ? `Commencing: ${formatDisplayDate(course.courseStartDate)}`
         : "Commencing soon";
 
     return (

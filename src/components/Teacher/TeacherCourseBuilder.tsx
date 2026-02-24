@@ -9,6 +9,7 @@ import {
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 import styles from "./TeacherCourseBuilder.module.css";
 import { FolderPlus, Plus, Save, Trash2, UploadCloud, BookOpen, Calendar, Layers, FolderOpen, Video, Loader2 } from "lucide-react";
+import { formatDisplayDate } from "@/lib/date-format";
 
 interface TeacherCourseSummary {
     id: string;
@@ -680,7 +681,7 @@ export default function TeacherCourseBuilder() {
                                                 <div key={group.id} className={styles.groupRow}>
                                                     <div>
                                                         <strong>{group.mainTopicTitle} › {group.title}</strong>
-                                                        <p>{computedGroupDates[group.id] ? `Computed: ${new Date(computedGroupDates[group.id]).toLocaleString('en-GB')}` : "No date computed"}</p>
+                                                        <p>{computedGroupDates[group.id] ? `Computed: ${formatDisplayDate(computedGroupDates[group.id])}` : "No date computed"}</p>
                                                     </div>
                                                     <input
                                                         type="datetime-local"

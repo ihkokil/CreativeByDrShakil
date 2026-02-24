@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Plus, Trash2, Edit2 } from "lucide-react";
+import { BookOpen, Plus, Trash2, Edit2, Calendar, Users, Clock } from "lucide-react";
 import Image from "next/image";
 import styles from "./CoursesTab.module.css";
+import { formatDisplayDate } from "@/lib/date-format";
 
 interface CourseInstructor {
   id: string;
@@ -66,6 +67,8 @@ export default function CoursesTab() {
     if (status === "archived") return `${baseClass} ${styles.badgeArchived}`;
     return `${baseClass} ${styles.badgeDraft}`;
   };
+
+  const formatMoney = (value: number) => `৳${value.toLocaleString()}`;
 
   const handleEditCourse = (courseId: string) => {
     router.push(`/teacher/dashboard/courses/create?courseId=${courseId}`);
@@ -147,15 +150,25 @@ export default function CoursesTab() {
                 </div>
 
                 <div className={styles.cardBody}>
+                  <div className={styles.cardTopRow}>
+                    <span className={styles.categoryPill}>{course.status}</span>
+                    {course.courseStartDate && (
+                      <span className={styles.startDate}>
+                        <Calendar size={14} />
+                        {formatDisplayDate(course.courseStartDate)}
+                      </span>
+                    )}
+                  </div>
+
                   <h3 className={styles.courseTitle}>{course.title}</h3>
 
                   <div className={styles.courseMeta}>
                     <span className={styles.metaItem}>
-                      Duration: <strong>{course.duration}</strong>
+                      <Clock size={14} /> Duration <strong>{course.duration}</strong>
                     </span>
                     {course.instructors.length > 0 && (
                       <span className={styles.metaItem}>
-                        Instructors: <strong>{course.instructors.length}</strong>
+                        <Users size={14} /> Instructors <strong>{course.instructors.length}</strong>
                       </span>
                     )}
                   </div>
@@ -166,11 +179,11 @@ export default function CoursesTab() {
                       <div className={styles.priceDisplay}>
                         {course.salePrice ? (
                           <>
-                            <span className={styles.salePrice}>৳{course.salePrice}</span>
-                            <span className={styles.originalPrice}>৳{course.price}</span>
+                            <span className={styles.salePrice}>{formatMoney(course.salePrice)}</span>
+                            <span className={styles.originalPrice}>{formatMoney(course.price)}</span>
                           </>
                         ) : (
-                          <span className={styles.price}>৳{course.price}</span>
+                          <span className={styles.price}>{formatMoney(course.price)}</span>
                         )}
                       </div>
                     </div>
