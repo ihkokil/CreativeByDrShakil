@@ -1,0 +1,310 @@
+.main {
+    min-height: 100vh;
+    background: var(--background);
+}
+
+.loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 140px 5% 100px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 60px;
+    gap: 40px;
+}
+
+.welcome h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: -2px;
+    margin-bottom: 10px;
+}
+
+.welcome p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+.stats {
+    display: flex;
+    gap: 20px;
+}
+
+.statCard {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    padding: 20px 30px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-width: 180px;
+}
+
+.statIcon {
+    color: var(--primary);
+    size: 32px;
+}
+
+.statCard h3 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.statCard label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.dashboardGrid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 50px;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.sectionHeader h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+}
+
+.viewAll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.courseList {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.courseCard {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    overflow: hidden;
+    border-radius: 24px;
+}
+
+.courseThumb {
+    position: relative;
+    height: 180px;
+    cursor: pointer;
+}
+
+.playOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.courseThumb:hover .playOverlay {
+    opacity: 1;
+}
+
+.courseInfo {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.category {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.courseInfo h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+}
+
+.progressContainer {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.progressBar {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.courseMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.resumeBtn {
+    background: var(--foreground);
+    color: var(--background);
+    padding: 8px 24px;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.sidebarCard {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    padding: 30px;
+    border-radius: 24px;
+}
+
+.sidebarCard h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+}
+
+.examList {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.examItem {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.date {
+    background: var(--glass-border);
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.examTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.sidebarBtn {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    color: var(--foreground);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sidebarBtn:hover {
+    background: var(--glass-border);
+}
+
+.blueCard {
+    background: var(--primary);
+    border: none;
+    color: white;
+}
+
+.blueCard h3 {
+    color: white;
+}
+
+.blueCard p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.supportBtn {
+    width: 100%;
+    padding: 14px;
+    background: white;
+    color: var(--primary);
+    border: none;
+    border-radius: 14px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+    .dashboardGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .courseCard {
+        grid-template-columns: 1fr;
+    }
+
+    .courseThumb {
+        height: 160px;
+    }
+
+    .welcome h1 {
+        font-size: 2.2rem;
+    }
+}
