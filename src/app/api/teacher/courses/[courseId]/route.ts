@@ -8,6 +8,9 @@ import {
   parseReleaseGroupDateMap,
   slugify,
 } from '@/lib/teacher-course-builder';
+import { COURSES } from '@/constants/courses';
+
+const STATIC_COURSE_SLUGS = new Set(COURSES.map((course) => course.slug));
 
 const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   const base = slugify(title) || `course-${Date.now()}`;
@@ -15,6 +18,12 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   let counter = 2;
 
   while (true) {
+    if (STATIC_COURSE_SLUGS.has(slug)) {
+      slug = `${base}-${counter}`;
+      counter += 1;
+      continue;
+    }
+
     const found = await prisma.course.findUnique({ where: { slug }, select: { id: true } });
     if (!found || found.id === currentCourseId) {
       return slug;
@@ -105,7 +114,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (typeof body.description === 'string') updateData.description = body.description.trim() || existingCourse.description;
-    if (typeof body.category === 'string') updateData.category = body.category.trim() || null;
+    if (typeof body.categoryId === 'string') {
+      updateData.categoryId = body.categoryId.trim() || null;
+    } else if (typeof body.category === 'string') {
+      updateData.categoryId = body.category.trim() || null;
+    }
     if (typeof body.duration === 'string') updateData.duration = body.duration.trim() || existingCourse.duration;
     if (typeof body.language === 'string') updateData.language = body.language.trim() || null;
     if (typeof body.level === 'string') updateData.level = body.level.trim() || null;
