@@ -16,6 +16,7 @@ export interface BuilderCurriculumNode {
 export interface BuilderNodeWithAvailability extends BuilderCurriculumNode {
   availableAt?: string | null;
   locked?: boolean;
+  completed?: boolean;
   children?: BuilderNodeWithAvailability[];
 }
 

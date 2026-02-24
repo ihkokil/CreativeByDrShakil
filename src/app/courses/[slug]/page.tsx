@@ -165,6 +165,10 @@ export default function CourseDetailPage() {
         price: normalizePrice(displayCourse.price),
     };
 
+    const instructorList = [displayCourse.mainInstructor, ...(displayCourse.subInstructors || [])].filter(
+        (instructor, index, list) => list.findIndex((candidate) => candidate.name === instructor.name) === index
+    );
+
     return (
         <main className={styles.main}>
             <Navbar />
@@ -300,20 +304,24 @@ export default function CourseDetailPage() {
 
                     {/* Instructor */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>Instructor</h2>
-                        <div className={styles.instructorCard}>
-                            <Image 
-                                src={displayCourse.mainInstructor.image || "/placeholder.svg"} 
-                                alt={displayCourse.mainInstructor.name}
-                                width={80}
-                                height={80}
-                                className={styles.instructorImage}
-                                unoptimized
-                            />
-                            <div className={styles.instructorInfo}>
-                                <h3>{displayCourse.mainInstructor.name}</h3>
-                                <p className={styles.instructorRole}>{displayCourse.mainInstructor.role}</p>
-                            </div>
+                        <h2 className={styles.sectionTitle}>{instructorList.length > 1 ? "Instructors" : "Instructor"}</h2>
+                        <div className={styles.instructorsGrid}>
+                            {instructorList.map((instructor) => (
+                                <div key={`${displayCourse.id}-${instructor.name}`} className={styles.instructorCard}>
+                                    <Image 
+                                        src={instructor.image || "/placeholder.svg"} 
+                                        alt={instructor.name}
+                                        width={80}
+                                        height={80}
+                                        className={styles.instructorImage}
+                                        unoptimized
+                                    />
+                                    <div className={styles.instructorInfo}>
+                                        <h3>{instructor.name}</h3>
+                                        <p className={styles.instructorRole}>{instructor.role}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </section>
                 </div>

@@ -239,6 +239,12 @@
     align-items: center;
 }
 
+.instructorsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
 .instructorImage {
     width: 80px;
     height: 80px;

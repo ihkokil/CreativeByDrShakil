@@ -3,12 +3,24 @@ import prisma from '@/lib/prisma';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
+  BuilderNodeWithAvailability,
   collectSecondChildGroups,
   computeReleaseGroupDates,
   ensureGroupInheritance,
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
+
+const annotateCompletion = (
+  nodes: BuilderNodeWithAvailability[],
+  completedSet: Set<string>
+): BuilderNodeWithAvailability[] => {
+  return nodes.map((node) => ({
+    ...node,
+    ...(node.type !== 'folder' ? { completed: completedSet.has(node.id) } : {}),
+    children: node.children?.length ? annotateCompletion(node.children, completedSet) : node.children,
+  }));
+};
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -76,13 +88,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       new Date()
     );
 
+    const completedRows = await prisma.lessonProgress.findMany({
+      where: {
+        userId: payload.sub,
+        courseId: course.id,
+      },
+      select: {
+        lessonNodeId: true,
+      },
+    });
+    const completedSet = new Set(completedRows.map((row) => row.lessonNodeId));
+    const curriculumWithProgress = annotateCompletion(curriculumWithAvailability, completedSet);
+
     return NextResponse.json({
       course: {
         id: course.id,
         title: course.title,
         timezone: course.timezone,
       },
-      curriculum: curriculumWithAvailability,
+      curriculum: curriculumWithProgress,
       groups,
       computedReleaseGroupDates,
     });
