@@ -134,6 +134,7 @@ export default function CoursesTab() {
                       alt={course.title}
                       fill
                       className={styles.image}
+                      unoptimized
                     />
                   ) : (
                     <div className={styles.placeholderImage}>
