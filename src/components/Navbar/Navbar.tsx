@@ -12,16 +12,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 
 export default function Navbar() {
-    const initialAuthParam = typeof window !== "undefined"
-        ? new URLSearchParams(window.location.search).get("auth")
-        : null;
     const [scrolled, setScrolled] = useState(false);
-    const [isAuthOpen, setIsAuthOpen] = useState(
-        initialAuthParam === "login" || initialAuthParam === "register"
-    );
-    const [authMode, setAuthMode] = useState<"login" | "register">(
-        initialAuthParam === "register" ? "register" : "login"
-    );
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [authMode, setAuthMode] = useState<"login" | "register">("login");
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [categories, setCategories] = useState<CategorySummary[]>([]);
     const { user, role, signOut } = useAuth();
@@ -42,6 +35,17 @@ export default function Navbar() {
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
+
+    useEffect(() => {
+        const authParam = typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search).get("auth")
+            : null;
+
+        if (authParam === "login" || authParam === "register") {
+            setAuthMode(authParam);
+            setIsAuthOpen(true);
+        }
+    }, [pathname]);
 
     useEffect(() => {
         let cancelled = false;
