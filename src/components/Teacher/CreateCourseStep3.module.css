@@ -326,6 +326,51 @@
   margin: 4px 0;
 }
 
+.helperText {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: 0 0 12px 0;
+}
+
+.selectionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.selectionCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--background);
+  cursor: pointer;
+}
+
+.selectionCard input {
+  margin-top: 4px;
+}
+
+.selectionCard strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--foreground);
+}
+
+.selectionCard p {
+  margin: 2px 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.emptyText {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .outcomesList {
   list-style: none;
   padding: 0;
