@@ -42,6 +42,12 @@ export async function GET(request: NextRequest) {
       include: {
         category: true,
         instructors: { orderBy: { sortOrder: 'asc' } },
+        _count: {
+          select: {
+            orders: true,
+            lessonProgress: true,
+          },
+        },
       },
     });
 
