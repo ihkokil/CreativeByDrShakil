@@ -2,25 +2,52 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import styles from "./Dashboard.module.css";
-import { BookOpen, Clock, Star, Trophy, ArrowRight, Play } from "lucide-react";
+import { BookOpen, Clock, Star, Trophy, ArrowRight, Play, User as UserIcon, Phone } from "lucide-react";
 import { motion } from "framer-motion";
 import { COURSES } from "@/constants/courses";
 import Image from "next/image";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 export default function StudentDashboard() {
     const { user, loading } = useAuth();
     const router = useRouter();
 
+    const [activeTab, setActiveTab] = useState<'overview' | 'profile'>('overview');
+    const [fullName, setFullName] = useState("");
+    const [phone, setPhone] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
     useEffect(() => {
         if (!loading && !user) {
             router.push("/");
+        } else if (user) {
+            setFullName(user.user_metadata?.full_name || "");
+            setPhone(user.user_metadata?.phone || "");
         }
     }, [user, loading, router]);
+
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSaving(true);
+        setMessage(null);
+        
+        const { error } = await supabase.auth.updateUser({
+            data: { full_name: fullName, phone: phone }
+        });
+        
+        if (error) {
+            setMessage({ type: 'error', text: error.message });
+        } else {
+            setMessage({ type: 'success', text: 'Profile updated successfully!' });
+        }
+        setSaving(false);
+    };
 
     if (loading || !user) {
         return <div className={styles.loader}>Loading Dashboard...</div>;
@@ -35,7 +62,7 @@ export default function StudentDashboard() {
             <div className={styles.container}>
                 <header className={styles.header}>
                     <div className={styles.welcome}>
-                        <h1>Welcome back, <span className="gradient-text">Doctor</span></h1>
+                        <h1>Welcome back, <span className="gradient-text">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Doctor'}</span></h1>
                         <p>You have 2 courses currently in progress. Keep up the momentum!</p>
                     </div>
                     <div className={styles.stats}>
@@ -56,7 +83,23 @@ export default function StudentDashboard() {
                     </div>
                 </header>
 
-                <div className={styles.dashboardGrid}>
+                <div className={styles.tabNav}>
+                    <button 
+                        className={`${styles.tabBtn} ${activeTab === 'overview' ? styles.activeTab : ''}`}
+                        onClick={() => setActiveTab('overview')}
+                    >
+                        Overview
+                    </button>
+                    <button 
+                        className={`${styles.tabBtn} ${activeTab === 'profile' ? styles.activeTab : ''}`}
+                        onClick={() => setActiveTab('profile')}
+                    >
+                        Profile Settings
+                    </button>
+                </div>
+
+                {activeTab === 'overview' ? (
+                    <div className={styles.dashboardGrid}>
                     {/* Left Column: My Courses */}
                     <section className={styles.myCourses}>
                         <div className={styles.sectionHeader}>
@@ -117,6 +160,60 @@ export default function StudentDashboard() {
                         </div>
                     </aside>
                 </div>
+                ) : (
+                    <div className={`${styles.profileSection} glass`}>
+                        <h2>Profile <span className="gradient-text">Settings</span></h2>
+                        <form className={styles.profileForm} onSubmit={handleUpdateProfile}>
+                            <div className={styles.formGroup}>
+                                <label>Full Name</label>
+                                <div className={styles.inputWrapper}>
+                                    <UserIcon size={18} className={styles.inputIcon} />
+                                    <input 
+                                        type="text" 
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        placeholder="Dr. John Doe"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label>Email Address</label>
+                                <div className={styles.inputWrapper}>
+                                    <input 
+                                        type="email" 
+                                        value={user?.email || ""}
+                                        disabled
+                                        className={styles.disabledInput}
+                                    />
+                                </div>
+                                <span className={styles.helpText}>Email cannot be changed directly.</span>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label>Phone Number</label>
+                                <div className={styles.inputWrapper}>
+                                    <Phone size={18} className={styles.inputIcon} />
+                                    <input 
+                                        type="tel" 
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="+1 234 567 890"
+                                    />
+                                </div>
+                            </div>
+
+                            {message && (
+                                <div className={`${styles.message} ${styles[message.type]}`}>
+                                    {message.text}
+                                </div>
+                            )}
+
+                            <button type="submit" className={styles.saveBtn} disabled={saving}>
+                                {saving ? "Saving..." : "Save Changes"}
+                            </button>
+                        </form>
+                    </div>
+                )}
             </div>
 
             <Footer />
