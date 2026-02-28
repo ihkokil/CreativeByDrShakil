@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
-import { getSession } from '@/lib/auth-server'
+import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getAuthPayload } from '@/lib/route-auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getSession()
-    if (!session?.user?.id) {
+    const payload = await getAuthPayload(request)
+    if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const orders = await prisma.order.findMany({
-      where: { userId: session.user.id },
+      where: { userId: payload.sub },
       include: { course: true, payment: true },
       orderBy: { createdAt: 'desc' },
     })
