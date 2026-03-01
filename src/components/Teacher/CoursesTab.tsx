@@ -24,6 +24,10 @@ interface Course {
   duration: string;
   courseStartDate?: string;
   instructors: CourseInstructor[];
+  _count?: {
+    orders?: number;
+    lessonProgress?: number;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -169,6 +173,11 @@ export default function CoursesTab() {
                     {course.instructors.length > 0 && (
                       <span className={styles.metaItem}>
                         <Users size={14} /> Instructors <strong>{course.instructors.length}</strong>
+                      </span>
+                    )}
+                    {typeof course._count?.orders === "number" && (
+                      <span className={styles.metaItem}>
+                        <Users size={14} /> Students <strong>{course._count.orders}</strong>
                       </span>
                     )}
                   </div>
