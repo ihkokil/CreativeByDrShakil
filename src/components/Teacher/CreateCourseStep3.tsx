@@ -58,6 +58,10 @@ function CreateCourseStep3Content() {
   // Custom topic creation
   const [showCreateTopic, setShowCreateTopic] = useState(false);
   const [newTopicTitle, setNewTopicTitle] = useState("");
+  const [newTopicVideos, setNewTopicVideos] = useState<{ title: string; url: string; type: "youtube" | "self-hosted" }[]>([]);
+  const [newVideoTitle, setNewVideoTitle] = useState("");
+  const [newVideoUrl, setNewVideoUrl] = useState("");
+  const [newVideoType, setNewVideoType] = useState<"youtube" | "self-hosted">("youtube");
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("auth_token");
@@ -67,47 +71,70 @@ function CreateCourseStep3Content() {
     };
   };
 
+  // Recursively collect all videos from a folder and its subfolders
+  const collectVideosRecursively = (nodes: LibraryNode[], parentId: string): StarterVideo[] => {
+    const videos: StarterVideo[] = [];
+    const children = nodes.filter(n => n.parentId === parentId);
+    
+    children.forEach(child => {
+      if (child.type !== "folder") {
+        videos.push({
+          title: child.title,
+          url: child.url || "",
+        });
+      } else {
+        // Recursively get videos from subfolders
+        videos.push(...collectVideosRecursively(nodes, child.id));
+      }
+    });
+    
+    return videos;
+  };
+
+  // Recursively build subtopics from nested folder structure
+  const buildSubTopicsRecursively = (nodes: LibraryNode[], parentId: string): StarterSubTopic[] => {
+    const children = nodes.filter(n => n.parentId === parentId && n.type === "folder");
+    const subTopics: StarterSubTopic[] = [];
+    
+    children.forEach(folder => {
+      const allVideos = collectVideosRecursively(nodes, folder.id);
+      subTopics.push({
+        id: folder.id,
+        title: folder.title,
+        videos: allVideos,
+        forceFolder: true,
+      });
+    });
+    
+    return subTopics;
+  };
+
   // Convert flat video library nodes into hierarchical structure
   const buildHierarchyFromLibraryNodes = (nodes: LibraryNode[]): StarterMainTopic[] => {
     const topLevelFolders = nodes.filter(n => !n.parentId && n.type === "folder");
     
     return topLevelFolders.map(folder => {
-      const childNodes = nodes.filter(n => n.parentId === folder.id);
-      const subFolders = childNodes.filter(n => n.type === "folder");
+      const subTopics = buildSubTopicsRecursively(nodes, folder.id);
       
-      const subTopics: StarterSubTopic[] = subFolders.map(subFolder => {
-        const videos: StarterVideo[] = nodes
-          .filter(n => n.parentId === subFolder.id && n.type !== "folder")
-          .map(v => ({
-            title: v.title,
-            url: v.url || "",
-          }));
-        
-        return {
-          id: subFolder.id,
-          title: subFolder.title,
-          videos,
-          forceFolder: true,
-        };
-      });
-      
-      // Also include direct child videos in the first subtopic
-      const directVideos: StarterVideo[] = childNodes
-        .filter(n => n.type !== "folder")
-        .map(v => ({
-          title: v.title,
-          url: v.url || "",
-        }));
-      
-      if (directVideos.length > 0 && subTopics.length === 0) {
-        subTopics.push({
-          id: `${folder.id}_root`,
-          title: folder.title,
-          videos: directVideos,
-          forceFolder: true,
+      // Also include direct child videos (not in any subfolder)
+      const directVideos = collectVideosRecursively(nodes, folder.id)
+        .filter(v => {
+          // Only include videos that are direct children, not nested
+          const directChildren = nodes.filter(n => n.parentId === folder.id && n.type !== "folder");
+          return directChildren.some(dc => dc.title === v.title);
         });
-      } else if (directVideos.length > 0) {
-        subTopics[0].videos.unshift(...directVideos);
+      
+      if (directVideos.length > 0) {
+        if (subTopics.length === 0) {
+          subTopics.push({
+            id: `${folder.id}_root`,
+            title: folder.title,
+            videos: directVideos,
+            forceFolder: true,
+          });
+        } else {
+          subTopics[0].videos.unshift(...directVideos);
+        }
       }
       
       return {
@@ -226,12 +253,18 @@ function CreateCourseStep3Content() {
 
         // Fetch full catalog with verbose=1
         const topicsResponse = await fetch("/api/teacher/starter-catalog?verbose=1", { headers });
-        const starterTopics: StarterMainTopic[] = [];
+        const allTopics: StarterMainTopic[] = [];
+        const seenIds = new Set<string>();
         
         if (topicsResponse.ok) {
           const topicData = await topicsResponse.json();
           const topics = Array.isArray(topicData.topics) ? topicData.topics : [];
-          starterTopics.push(...topics.map((t: any) => ({ ...t, source: "starter" })));
+          topics.forEach((t: any) => {
+            if (!seenIds.has(t.id)) {
+              allTopics.push({ ...t, source: "starter" });
+              seenIds.add(t.id);
+            }
+          });
         }
 
         // Fetch video library and build hierarchy
@@ -240,10 +273,15 @@ function CreateCourseStep3Content() {
           const videoData = await videoResponse.json();
           const nodes: LibraryNode[] = Array.isArray(videoData.nodes) ? videoData.nodes : [];
           const libraryTopics = buildHierarchyFromLibraryNodes(nodes);
-          starterTopics.push(...libraryTopics);
+          libraryTopics.forEach(lt => {
+            if (!seenIds.has(lt.id)) {
+              allTopics.push(lt);
+              seenIds.add(lt.id);
+            }
+          });
         }
 
-        setTopicOptions(starterTopics);
+        setTopicOptions(allTopics);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load course");
@@ -255,6 +293,17 @@ function CreateCourseStep3Content() {
     initStep();
   }, [courseId]);
 
+  const handleAddVideoToCustomTopic = () => {
+    if (!newVideoTitle.trim() || !newVideoUrl.trim()) return;
+    setNewTopicVideos(prev => [...prev, {
+      title: newVideoTitle,
+      url: newVideoUrl,
+      type: newVideoType,
+    }]);
+    setNewVideoTitle("");
+    setNewVideoUrl("");
+  };
+
   const handleCreateCustomTopic = () => {
     if (!newTopicTitle.trim()) return;
     
@@ -265,7 +314,7 @@ function CreateCourseStep3Content() {
         {
           id: `custom_sub_${Date.now()}`,
           title: newTopicTitle,
-          videos: [],
+          videos: newTopicVideos,
           forceFolder: true,
         }
       ],
@@ -274,7 +323,16 @@ function CreateCourseStep3Content() {
     
     setTopicOptions(prev => [...prev, customTopic]);
     setNewTopicTitle("");
+    setNewTopicVideos([]);
     setShowCreateTopic(false);
+  };
+
+  const handleResetCustomTopic = () => {
+    setShowCreateTopic(false);
+    setNewTopicTitle("");
+    setNewTopicVideos([]);
+    setNewVideoTitle("");
+    setNewVideoUrl("");
   };
 
   const handleSaveAndContinue = async () => {
@@ -340,24 +398,23 @@ function CreateCourseStep3Content() {
         {/* Publish Schedule Config */}
         <div className={styles.contentCard}>
           <h2 className={styles.contentTitle}>Publish Schedule</h2>
-          <p className={styles.helperText}>Set when your modules will be released. Start date is set to your course start date.</p>
+          <p className={styles.helperText}>Set when your modules will be released. Start date is from your course settings in Step 1.</p>
           
           <div style={{ marginBottom: "16px" }}>
             <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "8px" }}>Start Date</label>
-            <input
-              type="date"
-              value={publishStartDate}
-              onChange={(e) => setPublishStartDate(e.target.value)}
+            <div
               style={{
                 padding: "10px 12px",
                 border: "1px solid var(--glass-border)",
                 borderRadius: "8px",
-                background: "var(--background)",
+                background: "var(--glass-bg, rgba(255,255,255,0.05))",
                 color: "var(--foreground)",
                 fontSize: "0.95rem",
                 width: "100%",
               }}
-            />
+            >
+              {publishStartDate ? new Date(publishStartDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "Not set"}
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
@@ -475,66 +532,179 @@ function CreateCourseStep3Content() {
 
           {showCreateTopic && (
             <div style={{
-              padding: "12px 14px",
+              padding: "14px",
               background: "rgba(var(--primary-rgb), 0.05)",
               border: "1px solid var(--glass-border)",
               borderRadius: "8px",
               marginBottom: "16px",
               display: "flex",
-              gap: "8px",
+              flexDirection: "column",
+              gap: "12px",
             }}>
-              <input
-                type="text"
-                placeholder="Module name..."
-                value={newTopicTitle}
-                onChange={(e) => setNewTopicTitle(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") handleCreateCustomTopic();
-                }}
-                style={{
-                  flex: 1,
-                  padding: "8px 10px",
-                  border: "1px solid var(--glass-border)",
-                  borderRadius: "6px",
-                  background: "var(--background)",
-                  color: "var(--foreground)",
-                  fontSize: "0.9rem",
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleCreateCustomTopic}
-                style={{
-                  padding: "8px 16px",
-                  background: "var(--primary)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "0.9rem",
-                  fontWeight: "600",
-                }}
-              >
-                Create
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateTopic(false);
-                  setNewTopicTitle("");
-                }}
-                style={{
-                  padding: "8px 16px",
-                  background: "var(--glass-border)",
-                  color: "var(--foreground)",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontSize: "0.9rem",
-                }}
-              >
-                Cancel
-              </button>
+              <div>
+                <label style={{ fontSize: "0.85rem", fontWeight: "600", display: "block", marginBottom: "6px" }}>Module Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Introduction to TypeScript"
+                  value={newTopicTitle}
+                  onChange={(e) => setNewTopicTitle(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    border: "1px solid var(--glass-border)",
+                    borderRadius: "6px",
+                    background: "var(--background)",
+                    color: "var(--foreground)",
+                    fontSize: "0.9rem",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "0.85rem", fontWeight: "600", display: "block", marginBottom: "6px" }}>Add Videos/Content</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {newTopicVideos.map((video, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: "8px 10px",
+                        background: "var(--background)",
+                        border: "1px solid var(--glass-border)",
+                        borderRadius: "6px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: "600" }}>{video.title}</div>
+                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{video.type}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setNewTopicVideos(prev => prev.filter((_, i) => i !== idx))}
+                        style={{
+                          padding: "4px 8px",
+                          background: "transparent",
+                          color: "var(--text-muted)",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr auto", gap: "8px", alignItems: "flex-end" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Title</label>
+                      <input
+                        type="text"
+                        placeholder="Video title"
+                        value={newVideoTitle}
+                        onChange={(e) => setNewVideoTitle(e.target.value)}
+                        style={{
+                          padding: "6px 8px",
+                          border: "1px solid var(--glass-border)",
+                          borderRadius: "4px",
+                          background: "var(--background)",
+                          color: "var(--foreground)",
+                          fontSize: "0.8rem",
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Type</label>
+                      <select
+                        value={newVideoType}
+                        onChange={(e) => setNewVideoType(e.target.value as "youtube" | "self-hosted")}
+                        style={{
+                          padding: "6px 8px",
+                          border: "1px solid var(--glass-border)",
+                          borderRadius: "4px",
+                          background: "var(--background)",
+                          color: "var(--foreground)",
+                          fontSize: "0.8rem",
+                        }}
+                      >
+                        <option value="youtube">YouTube</option>
+                        <option value="self-hosted">Self-Hosted</option>
+                      </select>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>URL</label>
+                      <input
+                        type="text"
+                        placeholder="Video URL"
+                        value={newVideoUrl}
+                        onChange={(e) => setNewVideoUrl(e.target.value)}
+                        style={{
+                          padding: "6px 8px",
+                          border: "1px solid var(--glass-border)",
+                          borderRadius: "4px",
+                          background: "var(--background)",
+                          color: "var(--foreground)",
+                          fontSize: "0.8rem",
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddVideoToCustomTopic}
+                      style={{
+                        padding: "6px 10px",
+                        background: "var(--primary)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "0.8rem",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  onClick={handleResetCustomTopic}
+                  style={{
+                    padding: "8px 16px",
+                    background: "var(--glass-border)",
+                    color: "var(--foreground)",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateCustomTopic}
+                  disabled={!newTopicTitle.trim()}
+                  style={{
+                    padding: "8px 16px",
+                    background: newTopicTitle.trim() ? "var(--primary)" : "var(--text-muted)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: newTopicTitle.trim() ? "pointer" : "not-allowed",
+                    fontSize: "0.9rem",
+                    fontWeight: "600",
+                  }}
+                >
+                  Create Module
+                </button>
+              </div>
             </div>
           )}
 
