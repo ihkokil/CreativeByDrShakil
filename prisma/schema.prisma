@@ -25,6 +25,7 @@ enum CourseReleaseMode {
   fixed_interval
   groups_per_week
   explicit_dates
+  instant
 }
 
 enum ContactIssueType {
@@ -133,6 +134,24 @@ model LessonProgress {
   @@unique([userId, courseId, lessonNodeId])
   @@index([userId, courseId])
   @@index([courseId])
+}
+
+model StudentModuleAvailability {
+  id               String   @id @default(cuid())
+  courseId         String
+  userId           String
+  lessonNodeId     String
+  availabilityMode String   @default("available")
+  availableAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId, lessonNodeId])
+  @@index([courseId, userId])
+  @@index([courseId, lessonNodeId])
 }
 
 model CourseInstructor {

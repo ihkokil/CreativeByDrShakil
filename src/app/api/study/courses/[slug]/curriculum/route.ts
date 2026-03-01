@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -10,6 +11,12 @@ import {
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
+
+type OverrideRow = {
+  lessonNodeId: string;
+  availabilityMode: 'inherit' | 'available' | 'locked';
+  availableAt: Date | string | null;
+};
 
 const annotateCompletion = (
   nodes: BuilderNodeWithAvailability[],
@@ -82,10 +89,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupDates,
     });
 
+    const overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
+      SELECT lessonNodeId, availabilityMode, availableAt
+      FROM StudentModuleAvailability
+      WHERE courseId = ${course.id} AND userId = ${payload.sub}
+    `);
+
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
       computedReleaseGroupDates,
-      new Date()
+      new Date(),
+      overrideRows.map((row) => ({
+        lessonNodeId: row.lessonNodeId,
+        availabilityMode: row.availabilityMode,
+        availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
+      }))
     );
 
     const completedRows = await prisma.lessonProgress.findMany({
