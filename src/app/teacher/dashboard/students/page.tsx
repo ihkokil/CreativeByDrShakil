@@ -74,9 +74,13 @@ type DraftAvailability = {
   availableAt: string;
 };
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem("auth_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 };
 
 const formatDateTime = (value?: string | null) => {
@@ -229,9 +233,7 @@ export default function TeacherStudentsPage() {
     setDraftAvailability((prev) => ({
       ...prev,
       [nodeId]: {
-        availabilityMode: prev[nodeId]?.availabilityMode || "inherit",
-        availableAt: prev[nodeId]?.availableAt || "",
-        ...prev[nodeId],
+        ...(prev[nodeId] || { availabilityMode: "inherit", availableAt: "" }),
         ...partial,
       },
     }));
