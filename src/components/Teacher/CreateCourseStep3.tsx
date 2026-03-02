@@ -243,6 +243,40 @@ function CreateCourseStep3Content() {
     return items;
   };
 
+  // Calculate global item index for a specific sub-topic video
+  const getVideoPublishDate = (mainTopicId: string, subTopicId: string, videoIndex: number): string => {
+    let globalIndex = 0;
+
+    for (const mainTopic of topicOptions) {
+      if (mainTopic.id === mainTopicId) {
+        // Found the main topic, now calculate index within it
+        for (const subTopic of mainTopic.subTopics) {
+          if (subTopic.id === subTopicId) {
+            // Found the sub-topic, add video index
+            globalIndex += videoIndex;
+            break;
+          }
+          // Count all videos in this sub-topic
+          if (selectedTopicIds.includes(subTopic.id)) {
+            globalIndex += subTopic.videos.length;
+          }
+        }
+        break;
+      }
+      // Count all items before this main topic
+      if (selectedTopicIds.includes(mainTopic.id)) {
+        mainTopic.subTopics.forEach(st => {
+          if (selectedTopicIds.includes(st.id)) {
+            globalIndex += st.videos.length;
+          }
+        });
+      }
+    }
+
+    const calculatedDate = calculatePublishDate(globalIndex).toISOString().split('T')[0];
+    return calculatedDate;
+  };
+
   useEffect(() => {
     if (!courseId) return;
 
@@ -858,31 +892,43 @@ function CreateCourseStep3Content() {
 
                             {hasVideos && isSubExpanded && (
                               <div style={{ paddingLeft: "36px", paddingRight: "12px", paddingBottom: "10px", paddingTop: "4px", display: "flex", flexDirection: "column", gap: "6px", borderTop: "1px solid var(--glass-border)" }}>
-                                {subTopic.videos.map((video, vidIdx) => (
-                                  <div
-                                    key={vidIdx}
-                                    style={{
-                                      padding: "8px 10px",
-                                      background: "rgba(0, 0, 0, 0.1)",
-                                      border: "1px solid var(--glass-border)",
-                                      borderRadius: "6px",
-                                      fontSize: "0.85rem",
-                                      display: "flex",
-                                      alignItems: "center",
-                                      gap: "8px",
-                                    }}
-                                  >
-                                    <FileText size={14} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div style={{ wordBreak: "break-word", fontWeight: "500" }}>{video.title}</div>
-                                      {video.url && (
-                                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
-                                          {video.url.length > 50 ? `${video.url.substring(0, 50)}...` : video.url}
+                                {subTopic.videos.map((video, vidIdx) => {
+                                  const videoPublishDate = isSelected ? getVideoPublishDate(mainTopic.id, subTopic.id, vidIdx) : "";
+                                  
+                                  return (
+                                    <div
+                                      key={vidIdx}
+                                      style={{
+                                        padding: "10px 12px",
+                                        background: "rgba(0, 0, 0, 0.1)",
+                                        border: "1px solid var(--glass-border)",
+                                        borderRadius: "6px",
+                                        fontSize: "0.85rem",
+                                        display: "flex",
+                                        alignItems: "flex-start",
+                                        gap: "10px",
+                                      }}
+                                    >
+                                      <FileText size={14} style={{ color: "var(--text-muted)", flexShrink: 0, marginTop: "2px" }} />
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ wordBreak: "break-word", fontWeight: "500", marginBottom: "3px" }}>{video.title}</div>
+                                        {video.url && (
+                                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
+                                            {video.url.length > 50 ? `${video.url.substring(0, 50)}...` : video.url}
+                                          </div>
+                                        )}
+                                      </div>
+                                      {isSelected && videoPublishDate && (
+                                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
+                                          <Calendar size={13} style={{ color: "var(--primary)" }} />
+                                          <span style={{ fontSize: "0.8rem", fontWeight: "600", color: "var(--primary)" }}>
+                                            {new Date(videoPublishDate).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })}
+                                          </span>
                                         </div>
                                       )}
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
