@@ -170,7 +170,33 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'lessonNodeId is required.' }, { status: 400 });
     }
 
-    const curriculumWithAvailability = buildAvailabilityCurriculum(result.course!);
+    const curriculum = ensureGroupInheritance(parseCurriculumJson(result.course!.curriculumJson));
+    const groups = collectSecondChildGroups(curriculum);
+    const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
+    const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
+      releaseMode: result.course!.releaseMode,
+      releaseStartAt: result.course!.releaseStartAt,
+      releaseIntervalDays: result.course!.releaseIntervalDays,
+      releaseGroupsPerWeek: result.course!.releaseGroupsPerWeek,
+      releaseGroupDates,
+    });
+
+    const overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
+      SELECT lessonNodeId, availabilityMode, availableAt
+      FROM StudentModuleAvailability
+      WHERE courseId = ${result.course!.id} AND userId = ${payload.sub}
+    `);
+
+    const curriculumWithAvailability = annotateCurriculumAvailability(
+      curriculum,
+      computedReleaseGroupDates,
+      new Date(),
+      overrideRows.map((row) => ({
+        lessonNodeId: row.lessonNodeId,
+        availabilityMode: row.availabilityMode,
+        availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
+      }))
+    );
     const playableNodes = collectPlayableNodes(curriculumWithAvailability);
     const lesson = playableNodes.get(lessonNodeId);
 
