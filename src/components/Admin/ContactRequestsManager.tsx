@@ -45,7 +45,7 @@ export default function ContactRequestsManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | ContactStatus>('all');
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState('');
   const [statusDraft, setStatusDraft] = useState<ContactStatus>('open');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -69,8 +69,8 @@ export default function ContactRequestsManager() {
       const normalized = Array.isArray(data?.submissions) ? data.submissions : [];
       setSubmissions(normalized);
 
-      if (!activeId && normalized.length > 0) {
-        setActiveId(normalized[0].id);
+      if (!selectedId && normalized.length > 0) {
+        setSelectedId(normalized[0].id);
       }
     } catch (error: any) {
       setMessage({ type: 'error', text: error?.message || 'Failed to load contact submissions.' });
@@ -90,27 +90,27 @@ export default function ContactRequestsManager() {
     return submissions.filter((submission) => statusFilter === 'all' || submission.status === statusFilter);
   }, [submissions, statusFilter]);
 
-  const activeSubmission = useMemo(
-    () => visibleSubmissions.find((submission) => submission.id === activeId) || visibleSubmissions[0] || null,
-    [visibleSubmissions, activeId]
+  const selectedSubmission = useMemo(
+    () => submissions.find((submission) => submission.id === selectedId) || null,
+    [submissions, selectedId]
   );
 
   useEffect(() => {
-    if (activeSubmission) {
-      setActiveId(activeSubmission.id);
-      setReplyDraft(activeSubmission.adminReply || '');
-      setStatusDraft(activeSubmission.status);
+    if (selectedSubmission) {
+      setSelectedId(selectedSubmission.id);
+      setReplyDraft(selectedSubmission.adminReply || '');
+      setStatusDraft(selectedSubmission.status);
     }
-  }, [activeSubmission?.id]);
+  }, [selectedSubmission?.id]);
 
   const updateSubmission = async () => {
-    if (!activeSubmission) return;
+    if (!selectedSubmission) return;
 
     setSaving(true);
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/contact-submissions/${activeSubmission.id}`, {
+      const response = await fetch(`/api/admin/contact-submissions/${selectedSubmission.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ export default function ContactRequestsManager() {
       setMessage({ type: 'success', text: 'Contact request updated successfully.' });
       setSubmissions((current) =>
         current.map((submission) =>
-          submission.id === activeSubmission.id
+          submission.id === selectedSubmission.id
             ? {
                 ...submission,
                 ...data.submission,
@@ -202,12 +202,12 @@ export default function ContactRequestsManager() {
             </div>
           ) : (
             visibleSubmissions.map((submission) => {
-              const isActive = submission.id === activeSubmission?.id;
+              const isSelected = submission.id === selectedSubmission?.id;
               return (
                 <button
                   key={submission.id}
-                  className={`${styles.listItem} ${isActive ? styles.listItemActive : ''}`}
-                  onClick={() => setActiveId(submission.id)}
+                  className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
+                  onClick={() => setSelectedId(submission.id)}
                 >
                   <div className={styles.listItemTop}>
                     <strong>{submission.fullName}</strong>
@@ -227,7 +227,7 @@ export default function ContactRequestsManager() {
         </div>
 
         <div className={styles.detailPane}>
-          {!activeSubmission ? (
+          {!selectedSubmission ? (
             <div className={styles.emptyDetail}>
               <AlertCircle size={18} />
               Select a request to view details.
@@ -237,28 +237,28 @@ export default function ContactRequestsManager() {
               <div className={styles.detailHeader}>
                 <div>
                   <p className={styles.kicker}>Request details</p>
-                  <h3>{activeSubmission.subject}</h3>
+                  <h3>{selectedSubmission.subject}</h3>
                 </div>
-                <span className={`${styles.statusBadge} ${styles[`status-${activeSubmission.status}`]}`}>
-                  {STATUS_OPTIONS.find((option) => option.value === activeSubmission.status)?.label || activeSubmission.status}
+                <span className={`${styles.statusBadge} ${styles[`status-${selectedSubmission.status}`]}`}>
+                  {STATUS_OPTIONS.find((option) => option.value === selectedSubmission.status)?.label || selectedSubmission.status}
                 </span>
               </div>
 
               <div className={styles.detailGrid}>
-                <div><span>Full name</span><strong>{activeSubmission.fullName}</strong></div>
-                <div><span>Email</span><strong>{activeSubmission.email}</strong></div>
-                <div><span>Phone</span><strong>{activeSubmission.phone}</strong></div>
-                <div><span>Issue</span><strong>{ISSUE_LABELS[activeSubmission.issueType]}</strong></div>
+                <div><span>Full name</span><strong>{selectedSubmission.fullName}</strong></div>
+                <div><span>Email</span><strong>{selectedSubmission.email}</strong></div>
+                <div><span>Phone</span><strong>{selectedSubmission.phone}</strong></div>
+                <div><span>Issue</span><strong>{ISSUE_LABELS[selectedSubmission.issueType]}</strong></div>
               </div>
 
               <div className={styles.messageBlock}>
                 <span>Message</span>
-                <p>{activeSubmission.message}</p>
+                <p>{selectedSubmission.message}</p>
               </div>
 
-              {activeSubmission.imageUrls.length > 0 && (
+              {selectedSubmission.imageUrls.length > 0 && (
                 <div className={styles.imageGrid}>
-                  {activeSubmission.imageUrls.map((imageUrl) => (
+                  {selectedSubmission.imageUrls.map((imageUrl) => (
                     <a key={imageUrl} href={imageUrl} target="_blank" rel="noreferrer" className={styles.imageCard}>
                       <img src={imageUrl} alt="Contact attachment" />
                     </a>
@@ -290,7 +290,7 @@ export default function ContactRequestsManager() {
               </div>
 
               <div className={styles.detailActions}>
-                <button className={styles.ghostBtn} onClick={() => setReplyDraft(activeSubmission.adminReply || '')} type="button">
+                <button className={styles.ghostBtn} onClick={() => setReplyDraft(selectedSubmission.adminReply || '')} type="button">
                   Reset
                 </button>
                 <button className={styles.primaryBtn} onClick={updateSubmission} disabled={saving} type="button">
@@ -300,10 +300,10 @@ export default function ContactRequestsManager() {
                 </button>
               </div>
 
-              {activeSubmission.adminReplySentAt && (
+              {selectedSubmission.adminReplySentAt && (
                 <div className={styles.replyMeta}>
                   <CheckCircle2 size={16} />
-                  Last replied at {new Date(activeSubmission.adminReplySentAt).toLocaleString('en-GB')}
+                  Last replied at {new Date(selectedSubmission.adminReplySentAt).toLocaleString('en-GB')}
                 </div>
               )}
             </>
