@@ -23,9 +23,16 @@ const buildUniqueSlug = async (title: string) => {
 
 export async function GET(request: NextRequest) {
   try {
-    const payload = await requireTeacherPayload(request);
+    let payload;
+    try {
+      payload = await requireTeacherPayload(request);
+    } catch (authError: any) {
+      console.error('Auth payload error:', authError);
+      return NextResponse.json({ error: 'Authentication failed.' }, { status: 401 });
+    }
+
     if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized. No valid teacher/admin token.' }, { status: 401 });
     }
 
     const requestedTeacherId = request.nextUrl.searchParams.get('teacherId');
@@ -36,20 +43,26 @@ export async function GET(request: NextRequest) {
           : {}
         : { teacherId: payload.sub };
 
-    const courses = await prisma.course.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        category: true,
-        instructors: { orderBy: { sortOrder: 'asc' } },
-        _count: {
-          select: {
-            orders: true,
-            lessonProgress: true,
+    let courses;
+    try {
+      courses = await prisma.course.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          category: true,
+          instructors: { orderBy: { sortOrder: 'asc' } },
+          _count: {
+            select: {
+              orders: true,
+              lessonProgress: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (prismaError: any) {
+      console.error('Prisma query error:', prismaError);
+      throw prismaError;
+    }
 
     return NextResponse.json({ courses });
   } catch (error: any) {
