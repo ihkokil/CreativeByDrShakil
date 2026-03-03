@@ -25,7 +25,7 @@ type CourseSummary = {
   imageUrl: string | null;
   category: { displayName: string } | null;
   instructors: Array<{ id: string; name: string; designation?: string | null }>;
-  _count: { orders: number; lessonProgress: number };
+  _count: { orders: number };
 };
 
 type StudentSummary = {
