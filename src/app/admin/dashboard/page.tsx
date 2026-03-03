@@ -34,6 +34,7 @@ import SessionsManager from "@/components/Admin/SessionsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
 import CategoryManager from "@/components/Admin/CategoryManager";
 import { AdminPaymentsList } from "@/components/Admin/PaymentsList";
+import BkashSettings from "@/components/Admin/BkashSettings";
 
 interface TeacherProfile {
     id: string;
@@ -367,11 +368,7 @@ function AdminDashboardContent() {
                 {activeTab === "settings" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Platform Settings</h2>
-                        <div className={styles.settingCards}>
-                            <article className={styles.settingCard}><h3>Email Templates</h3><p>Configure onboarding and notification templates.</p></article>
-                            <article className={styles.settingCard}><h3>Roles & Access</h3><p>Manage admin/teacher permissions and scopes.</p></article>
-                            <article className={styles.settingCard}><h3>Branding</h3><p>Control logo, colors, and platform metadata.</p></article>
-                        </div>
+                        <BkashSettings />
                     </section>
                 )}
             </DashboardShell>
