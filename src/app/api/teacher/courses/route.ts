@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ courses });
   } catch (error: any) {
+    console.error('GET /api/teacher/courses error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
@@ -141,6 +142,7 @@ export async function POST(request: NextRequest) {
       curriculum: parseCurriculumJson([]),
     });
   } catch (error: any) {
+    console.error('POST /api/teacher/courses error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
