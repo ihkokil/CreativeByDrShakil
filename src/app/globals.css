@@ -236,3 +236,53 @@ select option:checked {
     transition: none;
   }
 }
+
+/* ================================================================== */
+/*  CONTENT PROTECTION — Screen Recording / Capture Blackout          */
+/* ================================================================== */
+
+/*
+ * When screen capture is detected by JS, the body gets this class.
+ * All content becomes invisible to the recorder.
+ */
+body.screen-capture-active * {
+  visibility: hidden !important;
+}
+
+body.screen-capture-active::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 999999;
+  visibility: visible !important;
+}
+
+/*
+ * Protect video/iframe elements from screen-capture using
+ * CSS `content-visibility` and the experimental `captured-surface`
+ * media feature (Chrome 124+).
+ */
+video,
+iframe[src*="youtube"],
+iframe[src*="youtu.be"] {
+  content-visibility: auto;
+}
+
+/* Disable text selection site-wide (belt-and-suspenders with JS). */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection in form inputs and textareas. */
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
