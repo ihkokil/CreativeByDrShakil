@@ -1,221 +1,115 @@
 .main {
     min-height: 100vh;
     background: var(--background);
-    color: var(--foreground);
-}
-
-.hero {
-    background:
-        radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.2), transparent 45%),
-        linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(30, 64, 175, 0.12));
-    padding: 60px var(--layout-gutter-desktop);
-    border-bottom: 1px solid var(--glass-border);
-}
-
-.heroContent {
-    max-width: var(--layout-max-width);
-    width: 100%;
-    margin: 0 auto;
-}
-
-.category {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--primary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 15px;
-    display: inline-block;
-    padding: 6px 12px;
-    background: rgba(37, 99, 235, 0.1);
-    border-radius: 20px;
-}
-
-.title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    line-height: 1.2;
-}
-
-.meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    align-items: center;
-    color: var(--text-muted);
-    font-size: 0.95rem;
-}
-
-.metaItem {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.heroStats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 14px;
-    margin-top: 28px;
-}
-
-.heroStatCard {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    background: color-mix(in srgb, var(--card-bg) 84%, transparent);
-    border: 1px solid var(--glass-border);
-    border-radius: 14px;
-}
-
-.heroStatCard svg {
-    color: var(--primary);
-    flex-shrink: 0;
-}
-
-.heroStatCard span {
-    display: block;
-    color: var(--text-muted);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.heroStatCard strong {
-    display: block;
-    color: var(--foreground);
-    font-size: 0.95rem;
-    margin-top: 2px;
 }
 
 .container {
     max-width: var(--layout-max-width);
-    width: 100%;
-    margin: 40px auto;
-    padding: 0 var(--layout-gutter-desktop);
+    margin: 0 auto;
+    padding: 60px var(--layout-gutter-desktop) 100px;
     display: grid;
-    grid-template-columns: 1fr 350px;
-    gap: 40px;
-    align-items: start;
-}
-
-@media (max-width: 992px) {
-    .container {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-    .hero {
-        padding: 60px var(--layout-gutter-mobile);
-    }
-
-    .container {
-        padding: 0 var(--layout-gutter-mobile);
-    }
-.heroStats {
-    grid-template-columns: 1fr;
-}
+    grid-template-columns: 1fr 400px;
+    gap: 60px;
+    position: relative;
 }
 
 .leftContent {
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
+    min-width: 0; /* Prevent overflow */
 }
 
 .section {
-    background: var(--card-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 30px;
-    box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+    margin-bottom: 60px;
 }
 
 .sectionTitle {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 20px;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 24px;
     color: var(--foreground);
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .description {
+    font-size: 1.1rem;
     line-height: 1.7;
     color: var(--text-muted);
-    font-size: 1.05rem;
 }
 
 .objectivesList {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
     list-style: none;
     padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 }
 
 .objectiveItem {
     display: flex;
     align-items: flex-start;
     gap: 12px;
+    font-size: 1rem;
     color: var(--text-muted);
-    line-height: 1.5;
+    background: var(--surface-soft);
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
 }
 
 .checkIcon {
     color: var(--primary);
     flex-shrink: 0;
-    margin-top: 3px;
+    margin-top: 2px;
 }
 
+/* Fallback curriculum styles for static courses */
 .curriculum {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
 }
 
 .module {
     border: 1px solid var(--glass-border);
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
-    background: color-mix(in srgb, var(--card-bg) 90%, var(--background) 10%);
+    background: var(--surface-soft);
 }
 
 .moduleHeader {
-    padding: 20px;
+    padding: 20px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    background: color-mix(in srgb, var(--background) 86%, transparent);
-    transition: background 0.3s ease;
+    background: var(--surface-strong);
+    transition: var(--transition);
 }
 
 .moduleHeader:hover {
-    background: color-mix(in srgb, var(--background) 95%, transparent);
+    background: color-mix(in srgb, var(--primary) 10%, var(--surface-strong));
 }
 
 .moduleTitle {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1.1rem;
 }
 
 .lessonList {
     list-style: none;
     padding: 0;
-    margin: 0;
     border-top: 1px solid var(--glass-border);
 }
 
 .lessonItem {
-    padding: 15px 20px;
+    padding: 14px 24px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 70%, transparent);
-    color: var(--text-muted);
+    border-bottom: 1px solid var(--glass-border);
     font-size: 0.95rem;
+    color: var(--text-muted);
 }
 
 .lessonItem:last-child {
@@ -225,7 +119,7 @@
 .lessonTitle {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .playIcon {
@@ -233,183 +127,23 @@
     opacity: 0.8;
 }
 
-.instructorCard {
-    display: flex;
-    gap: 20px;
-    align-items: center;
+@media (max-width: 1100px) {
+    .container {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+    
+    .sidebarWrapper {
+        order: -1; /* Move sidebar to top on tablet/mobile if desired, but here we keep it after hero */
+    }
 }
 
-.instructorsGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 16px;
-}
-
-.instructorImage {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid var(--primary);
-}
-
-.instructorInfo h3 {
-    margin: 0 0 5px 0;
-    font-size: 1.2rem;
-}
-
-.instructorRole {
-    color: var(--primary);
-    font-size: 0.9rem;
-    margin: 0;
-}
-
-/* Right Sticky Sidebar */
-.sidebar {
-    position: sticky;
-    top: 100px;
-    background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 16px 40px rgba(2, 6, 23, 0.12);
-}
-
-.sidebarImageWrapper {
-    width: 100%;
-    height: 200px;
-    position: relative;
-    border-bottom: 1px solid var(--glass-border);
-}
-
-.sidebarImage {
-    object-fit: cover;
-}
-
-.sidebarContent {
-    padding: 30px;
-}
-
-.sidebarHighlights {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 22px;
-    padding: 16px;
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--background) 70%, transparent);
-    border: 1px solid var(--glass-border);
-}
-
-.sidebarHighlightItem {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    color: var(--text-muted);
-    font-size: 0.92rem;
-    line-height: 1.45;
-}
-
-.sidebarHighlightItem svg {
-    color: var(--primary);
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-.priceSection {
-    margin-bottom: 25px;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-}
-
-.originalPrice {
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    text-decoration: line-through;
-    opacity: 0.7;
-}
-
-.price {
-    font-size: 2.8rem;
-    font-weight: 800;
-    color: var(--foreground);
-    background: linear-gradient(to right, var(--foreground), var(--primary));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.enrollBtn {
-    width: 100%;
-    padding: 18px;
-    background: transparent;
-    color: var(--foreground);
-    border: 2px solid var(--primary);
-    border-radius: 12px;
-    font-size: 1.25rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-bottom: 25px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.enrollBtn:hover {
-    background: var(--primary);
-    color: white;
-    transform: translateY(-3px) scale(1.02);
-}
-
-.includesTitle {
-    margin-bottom: 15px;
-    color: var(--foreground);
-}
-
-.includesList {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.includesItem {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--text-muted);
-    font-size: 0.95rem;
-}
-
-.includesIcon {
-    color: var(--primary);
-}
-
-[data-theme='light'] .hero {
-    background:
-        radial-gradient(circle at 8% 18%, rgba(37, 99, 235, 0.14), transparent 48%),
-        linear-gradient(135deg, #f8fbff 0%, #edf4ff 52%, #f5f9ff 100%);
-}
-
-[data-theme='light'] .section,
-[data-theme='light'] .sidebar {
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-}
-
-[data-theme='light'] .moduleHeader {
-    background: #f8fafc;
-}
-
-[data-theme='light'] .moduleHeader:hover {
-    background: #eef2ff;
+@media (max-width: 768px) {
+    .objectivesList {
+        grid-template-columns: 1fr;
+    }
+    
+    .sectionTitle {
+        font-size: 1.5rem;
+    }
 }
