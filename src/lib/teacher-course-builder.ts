@@ -445,3 +445,7 @@ export function collectVideoNodes(nodes: BuilderCurriculumNode[]): BuilderCurric
   visit(nodes);
   return videos;
 }
+
+export function countLessons(nodes: BuilderCurriculumNode[]): number {
+  return collectVideoNodes(nodes).length;
+}
