@@ -428,7 +428,7 @@ export default function CourseDetailPage() {
                                     className={styles.enrollBtn}
                                     onClick={async () => {
                                         // Find first lesson node (not folder, not locked)
-                                        function findFirstLesson(nodes) {
+                                        function findFirstLesson(nodes: any[]): any {
                                             for (const node of nodes) {
                                                 if (node.type !== "folder" && !node.locked) return node;
                                                 if (node.children?.length) {
