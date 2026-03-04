@@ -1,0 +1,6 @@
+.yt-overlay {
+  /* Prevent text selection and pointer events */
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+}
