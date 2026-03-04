@@ -6,12 +6,12 @@
     left: 0;
     background: var(--glass);
     border-right: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     display: flex;
     flex-direction: column;
     padding: 20px 0;
-    transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: width var(--duration-base) var(--ease-premium);
     z-index: 1100;
     overflow: hidden;
     overflow-y: auto;
@@ -87,16 +87,16 @@
 .avatar {
     width: 48px;
     height: 48px;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     background: linear-gradient(135deg, var(--primary), var(--accent));
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-weight: 900;
+    font-weight: var(--weight-black);
     font-size: 1.4rem;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
-    transition: transform 0.2s;
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--primary) 30%, transparent);
+    transition: transform var(--duration-fast);
 }
 
 .sidebar.expanded .avatar {
@@ -116,8 +116,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
-    transition: all 0.2s;
+    border-radius: var(--radius-sm);
+    transition: all var(--duration-fast);
     flex-shrink: 0;
     width: 40px;
     height: 40px;
@@ -128,7 +128,7 @@
 }
 
 .toggleBtn:hover {
-    background: rgba(139, 92, 246, 0.1);
+    background: var(--surface-soft);
     color: var(--foreground);
 }
 
@@ -136,7 +136,7 @@
     margin-top: 15px;
     text-align: center;
     width: 100%;
-    animation: slideDown 0.35s ease-out;
+    animation: slideDown var(--duration-base) var(--ease-premium);
 }
 
 @keyframes slideDown {
@@ -151,18 +151,18 @@
 }
 
 .profileInfo h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: var(--text-large);
+    font-weight: var(--weight-bold);
     color: var(--foreground);
     margin: 0;
     word-break: break-word;
 }
 
 .role {
-    font-size: 0.8rem;
+    font-size: var(--text-tiny);
     color: var(--text-muted);
     margin-top: 4px;
-    font-weight: 500;
+    font-weight: var(--weight-medium);
 }
 
 /* Quick Stats Section */
@@ -172,16 +172,12 @@
     gap: 12px;
     padding: 0 15px;
     margin-bottom: 25px;
-    animation: fadeIn 0.35s ease-out;
+    animation: fadeIn var(--duration-base) var(--ease-premium);
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 .statItem {
@@ -189,15 +185,15 @@
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: rgba(139, 92, 246, 0.05);
-    border: 1px solid rgba(139, 92, 246, 0.1);
-    border-radius: 12px;
-    transition: all 0.2s;
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast);
 }
 
 .statItem:hover {
-    background: rgba(139, 92, 246, 0.1);
-    border-color: rgba(139, 92, 246, 0.2);
+    background: var(--surface-strong);
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .statIcon {
@@ -206,9 +202,9 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    border-radius: 8px;
-    background: rgba(139, 92, 246, 0.15);
-    color: #8b5cf6;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
     flex-shrink: 0;
 }
 
@@ -220,15 +216,15 @@
 }
 
 .statValue {
-    font-size: 1.1rem;
-    font-weight: 700;
+    font-size: var(--text-large);
+    font-weight: var(--weight-bold);
     color: var(--foreground);
 }
 
 .statLabel {
-    font-size: 0.7rem;
+    font-size: var(--text-tiny);
     color: var(--text-muted);
-    font-weight: 500;
+    font-weight: var(--weight-medium);
     white-space: nowrap;
 }
 
@@ -259,9 +255,9 @@
     border: none;
     color: var(--text-muted);
     padding: 12px 15px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: all var(--duration-fast) var(--ease-premium);
     text-align: left;
     justify-content: center;
     gap: 12px;
@@ -274,14 +270,24 @@
 }
 
 .navItem:hover {
-    background: rgba(139, 92, 246, 0.1);
+    background: var(--surface-soft);
     color: var(--foreground);
 }
 
 .navItem.active {
-    background: rgba(139, 92, 246, 0.15);
-    color: #8b5cf6;
-    font-weight: 600;
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    color: var(--primary);
+    font-weight: var(--weight-semibold);
+}
+
+.navItem.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    height: 20px;
+    width: 4px;
+    background: var(--primary);
+    border-radius: 0 4px 4px 0;
 }
 
 .icon {
@@ -291,7 +297,7 @@
     width: 24px;
     height: 24px;
     flex-shrink: 0;
-    transition: transform 0.2s;
+    transition: transform var(--duration-fast);
 }
 
 .navItem:hover .icon,
@@ -300,12 +306,11 @@
 }
 
 .label {
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: var(--text-small);
+    font-weight: var(--weight-semibold);
     white-space: nowrap;
     color: currentColor;
     display: none;
-    transition: opacity 0.35s, visibility 0.35s;
 }
 
 .sidebar.expanded .label {
@@ -324,11 +329,11 @@
     align-items: center;
     background: transparent;
     border: none;
-    color: #ef4444;
+    color: var(--error);
     padding: 12px 15px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background var(--duration-fast);
     text-align: left;
     justify-content: center;
     gap: 12px;
@@ -340,14 +345,13 @@
 }
 
 .navItemLogout:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #dc2626;
+    background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
 .navItemLogout .label {
     display: none;
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: var(--text-small);
+    font-weight: var(--weight-semibold);
     white-space: nowrap;
     color: currentColor;
 }
@@ -355,3 +359,4 @@
 .sidebar.expanded .navItemLogout .label {
     display: inline-block;
 }
+
