@@ -9,6 +9,7 @@ import {
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
+import { formatLastUpdated } from '@/lib/date-format';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -50,6 +51,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             displayName: true,
           },
         },
+        _count: {
+          select: { orders: true },
+        },
       },
     });
 
@@ -84,6 +88,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               displayName: true,
             },
           },
+          _count: {
+            select: { orders: true },
+          },
         },
       });
     }
@@ -102,6 +109,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
       releaseGroupDates,
     });
+
+    const lessonCount = countLessons(curriculum);
 
     return NextResponse.json({
       course: {
@@ -124,6 +133,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         releaseIntervalDays: course.releaseIntervalDays,
         releaseGroupsPerWeek: course.releaseGroupsPerWeek,
         publishedAt: course.publishedAt,
+        updatedAt: course.updatedAt,
+        lastUpdated: formatLastUpdated(course.updatedAt),
+        enrolledCount: course._count?.orders || 0,
+        lessonCount,
         instructors: course.instructors,
         mainInstructor: {
           id: course.teacher?.id || `teacher-${course.id}`,
@@ -137,7 +150,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupDates,
       computedReleaseGroupDates,
     });
+
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
+

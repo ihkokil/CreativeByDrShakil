@@ -25,6 +25,9 @@ interface DynamicCoursePayload {
   language?: string;
   image?: string | null;
   mainInstructor: DynamicInstructorPayload;
+  enrolledCount?: number;
+  lastUpdated?: string | null;
+  lessonCount?: number;
 }
 
 const normalizeInstructor = (payload: DynamicInstructorPayload): Instructor => ({
@@ -64,12 +67,16 @@ export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course 
     learningObjectives,
     level: payload.level,
     language: payload.language,
+    lastUpdated: payload.lastUpdated || undefined,
+    enrolledCount: payload.enrolledCount,
+    lessonCount: payload.lessonCount,
     image: payload.image || '/placeholder.svg',
     mainInstructor,
     subInstructors: additionalInstructors.length ? additionalInstructors : undefined,
     dynamicSource: true,
   };
 };
+
 
 export const mergeStaticAndDynamicCourses = (staticCourses: Course[], dynamicCourses: Course[]) => {
   const mergedBySlug = new Map<string, Course>();
