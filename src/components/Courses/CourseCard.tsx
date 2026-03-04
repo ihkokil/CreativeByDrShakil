@@ -43,7 +43,7 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
 
                 <div className={styles.meta}>
                     <div className={styles.metaItem}>
-                        <BookOpen size={14} /> 24 Lessons
+                        <BookOpen size={14} /> {course.lessonCount || 0} Lessons
                     </div>
                     <div className={styles.metaItem}>
                         <Clock size={14} /> {course.duration}
