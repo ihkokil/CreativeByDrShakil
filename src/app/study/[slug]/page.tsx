@@ -13,6 +13,7 @@ import Link from "next/link";
 import MCQSection from "@/components/Study/MCQSection";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { useParams } from "next/navigation";
+import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 
 const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
     for (const node of nodes) {
@@ -224,6 +225,28 @@ export default function StudyCoursePage() {
         return annotate(curriculum);
     }, [curriculum, completedLessonIds]);
 
+    // Auto-advance for YouTube videos using postMessage API
+    useEffect(() => {
+        if (!activeLesson || activeLesson.type !== "youtube" || !activeLesson.url) return;
+        const iframe = document.getElementById("study-youtube-iframe") as HTMLIFrameElement | null;
+        if (!iframe) return;
+        // Listen for YouTube player events
+        function onMessage(event: MessageEvent) {
+            if (!event.data || typeof event.data !== "object") return;
+            // YouTube IFrame API event
+            if (event.data.event === "onStateChange" && event.data.info === 0) {
+                // 0 = ended
+                if (nextLesson) setActiveLesson(nextLesson);
+            }
+        }
+        window.addEventListener("message", onMessage);
+        // Inject API if needed
+        iframe.contentWindow?.postMessage(JSON.stringify({ event: "listening" }), "*");
+        return () => {
+            window.removeEventListener("message", onMessage);
+        };
+    }, [activeLesson, nextLesson]);
+
     if (loading) {
         return <div className={styles.layout}>Loading study workspace...</div>;
     }
@@ -289,7 +312,8 @@ export default function StudyCoursePage() {
                     {progressError && (
                         <div style={{ marginBottom: "16px", color: "#ef4444", fontWeight: 600 }}>{progressError}</div>
                     )}
-                    <div className={styles.videoPlayer}>
+                    <div className={styles.videoPlayer} style={{ position: 'relative' }}>
+                        <VideoWatermark />
                         {activeLesson ? (
                             activeLesson.type === "youtube" && activeLesson.url ? (
                                 <iframe
@@ -301,6 +325,18 @@ export default function StudyCoursePage() {
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                     className={styles.iframePlayer}
+                                    id="study-youtube-iframe"
+                                />
+                            ) : activeLesson.type === "self-hosted" && activeLesson.url ? (
+                                <video
+                                    width="100%"
+                                    height="100%"
+                                    src={activeLesson.url}
+                                    controls
+                                    className={styles.iframePlayer}
+                                    onEnded={() => {
+                                        if (nextLesson) setActiveLesson(nextLesson);
+                                    }}
                                 />
                             ) : (
                                 <div className={styles.mockVideo}>

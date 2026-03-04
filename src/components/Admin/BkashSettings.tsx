@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import styles from './AdminDashboard.module.css'
+import styles from '@/app/admin/dashboard/AdminDashboard.module.css'
 
 interface BkashConfig {
   sendMoneyNumber: string
