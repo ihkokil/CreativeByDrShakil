@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar/Navbar";
-import SecureYouTubePlayer from '@/components/Course/SecureYouTubePlayer';
 import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
@@ -261,8 +260,6 @@ function AllCoursesContent() {
                             <p>Try adjusting your filters or search query.</p>
                         </div>
                     )}
-                    <h2>Demo: Secure YouTube Player</h2>
-                    <SecureYouTubePlayer videoId="dQw4w9WgXcQ" width={640} height={360} />
                 </div>
             </section>
 

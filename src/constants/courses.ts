@@ -32,6 +32,7 @@ export interface Course {
     lastUpdated?: string;
     image?: string;
     dynamicSource?: boolean;
+    lessonCount?: number;
 }
 
 export const INSTRUCTORS: Record<string, Instructor> = {
