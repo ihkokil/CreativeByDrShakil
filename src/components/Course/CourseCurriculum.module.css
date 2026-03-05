@@ -1,0 +1,72 @@
+.curriculumWrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.nodeContainer {
+    width: 100%;
+}
+
+.nodeBtn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--foreground);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s;
+}
+
+.nodeBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.activeNode {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border-left: 3px solid var(--primary);
+}
+
+.nodeLabel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.title {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.folderIcon {
+    color: #f59e0b;
+    /* yellow for folders */
+}
+
+.playIcon {
+    color: var(--primary);
+    opacity: 0.8;
+}
+
+.duration {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: auto;
+    padding-right: 15px;
+}
+
+.chevron {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+.childrenContainer {
+    overflow: hidden;
+}

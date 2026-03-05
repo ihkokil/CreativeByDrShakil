@@ -1,0 +1,110 @@
+import { useState } from "react";
+import styles from "./CourseCurriculum.module.css";
+import { ChevronDown, ChevronRight, PlayCircle, FolderOpen, Folder } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+export type ContentType = 'youtube' | 'self-hosted' | 'document';
+
+export interface CurriculumNode {
+    id: string;
+    title: string;
+    type: 'folder' | ContentType;
+    duration?: string;
+    url?: string;
+    children?: CurriculumNode[];
+}
+
+interface NodeProps {
+    node: CurriculumNode;
+    depth: number;
+    onVideoSelect: (node: CurriculumNode) => void;
+    activeNodeId?: string;
+}
+
+const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const isFolder = node.type === 'folder';
+    const isActive = node.id === activeNodeId;
+
+    const handleClick = () => {
+        if (isFolder) {
+            setIsOpen(!isOpen);
+        } else {
+            onVideoSelect(node);
+        }
+    };
+
+    return (
+        <div className={styles.nodeContainer}>
+            <button
+                className={`${styles.nodeBtn} ${isActive ? styles.activeNode : ''}`}
+                onClick={handleClick}
+                style={{ paddingLeft: `${depth * 20 + 15}px` }}
+            >
+                <div className={styles.nodeLabel}>
+                    {isFolder ? (
+                        <>
+                            {isOpen ? <FolderOpen size={16} className={styles.folderIcon} /> : <Folder size={16} className={styles.folderIcon} />}
+                            <span className={styles.title}>{node.title}</span>
+                        </>
+                    ) : (
+                        <>
+                            <PlayCircle size={16} className={styles.playIcon} />
+                            <span className={styles.title}>{node.title}</span>
+                            {node.duration && <span className={styles.duration}>{node.duration}</span>}
+                        </>
+                    )}
+                </div>
+                {isFolder && (
+                    <div className={styles.chevron}>
+                        {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </div>
+                )}
+            </button>
+
+            <AnimatePresence>
+                {isFolder && isOpen && node.children && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={styles.childrenContainer}
+                    >
+                        {node.children.map(child => (
+                            <CurriculumItem
+                                key={child.id}
+                                node={child}
+                                depth={depth + 1}
+                                onVideoSelect={onVideoSelect}
+                                activeNodeId={activeNodeId}
+                            />
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+interface Props {
+    data: CurriculumNode[];
+    onVideoSelect: (node: CurriculumNode) => void;
+    activeNodeId?: string;
+}
+
+export default function CourseCurriculum({ data, onVideoSelect, activeNodeId }: Props) {
+    return (
+        <div className={styles.curriculumWrapper}>
+            {data.map(node => (
+                <CurriculumItem
+                    key={node.id}
+                    node={node}
+                    depth={0}
+                    onVideoSelect={onVideoSelect}
+                    activeNodeId={activeNodeId}
+                />
+            ))}
+        </div>
+    );
+}
