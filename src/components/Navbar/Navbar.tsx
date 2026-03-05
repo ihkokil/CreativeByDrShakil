@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
-import { ChevronDown, User, LayoutGrid, LogOut, Layout, Users } from "lucide-react";
+import { ChevronDown, User, LayoutGrid, LogOut, Layout, Users, Shield } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
-    const { user, signOut } = useAuth();
+    const { user, role, signOut } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
@@ -50,7 +50,12 @@ export default function Navbar() {
 
                         {user ? (
                             <div className={styles.userSection}>
-                                <Link href="/dashboard" className={styles.dashboardLink}>
+                                {role === 'admin' && (
+                                    <Link href="/admin/dashboard" className={styles.dashboardLink} style={{ color: '#8b5cf6' }}>
+                                        <Shield size={18} /> Admin
+                                    </Link>
+                                )}
+                                <Link href="/dashboard" className={styles.dashboardLink} style={role === 'admin' ? { borderLeft: '1px solid var(--glass-border)', paddingLeft: '15px' } : {}}>
                                     <Layout size={18} /> Student
                                 </Link>
                                 <Link href="/teacher/dashboard" className={styles.dashboardLink} style={{ borderLeft: '1px solid var(--glass-border)', paddingLeft: '15px' }}>
