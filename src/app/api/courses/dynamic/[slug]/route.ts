@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import prisma from '@/lib/prisma';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
@@ -35,6 +36,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             profileImage: true,
           },
         },
+        category: {
+          select: {
+            displayName: true,
+          },
+        },
       },
     });
 
@@ -54,6 +60,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               designation: true,
               profileImage: true,
             },
+          },
+        },
+        category: {
+          select: {
+            displayName: true,
           },
         },
       });
@@ -79,14 +90,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: course.id,
         slug: course.slug,
         title: course.title,
-        category: course.categoryId ? course.categoryId : 'General',
+        category: course.category?.displayName || 'General',
         price: formatPrice(course.price),
         priceValue: course.price,
         duration: course.duration,
-        rating: 4.9,
         description: course.description,
         language: course.language || 'English / Bengali',
-        level: course.level || 'All Levels',
         image: course.imageUrl,
         status: course.status,
         timezone: course.timezone,
