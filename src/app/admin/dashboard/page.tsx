@@ -288,7 +288,7 @@ function AdminDashboardContent() {
                                         <div className={styles.listCol}>
                                             <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
                                             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                                                Joined {new Date(teacher.created_at).toLocaleDateString()}
+                                                Joined {new Date(teacher.created_at).toLocaleDateString('en-GB')}
                                             </span>
                                         </div>
 
