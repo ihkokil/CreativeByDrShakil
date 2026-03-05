@@ -40,11 +40,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
     const hasAccess = await prisma.order.findFirst({
       where: {
         userId: payload.sub,
         courseId: course.id,
         status: 'approved',
+        updatedAt: {
+          gte: oneYearAgo,
+        },
       },
       select: { id: true },
     });
