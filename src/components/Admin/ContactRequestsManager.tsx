@@ -218,7 +218,7 @@ export default function ContactRequestsManager() {
                   <p>{submission.subject}</p>
                   <div className={styles.listMeta}>
                     <span>{ISSUE_LABELS[submission.issueType]}</span>
-                    <span>{new Date(submission.createdAt).toLocaleString()}</span>
+                    <span>{new Date(submission.createdAt).toLocaleString('en-GB')}</span>
                   </div>
                 </button>
               );
@@ -303,7 +303,7 @@ export default function ContactRequestsManager() {
               {activeSubmission.adminReplySentAt && (
                 <div className={styles.replyMeta}>
                   <CheckCircle2 size={16} />
-                  Last replied at {new Date(activeSubmission.adminReplySentAt).toLocaleString()}
+                  Last replied at {new Date(activeSubmission.adminReplySentAt).toLocaleString('en-GB')}
                 </div>
               )}
             </>
