@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Clock, Star, Tag, User } from "lucide-react";
 import { Course } from "@/constants/courses";
-import { motion } from "framer-motion";
+
 
 interface Props {
     course: Course;
@@ -14,14 +14,7 @@ interface Props {
 
 export default function CourseCard({ course, viewMode = "grid" }: Props) {
     return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            whileHover={{ y: -5 }}
-            className={`${styles.card} ${viewMode === 'list' ? styles.listCard : ''} glass`}
-        >
+        <div className={`${styles.card} ${viewMode === 'list' ? styles.listCard : ''} glass`}>
             <Link href={`/courses/${course.slug}`} className={styles.imageWrapper}>
                 <Image
                     src={course.image || "/placeholder.svg"}
@@ -55,10 +48,7 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     <div className={styles.metaItem}>
                         <Clock size={14} /> {course.duration}
                     </div>
-                    <div className={styles.rating}>
-                        <Star size={14} fill="currentColor" />
-                        {course.rating}
-                    </div>
+
                 </div>
             </div>
 
@@ -73,6 +63,6 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     View Details
                 </Link>
             </div>
-        </motion.div>
+        </div>
     );
 }

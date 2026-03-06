@@ -57,7 +57,7 @@ export const mergeStaticAndDynamicCourses = (staticCourses: Course[], dynamicCou
 };
 
 export async function fetchPublishedDynamicCourses(): Promise<Course[]> {
-  const response = await fetch('/api/courses/dynamic');
+  const response = await fetch('/api/courses/dynamic', { cache: 'no-store' });
   if (!response.ok) {
     throw new Error('Failed to fetch published courses.');
   }
