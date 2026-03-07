@@ -107,6 +107,7 @@
 
 .logoImg {
     object-fit: contain;
+    object-position: left;
     /* Adapts to light/dark mode */
 }
 
@@ -185,6 +186,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0;
+    line-height: 0;
     color: var(--foreground);
     transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
