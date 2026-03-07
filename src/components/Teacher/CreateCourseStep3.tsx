@@ -236,6 +236,12 @@ function CreateCourseStep3Content() {
 
     setTopicOptions(prev => prev.map(mt => {
       if (mt.id !== mainTopicId) return mt;
+      if (targetId === mainTopicId) {
+        return {
+          ...mt,
+          subTopics: [...mt.subTopics, newItem]
+        };
+      }
       return {
         ...mt,
         subTopics: insertItemRecursively(mt.subTopics, targetId, newItem)
@@ -257,14 +263,32 @@ function CreateCourseStep3Content() {
 
     if (publishFreqMode === "interval") {
       date.setDate(date.getDate() + index * publishIntervalDays);
+      return date;
     } else {
-      const dayToUse = targetDay !== undefined ? targetDay : publishDaysOfWeek[0] || 0;
-      const currentDay = date.getDay();
-      let daysToAdd = (dayToUse - currentDay + 7) % 7;
-      if (daysToAdd === 0 && index > 0) daysToAdd = 7;
-      date.setDate(date.getDate() + daysToAdd + (index - (index > 0 ? 1 : 0)) * 7);
+      const selectedDays = publishDaysOfWeek.length > 0 ? publishDaysOfWeek : [0];
+      if (targetDay !== undefined) {
+         let daysToAdd = (targetDay - date.getDay() + 7) % 7;
+         date.setDate(date.getDate() + daysToAdd + index * 7);
+         return date;
+      }
+      
+      let validDaysHit = 0;
+      let currentCheckDate = new Date(startDate);
+      
+      if (selectedDays.includes(currentCheckDate.getDay())) {
+         if (index === 0) return currentCheckDate;
+         validDaysHit++;
+      }
+      
+      while (validDaysHit <= index) {
+        currentCheckDate.setDate(currentCheckDate.getDate() + 1);
+        if (selectedDays.includes(currentCheckDate.getDay())) {
+          if (validDaysHit === index) return currentCheckDate;
+          validDaysHit++;
+        }
+      }
+      return currentCheckDate;
     }
-    return date;
   };
 
   useEffect(() => {
@@ -467,16 +491,16 @@ function CreateCourseStep3Content() {
 
           <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "8px" }}>
             <button
-              onClick={() => hasItems && toggleItemExpanded(item.id)}
+              onClick={() => item.type === "folder" && toggleItemExpanded(item.id)}
               style={{
                 background: "none", border: "none", padding: 0, margin: 0,
-                color: "var(--foreground)", cursor: hasItems ? "pointer" : "default",
+                color: "var(--foreground)", cursor: item.type === "folder" ? "pointer" : "default",
                 display: "flex", alignItems: "center", gap: "4px",
                 textDecoration: isExcluded ? "line-through" : "none",
                 fontWeight: "500", textAlign: "left"
               }}
             >
-              {hasItems && (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
+              {item.type === "folder" && (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
               {!hasItems && item.type === "folder" && <span style={{ width: "14px" }}/>}
               {item.title}
             </button>
@@ -633,17 +657,7 @@ function CreateCourseStep3Content() {
           <h2 className={styles.contentTitle}>Publish Schedule</h2>
           <p className={styles.helperText}>Set when your modules will be released. Start date is from your course settings in Step 1.</p>
           
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "8px" }}>Start Date</label>
-            <div
-              style={{
-                padding: "10px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", background: "var(--glass-bg, rgba(255,255,255,0.05))",
-                color: "var(--foreground)", fontSize: "0.95rem", width: "100%",
-              }}
-            >
-              {publishStartDate ? new Date(publishStartDate).toLocaleDateString('en-GB') : "Not set"}
-            </div>
-          </div>
+
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
             <div>
@@ -1027,6 +1041,92 @@ function CreateCourseStep3Content() {
                           </div>
                         );
                       })}
+
+                      {/* ADD ROOT CONTENT BLOCK */}
+                      <div style={{ marginTop: "12px", marginLeft: "14px", marginRight: "14px" }}>
+                        {addInlineItemId === mainTopic.id ? (
+                          <div style={{
+                            padding: "10px 12px", background: "rgba(var(--primary-rgb), 0.05)",
+                            border: "1px dashed var(--primary)", borderRadius: "6px",
+                            display: "flex", flexDirection: "column", gap: "8px",
+                          }}>
+                            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
+                               <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Add:</label>
+                               <select 
+                                 value={inlineItemType} 
+                                 onChange={(e) => setInlineItemType(e.target.value as any)}
+                                 style={{ 
+                                   padding: "4px", fontSize: "0.8rem", background: "var(--background)", 
+                                   color: "var(--foreground)", border: "1px solid var(--glass-border)", borderRadius: "4px" 
+                                 }}
+                               >
+                                 <option value="youtube">YouTube Video</option>
+                                 <option value="self-hosted">Self-Hosted Video</option>
+                                 <option value="folder">Folder</option>
+                               </select>
+                            </div>
+                            
+                            <div style={{ display: "grid", gridTemplateColumns: inlineItemType === "folder" ? "1fr" : "1fr 1fr", gap: "8px" }}>
+                              <input
+                                type="text"
+                                placeholder={`${inlineItemType === 'folder' ? 'Folder' : 'Video'} title`}
+                                value={inlineItemTitle}
+                                onChange={(e) => setInlineItemTitle(e.target.value)}
+                                style={{
+                                  padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
+                                  background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
+                                }}
+                              />
+                              {inlineItemType !== "folder" && (
+                                <input
+                                  type="text"
+                                  placeholder="URL"
+                                  value={inlineItemUrl}
+                                  onChange={(e) => setInlineItemUrl(e.target.value)}
+                                  style={{
+                                    padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
+                                    background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
+                                  }}
+                                />
+                              )}
+                            </div>
+                            
+                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
+                              <button
+                                type="button"
+                                onClick={() => setAddInlineItemId(null)}
+                                style={{
+                                  padding: "4px 10px", background: "var(--glass-border)", color: "var(--foreground)",
+                                  border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem",
+                                }}
+                              >Cancel</button>
+                              <button
+                                type="button"
+                                onClick={() => handleAddInlineItem(mainTopic.id, mainTopic.id)}
+                                disabled={inlineItemType !== "folder" ? (!inlineItemTitle.trim() || !inlineItemUrl.trim()) : !inlineItemTitle.trim()}
+                                style={{
+                                  padding: "4px 10px", background: "var(--primary)", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600"
+                                }}
+                              >Add</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setAddInlineItemId(mainTopic.id)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: "transparent",
+                              border: "1px dashed var(--glass-border)", borderRadius: "6px", cursor: "pointer", color: "var(--text-muted)",
+                              fontSize: "0.8rem", width: "100%", justifyContent: "center", transition: "all 0.2s ease",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--glass-border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+                          >
+                            <Plus size={12} /> Add Content
+                          </button>
+                        )}
+                      </div>
+
                     </div>
                   )}
                 </div>
