@@ -107,13 +107,7 @@
 
 .logoImg {
     object-fit: contain;
-    filter: brightness(0) invert(var(--theme-is-dark, 0));
     /* Adapts to light/dark mode */
-}
-
-/* Force specific colors in light mode if needed */
-:global([data-theme='light']) .logoImg {
-    filter: none;
 }
 
 .description {
