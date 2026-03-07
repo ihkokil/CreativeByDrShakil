@@ -27,7 +27,7 @@ export default function Upcoming() {
     }, []);
 
     return (
-        <section className="section-padding">
+        <section className="section-padding alt-bg">
             <div className={styles.container}>
                 <div className={styles.header}>
                     <h2 className={styles.title}>Featured Upcoming Course</h2>

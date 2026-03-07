@@ -24,7 +24,7 @@ export default function FAQ() {
     const [openIndex, setOpenIndex] = useState<number | null>(null);
 
     return (
-        <section className="section-padding">
+        <section className="section-padding alt-bg">
             <div className={styles.container}>
                 <div className={styles.header}>
                     <h2 className={styles.title}>Frequently Asked <span className="gradient-text">Questions</span></h2>
