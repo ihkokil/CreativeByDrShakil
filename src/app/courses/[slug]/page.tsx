@@ -70,37 +70,32 @@ export default function CourseDetailPage() {
             const courseSlug = params.slug as string;
             setLoadingCourse(true);
 
-            const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
-            if (foundStaticCourse) {
-                if (!cancelled) {
-                    setCourse(foundStaticCourse);
-                    setDynamicCurriculum([]);
-                    setActiveDynamicNode(null);
-                    setLoadingCourse(false);
-                }
-                return;
-            }
-
             try {
                 const response = await fetch(`/api/courses/dynamic/${courseSlug}`);
-                if (!response.ok) {
-                    if (!cancelled) {
-                        setCourse(null);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!cancelled && data.course) {
+                        setCourse(mapDynamicCourseToCourse(data.course));
+                        setDynamicCurriculum(Array.isArray(data.curriculum) ? data.curriculum : []);
+                        setActiveDynamicNode(null);
                         setLoadingCourse(false);
+                        return;
                     }
-                    return;
                 }
 
-                const data = await response.json();
-                if (!cancelled && data.course) {
-                    setCourse(mapDynamicCourseToCourse(data.course));
-                    setDynamicCurriculum(Array.isArray(data.curriculum) ? data.curriculum : []);
+                const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
+                if (!cancelled) {
+                    setCourse(foundStaticCourse || null);
+                    setDynamicCurriculum([]);
                     setActiveDynamicNode(null);
                     setLoadingCourse(false);
                 }
             } catch {
                 if (!cancelled) {
-                    setCourse(null);
+                    const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
+                    setCourse(foundStaticCourse || null);
+                    setDynamicCurriculum([]);
+                    setActiveDynamicNode(null);
                     setLoadingCourse(false);
                 }
             }

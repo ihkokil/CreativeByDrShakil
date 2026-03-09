@@ -46,14 +46,18 @@ export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course 
 });
 
 export const mergeStaticAndDynamicCourses = (staticCourses: Course[], dynamicCourses: Course[]) => {
-  const merged = [...staticCourses];
-  dynamicCourses.forEach((course) => {
-    if (!merged.some((existing) => existing.slug === course.slug)) {
-      merged.push(course);
-    }
+  const mergedBySlug = new Map<string, Course>();
+
+  staticCourses.forEach((course) => {
+    mergedBySlug.set(course.slug, course);
   });
 
-  return merged;
+  // Dynamic entries should override static catalog entries when slugs collide.
+  dynamicCourses.forEach((course) => {
+    mergedBySlug.set(course.slug, course);
+  });
+
+  return Array.from(mergedBySlug.values());
 };
 
 export async function fetchPublishedDynamicCourses(): Promise<Course[]> {
