@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import { CheckoutModal } from "@/components/Checkout/CheckoutModal";
-import { COURSES, Course } from "@/constants/courses";
+import { Course } from "@/constants/courses";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { mapDynamicCourseToCourse } from "@/lib/dynamic-course-client";
 import styles from "./CourseDetail.module.css";
@@ -74,15 +74,13 @@ export default function CourseDetailPage() {
                         return;
                     }
                 }
-                const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
                 if (!cancelled) {
-                    setCourse(foundStaticCourse || null);
+                    setCourse(null);
                     setLoadingCourse(false);
                 }
             } catch {
                 if (!cancelled) {
-                    const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
-                    setCourse(foundStaticCourse || null);
+                    setCourse(null);
                     setLoadingCourse(false);
                 }
             }
