@@ -4,35 +4,54 @@ import { motion } from "framer-motion";
 import styles from "./Hero.module.css";
 import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
 import Image from "next/image";
-import { COURSES } from "@/constants/courses";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+
+interface HeroCourse {
+    id: string;
+    title: string;
+    tag?: string;
+    image?: string;
+    slug?: string;
+}
 
 export default function Hero() {
-    const cards = [
-        {
-            id: 1,
-            title: COURSES[0].title,
-            tag: "Best Seller",
-            x: -40, y: -60, rotate: -6,
-            scale: 1,
-            delay: 0.2
-        },
-        {
-            id: 2,
-            title: COURSES[1].title,
-            tag: "High Yield",
-            x: 60, y: 30, rotate: 4,
-            scale: 0.95,
-            delay: 0.4
-        },
-        {
-            id: 3,
-            title: COURSES[2].title,
-            tag: "New",
-            x: -80, y: 120, rotate: -2,
-            scale: 0.9,
-            delay: 0.6
-        },
+    const [courses, setCourses] = useState<HeroCourse[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const load = async () => {
+            try {
+                const res = await fetch("/api/courses/dynamic");
+                const data = await res.json();
+                if (!cancelled && res.ok && data.courses) {
+                    const heroCourses = data.courses.slice(0, 3).map((c: any, i: number) => ({
+                        id: c.id,
+                        title: c.title,
+                        tag: i === 0 ? "Best Seller" : i === 1 ? "High Yield" : "New",
+                        image: c.image || "/placeholder.svg",
+                        slug: c.slug
+                    }));
+                    setCourses(heroCourses);
+                }
+            } catch {
+                // Fallback handled by empty state or CSS cards
+            }
+        };
+        load();
+        return () => { cancelled = true; };
+    }, []);
+
+    const defaultCards = [
+        { id: '1', title: "FCPS Part 1 Preparation", tag: "Best Seller", x: -40, y: -60, rotate: -6, scale: 1, delay: 0.2 },
+        { id: '2', title: "Residency Intensive Care", tag: "High Yield", x: 60, y: 30, rotate: 4, scale: 0.95, delay: 0.4 },
+        { id: '3', title: "MRCP Part 1 Foundation", tag: "New", x: -80, y: 120, rotate: -2, scale: 0.9, delay: 0.6 },
     ];
+
+    const displayCourses = courses.length >= 3 ? courses.map((c, i) => ({
+        ...c,
+        ...defaultCards[i]
+    })) : defaultCards;
 
     return (
         <section className={styles.hero}>
@@ -49,7 +68,7 @@ export default function Hero() {
                     >
                         <div className={styles.badge}>
                             <span className={styles.pulse}></span>
-                            Admission Open for July 2026
+                            Admission Open for 2026 Batches
                         </div>
 
                         <h1 className={styles.title}>
@@ -62,12 +81,16 @@ export default function Hero() {
                         </p>
 
                         <div className={styles.ctaGroup}>
-                            <button className={styles.primaryBtn}>
-                                Explore Courses <ArrowRight size={20} />
-                            </button>
-                            <button className={styles.secondaryBtn}>
-                                <MessageCircle size={20} /> Contact Us
-                            </button>
+                            <Link href="/courses">
+                                <button className={styles.primaryBtn}>
+                                    Explore Courses <ArrowRight size={20} />
+                                </button>
+                            </Link>
+                            <Link href="/contact">
+                                <button className={styles.secondaryBtn}>
+                                    <MessageCircle size={20} /> Contact Us
+                                </button>
+                            </Link>
                         </div>
 
                         <div className={styles.socialProof}>
@@ -91,7 +114,7 @@ export default function Hero() {
 
                 <div className={styles.visualSide}>
                     <div className={styles.floatingGrid}>
-                        {cards.map((card) => (
+                        {displayCourses.map((card: any) => (
                             <motion.div
                                 key={card.id}
                                 className={`${styles.floatingCard} glass`}
@@ -109,8 +132,8 @@ export default function Hero() {
                                     ease: "backOut"
                                 }}
                                 whileHover={{
-                                    scale: card.scale + 0.05,
-                                    y: card.y - 10,
+                                    scale: card.scale + 0.1,
+                                    y: card.y - 12,
                                     rotate: 0,
                                     zIndex: 20,
                                     transition: { duration: 0.3 }
@@ -118,13 +141,16 @@ export default function Hero() {
                             >
                                 <div className={styles.cardTag}>{card.tag}</div>
                                 <div className={styles.cardImage}>
-                                    <Image src="/placeholder.svg" alt={card.title} fill />
+                                    <Image src={card.image || "/placeholder.svg"} alt={card.title} fill />
                                 </div>
                                 <div className={styles.cardTitle}>{card.title}</div>
                                 <div className={styles.cardStats}>
                                     <span><Users size={12} /> 400+</span>
                                     <span className={styles.rating}>4.9/5</span>
                                 </div>
+                                {card.slug && (
+                                    <Link href={`/courses/${card.slug}`} className={styles.cardLink} />
+                                )}
                             </motion.div>
                         ))}
                     </div>
