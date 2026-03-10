@@ -2,8 +2,9 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Calendar, Plus, Folder, FileText, Video, Layout, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Calendar, Plus, Folder, Video, ArrowUp, ArrowDown } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
+import { formatDisplayDate, parseDisplayDateToIso } from "@/lib/date-format";
 
 export interface StarterItem {
   id: string;
@@ -76,6 +77,13 @@ function CreateCourseStep3Content() {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+  };
+
+  const openInlineItemForm = (targetId: string, type: "folder" | "youtube" | "self-hosted") => {
+    setAddInlineItemId(targetId);
+    setInlineItemType(type);
+    setInlineItemTitle("");
+    setInlineItemUrl("");
   };
 
   const collectItemsRecursively = (nodes: LibraryNode[], parentId: string): StarterItem[] => {
@@ -286,7 +294,7 @@ function CreateCourseStep3Content() {
   const toggleItemExpanded = (id: string) => setExpandedItems(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const calculatePublishDate = (index: number, targetDay?: number): Date => {
-    const startDate = publishStartDate ? new Date(publishStartDate) : new Date();
+    const startDate = publishStartDate ? new Date(parseDisplayDateToIso(publishStartDate) || publishStartDate) : new Date();
     const date = new Date(startDate);
 
     if (publishFreqMode === "interval") {
@@ -295,13 +303,13 @@ function CreateCourseStep3Content() {
     } else {
       const selectedDays = publishDaysOfWeek.length > 0 ? publishDaysOfWeek : [0];
       if (targetDay !== undefined) {
-         let daysToAdd = (targetDay - date.getDay() + 7) % 7;
+        const daysToAdd = (targetDay - date.getDay() + 7) % 7;
          date.setDate(date.getDate() + daysToAdd + index * 7);
          return date;
       }
       
       let validDaysHit = 0;
-      let currentCheckDate = new Date(startDate);
+      const currentCheckDate = new Date(startDate);
       
       if (selectedDays.includes(currentCheckDate.getDay())) {
          if (index === 0) return currentCheckDate;
@@ -330,8 +338,8 @@ function CreateCourseStep3Content() {
         const courseResponse = await fetch(`/api/teacher/courses/${courseId}`, { headers });
         if (courseResponse.ok) {
           const courseData = await courseResponse.json();
-          if (courseData.startDate) {
-            setPublishStartDate(courseData.startDate.split('T')[0]);
+          if (courseData.course?.courseStartDate) {
+            setPublishStartDate(formatDisplayDate(courseData.course.courseStartDate));
           }
         }
 
@@ -438,25 +446,59 @@ function CreateCourseStep3Content() {
     try {
       const headers = getAuthHeaders();
 
-      // Clean payload: Remove excluded items deeply from the hierarchy before saving?
-      // Since API is just accepting mainTopicIds for now based on your old logic, 
-      // actual nested exclusion will require API update later. The UI filters it perfectly.
-      if (selectedTopicIds.length > 0) {
-        const mainTopicIds = topicOptions
-          .filter(topic => selectedTopicIds.includes(topic.id) && topic.source === "starter")
-          .map(t => t.id);
+      const serializeItems = (items: StarterItem[], forceInclude = false): StarterItem[] => {
+        return items.flatMap((item) => {
+          const isExcluded = excludedItemIds[item.id];
+          const isIncluded = forceInclude || selectedTopicIds.includes(item.id);
 
-        if (mainTopicIds.length > 0) {
-          const topicImportResponse = await fetch(`/api/teacher/courses/${courseId}/import-topics`, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ mainTopicIds }),
-          });
-
-          if (!topicImportResponse.ok) {
-            const topicError = await topicImportResponse.json();
-            throw new Error(topicError.error || "Failed to import selected modules.");
+          if (isExcluded || !isIncluded) {
+            return [];
           }
+
+          if (item.type !== "folder") {
+            return [{ id: item.id, type: item.type, title: item.title, url: item.url }];
+          }
+
+          return [
+            {
+              id: item.id,
+              type: "folder",
+              title: item.title,
+              url: item.url,
+              items: serializeItems(item.items || [], true),
+            },
+          ];
+        });
+      };
+
+      const topicsPayload = topicOptions
+        .map((topic) => {
+          const forceInclude = selectedTopicIds.includes(topic.id);
+          const subTopics = serializeItems(topic.subTopics, forceInclude);
+
+          if (!forceInclude && subTopics.length === 0) {
+            return null;
+          }
+
+          return {
+            id: topic.id,
+            title: topic.title,
+            subTopics,
+            source: topic.source,
+          };
+        })
+        .filter(Boolean);
+
+      if (topicsPayload.length > 0) {
+        const topicImportResponse = await fetch(`/api/teacher/courses/${courseId}/import-topics`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ topics: topicsPayload }),
+        });
+
+        if (!topicImportResponse.ok) {
+          const topicError = await topicImportResponse.json();
+          throw new Error(topicError.error || "Failed to import selected modules.");
         }
       }
 
@@ -508,7 +550,7 @@ function CreateCourseStep3Content() {
             checked={isIncluded}
             onChange={() => toggleItemExclusion(item, isParentIncluded, isExcluded)}
             onClick={(e) => e.stopPropagation()}
-            style={{ cursor: "pointer", flexShrink: 0, marginTop: "3px" }}
+            style={{ cursor: "pointer", flexShrink: 0, marginTop: "3px", width: "20px", height: "20px", accentColor: "var(--primary)" }}
           />
           
           {item.type === "folder" ? (
@@ -553,14 +595,15 @@ function CreateCourseStep3Content() {
              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
                 <Calendar size={13} style={{ color: "var(--primary)" }} />
                 <input
-                  type="date"
+                  type="text"
                   value={displayDate}
                   onChange={(e) => setDateOverrides(prev => ({ ...prev, [item.id]: e.target.value }))}
                   onClick={(e) => e.stopPropagation()}
                   style={{
-                    padding: "1px 2px", background: "transparent", border: "none", color: "var(--primary)",
+                    padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
                     fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
                   }}
+                  placeholder="dd/mm/yyyy"
                 />
              </div>
           )}
@@ -568,12 +611,12 @@ function CreateCourseStep3Content() {
              <div style={{ display: "flex", gap: "2px", opacity: 0.6, flexShrink: 0, marginLeft: "4px" }}>
                  <button
                    onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopicId, item.id, "up"); }}
-                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
                    title="Move Up"
                  ><ArrowUp size={12} /></button>
                  <button
                    onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopicId, item.id, "down"); }}
-                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
                    title="Move Down"
                  ><ArrowDown size={12} /></button>
              </div>
@@ -654,19 +697,30 @@ function CreateCourseStep3Content() {
                     </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAddInlineItemId(item.id)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: "transparent",
-                      border: "1px dashed var(--glass-border)", borderRadius: "6px", cursor: "pointer", color: "var(--text-muted)",
-                      fontSize: "0.8rem", width: "100%", justifyContent: "center", transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--glass-border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-                  >
-                    <Plus size={12} /> Add Content
-                  </button>
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => openInlineItemForm(item.id, "youtube")}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
+                        border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
+                        fontSize: "0.8rem", transition: "all 0.2s ease",
+                      }}
+                    >
+                      <Video size={12} /> Add video
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openInlineItemForm(item.id, "folder")}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
+                        border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
+                        fontSize: "0.8rem", transition: "all 0.2s ease",
+                      }}
+                    >
+                      <Folder size={12} /> Add folder
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -896,8 +950,6 @@ function CreateCourseStep3Content() {
             {topicOptions.map((mainTopic) => {
               const isExpanded = expandedTopics.includes(mainTopic.id);
               const allSubSelected = mainTopic.subTopics.every(st => selectedTopicIds.includes(st.id));
-              const anySubSelected = mainTopic.subTopics.some(st => selectedTopicIds.includes(st.id));
-              
               // Date running index relies on first-level topics
               const topicIndex = topicOptions.findIndex(t => t.id === mainTopic.id);
               let itemCountBeforeTopic = 0;
@@ -922,7 +974,7 @@ function CreateCourseStep3Content() {
                       checked={allSubSelected}
                       onChange={() => toggleTopicSelection(mainTopic.id)}
                       onClick={(e) => e.stopPropagation()}
-                      style={{ cursor: "pointer" }}
+                      style={{ cursor: "pointer", width: "20px", height: "20px", accentColor: "var(--primary)" }}
                     />
                     <Folder size={18} style={{ color: "var(--text-muted)" }} />
                     <span style={{ flex: 1, textAlign: "left" }}>{mainTopic.title}</span>
@@ -939,7 +991,7 @@ function CreateCourseStep3Content() {
                         
                         if (isSelected) {
                           const itemIndex = itemCountBeforeTopic + mainTopic.subTopics.slice(0, subIdx).filter(st => selectedTopicIds.includes(st.id)).length;
-                          calculatedDate = calculatePublishDate(itemIndex).toISOString().split('T')[0];
+                          calculatedDate = formatDisplayDate(calculatePublishDate(itemIndex));
                         }
                         
                         // Pass inheritedDate inside recursive renderer
@@ -954,7 +1006,7 @@ function CreateCourseStep3Content() {
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => toggleSubTopicSelection(subTopic.id)}
-                                style={{ cursor: "pointer", flexShrink: 0, marginTop: "3px" }}
+                                style={{ cursor: "pointer", flexShrink: 0, marginTop: "3px", width: "20px", height: "20px", accentColor: "var(--primary)" }}
                               />
                               {subTopic.type === "folder" ? (
                                 <Folder size={18} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
@@ -976,11 +1028,12 @@ function CreateCourseStep3Content() {
                                 <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
                                   <Calendar size={14} style={{ color: "var(--primary)" }} />
                                   <input
-                                    type="date"
+                                    type="text"
                                     value={dateOverrides[subTopic.id] || calculatedDate}
                                     onChange={(e) => setDateOverrides(prev => ({ ...prev, [subTopic.id]: e.target.value }))}
+                                    placeholder="dd/mm/yyyy"
                                     style={{
-                                      padding: "2px 4px", background: "var(--background)", border: "1px solid var(--glass-border)", borderRadius: "4px", color: "var(--primary)",
+                                      padding: "4px 8px", background: "var(--background)", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
                                       fontSize: "0.85rem", fontWeight: "600", cursor: "pointer"
                                     }}
                                   />
@@ -989,12 +1042,12 @@ function CreateCourseStep3Content() {
                               <div style={{ display: "flex", gap: "2px", opacity: 0.6, flexShrink: 0, marginLeft: "4px" }}>
                                  <button
                                    onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopic.id, subTopic.id, "up"); }}
-                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
                                    title="Move Up"
                                  ><ArrowUp size={12} /></button>
                                  <button
                                    onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopic.id, subTopic.id, "down"); }}
-                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "2px 4px", borderRadius: "4px", cursor: "pointer", color: "var(--foreground)" }}
+                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
                                    title="Move Down"
                                  ><ArrowDown size={12} /></button>
                               </div>
@@ -1030,16 +1083,16 @@ function CreateCourseStep3Content() {
                                       </div>
                                       
                                       <div style={{ display: "grid", gridTemplateColumns: inlineItemType === "folder" ? "1fr" : "1fr 1fr", gap: "8px" }}>
-                                        <input
-                                          type="text"
-                                          placeholder={`${inlineItemType === 'folder' ? 'Folder' : 'Video'} title`}
-                                          value={inlineItemTitle}
-                                          onChange={(e) => setInlineItemTitle(e.target.value)}
-                                          style={{
-                                            padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
-                                            background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
-                                          }}
-                                        />
+                                          <input
+                                            type="text"
+                                            placeholder={`${inlineItemType === 'folder' ? 'Folder' : 'Video'} title`}
+                                            value={inlineItemTitle}
+                                            onChange={(e) => setInlineItemTitle(e.target.value)}
+                                            style={{
+                                              padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
+                                              background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
+                                            }}
+                                          />
                                         {inlineItemType !== "folder" && (
                                           <input
                                             type="text"
@@ -1074,19 +1127,30 @@ function CreateCourseStep3Content() {
                                       </div>
                                     </div>
                                   ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => setAddInlineItemId(subTopic.id)}
-                                      style={{
-                                        display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: "transparent",
-                                        border: "1px dashed var(--glass-border)", borderRadius: "6px", cursor: "pointer", color: "var(--text-muted)",
-                                        fontSize: "0.8rem", width: "100%", justifyContent: "center", transition: "all 0.2s ease",
-                                      }}
-                                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--glass-border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-                                    >
-                                      <Plus size={12} /> Add Content
-                                    </button>
+                                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => openInlineItemForm(subTopic.id, "youtube")}
+                                        style={{
+                                          display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
+                                          border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
+                                          fontSize: "0.8rem", transition: "all 0.2s ease",
+                                        }}
+                                      >
+                                        <Video size={12} /> Add video
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => openInlineItemForm(subTopic.id, "folder")}
+                                        style={{
+                                          display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
+                                          border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
+                                          fontSize: "0.8rem", transition: "all 0.2s ease",
+                                        }}
+                                      >
+                                        <Folder size={12} /> Add folder
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1096,7 +1160,6 @@ function CreateCourseStep3Content() {
                         );
                       })}
 
-                      {/* ADD ROOT CONTENT BLOCK */}
                       <div style={{ marginTop: "12px", marginLeft: "14px", marginRight: "14px" }}>
                         {addInlineItemId === mainTopic.id ? (
                           <div style={{
@@ -1165,19 +1228,30 @@ function CreateCourseStep3Content() {
                             </div>
                           </div>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => setAddInlineItemId(mainTopic.id)}
-                            style={{
-                              display: "flex", alignItems: "center", gap: "6px", padding: "6px 10px", background: "transparent",
-                              border: "1px dashed var(--glass-border)", borderRadius: "6px", cursor: "pointer", color: "var(--text-muted)",
-                              fontSize: "0.8rem", width: "100%", justifyContent: "center", transition: "all 0.2s ease",
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--glass-border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-                          >
-                            <Plus size={12} /> Add Content
-                          </button>
+                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              onClick={() => openInlineItemForm(mainTopic.id, "youtube")}
+                              style={{
+                                display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
+                                border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
+                                fontSize: "0.8rem", transition: "all 0.2s ease",
+                              }}
+                            >
+                              <Video size={12} /> Add video
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openInlineItemForm(mainTopic.id, "folder")}
+                              style={{
+                                display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
+                                border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
+                                fontSize: "0.8rem", transition: "all 0.2s ease",
+                              }}
+                            >
+                              <Folder size={12} /> Add folder
+                            </button>
+                          </div>
                         )}
                       </div>
 
