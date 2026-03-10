@@ -9,6 +9,7 @@ import {
   slugify,
 } from '@/lib/teacher-course-builder';
 import { COURSES } from '@/constants/courses';
+import { parseDisplayDateToIso } from '@/lib/date-format';
 
 const STATIC_COURSE_SLUGS = new Set(COURSES.map((course) => course.slug));
 
@@ -143,7 +144,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (body.releaseStartAt !== undefined) {
-      updateData.releaseStartAt = body.releaseStartAt ? new Date(body.releaseStartAt) : null;
+      const releaseStartAt = typeof body.releaseStartAt === 'string' ? parseDisplayDateToIso(body.releaseStartAt) : null;
+      updateData.releaseStartAt = releaseStartAt ? new Date(releaseStartAt) : null;
     }
 
     if (body.releaseIntervalDays !== undefined) {

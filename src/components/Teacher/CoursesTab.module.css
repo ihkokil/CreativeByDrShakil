@@ -92,7 +92,7 @@
 
 .courseGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -172,6 +172,35 @@
   flex: 1;
 }
 
+.cardTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.categoryPill,
+.startDate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.categoryPill {
+  color: var(--primary);
+}
+
+.startDate {
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+
 .courseTitle {
   font-size: 1rem;
   font-weight: 700;
@@ -186,13 +215,16 @@
 }
 
 .courseMeta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   font-size: 0.85rem;
 }
 
 .metaItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: var(--text-muted);
 }
 
@@ -294,6 +326,12 @@
 .addCourseBtn:hover {
   opacity: 0.9;
   transform: translateY(-2px);
+}
+
+@media (max-width: 1200px) {
+  .courseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
