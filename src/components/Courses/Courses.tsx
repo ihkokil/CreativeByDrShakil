@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./Courses.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { COURSES, Course } from "@/constants/courses";
+import { Course } from "@/constants/courses";
 import CourseCard from "./CourseCard";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
-import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
+import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 
 export default function Courses() {
@@ -81,11 +81,8 @@ export default function Courses() {
         };
     }, []);
 
-    const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
-    const allCourses = useMemo(
-        () => mergeStaticAndDynamicCourses(displayCourses, dynamicCourses),
-        [displayCourses, dynamicCourses]
-    );
+    const displayCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
+    const allCourses = displayCourses;
 
     const filtered = filter === "All"
         ? allCourses.slice(0, 3)

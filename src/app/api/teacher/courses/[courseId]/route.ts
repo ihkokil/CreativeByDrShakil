@@ -8,10 +8,8 @@ import {
   parseReleaseGroupDateMap,
   slugify,
 } from '@/lib/teacher-course-builder';
-import { COURSES } from '@/constants/courses';
 import { parseDisplayDateToIso } from '@/lib/date-format';
 
-const STATIC_COURSE_SLUGS = new Set(COURSES.map((course) => course.slug));
 
 const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   const base = slugify(title) || `course-${Date.now()}`;
@@ -19,11 +17,6 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   let counter = 2;
 
   while (true) {
-    if (STATIC_COURSE_SLUGS.has(slug)) {
-      slug = `${base}-${counter}`;
-      counter += 1;
-      continue;
-    }
 
     const found = await prisma.course.findUnique({ where: { slug }, select: { id: true } });
     if (!found || found.id === currentCourseId) {
