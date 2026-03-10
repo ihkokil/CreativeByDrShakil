@@ -8,6 +8,7 @@ import {
   ensureGroupInheritance,
   parseCurriculumJson,
   parseReleaseGroupDateMap,
+  countLessons,
 } from '@/lib/teacher-course-builder';
 import { formatLastUpdated } from '@/lib/date-format';
 
