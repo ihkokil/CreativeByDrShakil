@@ -59,10 +59,21 @@ export async function POST(request: NextRequest) {
       discountAmount = coupon.discountAmount
     }
     const totalAmount = course.price - discountAmount
-    const order = await prisma.order.create({
-      data: { userId: session.user.id, courseId: resolvedCourseId, couponCode, totalAmount, discountAmount },
-      include: { course: true }
-    })
+    const order = existingOrder
+      ? await prisma.order.update({
+          where: { id: existingOrder.id },
+          data: {
+            status: 'pending',
+            couponCode,
+            totalAmount,
+            discountAmount,
+          },
+          include: { course: true },
+        })
+      : await prisma.order.create({
+          data: { userId: session.user.id, courseId: resolvedCourseId, couponCode, totalAmount, discountAmount },
+          include: { course: true }
+        })
     return NextResponse.json({ order })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
