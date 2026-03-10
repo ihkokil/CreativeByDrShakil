@@ -67,6 +67,10 @@
     color: #f59e0b;
 }
 
+.completedIcon {
+    color: #22c55e;
+}
+
 .duration {
     font-size: 0.75rem;
     color: var(--text-muted);
