@@ -75,10 +75,6 @@ function TeacherDashboardContent() {
         };
     }, [loading, user]);
 
-    if (loading || !user) {
-        return <div className={styles.loader}>Loading Teacher Dashboard...</div>;
-    }
-
     const stats = useMemo(() => {
         const totalCourses = courses.length;
         const publishedCourses = courses.filter((course) => course.status === "published").length;
@@ -87,6 +83,10 @@ function TeacherDashboardContent() {
 
         return { totalCourses, publishedCourses, draftCourses, activeStudents };
     }, [courses]);
+
+    if (loading || !user) {
+        return <div className={styles.loader}>Loading Teacher Dashboard...</div>;
+    }
 
     return (
         <div className={styles.pageContent}>
