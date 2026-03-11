@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import styles from "./Upcoming.module.css";
 import { Calendar, UserCheck } from "lucide-react";
 import { COURSES } from "@/constants/courses";
@@ -16,12 +16,30 @@ type FeaturedCourse = {
 
 export default function Upcoming() {
     const [timeLeft, setTimeLeft] = useState({
-        days: 12,
-        hours: 5,
-        minutes: 45,
-        seconds: 30,
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
     });
     const [featuredCourse, setFeaturedCourse] = useState<FeaturedCourse | null>(null);
+
+    const calculateTimeLeft = useCallback((targetDate: string | null) => {
+        if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+        
+        const difference = +new Date(targetDate) - +new Date();
+        let timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+        if (difference > 0) {
+            timeLeft = {
+                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                minutes: Math.floor((difference / 1000 / 60) % 60),
+                seconds: Math.floor((difference / 1000) % 60),
+            };
+        }
+
+        return timeLeft;
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -34,7 +52,7 @@ export default function Upcoming() {
                     setFeaturedCourse(data.course || null);
                 }
             } catch {
-                // Keep the static fallback course if the featured lookup fails.
+                // Fallback handled below
             }
         };
 
@@ -47,15 +65,17 @@ export default function Upcoming() {
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-                if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-                // Simple decrement for demo
-                return { ...prev, seconds: 59 };
-            });
+            if (featuredCourse?.courseStartDate) {
+                setTimeLeft(calculateTimeLeft(featuredCourse.courseStartDate));
+            } else {
+                // If no date, use a placeholder countdown that looks realistic (e.g. end of week)
+                const now = new Date();
+                const nextSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - now.getDay()));
+                setTimeLeft(calculateTimeLeft(nextSunday.toISOString()));
+            }
         }, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [featuredCourse, calculateTimeLeft]);
 
     const course = featuredCourse || {
         title: COURSES[0].title,
@@ -82,20 +102,20 @@ export default function Upcoming() {
                         <div className={styles.timerLabel}>BATCH STARTS IN</div>
                         <div className={styles.timer}>
                             <div className={styles.timeUnit}>
-                                <span>{timeLeft.days}</span>
+                                <span>{String(timeLeft.days).padStart(2, '0')}</span>
                                 <label>Days</label>
                             </div>
                             <div className={styles.timeUnit}>
-                                <span>{timeLeft.hours}</span>
+                                <span>{String(timeLeft.hours).padStart(2, '0')}</span>
                                 <label>Hours</label>
                             </div>
                             <div className={styles.timeUnit}>
-                                <span>{timeLeft.minutes}</span>
+                                <span>{String(timeLeft.minutes).padStart(2, '0')}</span>
                                 <label>Mins</label>
                             </div>
                             <div className={styles.timerSeparator}>:</div>
                             <div className={styles.timeUnit}>
-                                <span>{timeLeft.seconds}</span>
+                                <span>{String(timeLeft.seconds).padStart(2, '0')}</span>
                                 <label>Secs</label>
                             </div>
                         </div>
