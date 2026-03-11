@@ -22,6 +22,7 @@ function TeacherDashboardLayoutContent({ children }: { children: React.ReactNode
     // Determine active key based on pathname or search params
     const activeKey = useMemo(() => {
         if (pathname.includes("/teacher/dashboard/courses")) return "courses";
+        if (pathname.includes("/teacher/dashboard/students")) return "students";
         if (pathname.includes("/teacher/dashboard/user")) return "user";
         if (pathname.includes("/teacher/dashboard/library")) return "library";
         
@@ -55,6 +56,8 @@ function TeacherDashboardLayoutContent({ children }: { children: React.ReactNode
     const handleSelect = (key: string) => {
         if (key === "user") {
             router.push("/teacher/dashboard/user");
+        } else if (key === "students") {
+            router.push("/teacher/dashboard/students");
         } else if (key === "overview") {
             router.push("/teacher/dashboard?tab=overview");
         } else if (key === "library") {

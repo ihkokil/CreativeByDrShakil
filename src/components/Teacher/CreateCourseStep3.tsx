@@ -49,7 +49,7 @@ function CreateCourseStep3Content() {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   
   // Publish frequency controls
-  const [publishFreqMode, setPublishFreqMode] = useState<"interval" | "dayOfWeek">("interval");
+  const [publishFreqMode, setPublishFreqMode] = useState<"instant" | "interval" | "dayOfWeek">("interval");
   const [publishIntervalDays, setPublishIntervalDays] = useState(7);
   const [publishDaysOfWeek, setPublishDaysOfWeek] = useState<number[]>([0]); // 0 = Sunday
   const [publishStartDate, setPublishStartDate] = useState("");
@@ -296,6 +296,10 @@ function CreateCourseStep3Content() {
   const calculatePublishDate = (index: number, targetDay?: number): Date => {
     const startDate = publishStartDate ? new Date(parseDisplayDateToIso(publishStartDate) || publishStartDate) : new Date();
     const date = new Date(startDate);
+
+    if (publishFreqMode === "instant") {
+      return date;
+    }
 
     if (publishFreqMode === "interval") {
       date.setDate(date.getDate() + index * publishIntervalDays);
@@ -760,11 +764,12 @@ function CreateCourseStep3Content() {
               <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "8px" }}>Release Mode</label>
               <select
                 value={publishFreqMode}
-                onChange={(e) => setPublishFreqMode(e.target.value as "interval" | "dayOfWeek")}
+                onChange={(e) => setPublishFreqMode(e.target.value as "instant" | "interval" | "dayOfWeek")}
                 style={{
                   padding: "10px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.95rem", width: "100%",
                 }}
               >
+                <option value="instant">Instant on Purchase</option>
                 <option value="interval">Every X Days</option>
                 <option value="dayOfWeek">Specific Days of Week</option>
               </select>
@@ -784,6 +789,12 @@ function CreateCourseStep3Content() {
                     <option key={d} value={d}>{d} days</option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {publishFreqMode === "instant" && (
+              <div style={{ gridColumn: "1 / -1", padding: "12px 14px", border: "1px solid var(--glass-border)", borderRadius: "8px", color: "var(--text-muted)" }}>
+                Modules unlock immediately after purchase. No schedule delay will be applied.
               </div>
             )}
           </div>

@@ -31,7 +31,7 @@ const formatAvailability = (dateValue?: string | null) => {
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
     const isActive = node.id === activeNodeId;
 
