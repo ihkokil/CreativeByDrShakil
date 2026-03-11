@@ -630,6 +630,7 @@ export default function TeacherCourseBuilder() {
                                         <div>
                                             <label>Release Mode</label>
                                             <select value={releaseMode} onChange={(e) => setReleaseMode(e.target.value as CourseReleaseModeValue)}>
+                                                <option value="instant">Instant on Purchase</option>
                                                 <option value="fixed_interval">Fixed Day Interval</option>
                                                 <option value="groups_per_week">Groups Per Week (bi/tri-weekly)</option>
                                                 <option value="explicit_dates">Explicit Group Dates</option>
@@ -652,6 +653,14 @@ export default function TeacherCourseBuilder() {
                                                     <option value="2">2 (bi-weekly)</option>
                                                     <option value="3">3 (tri-weekly)</option>
                                                 </select>
+                                            </div>
+                                        )}
+                                        {releaseMode === "instant" && (
+                                            <div>
+                                                <label>Release Behavior</label>
+                                                <div style={{ padding: "12px 14px", border: "1px solid var(--glass-border)", borderRadius: "10px", color: "var(--text-muted)" }}>
+                                                    All modules unlock immediately after purchase.
+                                                </div>
                                             </div>
                                         )}
                                         <div>
