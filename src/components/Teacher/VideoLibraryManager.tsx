@@ -170,6 +170,8 @@ export default function VideoLibraryManager() {
     const [videoType, setVideoType] = useState<ContentType>('youtube');
     const [videoUrl, setVideoUrl] = useState("");
     const [videoDuration, setVideoDuration] = useState("");
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [uploadingVideo, setUploadingVideo] = useState(false);
 
     // Submitting state
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -289,15 +291,53 @@ export default function VideoLibraryManager() {
         e.preventDefault();
         if (!videoTitle.trim() || !activeParentId || isSubmitting) return;
 
+        if (videoType === 'youtube' && !videoUrl.trim()) {
+            alert('YouTube URL is required.');
+            return;
+        }
+
+        if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) {
+            alert('Please upload a video file or provide a direct URL.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
+            let resolvedVideoUrl = videoUrl.trim() || null;
+
+            if (videoType === 'self-hosted' && videoFile) {
+                setUploadingVideo(true);
+                const formData = new FormData();
+                formData.append('file', videoFile);
+
+                const uploadHeaders: HeadersInit = {};
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                if (token) {
+                    uploadHeaders.Authorization = `Bearer ${token}`;
+                }
+
+                const uploadRes = await fetch('/api/teacher/uploads', {
+                    method: 'POST',
+                    headers: uploadHeaders,
+                    body: formData,
+                });
+
+                if (!uploadRes.ok) {
+                    const uploadData = await uploadRes.json().catch(() => ({ error: 'Video upload failed.' }));
+                    throw new Error(uploadData.error || 'Video upload failed.');
+                }
+
+                const uploadData = await uploadRes.json();
+                resolvedVideoUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
+            }
+
             const res = await fetch('/api/teacher/video-library', {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
                     title: videoTitle.trim(),
                     type: videoType,
-                    url: videoUrl.trim() || null,
+                    url: resolvedVideoUrl,
                     duration: videoDuration.trim() || null,
                     parentId: activeParentId,
                 }),
@@ -311,11 +351,13 @@ export default function VideoLibraryManager() {
             setVideoTitle("");
             setVideoUrl("");
             setVideoDuration("");
+            setVideoFile(null);
             setIsVideoModalOpen(false);
             await fetchLibrary();
         } catch (err: any) {
             alert(err.message || 'Failed to add video.');
         } finally {
+            setUploadingVideo(false);
             setIsSubmitting(false);
         }
     };
@@ -535,9 +577,17 @@ export default function VideoLibraryManager() {
                                 <div className={styles.row}>
                                     <div className={styles.formGroup}>
                                         <label>Video Source</label>
-                                        <select value={videoType} onChange={e => setVideoType(e.target.value as ContentType)}>
+                                        <select
+                                            value={videoType}
+                                            onChange={e => {
+                                                const nextType = e.target.value as ContentType;
+                                                setVideoType(nextType);
+                                                setVideoFile(null);
+                                                setVideoUrl('');
+                                            }}
+                                        >
                                             <option value="youtube">YouTube Embed</option>
-                                            <option value="self-hosted">Self-Hosted / MP4 URL</option>
+                                            <option value="self-hosted">Self-Hosted Video</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
@@ -551,17 +601,38 @@ export default function VideoLibraryManager() {
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Video URL</label>
-                                    <input
-                                        type="url"
-                                        value={videoUrl}
-                                        onChange={e => setVideoUrl(e.target.value)}
-                                        placeholder="https://..."
-                                        required
-                                    />
+                                    {videoType === 'youtube' ? (
+                                        <>
+                                            <label>YouTube URL</label>
+                                            <input
+                                                type="url"
+                                                value={videoUrl}
+                                                onChange={e => setVideoUrl(e.target.value)}
+                                                placeholder="https://youtube.com/watch?v=..."
+                                                required
+                                            />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <label>Upload Video File</label>
+                                            <input
+                                                type="file"
+                                                accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
+                                                onChange={e => setVideoFile(e.target.files?.[0] || null)}
+                                            />
+                                            <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
+                                            <label style={{ marginTop: '8px' }}>Or Direct Video URL (Optional)</label>
+                                            <input
+                                                type="url"
+                                                value={videoUrl}
+                                                onChange={e => setVideoUrl(e.target.value)}
+                                                placeholder="https://..."
+                                            />
+                                        </>
+                                    )}
                                 </div>
                                 <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
-                                    {isSubmitting ? 'Adding...' : 'Add Video'}
+                                    {uploadingVideo ? 'Uploading video...' : isSubmitting ? 'Adding...' : 'Add Video'}
                                 </button>
                             </form>
                         </motion.div>
