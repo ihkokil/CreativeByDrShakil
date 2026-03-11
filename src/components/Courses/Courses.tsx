@@ -3,18 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./Courses.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { COURSES, Course } from "@/constants/courses";
+import { Course } from "@/constants/courses";
 import CourseCard from "./CourseCard";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
-import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
+import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
+import { CategorySummary, fetchCategories } from "@/lib/categories";
 
 export default function Courses() {
     const [filter, setFilter] = useState("All");
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
-    const categories = ["All", "FCPS", "Exams", "Residency"];
+    const [categories, setCategories] = useState<CategorySummary[]>([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -59,15 +60,41 @@ export default function Courses() {
         };
     }, []);
 
-    const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
-    const allCourses = useMemo(
-        () => mergeStaticAndDynamicCourses(displayCourses, dynamicCourses),
-        [displayCourses, dynamicCourses]
-    );
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadCategories = async () => {
+            try {
+                const list = await fetchCategories();
+                if (!cancelled) {
+                    setCategories(list);
+                }
+            } catch {
+                // Keep the course-derived filters if category fetch fails.
+            }
+        };
+
+        loadCategories();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const displayCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
+    const allCourses = displayCourses;
 
     const filtered = filter === "All"
         ? allCourses.slice(0, 3)
         : allCourses.filter(c => c.category === filter).slice(0, 3);
+
+    const categoryTabs = [
+        "All",
+        ...new Set([
+            ...categories.map((category) => category.displayName),
+            ...allCourses.map((course) => course.category),
+        ]),
+    ];
 
     return (
         <section className="section-padding">
@@ -79,7 +106,7 @@ export default function Courses() {
                     </div>
                     <div className={styles.tabsSection}>
                         <div className={styles.tabs}>
-                            {categories.map(cat => (
+                            {categoryTabs.map(cat => (
                                 <button
                                     key={cat}
                                     className={`${styles.tab} ${filter === cat ? styles.activeTab : ""}`}

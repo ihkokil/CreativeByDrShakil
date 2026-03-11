@@ -1,25 +1,29 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
-import { COURSES, Course } from "@/constants/courses";
+import { Course } from "@/constants/courses";
 import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
-import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
-import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 
-export default function AllCoursesPage() {
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
+import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
+import { CategorySummary, fetchCategories } from "@/lib/categories";
+
+function AllCoursesContent() {
+    const searchParams = useSearchParams();
+    const initialCategory = searchParams.get("category");
+    const [selectedCategories, setSelectedCategories] = useState<string[]>(() => (initialCategory ? [initialCategory] : []));
     const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
     const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
-
+    const [categoryList, setCategoryList] = useState<CategorySummary[]>([]);
     useEffect(() => {
         let cancelled = false;
 
@@ -41,15 +45,36 @@ export default function AllCoursesPage() {
         };
     }, []);
 
-    const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
-    const allCourses = useMemo(
-        () => mergeStaticAndDynamicCourses(displayCourses, dynamicCourses),
-        [displayCourses, dynamicCourses]
-    );
+    useEffect(() => {
+        let cancelled = false;
 
-    const categories = useMemo(
-        () => Array.from(new Set(allCourses.map((course) => course.category))).sort(),
-        [allCourses]
+        const loadCategories = async () => {
+            try {
+                const list = await fetchCategories();
+                if (!cancelled) {
+                    setCategoryList(list);
+                }
+            } catch {
+                // Keep derived filters if category fetch fails.
+            }
+        };
+
+        loadCategories();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const displayCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
+    const allCourses = displayCourses;
+
+    const categoryOptions = useMemo(
+        () => Array.from(new Set([
+            ...categoryList.map((category) => category.displayName),
+            ...allCourses.map((course) => course.category),
+        ])).sort(),
+        [allCourses, categoryList]
     );
     const instructors = useMemo(
         () => Array.from(new Set(allCourses.map((course) => course.mainInstructor.name))).sort(),
@@ -65,7 +90,7 @@ export default function AllCoursesPage() {
 
         const loadTeachers = async () => {
             try {
-                const response = await fetch("/api/teachers");
+                const response = await fetch("/api/teachers", { cache: "no-store" });
                 const data = await response.json();
                 if (!cancelled && response.ok && Array.isArray(data.teachers)) {
                     setTeachers(data.teachers);
@@ -130,7 +155,7 @@ export default function AllCoursesPage() {
                         <div className={styles.filterGroup}>
                             <h4>Categories</h4>
                             <div className={styles.checkboxList}>
-                                {categories.map((cat) => (
+                                {categoryOptions.map((cat) => (
                                     <label key={cat} className={styles.checkboxItem}>
                                         <input
                                             type="checkbox"
@@ -219,13 +244,11 @@ export default function AllCoursesPage() {
                     </div>
 
                     <div className={`${styles.grid} ${viewMode === 'list' ? styles.listView : styles.gridView}`}>
-                        <AnimatePresence mode="popLayout">
                             {filteredCourses.map(course => (
                                 <div key={course.id} className={styles.cardWrapper}>
                                     <CourseCard course={course} viewMode={viewMode} />
                                 </div>
                             ))}
-                        </AnimatePresence>
                     </div>
 
                     {filteredCourses.length === 0 && (
@@ -239,5 +262,13 @@ export default function AllCoursesPage() {
 
             <Footer />
         </main>
+    );
+}
+
+export default function AllCoursesPage() {
+    return (
+        <Suspense fallback={null}>
+            <AllCoursesContent />
+        </Suspense>
     );
 }

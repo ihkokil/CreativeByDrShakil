@@ -8,7 +8,7 @@
     "dev": "next dev",
     "build": "npm run clean && prisma generate && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "seed:teachers": "node scripts/seed-teachers.mjs",
     "seed:videos": "node scripts/seed-video-library.mjs"
   },
@@ -25,6 +25,7 @@
   "homepage": "https://github.com/ihkokil/CreativeByDrShakil#readme",
   "dependencies": {
     "@prisma/client": "^6.5.0",
+    "@tinymce/tinymce-react": "^6.3.0",
     "bcryptjs": "^2.4.3",
     "framer-motion": "^12.34.3",
     "jsonwebtoken": "^9.0.2",
