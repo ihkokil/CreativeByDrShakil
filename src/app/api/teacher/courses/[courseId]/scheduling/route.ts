@@ -35,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updateData: Record<string, unknown> = {};
 
     if (body.releaseMode !== undefined) {
-      const validModes = ['fixed_interval', 'groups_per_week', 'explicit_dates', null];
+      const validModes = ['fixed_interval', 'groups_per_week', 'explicit_dates', 'instant', null];
       if (!validModes.includes(body.releaseMode)) {
         return NextResponse.json({ error: 'Invalid release mode.' }, { status: 400 });
       }

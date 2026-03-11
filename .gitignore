@@ -33,3 +33,4 @@ build/
 
 # TypeScript
 *.tsbuildinfo
+/public/uploads/contact-submissions

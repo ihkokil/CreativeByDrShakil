@@ -1,7 +1,8 @@
 import { useState } from "react";
 import styles from "./CourseCurriculum.module.css";
-import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatDisplayDate } from "@/lib/date-format";
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document';
 
@@ -12,6 +13,7 @@ export interface CurriculumNode {
     duration?: string;
     url?: string;
     locked?: boolean;
+    completed?: boolean;
     availableAt?: string | null;
     children?: CurriculumNode[];
 }
@@ -25,17 +27,11 @@ interface NodeProps {
 
 const formatAvailability = (dateValue?: string | null) => {
     if (!dateValue) return "";
-
-    const parsed = new Date(dateValue);
-    if (Number.isNaN(parsed.getTime())) {
-        return "";
-    }
-
-    return parsed.toLocaleString();
+    return formatDisplayDate(dateValue);
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
     const isActive = node.id === activeNodeId;
 
@@ -68,6 +64,7 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                         <>
                             <PlayCircle size={16} className={styles.playIcon} />
                             <span className={styles.title}>{node.title}</span>
+                            {node.completed && <CheckCircle2 size={14} className={styles.completedIcon} />}
                             {node.locked && <Lock size={14} className={styles.lockIcon} />}
                             {node.duration && <span className={styles.duration}>{node.duration}</span>}
                             {node.locked && node.availableAt && (

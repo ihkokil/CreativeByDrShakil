@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import styles from "./SessionWarning.module.css";
@@ -9,14 +9,10 @@ import { AlertCircle } from "lucide-react";
 export default function SessionWarningToast() {
   const { hasSessionTerminated } = useAuth();
   const router = useRouter();
-  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (hasSessionTerminated) {
-      setIsVisible(true);
       const timer = setTimeout(() => {
-        setIsVisible(false);
-        // Redirect after 3 seconds
         setTimeout(() => {
           router.push("/");
         }, 300);
@@ -26,7 +22,7 @@ export default function SessionWarningToast() {
     }
   }, [hasSessionTerminated, router]);
 
-  if (!isVisible) return null;
+  if (!hasSessionTerminated) return null;
 
   return (
     <div className={styles.toastContainer}>

@@ -13,7 +13,7 @@ import {
  * List all students and their device sessions
  * Returns: {students: [{id, fullName, email, sessions: [...]}]}
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const auth = await getSession();
 

@@ -1,5 +1,11 @@
 export type CurriculumContentType = 'folder' | 'youtube' | 'self-hosted' | 'document';
-export type CourseReleaseModeValue = 'fixed_interval' | 'groups_per_week' | 'explicit_dates';
+export type CourseReleaseModeValue = 'fixed_interval' | 'groups_per_week' | 'explicit_dates' | 'instant';
+
+export interface LessonAvailabilityOverride {
+  lessonNodeId: string;
+  availabilityMode: 'inherit' | 'available' | 'locked';
+  availableAt?: string | null;
+}
 
 export interface BuilderCurriculumNode {
   id: string;
@@ -16,6 +22,9 @@ export interface BuilderCurriculumNode {
 export interface BuilderNodeWithAvailability extends BuilderCurriculumNode {
   availableAt?: string | null;
   locked?: boolean;
+  availabilityMode?: 'inherit' | 'available' | 'locked';
+  availabilityOverrideAt?: string | null;
+  completed?: boolean;
   children?: BuilderNodeWithAvailability[];
 }
 
@@ -309,6 +318,10 @@ export function computeReleaseGroupDates(
   const startDate = normalizeDate(config.releaseStartAt) || new Date();
   const overrideDates = config.releaseGroupDates || {};
 
+  if (mode === 'instant') {
+    return dates;
+  }
+
   if (mode === 'fixed_interval') {
     const intervalDays = Math.max(1, config.releaseIntervalDays || 7);
     groups.forEach((group) => {
@@ -347,8 +360,14 @@ export function computeReleaseGroupDates(
 
 const resolveAvailableAt = (
   path: BuilderCurriculumNode[],
-  computedGroupDates: Record<string, string>
+  computedGroupDates: Record<string, string>,
+  override?: LessonAvailabilityOverride | null
 ): string | null => {
+  if (override?.availabilityMode === 'available') {
+    const overrideDate = normalizeDate(override.availableAt || null);
+    return overrideDate ? overrideDate.toISOString() : null;
+  }
+
   for (let index = path.length - 1; index >= 0; index -= 1) {
     const overrideDate = normalizeDate(path[index].releaseAt || null);
     if (overrideDate) {
@@ -369,21 +388,39 @@ const resolveAvailableAt = (
 export function annotateCurriculumAvailability(
   nodes: BuilderCurriculumNode[],
   computedGroupDates: Record<string, string>,
-  now = new Date()
+  now = new Date(),
+  overrides: LessonAvailabilityOverride[] = []
 ): BuilderNodeWithAvailability[] {
   const nowMs = now.getTime();
+  const overrideMap = new Map(overrides.map((override) => [override.lessonNodeId, override]));
+
+  const findNearestOverride = (path: BuilderCurriculumNode[]): LessonAvailabilityOverride | null => {
+    for (let index = path.length - 1; index >= 0; index -= 1) {
+      const candidate = overrideMap.get(path[index].id);
+      if (candidate) {
+        return candidate;
+      }
+    }
+
+    return null;
+  };
 
   const visit = (list: BuilderCurriculumNode[], trail: BuilderCurriculumNode[]): BuilderNodeWithAvailability[] =>
     list.map((node) => {
       const path = [...trail, node];
-      const availableAt = resolveAvailableAt(path, computedGroupDates);
+      const override = findNearestOverride(path);
+      const availableAt = resolveAvailableAt(path, computedGroupDates, override);
       const availableAtDate = normalizeDate(availableAt);
-      const locked = Boolean(availableAtDate && availableAtDate.getTime() > nowMs);
+      const locked = override?.availabilityMode === 'locked'
+        ? true
+        : Boolean(availableAtDate && availableAtDate.getTime() > nowMs);
 
       return {
         ...node,
         availableAt,
         locked,
+        availabilityMode: override?.availabilityMode || 'inherit',
+        availabilityOverrideAt: override?.availableAt || null,
         children: visit(node.children || [], path),
       };
     });
@@ -407,4 +444,8 @@ export function collectVideoNodes(nodes: BuilderCurriculumNode[]): BuilderCurric
 
   visit(nodes);
   return videos;
+}
+
+export function countLessons(nodes: BuilderCurriculumNode[]): number {
+  return collectVideoNodes(nodes).length;
 }

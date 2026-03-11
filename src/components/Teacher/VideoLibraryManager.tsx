@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import styles from "./VideoLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, ChevronDown, ChevronRight, X, Loader2 } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document';
@@ -60,9 +60,11 @@ interface NodeProps {
     onAddFolder: (parentId: string) => void;
     onAddVideo: (parentId: string) => void;
     onDelete: (id: string) => void;
+    onEdit: (node: CurriculumNode) => void;
+    onMove: (id: string, direction: 'up' | 'down') => void;
 }
 
-const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodeProps) => {
+const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onEdit, onMove }: NodeProps) => {
     const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
 
@@ -96,6 +98,8 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
                 </div>
 
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
+                    <button className={styles.actionBtn} onClick={() => onMove(node.id, 'up')} title="Move Up"><ArrowUp size={14} /></button>
+                    <button className={styles.actionBtn} onClick={() => onMove(node.id, 'down')} title="Move Down"><ArrowDown size={14} /></button>
                     {isFolder && (
                         <>
                             <button className={styles.actionBtn} onClick={() => onAddFolder(node.id)} title="Add Subfolder">
@@ -106,7 +110,7 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
                             </button>
                         </>
                     )}
-                    <button className={styles.actionBtn} title="Edit">
+                    <button className={styles.actionBtn} title="Edit" onClick={() => onEdit(node)}>
                         <Edit2 size={14} />
                     </button>
                     <button className={`${styles.actionBtn} ${styles.deleteBtn}`} onClick={() => onDelete(node.id)} title="Delete">
@@ -137,6 +141,8 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete }: NodePro
                                 onAddFolder={onAddFolder}
                                 onAddVideo={onAddVideo}
                                 onDelete={onDelete}
+                                onEdit={onEdit}
+                                onMove={onMove}
                             />
                         ))}
                     </motion.div>
@@ -155,9 +161,14 @@ export default function VideoLibraryManager() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Breadcrumb state
+    const [path, setPath] = useState<CurriculumNode[]>([]);
+
     // Modal States
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingNode, setEditingNode] = useState<CurriculumNode | null>(null);
     const [activeParentId, setActiveParentId] = useState<string | null>(null);
 
     // Form States
@@ -166,6 +177,8 @@ export default function VideoLibraryManager() {
     const [videoType, setVideoType] = useState<ContentType>('youtube');
     const [videoUrl, setVideoUrl] = useState("");
     const [videoDuration, setVideoDuration] = useState("");
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [uploadingVideo, setUploadingVideo] = useState(false);
 
     // Submitting state
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -236,6 +249,47 @@ export default function VideoLibraryManager() {
         }
     };
 
+    const handleMoveItem = async (id: string, direction: 'up' | 'down') => {
+        try {
+            const res = await fetch('/api/teacher/video-library/reorder', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id, direction }),
+            });
+            if (!res.ok) throw new Error("Failed to reorder.");
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to move item.');
+        }
+    };
+
+    const handleEditClick = (node: CurriculumNode, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setEditingNode(node);
+        setFolderTitle(node.title);
+        setVideoTitle(node.title);
+        setVideoUrl(node.url || "");
+        setVideoDuration(node.duration || "");
+        setVideoType(node.type === 'folder' ? 'youtube' : node.type as ContentType);
+        setIsEditModalOpen(true);
+    };
+
+    const handleRootClick = (node: CurriculumNode) => {
+        setActiveRootId(node.id);
+        setPath([node]);
+    };
+
+    const handleBreadcrumbClick = (index: number) => {
+        if (index === -1) {
+            setActiveRootId(null);
+            setPath([]);
+        } else {
+            const nextPath = path.slice(0, index + 1);
+            setPath(nextPath);
+            setActiveRootId(nextPath[nextPath.length - 1].id);
+        }
+    };
+
     const submitFolder = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!folderTitle.trim() || isSubmitting) return;
@@ -271,15 +325,53 @@ export default function VideoLibraryManager() {
         e.preventDefault();
         if (!videoTitle.trim() || !activeParentId || isSubmitting) return;
 
+        if (videoType === 'youtube' && !videoUrl.trim()) {
+            alert('YouTube URL is required.');
+            return;
+        }
+
+        if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) {
+            alert('Please upload a video file or provide a direct URL.');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
+            let resolvedVideoUrl = videoUrl.trim() || null;
+
+            if (videoType === 'self-hosted' && videoFile) {
+                setUploadingVideo(true);
+                const formData = new FormData();
+                formData.append('file', videoFile);
+
+                const uploadHeaders: HeadersInit = {};
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                if (token) {
+                    uploadHeaders.Authorization = `Bearer ${token}`;
+                }
+
+                const uploadRes = await fetch('/api/teacher/uploads', {
+                    method: 'POST',
+                    headers: uploadHeaders,
+                    body: formData,
+                });
+
+                if (!uploadRes.ok) {
+                    const uploadData = await uploadRes.json().catch(() => ({ error: 'Video upload failed.' }));
+                    throw new Error(uploadData.error || 'Video upload failed.');
+                }
+
+                const uploadData = await uploadRes.json();
+                resolvedVideoUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
+            }
+
             const res = await fetch('/api/teacher/video-library', {
                 method: 'POST',
                 headers: getAuthHeaders(),
                 body: JSON.stringify({
                     title: videoTitle.trim(),
                     type: videoType,
-                    url: videoUrl.trim() || null,
+                    url: resolvedVideoUrl,
                     duration: videoDuration.trim() || null,
                     parentId: activeParentId,
                 }),
@@ -293,10 +385,51 @@ export default function VideoLibraryManager() {
             setVideoTitle("");
             setVideoUrl("");
             setVideoDuration("");
+            setVideoFile(null);
             setIsVideoModalOpen(false);
             await fetchLibrary();
         } catch (err: any) {
             alert(err.message || 'Failed to add video.');
+        } finally {
+            setUploadingVideo(false);
+            setIsSubmitting(false);
+        }
+    };
+
+    const submitEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingNode || isSubmitting) return;
+
+        const isFolder = editingNode.type === 'folder';
+        const title = isFolder ? folderTitle : videoTitle;
+
+        if (!title.trim()) return;
+
+        setIsSubmitting(true);
+        try {
+            const body: any = { title: title.trim() };
+            if (!isFolder) {
+                body.url = videoUrl.trim() || null;
+                body.duration = videoDuration.trim() || null;
+                body.type = videoType;
+            }
+
+            const res = await fetch(`/api/teacher/video-library/${editingNode.id}`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(body),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Failed to update.');
+            }
+
+            setIsEditModalOpen(false);
+            setEditingNode(null);
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to update item.');
         } finally {
             setIsSubmitting(false);
         }
@@ -359,17 +492,31 @@ export default function VideoLibraryManager() {
                     ) : (
                         <div className={styles.libraryGrid}>
                             {libraryData.map(node => (
-                                <motion.div
-                                    key={node.id}
-                                    className={styles.rootCard}
-                                    onClick={() => setActiveRootId(node.id)}
-                                    layoutId={`card-${node.id}`}
-                                >
-                                    <div className={styles.rootActions}>
+                                    <motion.div
+                                        key={node.id}
+                                        className={styles.rootCard}
+                                        onClick={() => handleRootClick(node)}
+                                        layoutId={`card-${node.id}`}
+                                    >
+                                        <div className={styles.rootActions}>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title="Move Up"
+                                            onClick={(e) => { e.stopPropagation(); handleMoveItem(node.id, 'up'); }}
+                                        >
+                                            <ArrowUp size={14} />
+                                        </button>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title="Move Down"
+                                            onClick={(e) => { e.stopPropagation(); handleMoveItem(node.id, 'down'); }}
+                                        >
+                                            <ArrowDown size={14} />
+                                        </button>
                                         <button
                                             className={styles.actionBtn}
                                             title="Edit"
-                                            onClick={(e) => e.stopPropagation()}
+                                            onClick={(e) => handleEditClick(node, e)}
                                         >
                                             <Edit2 size={14} />
                                         </button>
@@ -402,6 +549,23 @@ export default function VideoLibraryManager() {
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                 >
+                    <div className={styles.breadcrumbBar}>
+                        <button className={styles.breadcrumbLink} onClick={() => handleBreadcrumbClick(-1)}>
+                            Library
+                        </button>
+                        {path.map((node, i) => (
+                            <span key={node.id}>
+                                <ChevronRight size={14} className={styles.breadcrumbSep} />
+                                <button
+                                    className={`${styles.breadcrumbLink} ${i === path.length - 1 ? styles.active : ''}`}
+                                    onClick={() => handleBreadcrumbClick(i)}
+                                >
+                                    {node.title}
+                                </button>
+                            </span>
+                        ))}
+                    </div>
+
                     <div className={styles.activeViewHeader}>
                         <button className={styles.backBtn} onClick={() => setActiveRootId(null)}>
                             <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Root Folders
@@ -432,6 +596,8 @@ export default function VideoLibraryManager() {
                                 onAddFolder={handleAddFolderClick}
                                 onAddVideo={handleAddVideoClick}
                                 onDelete={handleDeleteClick}
+                                onEdit={handleEditClick}
+                                onMove={handleMoveItem}
                             />
                         ))
                     )}
@@ -502,9 +668,17 @@ export default function VideoLibraryManager() {
                                 <div className={styles.row}>
                                     <div className={styles.formGroup}>
                                         <label>Video Source</label>
-                                        <select value={videoType} onChange={e => setVideoType(e.target.value as ContentType)}>
+                                        <select
+                                            value={videoType}
+                                            onChange={e => {
+                                                const nextType = e.target.value as ContentType;
+                                                setVideoType(nextType);
+                                                setVideoFile(null);
+                                                setVideoUrl('');
+                                            }}
+                                        >
                                             <option value="youtube">YouTube Embed</option>
-                                            <option value="self-hosted">Self-Hosted / MP4 URL</option>
+                                            <option value="self-hosted">Self-Hosted Video</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
@@ -518,17 +692,115 @@ export default function VideoLibraryManager() {
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Video URL</label>
-                                    <input
-                                        type="url"
-                                        value={videoUrl}
-                                        onChange={e => setVideoUrl(e.target.value)}
-                                        placeholder="https://..."
-                                        required
-                                    />
+                                    {videoType === 'youtube' ? (
+                                        <>
+                                            <label>YouTube URL</label>
+                                            <input
+                                                type="url"
+                                                value={videoUrl}
+                                                onChange={e => setVideoUrl(e.target.value)}
+                                                placeholder="https://youtube.com/watch?v=..."
+                                                required
+                                            />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <label>Upload Video File</label>
+                                            <input
+                                                type="file"
+                                                accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
+                                                onChange={e => setVideoFile(e.target.files?.[0] || null)}
+                                            />
+                                            <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
+                                            <label style={{ marginTop: '8px' }}>Or Direct Video URL (Optional)</label>
+                                            <input
+                                                type="url"
+                                                value={videoUrl}
+                                                onChange={e => setVideoUrl(e.target.value)}
+                                                placeholder="https://..."
+                                            />
+                                        </>
+                                    )}
                                 </div>
                                 <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
-                                    {isSubmitting ? 'Adding...' : 'Add Video'}
+                                    {uploadingVideo ? 'Uploading video...' : isSubmitting ? 'Adding...' : 'Add Video'}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {isEditModalOpen && editingNode && (
+                    <div className={styles.modalOverlay} onClick={() => setIsEditModalOpen(false)}>
+                        <motion.div
+                            className={styles.modal}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className={styles.modalHeader}>
+                                <h3>Edit {editingNode.type === 'folder' ? 'Folder' : 'Video' }</h3>
+                                <button className={styles.closeBtn} onClick={() => setIsEditModalOpen(false)}><X size={20} /></button>
+                            </div>
+                            <form onSubmit={submitEdit} className={styles.form}>
+                                {editingNode.type === 'folder' ? (
+                                    <div className={styles.formGroup}>
+                                        <label>Folder Name</label>
+                                        <input
+                                            type="text"
+                                            value={folderTitle}
+                                            onChange={e => setFolderTitle(e.target.value)}
+                                            required autoFocus
+                                        />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className={styles.formGroup}>
+                                            <label>Video Title</label>
+                                            <input
+                                                type="text"
+                                                value={videoTitle}
+                                                onChange={e => setVideoTitle(e.target.value)}
+                                                required autoFocus
+                                            />
+                                        </div>
+                                        <div className={styles.row}>
+                                            <div className={styles.formGroup}>
+                                                <label>Video Source</label>
+                                                <select
+                                                    value={videoType}
+                                                    onChange={e => setVideoType(e.target.value as ContentType)}
+                                                >
+                                                    <option value="youtube">YouTube Embed</option>
+                                                    <option value="self-hosted">Self-Hosted Video</option>
+                                                </select>
+                                            </div>
+                                            <div className={styles.formGroup}>
+                                                <label>Duration</label>
+                                                <input
+                                                    type="text"
+                                                    value={videoDuration}
+                                                    onChange={e => setVideoDuration(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Video URL</label>
+                                            <input
+                                                type="url"
+                                                value={videoUrl}
+                                                onChange={e => setVideoUrl(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+                                    {isSubmitting ? 'Updating...' : 'Save Changes'}
                                 </button>
                             </form>
                         </motion.div>

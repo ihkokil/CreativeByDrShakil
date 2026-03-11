@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
     // Get Lock First Browser setting for the user
     const autoLockEnabled = await getAutoLockSetting(user.id);
 
-    // Handle existing session logic
-    if (activeSessionsSameDevice.length > 0) {
+    // Apply lock-first-browser enforcement to students only.
+    if (user.role === 'student' && activeSessionsSameDevice.length > 0) {
       if (autoLockEnabled) {
         // Lock is ON - reject the login request
         return NextResponse.json(
@@ -117,6 +117,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+    console.error('[Login Error]', error?.message || error);
+    return NextResponse.json(
+      { error: 'Something went wrong. Please try again later.' },
+      { status: 500 }
+    );
   }
 }

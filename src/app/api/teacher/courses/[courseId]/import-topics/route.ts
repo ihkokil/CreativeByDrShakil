@@ -3,13 +3,15 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
+  BuilderCurriculumNode,
   collectSecondChildGroups,
   computeReleaseGroupDates,
+  createNodeId,
   ensureGroupInheritance,
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
-import { buildCurriculumFromStarter } from '@/lib/starter-catalog';
+import { buildCurriculumFromStarter, getStarterCatalogFromDB } from '@/lib/starter-catalog';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
   if (role === 'admin') {
@@ -17,6 +19,62 @@ const getCourseForPayload = async (courseId: string, userId: string, role: strin
   }
 
   return prisma.course.findFirst({ where: { id: courseId, teacherId: userId } });
+};
+
+const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const title = typeof raw.title === 'string' ? raw.title.trim() : '';
+  const type = typeof raw.type === 'string' ? raw.type.trim() : '';
+  if (!title || !['folder', 'youtube', 'self-hosted', 'document'].includes(type)) {
+    return null;
+  }
+
+  const childrenSource = Array.isArray(raw.items) ? raw.items : Array.isArray(raw.children) ? raw.children : [];
+  const children = childrenSource
+    .map(buildNodeFromPayload)
+    .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
+
+  return {
+    id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createNodeId(type === 'folder' ? 'folder' : 'video'),
+    title,
+    type: type as BuilderCurriculumNode['type'],
+    url: typeof raw.url === 'string' && raw.url.trim() ? raw.url.trim() : null,
+    duration: typeof raw.duration === 'string' && raw.duration.trim() ? raw.duration.trim() : null,
+    storagePath: typeof raw.storagePath === 'string' && raw.storagePath.trim() ? raw.storagePath.trim() : null,
+    releaseGroupId: null,
+    releaseAt: null,
+    children,
+  };
+};
+
+const buildCurriculumFromPayloadTopics = (topics: any[]): BuilderCurriculumNode[] => {
+  const normalized: BuilderCurriculumNode[] = [];
+
+  topics.forEach((topic) => {
+    const title = typeof topic.title === 'string' ? topic.title.trim() : '';
+    if (!title) {
+      return;
+    }
+
+    const subTopicsSource = Array.isArray(topic.subTopics) ? topic.subTopics : [];
+    const children = subTopicsSource
+      .map(buildNodeFromPayload)
+      .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
+
+    normalized.push({
+      id: typeof topic.id === 'string' && topic.id.trim() ? topic.id.trim() : createNodeId('main'),
+      title,
+      type: 'folder',
+      releaseGroupId: null,
+      releaseAt: null,
+      children,
+    });
+  });
+
+  return normalized;
 };
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -36,13 +94,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const mainTopicIds = Array.isArray(body.mainTopicIds)
       ? body.mainTopicIds.filter((item: unknown): item is string => typeof item === 'string' && item.trim().length > 0)
       : [];
+    const topics = Array.isArray(body.topics) ? body.topics : [];
 
-    if (!mainTopicIds.length) {
+    if (!mainTopicIds.length && !topics.length) {
       return NextResponse.json({ error: 'At least one main topic must be selected.' }, { status: 400 });
     }
 
     const existingCurriculum = parseCurriculumJson(course.curriculumJson);
-    const importedNodes = buildCurriculumFromStarter(mainTopicIds);
+    const importedNodes = topics.length
+      ? buildCurriculumFromPayloadTopics(topics)
+      : buildCurriculumFromStarter(mainTopicIds, await getStarterCatalogFromDB());
     const mergedCurriculum = ensureGroupInheritance([...existingCurriculum, ...importedNodes]);
 
     const groups = collectSecondChildGroups(mergedCurriculum);
