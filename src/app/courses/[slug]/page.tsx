@@ -183,8 +183,18 @@ export default function CourseDetailPage() {
         return (
             <main className={styles.main}>
                 <Navbar />
-                <div style={{ padding: "160px 0", textAlign: "center", minHeight: "60vh" }}>
-                    <div className="gradient-text" style={{ fontSize: "1.5rem" }}>Preparing your course...</div>
+                <div className={`${styles.skeleton} ${styles.skeletonHero}`} />
+                <div className={styles.container}>
+                    <div className={styles.leftContent}>
+                        <div className={`${styles.skeleton} ${styles.skeletonStats}`} />
+                        <div className={`${styles.skeleton} ${styles.skeletonText}`} style={{ width: '80%', height: '40px' }} />
+                        <div className={`${styles.skeleton} ${styles.skeletonText}`} />
+                        <div className={`${styles.skeleton} ${styles.skeletonText}`} />
+                        <div className={`${styles.skeleton} ${styles.skeletonText}`} style={{ width: '60%' }} />
+                    </div>
+                    <div className={styles.sidebarWrapper}>
+                        <div className={`${styles.skeleton} ${styles.skeletonSidebar}`} />
+                    </div>
                 </div>
                 <Footer />
             </main>

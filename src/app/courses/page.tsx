@@ -9,9 +9,8 @@ import styles from "./CoursesPage.module.css";
 import { Course } from "@/constants/courses";
 import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 
-import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
-import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
+import CourseCardSkeleton from "@/components/Courses/CourseCardSkeleton";
 
 function AllCoursesContent() {
     const searchParams = useSearchParams();
@@ -24,10 +23,12 @@ function AllCoursesContent() {
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
     const [categoryList, setCategoryList] = useState<CategorySummary[]>([]);
+    const [loading, setLoading] = useState(true);
     useEffect(() => {
         let cancelled = false;
 
         const loadDynamicCourses = async () => {
+            setLoading(true);
             try {
                 const courses = await fetchPublishedDynamicCourses();
                 if (!cancelled) {
@@ -35,6 +36,8 @@ function AllCoursesContent() {
                 }
             } catch {
                 // Keep the static catalog if dynamic fetch fails.
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         };
 
@@ -244,14 +247,22 @@ function AllCoursesContent() {
                     </div>
 
                     <div className={`${styles.grid} ${viewMode === 'list' ? styles.listView : styles.gridView}`}>
-                            {filteredCourses.map(course => (
+                        {loading ? (
+                            [...Array(6)].map((_, i) => (
+                                <div key={`skeleton-${i}`} className={styles.cardWrapper}>
+                                    <CourseCardSkeleton viewMode={viewMode} />
+                                </div>
+                            ))
+                        ) : (
+                            filteredCourses.map(course => (
                                 <div key={course.id} className={styles.cardWrapper}>
                                     <CourseCard course={course} viewMode={viewMode} />
                                 </div>
-                            ))}
+                            ))
+                        )}
                     </div>
 
-                    {filteredCourses.length === 0 && (
+                    {!loading && filteredCourses.length === 0 && (
                         <div className={styles.noResults}>
                             <h3>No courses found</h3>
                             <p>Try adjusting your filters or search query.</p>
