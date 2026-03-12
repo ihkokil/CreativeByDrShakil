@@ -147,3 +147,42 @@
         font-size: 1.5rem;
     }
 }
+
+/* Skeleton Animations */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.6; }
+}
+
+.skeleton {
+    animation: pulse 1.5s ease-in-out infinite;
+    background: var(--surface-strong);
+    border-radius: var(--radius-sm);
+}
+
+.skeletonHero {
+    height: 400px;
+    width: 100%;
+    margin-bottom: 40px;
+    border-radius: var(--radius-xl);
+}
+
+.skeletonSidebar {
+    height: 600px;
+    width: 100%;
+    border-radius: var(--radius-xl);
+}
+
+.skeletonStats {
+    height: 80px;
+    width: 100%;
+    margin-bottom: 40px;
+    border-radius: var(--radius-lg);
+}
+
+.skeletonText {
+    height: 20px;
+    width: 100%;
+    margin-bottom: 12px;
+}
