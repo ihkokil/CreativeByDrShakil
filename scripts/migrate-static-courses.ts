@@ -67,7 +67,7 @@ async function main() {
       .filter(Boolean);
 
     // Prepare Create/Update Payload
-    const courseData = {
+    const courseData: any = {
       title: sc.title,
       slug: sc.slug,
       categoryId: category.id,
@@ -109,8 +109,9 @@ async function main() {
     });
 
     // Add Subs
-    for (let i = 0; i < (sc.subInstructors || []).length; i++) {
-        const si = sc.subInstructors[i];
+    const subInstructors = sc.subInstructors || [];
+    for (let i = 0; i < subInstructors.length; i++) {
+        const si = subInstructors[i];
         await prisma.courseInstructor.create({
             data: {
                 courseId: course.id,
