@@ -1,0 +1,39 @@
+.watermarkContainer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 20;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.watermarkText {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    white-space: nowrap;
+    will-change: transform;
+    pointer-events: none;
+}
+
+.name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 0.3px;
+}
+
+.email {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.55);
+}

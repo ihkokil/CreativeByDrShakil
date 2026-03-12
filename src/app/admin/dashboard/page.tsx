@@ -20,6 +20,10 @@ import {
     Trash2,
     MailCheck,
     Smartphone,
+    CheckCircle2,
+    AlertTriangle,
+    X,
+    Inbox,
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
@@ -27,6 +31,10 @@ import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
 import CouponManager from "@/components/Admin/CouponManager";
 import Image from "next/image";
 import SessionsManager from "@/components/Admin/SessionsManager";
+import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
+import CategoryManager from "@/components/Admin/CategoryManager";
+import { AdminPaymentsList } from "@/components/Admin/PaymentsList";
+import BkashSettings from "@/components/Admin/BkashSettings";
 
 interface TeacherProfile {
     id: string;
@@ -40,6 +48,17 @@ interface TeacherProfile {
     profile_image?: string;
 }
 
+type ResetConfirmTarget = {
+    id: string;
+    email: string;
+    full_name: string;
+};
+
+type ToastState = {
+    type: "success" | "error" | "info";
+    text: string;
+} | null;
+
 function AdminDashboardContent() {
     const { user, loading, role, signOut } = useAuth();
     const router = useRouter();
@@ -49,7 +68,7 @@ function AdminDashboardContent() {
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
     // Instead of useState for activeTab, derive it from searchParams
-    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "payments" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -59,6 +78,15 @@ function AdminDashboardContent() {
 
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
+    const [toast, setToast] = useState<ToastState>(null);
+    const [resetConfirmTarget, setResetConfirmTarget] = useState<ResetConfirmTarget | null>(null);
+    const [isSendingReset, setIsSendingReset] = useState(false);
+
+    useEffect(() => {
+        if (!toast) return;
+        const timer = window.setTimeout(() => setToast(null), 3200);
+        return () => window.clearTimeout(timer);
+    }, [toast]);
 
     useEffect(() => {
         if (!loading && (!user || role !== "admin")) {
@@ -91,9 +119,12 @@ function AdminDashboardContent() {
     const navItems = useMemo(
         () => [
             { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
+            { key: "payments", label: "Payments", icon: DollarSign, mobilePrimary: true },
             { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
+            { key: "categories", label: "Categories", icon: BookOpen, mobilePrimary: true },
             { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
             { key: "sessions", label: "Sessions", icon: Smartphone, mobilePrimary: true },
+            { key: "support", label: "Support", icon: Inbox, mobilePrimary: true },
             { key: "analytics", label: "Analytics", icon: BarChart3, mobilePrimary: true },
             { key: "settings", label: "Settings", icon: Settings },
         ],
@@ -115,10 +146,8 @@ function AdminDashboardContent() {
         router.refresh();
     };
 
-    const handleResetPassword = async (teacher: TeacherProfile) => {
-        const confirmContent = window.confirm(`Send password reset email to ${teacher.email}?`);
-        if (!confirmContent) return;
-
+    const sendResetPassword = async (teacher: ResetConfirmTarget) => {
+        setIsSendingReset(true);
         try {
             const token = localStorage.getItem("auth_token");
             const res = await fetch(`/api/admin/teachers/${teacher.id}/reset-password`, {
@@ -126,11 +155,25 @@ function AdminDashboardContent() {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             const data = await res.json();
-            if (res.ok) alert(data.message || "Email dispatched!");
-            else alert(data.error || "Failed to send reset email.");
-        } catch(e) {
-            alert("Network error.");
+            if (res.ok) {
+                setToast({ type: "success", text: data.message || "Password reset link dispatched." });
+            } else {
+                setToast({ type: "error", text: data.error || "Failed to send reset email." });
+            }
+        } catch {
+            setToast({ type: "error", text: "Network error while sending reset email." });
+        } finally {
+            setIsSendingReset(false);
+            setResetConfirmTarget(null);
         }
+    };
+
+    const handleResetPassword = (teacher: TeacherProfile) => {
+        setResetConfirmTarget({
+            id: teacher.id,
+            email: teacher.email,
+            full_name: teacher.full_name,
+        });
     };
 
     if (loading || !user || role !== "admin") {
@@ -139,6 +182,22 @@ function AdminDashboardContent() {
 
     return (
         <>
+            {toast && (
+                <div className={styles.toastWrap} role="status" aria-live={toast.type === "error" ? "assertive" : "polite"}>
+                    <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : toast.type === "error" ? styles.toastError : styles.toastInfo}`}>
+                        <div className={styles.toastBody}>
+                            <span className={styles.toastIcon}>
+                                {toast.type === "success" ? <CheckCircle2 size={16} /> : toast.type === "error" ? <AlertTriangle size={16} /> : <MailCheck size={16} />}
+                            </span>
+                            <span>{toast.text}</span>
+                        </div>
+                        <button className={styles.toastClose} onClick={() => setToast(null)} aria-label="Dismiss notification">
+                            <X size={14} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <DashboardShell
                 title="Admin Dashboard"
                 subtitle="Control teachers, operations, and platform health with one consistent dashboard shell."
@@ -148,7 +207,7 @@ function AdminDashboardContent() {
                 userAvatarUrl={user.user_metadata?.profile_image || null}
                 items={navItems}
                 activeKey={activeTab}
-                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "coupons" | "sessions" | "analytics" | "settings")}
+                onSelect={(key) => setActiveTab(key as "overview" | "payments" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings")}
                 onLogout={handleLogout}
             >
                 {activeTab === "overview" && (
@@ -180,6 +239,10 @@ function AdminDashboardContent() {
                                     <BarChart3 size={18} />
                                     <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
                                 </article>
+                                <article className={styles.actionCard} onClick={() => setActiveTab("payments")}>
+                                    <DollarSign size={18} />
+                                    <div><h3>Review Payments</h3><p>Approve or reject pending payment submissions.</p></div>
+                                </article>
                                 <article className={styles.actionCard} onClick={() => setActiveTab("settings")}>
                                     <Shield size={18} />
                                     <div><h3>Security</h3><p>Review permissions and controls.</p></div>
@@ -187,6 +250,16 @@ function AdminDashboardContent() {
                             </div>
                         </section>
                     </div>
+                )}
+
+                {activeTab === "payments" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Payment Approvals</h2>
+                        <AdminPaymentsList
+                            onApprove={() => setToast({ type: "success", text: "Order approved and access granted." })}
+                            onReject={() => setToast({ type: "info", text: "Order rejected." })}
+                        />
+                    </section>
                 )}
 
                 {activeTab === "teachers" && (
@@ -232,7 +305,7 @@ function AdminDashboardContent() {
                                         <div className={styles.listCol}>
                                             <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
                                             <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                                                Joined {new Date(teacher.created_at).toLocaleDateString()}
+                                                Joined {new Date(teacher.created_at).toLocaleDateString('en-GB')}
                                             </span>
                                         </div>
 
@@ -267,6 +340,13 @@ function AdminDashboardContent() {
                     </section>
                 )}
 
+                {activeTab === "categories" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Categories</h2>
+                        <CategoryManager />
+                    </section>
+                )}
+
                 {activeTab === "coupons" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Coupon Management</h2>
@@ -279,14 +359,16 @@ function AdminDashboardContent() {
                         <SessionsManager />
                     </section>
                 )}
+                {activeTab === "support" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Contact Requests</h2>
+                        <ContactRequestsManager />
+                    </section>
+                )}
                 {activeTab === "settings" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Platform Settings</h2>
-                        <div className={styles.settingCards}>
-                            <article className={styles.settingCard}><h3>Email Templates</h3><p>Configure onboarding and notification templates.</p></article>
-                            <article className={styles.settingCard}><h3>Roles & Access</h3><p>Manage admin/teacher permissions and scopes.</p></article>
-                            <article className={styles.settingCard}><h3>Branding</h3><p>Control logo, colors, and platform metadata.</p></article>
-                        </div>
+                        <BkashSettings />
                     </section>
                 )}
             </DashboardShell>
@@ -314,6 +396,34 @@ function AdminDashboardContent() {
                 teacherTarget={deleteTeacherData}
                 allTeachers={teachers}
             />
+
+            {resetConfirmTarget && (
+                <div className={styles.confirmBackdrop} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title">
+                    <div className={styles.confirmDialog}>
+                        <h3 id="reset-confirm-title">Send reset email?</h3>
+                        <p>
+                            Send a password reset link to <strong>{resetConfirmTarget.email}</strong> for {" "}
+                            {resetConfirmTarget.full_name}.
+                        </p>
+                        <div className={styles.confirmActions}>
+                            <button
+                                className={styles.confirmCancelBtn}
+                                onClick={() => setResetConfirmTarget(null)}
+                                disabled={isSendingReset}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmPrimaryBtn}
+                                onClick={() => sendResetPassword(resetConfirmTarget)}
+                                disabled={isSendingReset}
+                            >
+                                {isSendingReset ? "Sending..." : "Send Email"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
