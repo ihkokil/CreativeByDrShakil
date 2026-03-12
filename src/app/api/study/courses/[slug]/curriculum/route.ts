@@ -1,14 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
+  BuilderNodeWithAvailability,
   collectSecondChildGroups,
   computeReleaseGroupDates,
   ensureGroupInheritance,
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
+
+type OverrideRow = {
+  lessonNodeId: string;
+  availabilityMode: 'inherit' | 'available' | 'locked';
+  availableAt: Date | string | null;
+};
+
+const annotateCompletion = (
+  nodes: BuilderNodeWithAvailability[],
+  completedSet: Set<string>
+): BuilderNodeWithAvailability[] => {
+  return nodes.map((node) => ({
+    ...node,
+    ...(node.type !== 'folder' ? { completed: completedSet.has(node.id) } : {}),
+    children: node.children?.length ? annotateCompletion(node.children, completedSet) : node.children,
+  }));
+};
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
@@ -40,11 +59,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
     const hasAccess = await prisma.order.findFirst({
       where: {
         userId: payload.sub,
         courseId: course.id,
         status: 'approved',
+        updatedAt: {
+          gte: oneYearAgo,
+        },
       },
       select: { id: true },
     });
@@ -64,11 +89,34 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupDates,
     });
 
+    const overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
+      SELECT lessonNodeId, availabilityMode, availableAt
+      FROM StudentModuleAvailability
+      WHERE courseId = ${course.id} AND userId = ${payload.sub}
+    `);
+
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
       computedReleaseGroupDates,
-      new Date()
+      new Date(),
+      overrideRows.map((row) => ({
+        lessonNodeId: row.lessonNodeId,
+        availabilityMode: row.availabilityMode,
+        availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
+      }))
     );
+
+    const completedRows = await prisma.lessonProgress.findMany({
+      where: {
+        userId: payload.sub,
+        courseId: course.id,
+      },
+      select: {
+        lessonNodeId: true,
+      },
+    });
+    const completedSet = new Set(completedRows.map((row) => row.lessonNodeId));
+    const curriculumWithProgress = annotateCompletion(curriculumWithAvailability, completedSet);
 
     return NextResponse.json({
       course: {
@@ -76,7 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         title: course.title,
         timezone: course.timezone,
       },
-      curriculum: curriculumWithAvailability,
+      curriculum: curriculumWithProgress,
       groups,
       computedReleaseGroupDates,
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
@@ -9,14 +9,18 @@ import { ChevronDown, User, LayoutGrid, LogOut, Layout } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
+import { CategorySummary, fetchCategories } from "@/lib/categories";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [authMode, setAuthMode] = useState<"login" | "register">("login");
+    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [categories, setCategories] = useState<CategorySummary[]>([]);
     const { user, role, signOut } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const categoryMenuRef = useRef<HTMLDivElement | null>(null);
 
     const dashboardHref = role === "admin"
         ? "/admin/dashboard"
@@ -38,10 +42,44 @@ export default function Navbar() {
             : null;
 
         if (authParam === "login" || authParam === "register") {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setAuthMode(authParam);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsAuthOpen(true);
         }
     }, [pathname]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadCategories = async () => {
+            try {
+                const list = await fetchCategories();
+                if (!cancelled) {
+                    setCategories(list);
+                }
+            } catch {
+                // Keep the menu empty if the category request fails.
+            }
+        };
+
+        loadCategories();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (categoryMenuRef.current && !categoryMenuRef.current.contains(event.target as Node)) {
+                setIsCategoryOpen(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const handleCloseAuth = () => {
         setIsAuthOpen(false);
@@ -64,14 +102,32 @@ export default function Navbar() {
                     </Link>
 
                     <div className={styles.centerLinks}>
-                        <div className={styles.dropdown}>
-                            <button className={styles.navBtn}>
+                        <div className={styles.dropdown} ref={categoryMenuRef}>
+                            <button className={styles.navBtn} onClick={() => setIsCategoryOpen((current) => !current)}>
                                 <LayoutGrid size={18} />
                                 Categories
                                 <ChevronDown size={14} />
                             </button>
+                            {isCategoryOpen && (
+                                <div className={styles.dropdownMenu}>
+                                    <Link href="/courses" className={styles.dropdownItem} onClick={() => setIsCategoryOpen(false)}>
+                                        All Courses
+                                    </Link>
+                                    {categories.map((category) => (
+                                        <Link
+                                            key={category.id}
+                                            href={`/courses?category=${encodeURIComponent(category.displayName)}`}
+                                            className={styles.dropdownItem}
+                                            onClick={() => setIsCategoryOpen(false)}
+                                        >
+                                            {category.displayName}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <Link href="/courses" className={styles.link}>Courses</Link>
+                        <Link href="/contact" className={styles.link}>Contact</Link>
                         <Link href="/exams" className={styles.link}>Mock Exams</Link>
                         <Link href="/resources" className={styles.link}>Resources</Link>
                     </div>
