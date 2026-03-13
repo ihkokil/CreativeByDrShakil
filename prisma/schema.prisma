@@ -94,7 +94,6 @@ model Course {
   instructor   String
   instructors  CourseInstructor[]
   language     String?
-  level        String?
   imageUrl     String?  @db.LongText
   duration     String
   courseStartDate DateTime?
