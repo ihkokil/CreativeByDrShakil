@@ -77,6 +77,7 @@ model User {
   deviceSessions             DeviceSession[]
   sessionSettings            SessionLockSettings?
   lessonProgress             LessonProgress[]
+  moduleAvailabilityOverrides StudentModuleAvailability[]
 }
 
 model Course {
@@ -111,6 +112,7 @@ model Course {
   publishedAt DateTime?
   orders       Order[]
   lessonProgress LessonProgress[]
+  moduleAvailabilityOverrides StudentModuleAvailability[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
