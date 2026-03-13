@@ -79,7 +79,6 @@ async function main() {
       description: sc.description || sc.title,
       overview: sc.description || null,
       learningOutcomes: (sc.learningObjectives || []).join('\n'),
-      level: sc.level || 'Intermediate',
       language: sc.language || 'English / Bengali',
       status: 'published',
       publishedAt: new Date(),
