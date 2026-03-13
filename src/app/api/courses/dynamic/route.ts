@@ -33,6 +33,7 @@ export async function GET() {
             id: true,
             name: true,
             designation: true,
+            imageUrl: true,
             sortOrder: true,
           },
         },
