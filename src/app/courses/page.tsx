@@ -11,6 +11,8 @@ import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 import CourseCardSkeleton from "@/components/Courses/CourseCardSkeleton";
+import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
+import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 
 function AllCoursesContent() {
     const searchParams = useSearchParams();
