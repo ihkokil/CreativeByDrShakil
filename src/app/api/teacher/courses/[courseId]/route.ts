@@ -125,7 +125,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     if (typeof body.duration === 'string') updateData.duration = body.duration.trim() || existingCourse.duration;
     if (typeof body.language === 'string') updateData.language = body.language.trim() || null;
-    if (typeof body.level === 'string') updateData.level = body.level.trim() || null;
     if (typeof body.imageUrl === 'string') updateData.imageUrl = body.imageUrl.trim() || null;
     if (typeof body.timezone === 'string' && body.timezone.trim()) updateData.timezone = body.timezone.trim();
     if (body.isFeatured !== undefined) updateData.isFeatured = Boolean(body.isFeatured);
