@@ -12,8 +12,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await params;
   try {
-    const { slug } = await params;
 
     const course = await prisma.course.findUnique({
       where: { slug: slug },
@@ -82,7 +82,7 @@ export async function GET(
   } catch (error: any) {
     console.error('[Course Dynamic Slug Error]', {
       message: error?.message,
-      slug: params.slug,
+      slug: slug,
     });
     return NextResponse.json(
       { error: 'Failed to load course details.' },
