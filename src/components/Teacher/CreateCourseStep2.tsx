@@ -142,6 +142,7 @@ function CreateCourseStep2Content() {
       const validInstructors = selectedInstructors.map((teacher) => ({
         name: teacher.full_name,
         designation: teacher.designation || "",
+        imageUrl: teacher.profile_image || "",
       }));
 
       const response = await fetch(`/api/teacher/courses/${courseId}/content`, {
