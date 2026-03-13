@@ -11,11 +11,6 @@ interface Props {
 export default function CourseStats({ course }: Props) {
   const stats = [
     {
-      label: "Skill Level",
-      value: course.level || "Beginner",
-      icon: <BarChart size={20} />,
-    },
-    {
       label: "Total Duration",
       value: course.duration,
       icon: <Clock size={20} />,
