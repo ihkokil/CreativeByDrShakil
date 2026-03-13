@@ -6,6 +6,7 @@ interface InstructorData {
   id?: string;
   name: string;
   designation?: string;
+  imageUrl?: string;
 }
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             courseId,
             name: instr.name.trim(),
             designation: instr.designation ? instr.designation.trim() : null,
+            imageUrl: instr.imageUrl || null,
             sortOrder: index,
           },
         })
