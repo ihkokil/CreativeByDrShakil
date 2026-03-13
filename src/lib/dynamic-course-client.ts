@@ -21,7 +21,6 @@ interface DynamicCoursePayload {
   overview?: string | null;
   learningOutcomes?: string | null;
   instructors?: DynamicInstructorPayload[];
-  level?: string;
   language?: string;
   image?: string | null;
   mainInstructor: DynamicInstructorPayload;
@@ -65,7 +64,6 @@ export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course 
     duration: payload.duration || 'Self paced',
     description: payload.overview || payload.description,
     learningObjectives,
-    level: payload.level,
     language: payload.language,
     lastUpdated: payload.lastUpdated || undefined,
     enrolledCount: payload.enrolledCount,
