@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import prisma from '@/lib/prisma';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
+import { formatLastUpdated } from '@/lib/date-format';
 
 const formatPrice = (price: number) => {
   if (price <= 0) return 'Free';
@@ -41,6 +42,13 @@ export async function GET(
             displayName: true,
           },
         },
+        _count: {
+          select: {
+            orders: {
+              where: { status: 'approved' },
+            },
+          },
+        },
       },
     });
 
@@ -67,7 +75,8 @@ export async function GET(
         language: course.language || 'English / Bengali',
         image: course.imageUrl || '/placeholder.svg',
         status: course.status,
-        lastUpdated: course.updatedAt.toISOString(),
+        lastUpdated: formatLastUpdated(course.updatedAt),
+        enrolledCount: course._count.orders,
         publishedAt: course.publishedAt,
         instructors: course.instructors,
         mainInstructor: {
