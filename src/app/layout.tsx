@@ -9,6 +9,9 @@ const outfit = Outfit({ subsets: ["latin"] });
 export const metadata: Metadata = {
     title: "Creative By Dr. Shakil | Medical Education Simplified",
     description: "Creative By Dr. Shakil (creativebydrshakil.com) — a premium learning platform for doctors.",
+    icons: {
+        icon: "/favicon.png",
+    },
 };
 
 export default function RootLayout({
