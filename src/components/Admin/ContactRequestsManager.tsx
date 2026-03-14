@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import styles from './ContactRequestsManager.module.css';
-import { AlertCircle, ArrowRight, CheckCircle2, Inbox, Loader2, RefreshCw, Send, X } from 'lucide-react';
+import { AlertCircle, Inbox, Loader2, RefreshCw, ArrowRight, CheckCircle2, Send } from 'lucide-react';
+import ContactRequestModal from './ContactRequestModal';
 
 type ContactIssueType = 'query' | 'technical_assistance' | 'billing' | 'course_access' | 'other';
 type ContactStatus = 'open' | 'in_review' | 'responded' | 'closed';
@@ -46,6 +47,7 @@ export default function ContactRequestsManager() {
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | ContactStatus>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [statusDraft, setStatusDraft] = useState<ContactStatus>('open');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -103,11 +105,15 @@ export default function ContactRequestsManager() {
     }
   }, [selectedSubmission?.id]);
 
-  const updateSubmission = async () => {
+  const updateSubmission = async (status?: ContactStatus, reply?: string) => {
     if (!selectedSubmission) return;
 
     setSaving(true);
     setMessage(null);
+
+    // Use provided values or current drafts
+    const finalStatus = status !== undefined ? status : statusDraft;
+    const finalReply = reply !== undefined ? reply : replyDraft;
 
     try {
       const response = await fetch(`/api/admin/contact-submissions/${selectedSubmission.id}`, {
@@ -117,9 +123,9 @@ export default function ContactRequestsManager() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          status: statusDraft,
-          adminReply: replyDraft.trim() || undefined,
-          sendReplyEmail: Boolean(replyDraft.trim()),
+          status: finalStatus,
+          adminReply: finalReply.trim() || undefined,
+          sendReplyEmail: Boolean(finalReply.trim()),
         }),
       });
 
@@ -207,7 +213,10 @@ export default function ContactRequestsManager() {
                 <button
                   key={submission.id}
                   className={`${styles.listItem} ${isSelected ? styles.listItemActive : ''}`}
-                  onClick={() => setSelectedId(submission.id)}
+                  onClick={() => {
+                    setSelectedId(submission.id);
+                    setShowModal(true);
+                  }}
                 >
                   <div className={styles.listItemTop}>
                     <strong>{submission.fullName}</strong>
@@ -293,7 +302,7 @@ export default function ContactRequestsManager() {
                 <button className={styles.ghostBtn} onClick={() => setReplyDraft(selectedSubmission.adminReply || '')} type="button">
                   Reset
                 </button>
-                <button className={styles.primaryBtn} onClick={updateSubmission} disabled={saving} type="button">
+                <button className={styles.primaryBtn} onClick={() => updateSubmission(statusDraft, replyDraft)} disabled={saving} type="button">
                   {saving ? <Loader2 size={16} className={styles.spin} /> : <Send size={16} />}
                   {replyDraft.trim() ? 'Send reply' : 'Save status'}
                   {!saving ? <ArrowRight size={16} /> : null}
@@ -310,6 +319,15 @@ export default function ContactRequestsManager() {
           )}
         </div>
       </div>
+
+      <ContactRequestModal
+        submission={selectedSubmission}
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onUpdate={updateSubmission}
+        isSaving={saving}
+        token={token}
+      />
     </div>
   );
 }
