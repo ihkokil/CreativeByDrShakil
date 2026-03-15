@@ -119,6 +119,3 @@ export default function TeacherSidebar({
         </aside>
     );
 }
-
-// Support for Framer Motion inside this file if I want, but I'll skip to keep it simple for now or import it correctly.
-import { motion } from "framer-motion";
