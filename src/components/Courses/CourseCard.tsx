@@ -62,7 +62,12 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
             </div>
 
             <div className={styles.cardFooter}>
-                <span className={styles.price}>{course.price}</span>
+                <div className={styles.priceContainer}>
+                    {course.originalPrice && (
+                        <span className={styles.originalPrice}>{course.originalPrice}</span>
+                    )}
+                    <span className={styles.price}>{course.price}</span>
+                </div>
                 <Link href={`/courses/${course.slug}`} className={styles.enrollBtn}>
                     View Details
                 </Link>
