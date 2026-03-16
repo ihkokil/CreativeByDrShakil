@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import SessionWarningToast from "@/components/SessionWarning/SessionWarning";
+import ContentProtection from "@/components/ContentProtection/ContentProtection";
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <html lang="en">
             <body className={outfit.className}>
                 <AuthProvider>
+                    <ContentProtection />
                     {children}
                     <SessionWarningToast />
                 </AuthProvider>
