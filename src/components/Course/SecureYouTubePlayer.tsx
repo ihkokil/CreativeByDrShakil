@@ -10,8 +10,8 @@ const SecureYouTubePlayer: React.FC<SecureYouTubePlayerProps> = ({ videoId, widt
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const preventContextMenu = (e: MouseEvent) => e.preventDefault();
-    const preventClick = (e: MouseEvent) => e.stopPropagation();
+    const preventContextMenu = (e: Event) => e.preventDefault();
+    const preventClick = (e: Event) => e.stopPropagation();
     const overlay = containerRef.current?.querySelector('.yt-overlay');
     if (overlay) {
       overlay.addEventListener('contextmenu', preventContextMenu);
