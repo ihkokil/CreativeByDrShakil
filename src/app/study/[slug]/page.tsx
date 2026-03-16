@@ -292,6 +292,7 @@ export default function StudyCoursePage() {
                     <div className={styles.videoPlayer}>
                         {activeLesson ? (
                             activeLesson.type === "youtube" && activeLesson.url ? (
+                                // For YouTube, use postMessage API to detect end (requires more work), fallback: show Next button
                                 <iframe
                                     width="100%"
                                     height="100%"
@@ -301,6 +302,18 @@ export default function StudyCoursePage() {
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                     className={styles.iframePlayer}
+                                    id="study-youtube-iframe"
+                                />
+                            ) : activeLesson.type === "self-hosted" && activeLesson.url ? (
+                                <video
+                                    width="100%"
+                                    height="100%"
+                                    src={activeLesson.url}
+                                    controls
+                                    className={styles.iframePlayer}
+                                    onEnded={() => {
+                                        if (nextLesson) setActiveLesson(nextLesson);
+                                    }}
                                 />
                             ) : (
                                 <div className={styles.mockVideo}>
@@ -316,6 +329,27 @@ export default function StudyCoursePage() {
                             </div>
                         )}
                     </div>
+    // Auto-advance for YouTube videos using postMessage API
+    useEffect(() => {
+        if (!activeLesson || activeLesson.type !== "youtube" || !activeLesson.url) return;
+        const iframe = document.getElementById("study-youtube-iframe") as HTMLIFrameElement | null;
+        if (!iframe) return;
+        // Listen for YouTube player events
+        function onMessage(event: MessageEvent) {
+            if (!event.data || typeof event.data !== "object") return;
+            // YouTube IFrame API event
+            if (event.data.event === "onStateChange" && event.data.info === 0) {
+                // 0 = ended
+                if (nextLesson) setActiveLesson(nextLesson);
+            }
+        }
+        window.addEventListener("message", onMessage);
+        // Inject API if needed
+        iframe.contentWindow?.postMessage(JSON.stringify({ event: "listening" }), "*");
+        return () => {
+            window.removeEventListener("message", onMessage);
+        };
+    }, [activeLesson, nextLesson]);
 
                     {activeLesson && (
                         <article className={styles.article}>
