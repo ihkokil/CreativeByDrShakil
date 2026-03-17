@@ -157,6 +157,23 @@ export default function CourseDetailPage() {
         return enrichCoursesWithTeachers([course], teachers)[0] || course;
     }, [course, teachers]);
 
+    const instructorList = useMemo(() => {
+        if (!displayCourse) return [];
+        const main = displayCourse.mainInstructor;
+        const subs = displayCourse.subInstructors || [];
+        const list = [main, ...subs].filter(Boolean);
+        const unique = new Map<string, typeof list[number]>();
+
+        list.forEach((instructor) => {
+            const key = instructor.id || `${instructor.name}-${instructor.role}`;
+            if (!unique.has(key)) {
+                unique.set(key, instructor);
+            }
+        });
+
+        return Array.from(unique.values());
+    }, [displayCourse]);
+
     useEffect(() => {
         if (displayCourse && !displayCourse.dynamicSource && displayCourse.curriculum?.length) {
             setExpandedModules(displayCourse.curriculum.map((_, index) => index));
@@ -210,19 +227,6 @@ export default function CourseDetailPage() {
         price: normalizePrice(displayCourse.price),
     };
 
-    const instructorList = useMemo(() => {
-        const list = [displayCourse.mainInstructor, ...(displayCourse.subInstructors || [])].filter(Boolean);
-        const unique = new Map<string, typeof list[number]>();
-
-        list.forEach((instructor) => {
-            const key = instructor.id || `${instructor.name}-${instructor.role}`;
-            if (!unique.has(key)) {
-                unique.set(key, instructor);
-            }
-        });
-
-        return Array.from(unique.values());
-    }, [displayCourse]);
 
     return (
         <main className={styles.main}>
@@ -231,11 +235,11 @@ export default function CourseDetailPage() {
             {/* Hero Section */}
             <header className={styles.hero}>
                 <div className={styles.heroContent}>
-                    <span className={styles.category}>{displayCourse.category}</span>
+                    <span className={styles.category}>{displayCourse.category || "General"}</span>
                     <h1 className={styles.title}>{displayCourse.title}</h1>
                     <div className={styles.meta}>
 
-                        {displayCourse.enrolledCount && (
+                        {typeof displayCourse.enrolledCount === 'number' && displayCourse.enrolledCount > 0 && (
                             <div className={styles.metaItem}>
                                 <Users size={18} />
                                 <span>{displayCourse.enrolledCount.toLocaleString()} Students</span>
