@@ -3,30 +3,38 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s, box-shadow 0.3s;
+    transition: transform var(--duration-fast) var(--ease-premium), 
+                box-shadow var(--duration-fast) var(--ease-premium);
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-premium);
 }
 
 .imageWrapper {
     position: relative;
     height: 200px;
     width: 100%;
+    background: var(--surface-soft);
 }
 
 .categoryBadge {
     position: absolute;
     top: 15px;
     right: 15px;
-    background: color-mix(in srgb, var(--background) 74%, transparent);
+    background: color-mix(in srgb, var(--background) 80%, transparent);
     backdrop-filter: blur(8px);
     color: var(--foreground);
     padding: 6px 14px;
-    border-radius: 100px;
-    font-size: 0.7rem;
-    font-weight: 800;
+    border-radius: var(--radius-full);
+    font-size: var(--text-tiny);
+    font-weight: var(--weight-extrabold);
     display: flex;
     align-items: center;
     gap: 6px;
     z-index: 2;
+    border: 1px solid var(--glass-border);
 }
 
 .cardInfo {
@@ -43,32 +51,34 @@
 
 .instructorAvatar {
     position: relative;
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     overflow: hidden;
-    border: 1px solid var(--primary);
+    border: 2px solid var(--primary);
+    background: var(--surface-soft);
 }
 
 .instructorName {
-    font-size: 0.8rem;
-    font-weight: 700;
+    font-size: var(--text-tiny);
+    font-weight: var(--weight-bold);
     color: var(--primary);
 }
 
 .courseTitle {
-    font-size: 1.35rem;
-    font-weight: 800;
+    font-size: var(--text-xl);
+    font-weight: var(--weight-extrabold);
     margin-bottom: 20px;
     line-height: 1.3;
     min-height: 3.5rem;
+    color: var(--foreground);
 }
 
 .meta {
     display: flex;
     align-items: center;
     gap: 15px;
-    font-size: 0.8rem;
+    font-size: var(--text-tiny);
     color: var(--text-muted);
 }
 
@@ -83,16 +93,17 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    color: #f59e0b;
-    font-weight: 700;
+    color: var(--warning);
+    font-weight: var(--weight-bold);
 }
 
 .cardFooter {
-    padding: 20px;
+    padding: 20px 24px;
     border-top: 1px solid var(--glass-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: color-mix(in srgb, var(--foreground) 2%, transparent);
 }
 
 .priceContainer {
@@ -101,16 +112,16 @@
 }
 
 .originalPrice {
-    font-size: 0.85rem;
+    font-size: var(--text-tiny);
     color: var(--text-muted);
     text-decoration: line-through;
-    opacity: 0.7;
+    opacity: 0.6;
     margin-bottom: -2px;
 }
 
 .price {
-    font-size: 1.2rem;
-    font-weight: 700;
+    font-size: var(--text-large);
+    font-weight: var(--weight-bold);
     color: var(--foreground);
 }
 
@@ -118,17 +129,18 @@
     background: var(--foreground);
     color: var(--background);
     border: none;
-    padding: 10px 20px;
-    border-radius: 100px;
-    font-size: 0.85rem;
-    font-weight: 800;
+    padding: 10px 24px;
+    border-radius: var(--radius-full);
+    font-size: var(--text-small);
+    font-weight: var(--weight-extrabold);
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.2s;
+    transition: all var(--duration-fast);
 }
 
 .enrollBtn:hover {
-    opacity: 0.9;
-    transform: translateY(-2px);
+    opacity: 0.95;
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--foreground) 20%, transparent);
 }
 
 /* List Mode Styles */
@@ -157,6 +169,7 @@
     justify-content: center !important;
     gap: 15px !important;
     width: 200px !important;
+    padding: 24px !important;
 }
 
 @media (max-width: 768px) {
@@ -176,4 +189,4 @@
         flex-direction: row !important;
         width: 100% !important;
     }
-}
+}

@@ -10,20 +10,21 @@
 }
 
 .title {
-    font-size: 2.2rem;
-    font-weight: 800;
-    margin-bottom: 10px;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-extrabold);
+    margin-bottom: 15px;
 }
 
 .subtitle {
     color: var(--text-muted);
+    font-size: var(--text-large);
 }
 
 .featuredBox {
     position: relative;
     background: var(--glass);
     border: 2px solid var(--primary);
-    border-radius: 32px;
+    border-radius: var(--radius-xl);
     padding: 80px 60px 60px;
     overflow: visible;
     display: flex;
@@ -39,18 +40,19 @@
     background: var(--background);
     border: 1px solid var(--glass-border);
     padding: 20px 40px;
-    border-radius: 20px;
+    border-radius: var(--radius-lg);
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-medium);
     min-width: 400px;
 }
 
 .timerLabel {
-    font-size: 0.75rem;
-    font-weight: 800;
+    font-size: var(--text-tiny);
+    font-weight: var(--weight-extrabold);
     letter-spacing: 2px;
     color: var(--primary);
     margin-bottom: 15px;
+    text-transform: uppercase;
 }
 
 .timer {
@@ -67,22 +69,23 @@
 }
 
 .timeUnit span {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-black);
     line-height: 1;
+    color: var(--foreground);
 }
 
 .timeUnit label {
-    font-size: 0.65rem;
-    font-weight: 700;
+    font-size: var(--text-tiny);
+    font-weight: var(--weight-bold);
     text-transform: uppercase;
     color: var(--text-muted);
     margin-top: 5px;
 }
 
 .timerSeparator {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-black);
     color: var(--glass-border);
     margin-top: -15px;
 }
@@ -95,8 +98,8 @@
 }
 
 .category {
-    font-size: 0.85rem;
-    font-weight: 800;
+    font-size: var(--text-small);
+    font-weight: var(--weight-extrabold);
     color: var(--primary);
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -105,15 +108,15 @@
 }
 
 .info h3 {
-    font-size: 2.5rem;
-    font-weight: 800;
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-black);
     letter-spacing: -1px;
     margin-bottom: 20px;
 }
 
 .info p {
     color: var(--text-muted);
-    font-size: 1.1rem;
+    font-size: var(--text-large);
     line-height: 1.6;
     max-width: 700px;
     margin-bottom: 30px;
@@ -121,25 +124,26 @@
 
 .meta {
     display: flex;
-    gap: 30px;
+    gap: 32px;
 }
 
 .metaItem {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     color: var(--foreground);
-    font-weight: 600;
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-small);
 }
 
 .metaItem:last-child span {
-    color: #ef4444;
+    color: var(--error);
 }
 
 .actions {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
     min-width: 220px;
 }
 
@@ -148,16 +152,17 @@
     color: white;
     border: none;
     padding: 18px 30px;
-    border-radius: 16px;
-    font-size: 1rem;
-    font-weight: 700;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all var(--duration-fast) var(--ease-premium);
 }
 
 .enrollBtn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px color-mix(in srgb, var(--primary) 40%, transparent);
+    background: color-mix(in srgb, var(--primary) 90%, white);
 }
 
 .detailsBtn {
@@ -165,10 +170,16 @@
     border: 1px solid var(--glass-border);
     color: var(--foreground);
     padding: 15px 30px;
-    border-radius: 16px;
-    font-size: 1rem;
-    font-weight: 700;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
     cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-premium);
+}
+
+.detailsBtn:hover {
+    background: var(--surface-soft);
+    transform: translateY(-2px);
 }
 
 @media (max-width: 1024px) {
@@ -210,7 +221,7 @@
     .featuredBox {
         padding: 80px 20px 40px;
         gap: 30px;
-        border-radius: 24px;
+        border-radius: var(--radius-lg);
     }
 
     .info h3 {
@@ -231,4 +242,4 @@
         gap: 15px;
         align-items: center;
     }
-}
+}
