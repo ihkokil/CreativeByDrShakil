@@ -115,6 +115,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (typeof body.description === 'string') updateData.description = body.description.trim() || existingCourse.description;
+    if (typeof body.overview === 'string') updateData.overview = body.overview.trim() || null;
+    if (typeof body.learningOutcomes === 'string') updateData.learningOutcomes = body.learningOutcomes.trim() || null;
+
     if (typeof body.categoryId === 'string') {
       updateData.categoryId = body.categoryId.trim() || null;
     } else if (typeof body.category === 'string') {
