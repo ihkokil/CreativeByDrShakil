@@ -51,11 +51,13 @@ export async function POST(request: NextRequest) {
     // Check for existing sessions on the same device type
     const activeSessionsSameDevice = await getActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
 
-    // Get Lock First Browser setting for the user
-    const autoLockEnabled = await getAutoLockSetting(user.id);
+    // handle existing session logic
+    const isSessionRestrictionExempt = user.role === 'admin' || user.role === 'teacher';
 
-    // Handle existing session logic
-    if (activeSessionsSameDevice.length > 0) {
+    if (activeSessionsSameDevice.length > 0 && !isSessionRestrictionExempt) {
+      // Get Lock First Browser setting for the user
+      const autoLockEnabled = await getAutoLockSetting(user.id);
+
       if (autoLockEnabled) {
         // Lock is ON - reject the login request
         return NextResponse.json(
