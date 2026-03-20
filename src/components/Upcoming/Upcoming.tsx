@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import styles from "./Upcoming.module.css";
 import { Calendar, UserCheck } from "lucide-react";
-import { COURSES } from "@/constants/courses";
 import { formatDisplayDate } from "@/lib/date-format";
 
 type FeaturedCourse = {
@@ -78,10 +77,10 @@ export default function Upcoming() {
     }, [featuredCourse, calculateTimeLeft]);
 
     const course = featuredCourse || {
-        title: COURSES[0].title,
-        category: COURSES[0].category,
-        duration: COURSES[0].duration,
-        price: COURSES[0].price,
+        title: "Medical Excellence Program",
+        category: "General",
+        duration: "Self-paced",
+        price: "Free",
         courseStartDate: null,
     };
 

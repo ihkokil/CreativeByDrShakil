@@ -6,10 +6,10 @@ import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
-import { COURSES, Course } from "@/constants/courses";
+import { Course } from "@/constants/courses";
 import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 
-import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
+import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 
@@ -66,11 +66,8 @@ function AllCoursesContent() {
         };
     }, []);
 
-    const displayCourses = useMemo(() => enrichCoursesWithTeachers(COURSES, teachers), [teachers]);
-    const allCourses = useMemo(
-        () => mergeStaticAndDynamicCourses(displayCourses, dynamicCourses),
-        [displayCourses, dynamicCourses]
-    );
+    const displayCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
+    const allCourses = displayCourses;
 
     const categoryOptions = useMemo(
         () => Array.from(new Set([
