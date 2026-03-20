@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Search, Settings, HelpCircle, User } from "lucide-react";
+import { Bell, Search, HelpCircle } from "lucide-react";
 import styles from "./TeacherHeader.module.css";
 import Image from "next/image";
 
@@ -43,7 +43,7 @@ export default function TeacherHeader({ title, user }: TeacherHeaderProps) {
                         {user?.user_metadata?.profile_image ? (
                             <Image 
                                 src={user.user_metadata.profile_image} 
-                                alt={user.user_metadata.full_name} 
+                                alt={user.user_metadata.full_name || "Profile"} 
                                 fill 
                                 className={styles.avatarImg}
                             />
