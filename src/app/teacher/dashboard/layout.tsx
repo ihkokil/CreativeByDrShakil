@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import TeacherSidebar from "@/components/Teacher/TeacherSidebar";
-import TeacherHeader from "@/components/Teacher/TeacherHeader";
+import TeacherHeader from "../../../components/Teacher/TeacherHeader";
 import styles from "./TeacherDashboard.module.css";
 import { Loader2, LayoutDashboard, BookOpen, Users, Video, FileText, MoreHorizontal } from "lucide-react";
 
