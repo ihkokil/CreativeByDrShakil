@@ -1,0 +1,109 @@
+"use client";
+
+import { useAuth } from "@/context/AuthContext";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminHeader from "@/components/Admin/AdminHeader";
+import styles from "./AdminDashboard.module.css";
+import { Loader2, LayoutDashboard, Users, Smartphone, TicketPercent, BarChart3, MoreHorizontal } from "lucide-react";
+
+function AdminDashboardLayoutContent({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const { user, loading, role } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+
+    const activeTab = (searchParams.get("tab") as any) || "overview";
+
+    useEffect(() => {
+        if (!loading && (!user || role !== "admin")) {
+            router.push("/");
+        }
+    }, [user, loading, role, router]);
+
+    const setActiveTab = (tab: string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set("tab", tab);
+        router.push(`?${params.toString()}`);
+    };
+
+    const mobileNavItems = [
+        { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'teachers', label: 'Teachers', icon: Users },
+        { id: 'coupons', label: 'Coupons', icon: TicketPercent },
+        { id: 'sessions', label: 'Sessions', icon: Smartphone },
+    ];
+
+    if (loading || !user || role !== "admin") {
+        return (
+            <div className={styles.loadingOverlay}>
+                <Loader2 className={styles.spinner} />
+                <span>Authenticating Admin...</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.dashboardContainer}>
+            <AdminSidebar
+                activeTab={activeTab}
+                setActiveTab={setActiveTab as any}
+                adminName={user.user_metadata?.full_name || "Admin"}
+                isExpanded={isSidebarExpanded}
+                onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
+            />
+            
+            <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
+                <AdminHeader 
+                    title="Control Center"
+                    user={user}
+                />
+                <div className={styles.pageContent}>
+                    {children}
+                </div>
+
+                {/* Mobile Bottom Nav */}
+                <nav className={styles.mobileBottomNav}>
+                    {mobileNavItems.map((item) => (
+                        <button
+                            key={item.id}
+                            className={`${styles.mobileTab} ${activeTab === item.id ? styles.mobileTabActive : ""}`}
+                            onClick={() => setActiveTab(item.id)}
+                        >
+                            <item.icon size={20} />
+                            <span>{item.label}</span>
+                        </button>
+                    ))}
+                    <button className={styles.mobileTab} onClick={() => setIsSidebarExpanded(true)}>
+                        <MoreHorizontal size={20} />
+                        <span>Menu</span>
+                    </button>
+                </nav>
+            </main>
+        </div>
+    );
+}
+
+export default function AdminDashboardLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    return (
+        <Suspense fallback={
+            <div className={styles.loadingOverlay}>
+                <Loader2 className={styles.spinner} />
+                <span>Loading Admin Portal...</span>
+            </div>
+        }>
+            <AdminDashboardLayoutContent>
+                {children}
+            </AdminDashboardLayoutContent>
+        </Suspense>
+    );
+}
