@@ -1,27 +1,26 @@
 "use client";
 
-import { Bell, Search, HelpCircle } from "lucide-react";
-import styles from "./TeacherHeader.module.css";
+import { Bell, Search, GraduationCap } from "lucide-react";
+import styles from "@/components/Teacher/TeacherHeader.module.css";
 import Image from "next/image";
-
 import ThemeToggle from "@/components/ThemeToggle/ThemeToggle";
 
-interface TeacherHeaderProps {
+interface StudentHeaderProps {
     title: string;
     user: any;
 }
 
-export default function TeacherHeader({ title, user }: TeacherHeaderProps) {
+export default function StudentHeader({ title, user }: StudentHeaderProps) {
     const initials = user?.user_metadata?.full_name
         ? user.user_metadata.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-        : "TR";
+        : "ST";
 
     return (
         <header className={styles.header}>
             <div className={styles.left}>
                 <div className={styles.searchWrapper}>
                     <Search className={styles.searchIcon} size={18} />
-                    <input type="text" placeholder="Search courses, students, videos..." className={styles.searchInput} />
+                    <input type="text" placeholder="Search my courses, lessons, exams..." className={styles.searchInput} />
                 </div>
             </div>
 
@@ -29,8 +28,8 @@ export default function TeacherHeader({ title, user }: TeacherHeaderProps) {
                 <div className={styles.themeWrapper}>
                     <ThemeToggle />
                 </div>
-                <button className={styles.iconBtn} title="Help">
-                    <HelpCircle size={20} />
+                <button className={styles.iconBtn} title="My Studies">
+                    <GraduationCap size={20} />
                 </button>
                 <button className={styles.iconBtn} title="Notifications">
                     <Bell size={20} />
@@ -41,8 +40,8 @@ export default function TeacherHeader({ title, user }: TeacherHeaderProps) {
                 
                 <div className={styles.profileBtn}>
                     <div className={styles.profileText}>
-                        <span className={styles.userName}>{user?.user_metadata?.full_name || "Instructor"}</span>
-                        <span className={styles.userRole}>Premium Instructor</span>
+                        <span className={styles.userName}>{user?.user_metadata?.full_name || "Learner"}</span>
+                        <span className={styles.userRole}>Student Account</span>
                     </div>
                     <div className={styles.avatar}>
                         {user?.user_metadata?.profile_image ? (
