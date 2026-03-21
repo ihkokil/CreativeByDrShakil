@@ -31,15 +31,16 @@
 
 .description {
     color: var(--text-muted);
-    font-size: 1.05rem;
+    font-size: var(--text-base);
     line-height: 1.7;
     margin-bottom: 30px;
+    font-weight: var(--weight-medium);
 }
 
 .contactInfo {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
 }
 
 .contactItem {
@@ -47,11 +48,13 @@
     align-items: center;
     gap: 12px;
     color: var(--foreground);
-    font-weight: 500;
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-small);
 }
 
 .contactItem span {
     color: var(--text-muted);
+    font-weight: var(--weight-medium);
 }
 
 .linksGrid {
@@ -61,12 +64,12 @@
 }
 
 .linkColumn h4 {
-    font-size: 1.1rem;
-    font-weight: 800;
+    font-size: var(--text-small);
+    font-weight: var(--weight-extrabold);
     margin-bottom: 25px;
     color: var(--foreground);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
 }
 
 .linkColumn ul {
@@ -79,9 +82,10 @@
 .linkColumn a {
     color: var(--text-muted);
     text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s, transform 0.2s;
+    font-weight: var(--weight-medium);
+    transition: all var(--duration-fast) var(--ease-premium);
     display: inline-block;
+    font-size: var(--text-small);
 }
 
 .linkColumn a:hover {
@@ -91,15 +95,15 @@
 
 .socialGrid {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     flex-wrap: wrap;
     align-items: center;
 }
 
 .socialIcon {
-    width: 45px;
-    height: 45px;
-    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
     background: var(--glass);
     border: 1px solid var(--glass-border);
     display: flex;
@@ -108,24 +112,20 @@
     padding: 0;
     line-height: 0;
     color: var(--foreground);
-    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: all var(--duration-fast) var(--ease-premium);
 }
 
 .socialIcon svg {
     width: 20px;
     height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
 }
 
 .socialIcon:hover {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
-    transform: translateY(-5px);
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 10px 20px color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
 /* Bottom Bar */
@@ -142,18 +142,19 @@
     justify-content: space-between;
     align-items: center;
     color: var(--text-muted);
-    font-size: 0.95rem;
+    font-size: var(--text-small);
+    font-weight: var(--weight-medium);
 }
 
 .legalLinks {
     display: flex;
-    gap: 30px;
+    gap: 32px;
 }
 
 .legalLinks a {
     color: var(--text-muted);
     text-decoration: none;
-    transition: color 0.2s;
+    transition: color var(--duration-fast);
 }
 
 .legalLinks a:hover {
@@ -189,4 +190,4 @@
         gap: 20px;
         text-align: center;
     }
-}
+}
