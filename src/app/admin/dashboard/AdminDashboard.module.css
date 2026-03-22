@@ -1,3 +1,5 @@
+/* ===== Layout Shell (used by layout.tsx) ===== */
+
 .dashboardContainer {
     display: flex;
     min-height: 100vh;
@@ -51,6 +53,8 @@
     to { transform: rotate(360deg); }
 }
 
+/* ===== Mobile Bottom Nav ===== */
+
 @media (max-width: 768px) {
     .mainContent {
         margin-left: 0;
@@ -103,12 +107,12 @@
     display: none;
 }
 
-/* Reusable Dashboard Components */
+/* ===== Page Content Styles (used by page.tsx) ===== */
 
 .stack {
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    gap: 28px;
     max-width: 1400px;
     margin: 0 auto;
 }
@@ -135,4 +139,543 @@
     padding: 100px 0;
     text-align: center;
     color: var(--text-muted);
+}
+
+/* ===== Panel / Card System ===== */
+
+.panel {
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+    padding: 22px;
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.panelHeader h2 {
+    margin: 0;
+    font-size: 1.14rem;
+    font-weight: 900;
+}
+
+.panelTitle {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin-bottom: 18px;
+}
+
+/* ===== Buttons ===== */
+
+.primaryBtn {
+    border-radius: 10px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+    text-decoration: none;
+    padding: 10px 16px;
+    color: white;
+    background: linear-gradient(120deg, var(--primary), var(--secondary));
+    transition: all 0.25s var(--ease-premium);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.primaryBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+/* ===== Action Grid (Quick Actions on Overview) ===== */
+
+.actionGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.actionCard {
+    border-radius: 14px;
+    border: 1px dashed var(--glass-border);
+    background: color-mix(in srgb, var(--background) 82%, transparent);
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.25s var(--ease-premium);
+    color: var(--text-muted);
+}
+
+.actionCard:hover {
+    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+    background: color-mix(in srgb, var(--primary) 6%, transparent);
+    color: var(--foreground);
+    transform: translateY(-2px);
+}
+
+.actionCard h3 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 4px;
+}
+
+.actionCard p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+/* ===== Teacher Grid / Cards ===== */
+
+.teacherGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 14px;
+}
+
+.teacherCard {
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--background) 80%, transparent);
+    overflow: hidden;
+    transition: all 0.25s var(--ease-premium);
+}
+
+.teacherCard:hover {
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 16px 0;
+}
+
+.cardAvatar {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    font-weight: 900;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.cardInfo h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.cardInfo p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.cardContent {
+    padding: 14px 16px 16px;
+}
+
+.academicInfo {
+    padding: 10px 0;
+    border-top: 1px solid var(--glass-border);
+    margin-top: 10px;
+}
+
+.academicInfo p {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+}
+
+.empty {
+    font-style: italic;
+    opacity: 0.6;
+}
+
+.cardFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.listCol {
+    display: flex;
+    flex-direction: column;
+}
+
+.rolePill {
+    display: inline-flex;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 15%, transparent);
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+}
+
+.cardActions {
+    display: flex;
+    gap: 6px;
+}
+
+.actionBtn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.actionBtn:hover {
+    color: var(--foreground);
+    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.danger:hover {
+    color: var(--error);
+    border-color: color-mix(in srgb, var(--error) 40%, transparent);
+    background: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
+/* ===== Info / Empty States ===== */
+
+.infoBox {
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    border: 1px dashed var(--glass-border);
+    background: color-mix(in srgb, var(--background) 82%, transparent);
+}
+
+/* ===== Analytics / Simple Cards ===== */
+
+.simpleCards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.simpleCard {
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--background) 82%, transparent);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.simpleCard strong {
+    font-size: 1.5rem;
+    font-weight: 900;
+    background: linear-gradient(120deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.simpleCard span {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* ===== Settings Grid ===== */
+
+.settingGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.settingCard {
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--background) 84%, transparent);
+    padding: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.25s var(--ease-premium);
+}
+
+.settingCard:hover {
+    border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.settingCard h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.settingCard p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.settingIcon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+/* ===== Toast Notification System ===== */
+
+.toastWrap {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    animation: toastSlideIn 0.35s var(--ease-premium);
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-14px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    min-width: 260px;
+    max-width: 420px;
+}
+
+.toastSuccess {
+    background: color-mix(in srgb, #10b981 18%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, #10b981 35%, transparent);
+    color: #10b981;
+}
+
+.toastError {
+    background: color-mix(in srgb, #ef4444 18%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
+    color: #ef4444;
+}
+
+.toastInfo {
+    background: color-mix(in srgb, #0ea5e9 18%, var(--card-bg));
+    border: 1px solid color-mix(in srgb, #0ea5e9 35%, transparent);
+    color: #0ea5e9;
+}
+
+.toastBody {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toastIcon {
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.toastClose {
+    border: none;
+    background: transparent;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 6px;
+    transition: opacity 0.2s;
+}
+
+.toastClose:hover {
+    opacity: 1;
+}
+
+/* ===== Confirmation Dialog ===== */
+
+.confirmBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    z-index: 9990;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.confirmDialog {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    animation: dialogScale 0.25s var(--ease-premium);
+}
+
+@keyframes dialogScale {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.confirmDialog h3 {
+    font-size: 1.12rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.confirmDialog p {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.confirmActions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.confirmCancelBtn {
+    padding: 9px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+    color: var(--foreground);
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirmCancelBtn:hover {
+    background: var(--surface-soft);
+}
+
+.confirmPrimaryBtn {
+    padding: 9px 16px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(120deg, var(--primary), var(--secondary));
+    color: white;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.confirmPrimaryBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.confirmPrimaryBtn:disabled,
+.confirmCancelBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 1100px) {
+    .teacherGrid {
+        grid-template-columns: 1fr;
+    }
+    .actionGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .actionGrid,
+    .simpleCards,
+    .settingGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .sectionHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .panelHeader {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .confirmDialog {
+        padding: 22px;
+    }
 }

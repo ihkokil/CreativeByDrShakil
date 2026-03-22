@@ -573,3 +573,44 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Panel Title (standalone heading) ===== */
+
+.panelTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 18px;
+}
+
+/* ===== Exam Cards ===== */
+
+.examCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.examCard {
+  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--background) 82%, transparent);
+  padding: 18px;
+  transition: all 0.25s var(--ease-premium);
+}
+
+.examCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.examCard h3 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.examCard p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
