@@ -79,7 +79,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                     onSuccess();
                 }, 2000);
             }
-        } catch (err: any) {
+        } catch {
             showMessage({ type: 'error', text: 'Network error. Please try again.' });
         }
 

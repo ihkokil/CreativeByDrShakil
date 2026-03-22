@@ -112,7 +112,7 @@ export default function SessionsManager() {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB');
   };
 
   const getSessionStatus = (session: SessionData) => {

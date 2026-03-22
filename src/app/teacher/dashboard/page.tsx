@@ -2,36 +2,39 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, Suspense } from "react";
-import DashboardShell from "@/components/DashboardShell/DashboardShell";
+import { useEffect, Suspense, useMemo, useState } from "react";
+import CoursesTab from "@/components/Teacher/CoursesTab";
 import styles from "./TeacherDashboard.module.css";
 import {
-    LayoutDashboard,
     BookOpen,
     Users,
-    ClipboardList,
-    Video,
-    UserCog,
-    DollarSign,
     Star,
     CheckCircle,
+    Plus,
 } from "lucide-react";
-import { COURSES } from "@/constants/courses";
 import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 import Image from "next/image";
 
+interface TeacherCourseCard {
+    id: string;
+    title: string;
+    slug: string | null;
+    imageUrl?: string | null;
+    status: "draft" | "published" | "scheduled" | "archived";
+    category?: { displayName: string } | null;
+    duration: string;
+    instructors: Array<{ id: string; name: string; designation?: string | null }>;
+    _count?: { orders?: number };
+}
+
 function TeacherDashboardContent() {
-    const { user, loading, signOut } = useAuth();
+    const { user, loading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const [courses, setCourses] = useState<TeacherCourseCard[]>([]);
+    const [coursesLoading, setCoursesLoading] = useState(true);
 
     const activeTab = (searchParams.get("tab") as "overview" | "courses" | "students" | "assignments" | "library") || "overview";
-
-    const setActiveTab = (tab: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`?${params.toString()}`);
-    };
 
     useEffect(() => {
         if (!loading && !user) {
@@ -39,77 +42,88 @@ function TeacherDashboardContent() {
         }
     }, [user, loading, router]);
 
-    const navItems = useMemo(
-        () => [
-            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
-            { key: "courses", label: "Courses", icon: BookOpen, mobilePrimary: true },
-            { key: "students", label: "Students", icon: Users, mobilePrimary: true },
-            { key: "assignments", label: "Assignments", icon: ClipboardList },
-            { key: "library", label: "Library", icon: Video },
-            { key: "user", label: "User Page", icon: UserCog },
-        ],
-        []
-    );
+    useEffect(() => {
+        if (loading || !user) {
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadCourses = async () => {
+            try {
+                setCoursesLoading(true);
+                const token = localStorage.getItem("auth_token");
+                const response = await fetch("/api/teacher/courses", {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+
+                const data = await response.json();
+                if (!cancelled && response.ok) {
+                    setCourses(Array.isArray(data.courses) ? data.courses : []);
+                }
+            } finally {
+                if (!cancelled) {
+                    setCoursesLoading(false);
+                }
+            }
+        };
+
+        loadCourses();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [loading, user]);
+
+    const stats = useMemo(() => {
+        const totalCourses = courses.length;
+        const publishedCourses = courses.filter((course) => course.status === "published").length;
+        const draftCourses = courses.filter((course) => course.status === "draft").length;
+        const activeStudents = courses.reduce((sum, course) => sum + (course._count?.orders || 0), 0);
+
+        return { totalCourses, publishedCourses, draftCourses, activeStudents };
+    }, [courses]);
 
     if (loading || !user) {
         return <div className={styles.loader}>Loading Teacher Dashboard...</div>;
     }
 
-    const teacherName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Dr. Shakil Ahmed";
-    const myCourses = COURSES.filter(
-        (course) =>
-            course.mainInstructor.name === teacherName ||
-            course.subInstructors?.some((ins) => ins.name === teacherName)
-    );
-    const fallbackCourses = myCourses.length > 0 ? myCourses : [COURSES[1], COURSES[5], COURSES[6]];
-
-    const handleLogout = async () => {
-        await signOut();
-        router.push("/");
-    };
-
     return (
-        <DashboardShell
-            title="Teacher Dashboard"
-            subtitle="Manage your courses, students, and content library in one app shell."
-            roleLabel="Teacher"
-            userName={teacherName}
-            userEmail={user.email}
-            userAvatarUrl={user.user_metadata?.profile_image || null}
-            items={navItems}
-            activeKey={activeTab}
-            onSelect={(key) => {
-                if (key === "user") {
-                    router.push("/teacher/dashboard/user");
-                    return;
-                }
-                setActiveTab(key as "overview" | "courses" | "students" | "assignments" | "library");
-            }}
-            onLogout={handleLogout}
-        >
+        <div className={styles.pageContent}>
             {activeTab === "overview" && (
                 <div className={styles.stack}>
                     <section className={styles.metricsGrid}>
-                        <div className={styles.metricCard}><DollarSign size={20} /><div><h3>৳1,25,000</h3><p>Total Revenue</p></div></div>
-                        <div className={styles.metricCard}><Users size={20} /><div><h3>842</h3><p>Active Students</p></div></div>
-                        <div className={styles.metricCard}><Star size={20} /><div><h3>4.9</h3><p>Average Rating</p></div></div>
-                        <div className={styles.metricCard}><BookOpen size={20} /><div><h3>{fallbackCourses.length}</h3><p>Courses</p></div></div>
+                        <div className={styles.metricCard}><BookOpen size={20} /><div><h3>{stats.totalCourses}</h3><p>Total Courses</p></div></div>
+                        <div className={styles.metricCard}><Users size={20} /><div><h3>{stats.activeStudents}</h3><p>Active Students</p></div></div>
+                        <div className={styles.metricCard}><CheckCircle size={20} /><div><h3>{stats.publishedCourses}</h3><p>Published Courses</p></div></div>
+                        <div className={styles.metricCard}><Star size={20} /><div><h3>{stats.draftCourses}</h3><p>Draft Courses</p></div></div>
                     </section>
 
                     <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Your Courses</h2>
+                        <div className={styles.panelHeaderRow}>
+                            <div>
+                                <h2 className={styles.panelTitle}>Your Courses</h2>
+                                <p className={styles.panelSubtitle}>Manage content, publishing, and student access from one place.</p>
+                            </div>
+                            <button className={styles.primaryBtn} onClick={() => router.push('/teacher/dashboard/courses/create')}>
+                                <Plus size={16} /> Add Course
+                            </button>
+                        </div>
+                        {coursesLoading ? (
+                            <div className={styles.loadingInline}>Loading your courses...</div>
+                        ) : null}
                         <div className={styles.courseGrid}>
-                            {fallbackCourses.map((course) => (
+                            {courses.map((course) => (
                                 <article key={course.id} className={styles.courseCard}>
                                     <div className={styles.thumb}>
-                                        <Image src="/placeholder.svg" alt={course.title} fill style={{ objectFit: "cover" }} />
+                                        <Image src={course.imageUrl || "/placeholder.svg"} alt={course.title} fill style={{ objectFit: "cover" }} unoptimized />
                                     </div>
                                     <div className={styles.courseBody}>
-                                        <span className={styles.category}>{course.category}</span>
+                                        <span className={styles.category}>{course.category?.displayName || "General"}</span>
                                         <h3>{course.title}</h3>
                                         <div className={styles.metaRow}>
-                                            <span><Users size={14} /> 120 Students</span>
-                                            <span><CheckCircle size={14} /> 85% Completion</span>
+                                            <span><Users size={14} /> {course._count?.orders || 0} Students</span>
+                                            <span><CheckCircle size={14} /> {course.status}</span>
                                         </div>
                                         <button
                                             className={styles.primaryBtn}
@@ -126,32 +140,24 @@ function TeacherDashboardContent() {
             )}
 
             {activeTab === "courses" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Course Management</h2>
-                    <div className={styles.actionRow}>
-                        <p>Create and schedule courses with hierarchical drip release rules.</p>
-                        <button
-                            className={styles.primaryBtn}
-                            onClick={() => router.push('/teacher/dashboard/courses/create')}
-                        >
-                            Open Course Builder
-                        </button>
-                    </div>
-                    <div className={styles.simpleCards}>
-                        <div className={styles.simpleCard}><strong>8</strong><span>Draft Modules</span></div>
-                        <div className={styles.simpleCard}><strong>24</strong><span>Published Lessons</span></div>
-                        <div className={styles.simpleCard}><strong>3</strong><span>Requires Review</span></div>
-                    </div>
-                </section>
+                <CoursesTab />
             )}
 
             {activeTab === "students" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Student Analytics</h2>
+                    <div className={styles.panelHeaderRow}>
+                        <div>
+                            <h2 className={styles.panelTitle}>Students</h2>
+                            <p className={styles.panelSubtitle}>Open the dedicated students workspace to review enrollments and module access.</p>
+                        </div>
+                        <button className={styles.primaryBtn} onClick={() => router.push('/teacher/dashboard/students')}>
+                            <Users size={16} /> Open Students Page
+                        </button>
+                    </div>
                     <div className={styles.simpleCards}>
-                        <div className={styles.simpleCard}><strong>842</strong><span>Total Active Students</span></div>
-                        <div className={styles.simpleCard}><strong>76%</strong><span>Weekly Retention</span></div>
-                        <div className={styles.simpleCard}><strong>91%</strong><span>Assignment Submission</span></div>
+                        <div className={styles.simpleCard}><strong>{stats.activeStudents}</strong><span>Total Enrollments</span></div>
+                        <div className={styles.simpleCard}><strong>{stats.publishedCourses}</strong><span>Published Courses</span></div>
+                        <div className={styles.simpleCard}><strong>{stats.totalCourses}</strong><span>Courses Managed</span></div>
                     </div>
                 </section>
             )}
@@ -171,7 +177,7 @@ function TeacherDashboardContent() {
                     <VideoLibraryManager />
                 </section>
             )}
-        </DashboardShell>
+        </div>
     );
 }
 
