@@ -79,26 +79,7 @@ export default function DashboardShell({
                     </Link>
                 </div>
 
-                <div className={styles.profileCard}>
-                    <div className={styles.avatar}>
-                        {userAvatarUrl ? (
-                            <Image
-                                src={userAvatarUrl}
-                                alt={`${userName} profile`}
-                                fill
-                                unoptimized
-                                className={styles.avatarImage}
-                                sizes="38px"
-                            />
-                        ) : (
-                            initials
-                        )}
-                    </div>
-                    <div className={styles.profileInfo}>
-                        <strong>{userName}</strong>
-                        <span>{userEmail || "Logged in"}</span>
-                    </div>
-                </div>
+
 
                 <nav className={styles.navList}>
                     {items.map((item) => {
@@ -134,8 +115,26 @@ export default function DashboardShell({
                             {subtitle ? <p>{subtitle}</p> : null}
                         </div>
                         <div className={styles.topbarRight}>
-                            <span className={styles.rolePill}>{roleLabel}</span>
                             <ThemeToggle />
+                            <div className={styles.headerProfile}>
+                                <div className={styles.headerProfileInfo}>
+                                    <strong>{userName}</strong>
+                                    <span className={styles.rolePillCompact}>{roleLabel}</span>
+                                </div>
+                                <div className={styles.headerAvatar}>
+                                    {userAvatarUrl ? (
+                                        <Image
+                                            src={userAvatarUrl}
+                                            alt={userName}
+                                            fill
+                                            unoptimized
+                                            className={styles.avatarImage}
+                                        />
+                                    ) : (
+                                        initials
+                                    )}
+                                </div>
+                            </div>
                             <button
                                 className={styles.mobileMoreBtn}
                                 onClick={() => setIsDrawerOpen(true)}
