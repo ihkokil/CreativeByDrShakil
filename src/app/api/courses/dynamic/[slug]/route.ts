@@ -64,7 +64,6 @@ export async function GET(
         overview: course.overview,
         learningOutcomes: course.learningOutcomes,
         language: course.language || 'English / Bengali',
-        level: course.level || 'Intermediate',
         image: course.imageUrl || '/placeholder.svg',
         status: course.status,
         lastUpdated: course.updatedAt.toISOString(),
