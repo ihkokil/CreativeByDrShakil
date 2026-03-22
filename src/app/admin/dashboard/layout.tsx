@@ -2,18 +2,18 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import TeacherSidebar from "@/components/Teacher/TeacherSidebar";
-import TeacherHeader from "../../../components/Teacher/TeacherHeader";
-import styles from "./TeacherDashboard.module.css";
-import { Loader2, LayoutDashboard, BookOpen, Users, Video, FileText, MoreHorizontal } from "lucide-react";
+import { useEffect, useState, Suspense } from "react";
+import AdminSidebar from "@/components/Admin/AdminSidebar";
+import AdminHeader from "@/components/Admin/AdminHeader";
+import styles from "./AdminDashboard.module.css";
+import { Loader2, LayoutDashboard, Users, Smartphone, TicketPercent, BarChart3, MoreHorizontal } from "lucide-react";
 
-function TeacherDashboardLayoutContent({
+function AdminDashboardLayoutContent({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const { user, loading } = useAuth();
+    const { user, loading, role } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
@@ -21,10 +21,10 @@ function TeacherDashboardLayoutContent({
     const activeTab = (searchParams.get("tab") as any) || "overview";
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (!loading && (!user || role !== "admin")) {
             router.push("/");
         }
-    }, [user, loading, router]);
+    }, [user, loading, role, router]);
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -34,36 +34,33 @@ function TeacherDashboardLayoutContent({
 
     const mobileNavItems = [
         { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'courses', label: 'Programs', icon: BookOpen },
-        { id: 'students', label: 'Students', icon: Users },
-        { id: 'library', label: 'Media', icon: Video },
+        { id: 'teachers', label: 'Teachers', icon: Users },
+        { id: 'coupons', label: 'Coupons', icon: TicketPercent },
+        { id: 'sessions', label: 'Sessions', icon: Smartphone },
     ];
 
-    if (loading || !user) {
+    if (loading || !user || role !== "admin") {
         return (
             <div className={styles.loadingOverlay}>
                 <Loader2 className={styles.spinner} />
-                <span>Authenticating...</span>
+                <span>Authenticating Admin...</span>
             </div>
         );
     }
 
     return (
         <div className={styles.dashboardContainer}>
-            <TeacherSidebar
+            <AdminSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab as any}
-                teacherName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Teacher"}
-                teacherEmail={user.email}
+                adminName={user.user_metadata?.full_name || "Admin"}
                 isExpanded={isSidebarExpanded}
                 onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                activeStudents={842}
-                totalCourses={4}
             />
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
-                <TeacherHeader 
-                    title="Instructor Hub"
+                <AdminHeader 
+                    title="Control Center"
                     user={user}
                 />
                 <div className={styles.pageContent}>
@@ -92,9 +89,7 @@ function TeacherDashboardLayoutContent({
     );
 }
 
-import { Suspense } from "react";
-
-export default function TeacherDashboardLayout({
+export default function AdminDashboardLayout({
     children,
 }: {
     children: React.ReactNode;
@@ -103,12 +98,12 @@ export default function TeacherDashboardLayout({
         <Suspense fallback={
             <div className={styles.loadingOverlay}>
                 <Loader2 className={styles.spinner} />
-                <span>Syncing Instructor Profile...</span>
+                <span>Loading Admin Portal...</span>
             </div>
         }>
-            <TeacherDashboardLayoutContent>
+            <AdminDashboardLayoutContent>
                 {children}
-            </TeacherDashboardLayoutContent>
+            </AdminDashboardLayoutContent>
         </Suspense>
     );
 }
