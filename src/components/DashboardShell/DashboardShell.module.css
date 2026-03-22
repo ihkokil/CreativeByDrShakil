@@ -37,20 +37,69 @@
     object-fit: contain;
 }
 
-.rolePill {
-    font-size: var(--text-tiny);
+.rolePill,
+.rolePillCompact {
+    font-size: 0.65rem;
     text-transform: uppercase;
     font-weight: var(--weight-extrabold);
     color: var(--primary);
     background: color-mix(in srgb, var(--primary) 15%, transparent);
-    padding: 6px 12px;
+    padding: 3px 8px;
     border-radius: var(--radius-full);
 }
 
+.rolePillCompact {
+    padding: 2px 6px;
+    font-size: 0.6rem;
+}
+
 .topbarRight {
-    display: inline-flex;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.headerProfile {
+    display: flex;
     align-items: center;
     gap: 12px;
+    padding-left: 16px;
+    border-left: 1px solid var(--glass-border);
+}
+
+.headerProfileInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.headerProfileInfo strong {
+    font-size: var(--text-small);
+    font-weight: var(--weight-extrabold);
+    color: var(--foreground);
+    line-height: 1.2;
+}
+
+.headerAvatar {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    font-size: var(--text-tiny);
+    font-weight: var(--weight-black);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+@media (max-width: 640px) {
+    .headerProfileInfo {
+        display: none;
+    }
 }
 
 .profileCard {
@@ -166,24 +215,43 @@
     font-weight: var(--weight-bold);
 }
 
-.logoutBtnDesktop,
+.logoutBtnDesktop {
+    margin-top: auto;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--error);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.logoutBtnDesktop:hover {
+    background: color-mix(in srgb, var(--error) 10%, transparent);
+    border-color: color-mix(in srgb, var(--error) 20%, transparent);
+}
+
 .logoutBtnMobile {
     margin-top: 12px;
     border: 1px solid color-mix(in srgb, var(--error) 25%, transparent);
     background: color-mix(in srgb, var(--error) 8%, transparent);
     color: var(--error);
     border-radius: var(--radius-md);
-    padding: 12px;
+    padding: 12px 14px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
+    justify-content: flex-start;
+    gap: 12px;
     font-weight: var(--weight-bold);
     cursor: pointer;
     transition: all var(--duration-fast);
 }
 
-.logoutBtnDesktop:hover,
 .logoutBtnMobile:hover {
     background: color-mix(in srgb, var(--error) 15%, transparent);
     border-color: var(--error);
