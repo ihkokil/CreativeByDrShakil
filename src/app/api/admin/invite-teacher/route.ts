@@ -6,6 +6,8 @@ import {
     hashPassword,
     verifyAuthToken,
 } from '@/lib/auth-server';
+import { createTokenPair } from '@/lib/token-utils';
+import { sendPasswordResetEmail } from '@/lib/auth-emails';
 
 export async function POST(request: NextRequest) {
     try {
@@ -30,21 +32,27 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
         }
 
+        const normalizedEmail = email.trim().toLowerCase();
+
         const existingTeacher = await prisma.user.findUnique({
-            where: { email },
+            where: { email: normalizedEmail },
         });
 
         if (existingTeacher) {
             return NextResponse.json({ error: 'A user with this email already exists.' }, { status: 409 });
         }
 
-        // Temporary password should be rotated using a reset flow.
-        const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
-        const passwordHash = await hashPassword(tempPassword);
+        // Create a placeholder password (unusable — teacher sets their own via reset link)
+        const placeholder = `Invite${Date.now()}${Math.random().toString(36).slice(2)}!`;
+        const passwordHash = await hashPassword(placeholder);
+
+        // Generate a password-reset token good for 72 hours (longer than normal resets)
+        const { token: resetToken, tokenHash } = createTokenPair();
+        const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
         await prisma.user.create({
             data: {
-                email,
+                email: normalizedEmail,
                 fullName,
                 passwordHash,
                 role: 'teacher',
@@ -52,16 +60,36 @@ export async function POST(request: NextRequest) {
                 institution: institution || null,
                 degrees: degrees || null,
                 profileImage: profileImage || null,
+                emailVerified: true,
+                passwordResetTokenHash: tokenHash,
+                passwordResetExpires: resetExpiry,
             },
         });
 
+        // Send the "Set Your Password" email using the existing reset-password template
+        let emailSent = false;
+        try {
+            await sendPasswordResetEmail({
+                email: normalizedEmail,
+                fullName,
+                token: resetToken,
+            });
+            emailSent = true;
+        } catch (emailError: any) {
+            console.error('[Invite Teacher Email Error]', emailError?.message || emailError);
+        }
+
         return NextResponse.json({
             success: true,
-            message: `Teacher ${fullName} created successfully. Add password reset email workflow before production invite flow.`,
+            emailSent,
+            message: emailSent
+                ? `Teacher ${fullName} created. A password-setup email has been sent to ${normalizedEmail}.`
+                : `Teacher ${fullName} created, but the email could not be sent. You can trigger a manual password reset from the admin panel.`,
         });
     } catch (err: any) {
+        console.error('[Invite Teacher Error]', err?.message || err);
         return NextResponse.json(
-            { error: err.message || 'Internal server error.' },
+            { error: 'Failed to create teacher.' },
             { status: 500 }
         );
     }

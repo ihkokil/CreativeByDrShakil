@@ -8,6 +8,8 @@ import {
   parseReleaseGroupDateMap,
   slugify,
 } from '@/lib/teacher-course-builder';
+import { parseDisplayDateToIso } from '@/lib/date-format';
+
 
 const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   const base = slugify(title) || `course-${Date.now()}`;
@@ -15,6 +17,7 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   let counter = 2;
 
   while (true) {
+
     const found = await prisma.course.findUnique({ where: { slug }, select: { id: true } });
     if (!found || found.id === currentCourseId) {
       return slug;
@@ -41,10 +44,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { courseId } = await params;
-    const course = await getCourseForPayload(courseId, payload.sub, payload.role);
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        category: true,
+        instructors: { orderBy: { sortOrder: 'asc' } },
+      },
+    });
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
+    // Check authorization
+    if (payload.role !== 'admin' && course.teacherId !== payload.sub) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
     const curriculum = parseCurriculumJson(course.curriculumJson);
@@ -94,12 +108,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (typeof body.description === 'string') updateData.description = body.description.trim() || existingCourse.description;
-    if (typeof body.category === 'string') updateData.category = body.category.trim() || null;
+    if (typeof body.overview === 'string') updateData.overview = body.overview.trim() || null;
+    if (typeof body.learningOutcomes === 'string') updateData.learningOutcomes = body.learningOutcomes.trim() || null;
+
+    if (typeof body.categoryId === 'string') {
+      updateData.categoryId = body.categoryId.trim() || null;
+    } else if (typeof body.category === 'string') {
+      updateData.categoryId = body.category.trim() || null;
+    }
     if (typeof body.duration === 'string') updateData.duration = body.duration.trim() || existingCourse.duration;
     if (typeof body.language === 'string') updateData.language = body.language.trim() || null;
     if (typeof body.level === 'string') updateData.level = body.level.trim() || null;
     if (typeof body.imageUrl === 'string') updateData.imageUrl = body.imageUrl.trim() || null;
     if (typeof body.timezone === 'string' && body.timezone.trim()) updateData.timezone = body.timezone.trim();
+    if (body.isFeatured !== undefined) updateData.isFeatured = Boolean(body.isFeatured);
 
     if (body.price !== undefined) {
       const numericPrice = Number(body.price);
@@ -110,7 +132,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (body.releaseMode !== undefined) {
-      const validModes = ['fixed_interval', 'groups_per_week', 'explicit_dates', null];
+      const validModes = ['fixed_interval', 'groups_per_week', 'explicit_dates', 'instant', null];
       if (!validModes.includes(body.releaseMode)) {
         return NextResponse.json({ error: 'Invalid release mode.' }, { status: 400 });
       }
@@ -118,7 +140,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (body.releaseStartAt !== undefined) {
-      updateData.releaseStartAt = body.releaseStartAt ? new Date(body.releaseStartAt) : null;
+      const releaseStartAt = typeof body.releaseStartAt === 'string' ? parseDisplayDateToIso(body.releaseStartAt) : null;
+      updateData.releaseStartAt = releaseStartAt ? new Date(releaseStartAt) : null;
     }
 
     if (body.releaseIntervalDays !== undefined) {
@@ -151,6 +174,34 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     });
 
     return NextResponse.json({ course });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
+  try {
+    const payload = await requireTeacherPayload(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
+    const { courseId } = await params;
+    const existingCourse = await getCourseForPayload(courseId, payload.sub, payload.role);
+
+    if (!existingCourse) {
+      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
+    if (existingCourse.status === 'published') {
+      return NextResponse.json(
+        { error: 'Published courses cannot be deleted. Archive the course instead.' },
+        { status: 400 }
+      );
+    }
+
+    await prisma.course.delete({ where: { id: existingCourse.id } });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }

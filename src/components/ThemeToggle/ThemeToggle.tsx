@@ -10,22 +10,29 @@ export default function ThemeToggle() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
-        const savedTheme = localStorage.getItem("theme") as "light" | "dark";
-        if (savedTheme) {
-            setTheme(savedTheme);
-            document.documentElement.setAttribute("data-theme", savedTheme);
-        }
+
+        const savedTheme = localStorage.getItem("theme");
+        const resolvedTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+        setTheme(resolvedTheme);
+        document.documentElement.setAttribute("data-theme", resolvedTheme);
     }, []);
+
+    useEffect(() => {
+        if (!mounted) return;
+        document.documentElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+    }, [mounted, theme]);
 
     const toggleTheme = () => {
         const newTheme = theme === "light" ? "dark" : "light";
         setTheme(newTheme);
-        document.documentElement.setAttribute("data-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
     };
 
-    if (!mounted) return <div className={styles.placeholder} />;
+    if (!mounted) {
+        return <div className={styles.placeholder} aria-hidden="true" />;
+    }
 
     return (
         <motion.button

@@ -2,28 +2,27 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import { CheckoutModal } from "@/components/Checkout/CheckoutModal";
-import { COURSES, Course } from "@/constants/courses";
+import { Course } from "@/constants/courses";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { mapDynamicCourseToCourse } from "@/lib/dynamic-course-client";
 import styles from "./CourseDetail.module.css";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
+
+// New Premium Components
+import CourseHero from "@/components/Course/CourseHero";
+import CourseStats from "@/components/Course/CourseStats";
+import CourseSidebar from "@/components/Course/CourseSidebar";
+import CourseInstructors from "@/components/Course/CourseInstructors";
+
 import { 
-    Clock, 
-    Star, 
-    Users, 
-    Globe, 
-    BarChart, 
     CheckCircle2, 
     PlayCircle, 
     ChevronDown, 
     ChevronUp,
-    FileText,
-    Award,
-    MonitorPlay
+    Layout
 } from "lucide-react";
 
 export default function CourseDetailPage() {
@@ -34,13 +33,16 @@ export default function CourseDetailPage() {
     const [dynamicCurriculum, setDynamicCurriculum] = useState<CurriculumNode[]>([]);
     const [activeDynamicNode, setActiveDynamicNode] = useState<CurriculumNode | null>(null);
     const [loadingCourse, setLoadingCourse] = useState(true);
-    const [notFound, setNotFound] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-    const [expandedModules, setExpandedModules] = useState<number[]>([0]); // First module expanded by default
+    const [expandedModules, setExpandedModules] = useState<number[]>([]);
 
+    const [userEnrolled, setUserEnrolled] = useState(false);
+    const [courseStarted, setCourseStarted] = useState(false);
+    const [progressLoading, setProgressLoading] = useState(true);
+
+    // Initial Data Fetching
     useEffect(() => {
         let cancelled = false;
-
         const loadTeachers = async () => {
             try {
                 const response = await fetch("/api/teachers");
@@ -48,90 +50,142 @@ export default function CourseDetailPage() {
                 if (!cancelled && response.ok && Array.isArray(data.teachers)) {
                     setTeachers(data.teachers);
                 }
-            } catch {
-                // Keep static fallback data if teacher directory fetch fails.
-            }
+            } catch {}
         };
-
         loadTeachers();
-
-        return () => {
-            cancelled = true;
-        };
+        return () => { cancelled = true; };
     }, []);
 
     useEffect(() => {
         let cancelled = false;
-
         const loadCourse = async () => {
-            if (!params?.slug) {
-                return;
-            }
-
+            if (!params?.slug) return;
             const courseSlug = params.slug as string;
             setLoadingCourse(true);
-            setNotFound(false);
-
-            const foundStaticCourse = COURSES.find((item) => item.slug === courseSlug);
-            if (foundStaticCourse) {
-                if (!cancelled) {
-                    setCourse(foundStaticCourse);
-                    setDynamicCurriculum([]);
-                    setActiveDynamicNode(null);
-                    setLoadingCourse(false);
-                }
-                return;
-            }
-
             try {
                 const response = await fetch(`/api/courses/dynamic/${courseSlug}`);
-                if (!response.ok) {
-                    if (!cancelled) {
-                        setCourse(null);
-                        setNotFound(true);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!cancelled && data.course) {
+                        setCourse(mapDynamicCourseToCourse(data.course));
+                        setDynamicCurriculum(Array.isArray(data.curriculum) ? data.curriculum : []);
+                        setActiveDynamicNode(null);
                         setLoadingCourse(false);
+                        return;
                     }
-                    return;
                 }
-
-                const data = await response.json();
-                if (!cancelled && data.course) {
-                    setCourse(mapDynamicCourseToCourse(data.course));
-                    setDynamicCurriculum(Array.isArray(data.curriculum) ? data.curriculum : []);
-                    setActiveDynamicNode(null);
+                if (!cancelled) {
+                    setCourse(null);
                     setLoadingCourse(false);
                 }
             } catch {
                 if (!cancelled) {
                     setCourse(null);
-                    setNotFound(true);
                     setLoadingCourse(false);
                 }
             }
         };
-
         loadCourse();
+        return () => { cancelled = true; };
+    }, [params]);
 
-        return () => {
-            cancelled = true;
+    useEffect(() => {
+        let cancelled = false;
+        const fetchUserCourseState = async () => {
+            if (!params?.slug) return;
+            setProgressLoading(true);
+            try {
+                const dashRes = await fetch("/api/me/dashboard");
+                if (dashRes.ok) {
+                    const dashData = await dashRes.json();
+                    const courseSlug = params.slug as string;
+                    const enrolled = dashData.enrolledCourses?.some((c: any) => c.courseSlug === courseSlug);
+                    setUserEnrolled(enrolled);
+                    if (enrolled) {
+                        const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`);
+                        if (progRes.ok) {
+                            const progData = await progRes.json();
+                            setCourseStarted(Array.isArray(progData.progress?.completedLessonIds) && progData.progress.completedLessonIds.length > 0);
+                        }
+                    }
+                }
+            } catch {} finally {
+                if (!cancelled) setProgressLoading(false);
+            }
         };
-    }, [params, router]);
+        fetchUserCourseState();
+        return () => { cancelled = true; };
+    }, [params]);
 
+    // Mapped Course Data
     const displayCourse = useMemo(() => {
-        if (!course) {
-            return null;
-        }
-        if (course.dynamicSource) {
-            return course;
-        }
+        if (!course) return null;
+        if (course.dynamicSource) return course;
         return enrichCoursesWithTeachers([course], teachers)[0] || course;
     }, [course, teachers]);
+
+    const instructorList = useMemo(() => {
+        if (!displayCourse) return [];
+        const main = displayCourse.mainInstructor;
+        const subs = displayCourse.subInstructors || [];
+        const list = [main, ...subs].filter(Boolean);
+        const unique = new Map<string, typeof list[number]>();
+        list.forEach((instructor) => {
+            const key = instructor.id || `${instructor.name}-${instructor.role}`;
+            if (!unique.has(key)) unique.set(key, instructor);
+        });
+        return Array.from(unique.values());
+    }, [displayCourse]);
+
+    useEffect(() => {
+        if (displayCourse && !displayCourse.dynamicSource && displayCourse.curriculum?.length) {
+            setExpandedModules(displayCourse.curriculum.map((_, index) => index));
+        }
+    }, [displayCourse]);
+
+    // Handlers
+    const onEnterCourse = async () => {
+        if (courseStarted) {
+            router.push(`/study/${params.slug}`);
+            return;
+        }
+        // Start first lesson logic
+        function findFirstLesson(nodes: any[]): any {
+            for (const node of nodes) {
+                if (node.type !== "folder" && !node.locked) return node;
+                if (node.children?.length) {
+                    const found = findFirstLesson(node.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+        const nodes = dynamicCurriculum.length > 0 ? dynamicCurriculum : (displayCourse?.curriculum || []);
+        const firstLesson = findFirstLesson(nodes);
+        if (!firstLesson) {
+            alert("No available lesson to start.");
+            return;
+        }
+        try {
+            const res = await fetch(`/api/study/courses/${params.slug}/progress`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ lessonNodeId: firstLesson.id }),
+            });
+            if (res.ok) router.push(`/study/${params.slug}`);
+            else throw new Error();
+        } catch {
+            alert("Failed to start course. Please try again.");
+        }
+    };
 
     if (loadingCourse) {
         return (
             <main className={styles.main}>
                 <Navbar />
-                <div style={{ padding: "100px", textAlign: "center" }}>Loading...</div>
+                <div style={{ padding: "160px 0", textAlign: "center", minHeight: "60vh" }}>
+                    <div className="gradient-text" style={{ fontSize: "1.5rem" }}>Preparing your course...</div>
+                </div>
                 <Footer />
             </main>
         );
@@ -141,89 +195,30 @@ export default function CourseDetailPage() {
         return (
             <main className={styles.main}>
                 <Navbar />
-                <div style={{ padding: "100px", textAlign: "center" }}>
-                    <h2>Course not found</h2>
-                    <button
-                        style={{ marginTop: "16px" }}
-                        className={styles.enrollBtn}
-                        onClick={() => router.push("/courses")}
-                    >
-                        Back to Courses
-                    </button>
+                <div style={{ padding: "160px 0", textAlign: "center", minHeight: "60vh" }}>
+                    <h2 style={{ marginBottom: "20px" }}>Course not found</h2>
+                    <button className={styles.clearBtn} onClick={() => router.push("/courses")}>Back to Courses</button>
                 </div>
                 <Footer />
             </main>
         );
     }
 
-    const toggleModule = (index: number) => {
-        setExpandedModules(prev => 
-            prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
-        );
-    };
-
-    const normalizePrice = (price: string) => {
-        if (price.toLowerCase() === "free") return 0;
-        const numeric = Number(price.replace(/[^\d.]/g, ""));
-        return Number.isNaN(numeric) ? 0 : numeric;
-    };
-
-    const checkoutCourse = {
-        id: String(displayCourse.id),
-        title: displayCourse.title,
-        price: normalizePrice(displayCourse.price),
-    };
-
     return (
         <main className={styles.main}>
             <Navbar />
+            
+            <CourseHero course={displayCourse} />
 
-            {/* Hero Section */}
-            <header className={styles.hero}>
-                <div className={styles.heroContent}>
-                    <span className={styles.category}>{displayCourse.category}</span>
-                    <h1 className={styles.title}>{displayCourse.title}</h1>
-                    <div className={styles.meta}>
-                        <div className={styles.metaItem}>
-                            <Star size={18} color="#f59e0b" fill="#f59e0b" />
-                            <span>{displayCourse.rating} Rating</span>
-                        </div>
-                        {displayCourse.enrolledCount && (
-                            <div className={styles.metaItem}>
-                                <Users size={18} />
-                                <span>{displayCourse.enrolledCount.toLocaleString()} Students</span>
-                            </div>
-                        )}
-                        <div className={styles.metaItem}>
-                            <Clock size={18} />
-                            <span>{displayCourse.duration}</span>
-                        </div>
-                        {displayCourse.level && (
-                            <div className={styles.metaItem}>
-                                <BarChart size={18} />
-                                <span>{displayCourse.level}</span>
-                            </div>
-                        )}
-                        {displayCourse.language && (
-                            <div className={styles.metaItem}>
-                                <Globe size={18} />
-                                <span>{displayCourse.language}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content Area */}
             <div className={styles.container}>
-                
-                {/* Left Column: Details */}
                 <div className={styles.leftContent}>
                     
+                    <CourseStats course={displayCourse} />
+
                     {/* Overview */}
                     {displayCourse.description && (
                         <section className={styles.section}>
-                            <h2 className={styles.sectionTitle}>Course Overview</h2>
+                            <h2 className={styles.sectionTitle}><Layout size={24} className="gradient-text" /> Course Overview</h2>
                             <p className={styles.description}>{displayCourse.description}</p>
                         </section>
                     )}
@@ -231,7 +226,7 @@ export default function CourseDetailPage() {
                     {/* What You'll Learn */}
                     {displayCourse.learningObjectives && displayCourse.learningObjectives.length > 0 && (
                         <section className={styles.section}>
-                            <h2 className={styles.sectionTitle}>What You'll Learn</h2>
+                            <h2 className={styles.sectionTitle}>What You&apos;ll Learn</h2>
                             <ul className={styles.objectivesList}>
                                 {displayCourse.learningObjectives.map((obj, idx) => (
                                     <li key={idx} className={styles.objectiveItem}>
@@ -243,8 +238,20 @@ export default function CourseDetailPage() {
                         </section>
                     )}
 
-                    {/* Curriculum */}
-                    {displayCourse.curriculum && displayCourse.curriculum.length > 0 && (
+                    {/* Curriculum - Dynamic */}
+                    {dynamicCurriculum.length > 0 && (
+                        <section className={styles.section}>
+                            <h2 className={styles.sectionTitle}>Course Curriculum</h2>
+                            <CourseCurriculum
+                                data={dynamicCurriculum}
+                                onVideoSelect={() => {}} // Non-selectable in detail page
+                                activeNodeId={activeDynamicNode?.id}
+                            />
+                        </section>
+                    )}
+
+                    {/* Curriculum - Static Fallback */}
+                    {!displayCourse.dynamicSource && displayCourse.curriculum && displayCourse.curriculum.length > 0 && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
                             <div className={styles.curriculum}>
@@ -252,7 +259,9 @@ export default function CourseDetailPage() {
                                     <div key={idx} className={styles.module}>
                                         <div 
                                             className={styles.moduleHeader}
-                                            onClick={() => toggleModule(idx)}
+                                            onClick={() => setExpandedModules(prev => 
+                                                prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+                                            )}
                                         >
                                             <span className={styles.moduleTitle}>{module.title}</span>
                                             {expandedModules.includes(idx) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -276,92 +285,33 @@ export default function CourseDetailPage() {
                         </section>
                     )}
 
-                    {dynamicCurriculum.length > 0 && (
-                        <section className={styles.section}>
-                            <h2 className={styles.sectionTitle}>Course Curriculum</h2>
-                            <CourseCurriculum
-                                data={dynamicCurriculum}
-                                onVideoSelect={setActiveDynamicNode}
-                                activeNodeId={activeDynamicNode?.id}
-                            />
-                        </section>
-                    )}
-
-                    {/* Instructor */}
+                    {/* Instructors */}
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>Instructor</h2>
-                        <div className={styles.instructorCard}>
-                            <Image 
-                                src={displayCourse.mainInstructor.image || "/placeholder.svg"} 
-                                alt={displayCourse.mainInstructor.name}
-                                width={80}
-                                height={80}
-                                className={styles.instructorImage}
-                                unoptimized
-                            />
-                            <div className={styles.instructorInfo}>
-                                <h3>{displayCourse.mainInstructor.name}</h3>
-                                <p className={styles.instructorRole}>{displayCourse.mainInstructor.role}</p>
-                            </div>
-                        </div>
+                        <h2 className={styles.sectionTitle}>{instructorList.length > 1 ? "Meet your Instructors" : "Meet your Instructor"}</h2>
+                        <CourseInstructors course={displayCourse} instructorList={instructorList} />
                     </section>
                 </div>
 
-                {/* Right Column: Sticky Sidebar */}
-                <aside className={styles.sidebar}>
-                    <div className={styles.sidebarImageWrapper}>
-                        <Image
-                            src={displayCourse.image || "/placeholder.svg"}
-                            alt={displayCourse.title}
-                            fill
-                            style={{ objectFit: "cover" }}
-                            className={styles.sidebarImage}
-                            unoptimized
-                        />
-                    </div>
-                    <div className={styles.sidebarContent}>
-                        <div className={styles.priceSection}>
-                            {displayCourse.originalPrice && (
-                                <div className={styles.originalPrice}>{displayCourse.originalPrice}</div>
-                            )}
-                            <div className={styles.price}>{displayCourse.price === "Free" ? "Free" : displayCourse.price}</div>
-                        </div>
-                        
-                        <button
-                            className={styles.enrollBtn}
-                            onClick={() => setIsCheckoutOpen(true)}
-                        >
-                            Enroll Now
-                        </button>
-
-                        <h4 className={styles.includesTitle}>This course includes:</h4>
-                        <ul className={styles.includesList}>
-                            <li className={styles.includesItem}>
-                                <MonitorPlay size={18} className={styles.includesIcon} />
-                                <span>{displayCourse.duration} of on-demand video</span>
-                            </li>
-                            <li className={styles.includesItem}>
-                                <FileText size={18} className={styles.includesIcon} />
-                                <span>Comprehensive study materials</span>
-                            </li>
-                            <li className={styles.includesItem}>
-                                <Star size={18} className={styles.includesIcon} />
-                                <span>Full lifetime access</span>
-                            </li>
-                            <li className={styles.includesItem}>
-                                <Award size={18} className={styles.includesIcon} />
-                                <span>Certificate of completion</span>
-                            </li>
-                        </ul>
-                    </div>
-                </aside>
-                
+                <div className={styles.sidebarWrapper}>
+                    <CourseSidebar 
+                        course={displayCourse}
+                        progressLoading={progressLoading}
+                        userEnrolled={userEnrolled}
+                        courseStarted={courseStarted}
+                        onEnterCourse={onEnterCourse}
+                        onEnroll={() => setIsCheckoutOpen(true)}
+                    />
+                </div>
             </div>
 
             <Footer />
 
             <CheckoutModal
-                course={checkoutCourse}
+                course={{
+                    id: String(displayCourse.id),
+                    title: displayCourse.title,
+                    price: displayCourse.price === "Free" ? 0 : Number(displayCourse.price.replace(/[^\d.]/g, ""))
+                }}
                 isOpen={isCheckoutOpen}
                 onClose={() => setIsCheckoutOpen(false)}
             />
