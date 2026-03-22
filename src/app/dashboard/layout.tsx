@@ -2,13 +2,13 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import TeacherSidebar from "@/components/Teacher/TeacherSidebar";
-import TeacherHeader from "../../../components/Teacher/TeacherHeader";
-import styles from "./TeacherDashboard.module.css";
-import { Loader2, LayoutDashboard, BookOpen, Users, Video, FileText, MoreHorizontal } from "lucide-react";
+import { useEffect, useState, Suspense } from "react";
+import StudentSidebar from "@/components/Student/StudentSidebar";
+import StudentHeader from "@/components/Student/StudentHeader";
+import styles from "./StudentDashboard.module.css";
+import { Loader2, LayoutDashboard, UserCog, TrendingUp, ClipboardList, BookOpen, MoreHorizontal } from "lucide-react";
 
-function TeacherDashboardLayoutContent({
+function StudentDashboardLayoutContent({
     children,
 }: {
     children: React.ReactNode;
@@ -34,36 +34,33 @@ function TeacherDashboardLayoutContent({
 
     const mobileNavItems = [
         { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'courses', label: 'Programs', icon: BookOpen },
-        { id: 'students', label: 'Students', icon: Users },
-        { id: 'library', label: 'Media', icon: Video },
+        { id: 'profile', label: 'Profile', icon: UserCog },
+        { id: 'progress', label: 'Stats', icon: TrendingUp },
+        { id: 'exams', label: 'Exams', icon: ClipboardList },
     ];
 
     if (loading || !user) {
         return (
             <div className={styles.loadingOverlay}>
                 <Loader2 className={styles.spinner} />
-                <span>Authenticating...</span>
+                <span>Entering Learning Hub...</span>
             </div>
         );
     }
 
     return (
         <div className={styles.dashboardContainer}>
-            <TeacherSidebar
+            <StudentSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab as any}
-                teacherName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Teacher"}
-                teacherEmail={user.email}
+                studentName={user.user_metadata?.full_name || "Student"}
                 isExpanded={isSidebarExpanded}
                 onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                activeStudents={842}
-                totalCourses={4}
             />
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
-                <TeacherHeader 
-                    title="Instructor Hub"
+                <StudentHeader 
+                    title="Learning Center"
                     user={user}
                 />
                 <div className={styles.pageContent}>
@@ -92,9 +89,7 @@ function TeacherDashboardLayoutContent({
     );
 }
 
-import { Suspense } from "react";
-
-export default function TeacherDashboardLayout({
+export default function StudentDashboardLayout({
     children,
 }: {
     children: React.ReactNode;
@@ -103,12 +98,12 @@ export default function TeacherDashboardLayout({
         <Suspense fallback={
             <div className={styles.loadingOverlay}>
                 <Loader2 className={styles.spinner} />
-                <span>Syncing Instructor Profile...</span>
+                <span>Preparing Student Workspace...</span>
             </div>
         }>
-            <TeacherDashboardLayoutContent>
+            <StudentDashboardLayoutContent>
                 {children}
-            </TeacherDashboardLayoutContent>
+            </StudentDashboardLayoutContent>
         </Suspense>
     );
 }
