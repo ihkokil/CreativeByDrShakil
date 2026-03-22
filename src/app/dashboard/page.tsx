@@ -6,162 +6,162 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./Dashboard.module.css";
 import {
-  AlertTriangle,
-  BookOpen,
-  CheckCircle2,
-  Clock,
-  CreditCard,
-  ExternalLink,
-  KeyRound,
-  LayoutDashboard,
-  LineChart,
-  Lock,
-  Phone,
-  Receipt,
-  ShieldCheck,
-  User,
-  UserCog,
-  Wallet,
+    LayoutDashboard,
+    UserCog,
+    TrendingUp,
+    ClipboardList,
+    BookOpen,
+    Trophy,
+    Clock,
+    ArrowRight,
+    Phone,
+    User as UserIcon,
+    Loader2,
+    AlertTriangle,
+    CheckCircle2,
+    CreditCard,
+    ExternalLink,
+    KeyRound,
+    Lock,
+    Receipt,
+    ShieldCheck,
+    Wallet,
+    LineChart,
+    User,
+    Smartphone
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
+import StudentOverview from "@/components/Student/StudentOverview";
 
 interface DashboardCourse {
-  orderId: string;
-  courseId: string;
-  courseSlug: string | null;
-  courseTitle: string;
-  imageUrl?: string | null;
-  duration: string;
-  category: string;
-  enrolledAt: string;
-  progress: {
-    completedCount: number;
-    totalCount: number;
-    percentage: number;
-  };
+    orderId: string;
+    courseId: string;
+    courseSlug: string | null;
+    courseTitle: string;
+    imageUrl?: string | null;
+    duration: string;
+    category: string;
+    enrolledAt: string;
+    progress: {
+        completedCount: number;
+        totalCount: number;
+        percentage: number;
+    };
 }
 
 interface PurchaseItem {
-  id: string;
-  status: "pending" | "approved" | "rejected";
-  totalAmount: number;
-  discountAmount: number;
-  couponCode: string | null;
-  createdAt: string;
-  updatedAt: string;
-  course: {
     id: string;
-    title: string;
-    slug: string | null;
-  };
-  payment: {
-    id: string;
-    status: string;
-    transactionId: string;
-    phoneNumber: string;
-    submittedAt: string;
-    approvedAt: string | null;
-  } | null;
+    status: "pending" | "approved" | "rejected";
+    totalAmount: number;
+    discountAmount: number;
+    couponCode: string | null;
+    createdAt: string;
+    updatedAt: string;
+    course: {
+        id: string;
+        title: string;
+        slug: string | null;
+    };
+    payment: {
+        id: string;
+        status: string;
+        transactionId: string;
+        phoneNumber: string;
+        submittedAt: string;
+        approvedAt: string | null;
+    } | null;
 }
 
 interface DashboardProfile {
-  id: string;
-  email: string;
-  phone: string | null;
-  role: string;
-  fullName: string;
-  profileImage: string | null;
-  bmdcNumber: string | null;
-  designation: string | null;
-  institution: string | null;
-  degrees: string | null;
-  createdAt: string;
+    id: string;
+    email: string;
+    phone: string | null;
+    role: string;
+    fullName: string;
+    profileImage: string | null;
+    bmdcNumber: string | null;
+    designation: string | null;
+    institution: string | null;
+    degrees: string | null;
+    createdAt: string;
 }
 
 interface DashboardPayload {
-  profile: DashboardProfile;
-  studyStats: {
-    activeCourses: number;
-    completedLessons: number;
-    averageProgress: number;
-    totalPurchases: number;
-  };
-  enrolledCourses: DashboardCourse[];
-  purchaseHistory: PurchaseItem[];
+    profile: DashboardProfile;
+    studyStats: {
+        activeCourses: number;
+        completedLessons: number;
+        averageProgress: number;
+        totalPurchases: number;
+    };
+    enrolledCourses: DashboardCourse[];
+    purchaseHistory: PurchaseItem[];
 }
 
-type TabKey = "overview" | "courses" | "purchases" | "profile" | "security";
+type TabKey = "overview" | "courses" | "purchases" | "profile" | "security" | "exams";
 
 const formatDate = (value?: string | null) => {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
-  return date.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
+    if (!value) return "N/A";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
 };
 
 const formatDateTime = (value?: string | null) => {
-  if (!value) return "N/A";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "N/A";
-  return date.toLocaleString("en-GB", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-};
-
-const toLocalInputDateTime = (value?: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const tzOffset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+    if (!value) return "N/A";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleString("en-GB", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 };
 
 function StudentDashboardContent() {
-  const { user, loading, signOut, refreshSession } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+    const { user, loading, signOut, refreshSession } = useAuth();
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [editingProfile, setEditingProfile] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
+    const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [changingPassword, setChangingPassword] = useState(false);
+    const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const [profileForm, setProfileForm] = useState<{
-    fullName: string;
-    phone: string;
-    bmdcNumber: string;
-    designation: string;
-    institution: string;
-    degrees: string;
-    profileImage: string | null;
-  }>({
-    fullName: "",
-    phone: "",
-    bmdcNumber: "",
-    designation: "",
-    institution: "",
-    degrees: "",
-    profileImage: "",
-  });
+    const [profileForm, setProfileForm] = useState<{
+        fullName: string;
+        phone: string;
+        bmdcNumber: string;
+        designation: string;
+        institution: string;
+        degrees: string;
+        profileImage: string | null;
+    }>({
+        fullName: "",
+        phone: "",
+        bmdcNumber: "",
+        designation: "",
+        institution: "",
+        degrees: "",
+        profileImage: "",
+    });
 
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
+    const [passwordForm, setPasswordForm] = useState({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+    });
 
-  const activeTab = (searchParams.get("tab") as TabKey) || "overview";
+    const activeTab = (searchParams.get("tab") as TabKey) || "overview";
 
-  const setActiveTab = (tab: TabKey) => {
-    const params = new URLSearchParams(searchParams);
-    params.set("tab", tab);
-    router.push(`?${params.toString()}`);
-  };
+    const setActiveTab = (tab: TabKey) => {
+        const params = new URLSearchParams(searchParams);
+        params.set("tab", tab);
+        router.push(`?${params.toString()}`);
+    };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -217,7 +217,7 @@ function StudentDashboardContent() {
     return () => {
       cancelled = true;
     };
-  }, [loading, user]);
+  }, [loading, user, router]);
 
   const navItems = useMemo(
     () => [
@@ -559,7 +559,7 @@ function StudentDashboardContent() {
           <div className={styles.panelHeader}>
             <h2>Profile Details</h2>
             <button className={styles.secondaryBtn} onClick={() => setEditingProfile((prev) => !prev)}>
-              <User size={16} /> {editingProfile ? "Cancel" : "Edit Profile"}
+              <UserCog size={16} /> {editingProfile ? "Cancel" : "Edit Profile"}
             </button>
           </div>
 
@@ -643,9 +643,6 @@ function StudentDashboardContent() {
                 <div className={styles.formGroup}>
                   <label>Degrees</label>
                   <input
-                    value={profileForm.degrees}
-                    onChange={(event) => setProfileForm((prev) => ({ ...prev, degrees: event.target.value }))}
-                    disabled={!editingProfile}
                   />
                 </div>
 
@@ -731,6 +728,21 @@ function StudentDashboardContent() {
             </ul>
           </section>
         </div>
+      )}
+      {activeTab === "exams" && (
+          <section className={styles.panel}>
+              <h2 className={styles.panelTitle}>Upcoming Exams</h2>
+              <div className={styles.examCards}>
+                  <article className={styles.examCard}>
+                      <h3>BCPS Part I Mock</h3>
+                      <p>March 15 · Timed mock with analytics</p>
+                  </article>
+                  <article className={styles.examCard}>
+                      <h3>Surgery Masterquiz</h3>
+                      <p>March 28 · High-yield revision sprint</p>
+                  </article>
+              </div>
+          </section>
       )}
     </DashboardShell>
   );

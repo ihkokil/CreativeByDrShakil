@@ -1,15 +1,15 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { LayoutDashboard, UserCog, Upload, Trash2, Phone, User as UserIcon, IdCard } from "lucide-react";
+import { Upload, Trash2, Phone, User as UserIcon, IdCard, CheckCircle2, AlertCircle } from "lucide-react";
 import styles from "./TeacherUserPage.module.css";
+import dashboardStyles from "../TeacherDashboard.module.css";
 
 export default function TeacherUserPage() {
-    const { user, loading, role, refreshSession, signOut } = useAuth();
+    const { user, loading, role, refreshSession } = useAuth();
     const router = useRouter();
 
     const [fullName, setFullName] = useState("");
@@ -32,14 +32,6 @@ export default function TeacherUserPage() {
             setProfileImage(user.user_metadata?.profile_image || null);
         }
     }, [loading, role, router, user]);
-
-    const navItems = useMemo(
-        () => [
-            { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, mobilePrimary: true },
-            { key: "user", label: "User Page", icon: UserCog, mobilePrimary: true },
-        ],
-        []
-    );
 
     const initials = (fullName || user?.email || "DR")
         .split(" ")
@@ -106,30 +98,17 @@ export default function TeacherUserPage() {
         setSaving(false);
     };
 
-    const handleLogout = async () => {
-        await signOut();
-        router.push("/");
-    };
-
     if (loading || !user || role !== "teacher") {
-        return <div className={styles.loader}>Loading user page...</div>;
+        return <div className={dashboardStyles.loader}>Loading profile...</div>;
     }
 
     return (
-        <DashboardShell
-            title="Teacher User Page"
-            subtitle="Manage your doctor profile and professional details."
-            roleLabel="Teacher"
-            userName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Doctor"}
-            userEmail={user.email}
-            userAvatarUrl={user.user_metadata?.profile_image || null}
-            items={navItems}
-            activeKey="user"
-            onSelect={(key) => router.push(key === "dashboard" ? "/teacher/dashboard" : "/teacher/dashboard/user")}
-            onLogout={handleLogout}
-        >
+        <div className={dashboardStyles.stack}>
             <section className={styles.panel}>
-                <h2 className={styles.panelTitle}>Doctor Profile</h2>
+                <div className={styles.header}>
+                    <h2 className={styles.panelTitle}>Professional Profile</h2>
+                    <p className={styles.subtitle}>Update your identity and clinical credentials.</p>
+                </div>
 
                 <form className={styles.form} onSubmit={handleSave}>
                     <div className={styles.avatarRow}>
@@ -144,7 +123,7 @@ export default function TeacherUserPage() {
                         <div className={styles.avatarActions}>
                             <label className={styles.uploadBtn}>
                                 <Upload size={16} />
-                                Upload Image
+                                Update Profile Photo
                                 <input type="file" accept="image/*" onChange={handleImageSelect} />
                             </label>
 
@@ -157,7 +136,7 @@ export default function TeacherUserPage() {
                                 Remove
                             </button>
 
-                            <small>PNG/JPG up to 2MB.</small>
+                            <small>PNG/JPG up to 2MB. Recommended 1:1 ratio.</small>
                         </div>
                     </div>
 
@@ -173,10 +152,11 @@ export default function TeacherUserPage() {
                         <div className={styles.field}>
                             <label>Email Address</label>
                             <input value={user.email || ""} disabled className={styles.disabledInput} />
+                            <small>Email cannot be changed.</small>
                         </div>
 
                         <div className={styles.field}>
-                            <label>Phone</label>
+                            <label>Contact Phone</label>
                             <div className={styles.inputWrap}>
                                 <Phone size={16} />
                                 <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+8801XXXXXXXXX" />
@@ -192,13 +172,20 @@ export default function TeacherUserPage() {
                         </div>
                     </div>
 
-                    {message && <div className={`${styles.message} ${styles[message.type]}`}>{message.text}</div>}
+                    {message && (
+                        <div className={`${styles.message} ${styles[message.type]}`}>
+                            {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                            {message.text}
+                        </div>
+                    )}
 
-                    <button type="submit" className={styles.saveBtn} disabled={saving}>
-                        {saving ? "Saving..." : "Save Profile"}
-                    </button>
+                    <div className={styles.formFooter}>
+                        <button type="submit" className={styles.saveBtn} disabled={saving}>
+                            {saving ? "Syncing Changes..." : "Secure Save"}
+                        </button>
+                    </div>
                 </form>
             </section>
-        </DashboardShell>
+        </div>
     );
 }
