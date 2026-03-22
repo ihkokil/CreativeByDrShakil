@@ -1,0 +1,353 @@
+.bentoGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 24px;
+    padding-bottom: 40px;
+}
+
+.bentoItem {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 24px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.bentoItem:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-4px);
+}
+
+/* Stats Hero - Large 2x1 Card */
+.statsHero {
+    grid-column: span 2;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.05));
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 220px;
+}
+
+.heroHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.heroHeader h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.heroHeader p {
+    font-size: 0.85rem;
+    margin: 4px 0 0;
+}
+
+.heroAction {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.revenueDisplay {
+    margin: 20px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.currency {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+.amount {
+    font-size: 3.5rem;
+    font-weight: 800;
+    letter-spacing: -2px;
+    background: linear-gradient(to right, #fff, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.miniChart {
+    height: 40px;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.bar {
+    flex: 1;
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 3px;
+    transition: height 1s ease-out;
+}
+
+/* Metrics Cards */
+.metricCard {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.metricHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.iconBox {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.metricChange {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #10b981;
+}
+
+.metricBody h4 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.metricBody p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 4px 0 0;
+}
+
+/* Quick Actions */
+.quickActions {
+    grid-row: span 2;
+}
+
+.quickActions h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+.actionGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+.actionBtn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--foreground);
+    text-align: left;
+}
+
+.actionBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary);
+    transform: scale(1.02);
+}
+
+.actionIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Activity List */
+.activityList {
+    grid-column: span 2;
+    grid-row: span 2;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.activities {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.activityItem {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.activityItem:last-child {
+    border-bottom: none;
+}
+
+.actAvatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #3b82f6, #10b981);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.actInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.actInfo strong {
+    font-size: 0.95rem;
+}
+
+.actInfo span {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.actInfo small {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    opacity: 0.7;
+    margin-top: 2px;
+}
+
+.actValue {
+    font-weight: 600;
+    color: #10b981;
+}
+
+.statusPill {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+.viewAllBtn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.viewAllBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--foreground);
+}
+
+/* Performance Teaser */
+.performanceTeaser {
+    grid-column: span 1;
+}
+
+.performanceTeaser h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-muted);
+}
+
+.teaserContent {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.teaserThumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.teaserInfo h4 {
+    font-size: 0.95rem;
+    margin: 0 0 8px;
+}
+
+.teaserStats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.teaserStats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+@media (max-width: 1200px) {
+    .bentoGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .bentoGrid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .statsHero, .metricCard, .activityList, .quickActions, .performanceTeaser {
+        grid-column: span 1 !important;
+        grid-row: auto !important;
+    }
+    .amount {
+        font-size: 2.5rem;
+    }
+}
