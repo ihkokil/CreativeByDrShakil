@@ -10,17 +10,20 @@ import { ArrowRight } from "lucide-react";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
+import CourseCardSkeleton from "./CourseCardSkeleton";
 
 export default function Courses() {
     const [filter, setFilter] = useState("All");
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
     const [categories, setCategories] = useState<CategorySummary[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         let cancelled = false;
 
         const loadDynamicCourses = async () => {
+            setLoading(true);
             try {
                 const courses = await fetchPublishedDynamicCourses();
                 if (!cancelled) {
@@ -28,6 +31,8 @@ export default function Courses() {
                 }
             } catch {
                 // Keep the static featured set if dynamic fetch fails.
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         };
 
@@ -121,9 +126,17 @@ export default function Courses() {
 
                 <motion.div layout className={styles.grid}>
                     <AnimatePresence mode="popLayout">
-                        {filtered.map(course => (
-                            <CourseCard key={course.id} course={course} />
-                        ))}
+                        {loading ? (
+                            [...Array(3)].map((_, i) => (
+                                <div key={`skeleton-${i}`} className={styles.cardWrapper}>
+                                    <CourseCardSkeleton />
+                                </div>
+                            ))
+                        ) : (
+                            filtered.map(course => (
+                                <CourseCard key={course.id} course={course} />
+                            ))
+                        )}
                     </AnimatePresence>
                 </motion.div>
 

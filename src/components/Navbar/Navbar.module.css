@@ -9,19 +9,20 @@
     display: flex;
     align-items: center;
     background: var(--glass);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-soft);
-    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: all var(--duration-base) var(--ease-premium);
 }
 
 .navbar.scrolled {
     top: 8px;
-    background: var(--background);
-    border-color: var(--primary);
-    box-shadow: var(--shadow-medium);
+    background: color-mix(in srgb, var(--background) 85%, transparent);
+    backdrop-filter: blur(24px);
+    border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+    box-shadow: var(--shadow-premium);
 }
 
 .container {
@@ -52,10 +53,10 @@
 }
 
 .link {
-    font-size: 0.95rem;
-    font-weight: 500;
+    font-size: var(--text-small);
+    font-weight: var(--weight-medium);
     color: var(--text-muted);
-    transition: color var(--transition), opacity var(--transition);
+    transition: color var(--duration-fast), opacity var(--duration-fast);
 }
 
 .link:hover {
@@ -70,12 +71,12 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: var(--text-small);
+    font-weight: var(--weight-semibold);
     cursor: pointer;
     padding: 8px 12px;
-    border-radius: 8px;
-    transition: background var(--transition);
+    border-radius: var(--radius-sm);
+    transition: background var(--duration-fast);
 }
 
 .navBtn:hover {
@@ -94,21 +95,22 @@
     max-height: 320px;
     overflow: auto;
     padding: 10px;
-    border-radius: 16px;
-    background: var(--background);
+    border-radius: var(--radius-md);
+    background: var(--card-bg);
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-medium);
     display: grid;
     gap: 4px;
+    backdrop-filter: blur(12px);
 }
 
 .dropdownItem {
     padding: 10px 12px;
-    border-radius: 10px;
-    font-size: 0.92rem;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-tiny);
+    font-weight: var(--weight-semibold);
     color: var(--foreground);
-    transition: background 0.2s, color 0.2s;
+    transition: background var(--duration-fast), color var(--duration-fast);
 }
 
 .dropdownItem:hover {
@@ -127,19 +129,20 @@
     color: var(--background);
     border: none;
     padding: 10px 24px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.95rem;
+    border-radius: var(--radius-md);
+    font-weight: var(--weight-bold);
+    font-size: var(--text-small);
     display: flex;
     align-items: center;
     gap: 10px;
     cursor: pointer;
-    transition: transform 0.2s, opacity 0.2s;
+    transition: transform var(--duration-fast), opacity var(--duration-fast);
 }
 
 .accountBtn:hover {
     transform: translateY(-2px);
-    opacity: 0.9;
+    opacity: 0.95;
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--foreground) 20%, transparent);
 }
 
 .userSection {
@@ -152,38 +155,38 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    background: var(--glass);
+    background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     padding: 8px 16px;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    transition: all 0.2s;
+    border-radius: var(--radius-md);
+    font-size: var(--text-small);
+    font-weight: var(--weight-bold);
+    transition: all var(--duration-fast) var(--ease-premium);
 }
 
 .dashboardLink:hover {
     background: var(--primary);
     border-color: var(--primary);
     color: white;
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 25%, transparent);
 }
 
 .logoutBtn {
     background: transparent;
     border: 1px solid var(--glass-border);
-    color: #ef4444;
+    color: var(--error);
     padding: 8px;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all var(--duration-fast);
 }
 
 .logoutBtn:hover {
-    background: color-mix(in srgb, #ef4444 12%, transparent);
-    border-color: #ef4444;
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+    border-color: var(--error);
 }
 
 @media (max-width: 1024px) {
@@ -205,11 +208,11 @@
 
     .accountBtn {
         padding: 8px 12px;
-        font-size: 0.85rem;
+        font-size: var(--text-tiny);
     }
 
     .dashboardLink {
         padding: 8px 12px;
-        font-size: 0.85rem;
+        font-size: var(--text-tiny);
     }
 }
