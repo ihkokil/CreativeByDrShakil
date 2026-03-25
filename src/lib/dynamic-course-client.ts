@@ -6,6 +6,7 @@ interface DynamicInstructorPayload {
   role?: string;
   designation?: string;
   image?: string;
+  imageUrl?: string;
   sortOrder?: number;
 }
 
@@ -33,7 +34,7 @@ const normalizeInstructor = (payload: DynamicInstructorPayload): Instructor => (
   id: payload.id,
   name: payload.name,
   role: payload.role || payload.designation || 'Course Instructor',
-  image: payload.image || '/placeholder.svg',
+  image: payload.imageUrl || payload.image || '/placeholder.svg',
 });
 
 export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course => {
@@ -43,7 +44,7 @@ export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course 
       id: instructor.id,
       name: instructor.name,
       role: instructor.designation || instructor.role || 'Course Instructor',
-      image: '/placeholder.svg',
+      image: instructor.imageUrl || instructor.image || '/placeholder.svg',
     }))
     .filter((instructor) => instructor.name && instructor.name !== mainInstructor.name);
 

@@ -17,6 +17,7 @@ import {
     BookOpenCheck
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 
 type TabType = 'overview' | 'courses' | 'students' | 'assignments' | 'library';
 
@@ -25,6 +26,7 @@ interface TeacherSidebarProps {
     setActiveTab: (tab: TabType) => void;
     teacherName: string;
     teacherEmail?: string;
+    teacherProfileImage?: string | null;
     activeStudents: number;
     totalCourses: number;
     isExpanded: boolean;
@@ -36,6 +38,7 @@ export default function TeacherSidebar({
     setActiveTab,
     teacherName,
     teacherEmail = "teacher@example.com",
+    teacherProfileImage = null,
     activeStudents = 0,
     totalCourses = 0,
     isExpanded,
@@ -94,7 +97,17 @@ export default function TeacherSidebar({
                     <div className={styles.profileHeader}>
                         <div className={styles.avatarWrapper}>
                             <div className={styles.avatar}>
-                                {getInitials(teacherName)}
+                                {teacherProfileImage ? (
+                                    <Image 
+                                        src={teacherProfileImage} 
+                                        alt={teacherName} 
+                                        fill 
+                                        className={styles.avatarImage}
+                                        unoptimized
+                                    />
+                                ) : (
+                                    getInitials(teacherName)
+                                )}
                             </div>
                         </div>
                     </div>
