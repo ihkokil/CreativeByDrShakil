@@ -27,7 +27,6 @@ export interface Course {
     requirements?: string[];
     curriculum?: Module[];
     enrolledCount?: number;
-    level?: string;
     language?: string;
     lastUpdated?: string;
     image?: string;
@@ -75,7 +74,6 @@ export const COURSES: Course[] = [
         duration: "6 Months",
         mainInstructor: INSTRUCTORS.dr_rahman,
         enrolledCount: 1240,
-        level: "Intermediate",
         language: "English / Bengali",
         lastUpdated: "October 2026",
         description: "This comprehensive FCPS Part I Internal Medicine course is designed to guide aspiring physicians through the rigorous exam preparation process. It covers all the core modules required by the BCPS, focusing on high-yield topics, clinical scenarios, and recent updates in medicine. Our structured curriculum, combined with expert-led sessions and extensive question banks, ensures that you build a solid foundation and develop the analytical skills necessary to ace the exam.",
