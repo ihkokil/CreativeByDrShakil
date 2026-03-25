@@ -161,6 +161,7 @@ model CourseInstructor {
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   name          String
   designation   String?
+  imageUrl      String?  @db.LongText
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
