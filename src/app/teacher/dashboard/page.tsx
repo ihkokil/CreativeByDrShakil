@@ -3,22 +3,10 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, Suspense } from "react";
-import DashboardShell from "@/components/DashboardShell/DashboardShell";
+import TeacherOverview from "@/components/Teacher/TeacherOverview";
+import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 import CoursesTab from "@/components/Teacher/CoursesTab";
 import styles from "./TeacherDashboard.module.css";
-import {
-    LayoutDashboard,
-    BookOpen,
-    Users,
-    ClipboardList,
-    Video,
-    UserCog,
-    DollarSign,
-    Star,
-    CheckCircle,
-} from "lucide-react";
-import { COURSES } from "@/constants/courses";
-import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 import Image from "next/image";
 
 function TeacherDashboardContent() {
@@ -26,13 +14,7 @@ function TeacherDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const activeTab = (searchParams.get("tab") as "overview" | "courses" | "students" | "assignments" | "library") || "overview";
-
-    const setActiveTab = (tab: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`?${params.toString()}`);
-    };
+    const activeTab = (searchParams.get("tab") as any) || "overview";
 
     useEffect(() => {
         if (!loading && !user) {
@@ -40,90 +22,14 @@ function TeacherDashboardContent() {
         }
     }, [user, loading, router]);
 
-    const navItems = useMemo(
-        () => [
-            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
-            { key: "courses", label: "Courses", icon: BookOpen, mobilePrimary: true },
-            { key: "students", label: "Students", icon: Users, mobilePrimary: true },
-            { key: "assignments", label: "Assignments", icon: ClipboardList },
-            { key: "library", label: "Library", icon: Video },
-            { key: "user", label: "User Page", icon: UserCog },
-        ],
-        []
-    );
-
     if (loading || !user) {
         return <div className={styles.loader}>Loading Teacher Dashboard...</div>;
     }
 
-    const teacherName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Dr. Shakil Ahmed";
-    const myCourses = COURSES.filter(
-        (course) =>
-            course.mainInstructor.name === teacherName ||
-            course.subInstructors?.some((ins) => ins.name === teacherName)
-    );
-    const fallbackCourses = myCourses.length > 0 ? myCourses : [COURSES[1], COURSES[5], COURSES[6]];
-
-    const handleLogout = async () => {
-        await signOut();
-        router.push("/");
-    };
-
     return (
-        <DashboardShell
-            title="Teacher Dashboard"
-            subtitle="Manage your courses, students, and content library in one app shell."
-            roleLabel="Teacher"
-            userName={teacherName}
-            userEmail={user.email}
-            userAvatarUrl={user.user_metadata?.profile_image || null}
-            items={navItems}
-            activeKey={activeTab}
-            onSelect={(key) => {
-                if (key === "user") {
-                    router.push("/teacher/dashboard/user");
-                    return;
-                }
-                setActiveTab(key as "overview" | "courses" | "students" | "assignments" | "library");
-            }}
-            onLogout={handleLogout}
-        >
+        <div className={styles.stack}>
             {activeTab === "overview" && (
-                <div className={styles.stack}>
-                    <section className={styles.metricsGrid}>
-                        <div className={styles.metricCard}><DollarSign size={20} /><div><h3>৳1,25,000</h3><p>Total Revenue</p></div></div>
-                        <div className={styles.metricCard}><Users size={20} /><div><h3>842</h3><p>Active Students</p></div></div>
-                        <div className={styles.metricCard}><Star size={20} /><div><h3>4.9</h3><p>Average Rating</p></div></div>
-                        <div className={styles.metricCard}><BookOpen size={20} /><div><h3>{fallbackCourses.length}</h3><p>Courses</p></div></div>
-                    </section>
-
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Your Courses</h2>
-                        <div className={styles.courseGrid}>
-                            {fallbackCourses.map((course) => (
-                                <article key={course.id} className={styles.courseCard}>
-                                    <div className={styles.thumb}>
-                                        <Image src="/placeholder.svg" alt={course.title} fill style={{ objectFit: "cover" }} />
-                                    </div>
-                                    <div className={styles.courseBody}>
-                                        <span className={styles.category}>{course.category}</span>
-                                        <h3>{course.title}</h3>
-                                        <div className={styles.metaRow}>
-                                            <span><Users size={14} /> 120 Students</span>
-                                            <span><CheckCircle size={14} /> 85% Completion</span>
-                                        </div>
-                                        <button
-                                            className={styles.primaryBtn}
-                                            onClick={() => router.push('/teacher/dashboard/courses/create')}
-                                        >
-                                            Manage Content
-                                        </button>
-                                    </div>
-                                </article>
-                            ))}
-                        </div>
-                    </section>
-                </div>
+                <TeacherOverview />
             )}
 
             {activeTab === "courses" && (
@@ -156,7 +62,7 @@ function TeacherDashboardContent() {
                     <VideoLibraryManager />
                 </section>
             )}
-        </DashboardShell>
+        </div>
     );
 }
 
