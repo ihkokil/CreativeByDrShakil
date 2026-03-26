@@ -24,6 +24,8 @@ import {
     AlertTriangle,
     X,
     Inbox,
+    Loader2,
+    Search
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
@@ -35,6 +37,7 @@ import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
 import CategoryManager from "@/components/Admin/CategoryManager";
 import { AdminPaymentsList } from "@/components/Admin/PaymentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
+import AdminOverview from "@/components/Admin/AdminOverview";
 
 interface TeacherProfile {
     id: string;
@@ -67,7 +70,6 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    // Instead of useState for activeTab, derive it from searchParams
     const activeTab = (searchParams.get("tab") as "overview" | "payments" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
@@ -87,12 +89,6 @@ function AdminDashboardContent() {
         const timer = window.setTimeout(() => setToast(null), 3200);
         return () => window.clearTimeout(timer);
     }, [toast]);
-
-    useEffect(() => {
-        if (!loading && (!user || role !== "admin")) {
-            router.push("/");
-        }
-    }, [user, loading, role, router]);
 
     const fetchTeachers = useCallback(async () => {
         setTeachersLoading(true);
@@ -130,7 +126,6 @@ function AdminDashboardContent() {
         ],
         [teachers.length]
     );
-
     const getInitials = (name: string) => {
         return name
             .split(" ")
@@ -177,7 +172,12 @@ function AdminDashboardContent() {
     };
 
     if (loading || !user || role !== "admin") {
-        return <div className={styles.loader}>Loading Admin Panel...</div>;
+        return (
+            <div className={styles.loadingOverlay}>
+                <Loader2 className={styles.spinner} />
+                <span>Redirecting...</span>
+            </div>
+        );
     }
 
     return (
@@ -212,12 +212,23 @@ function AdminDashboardContent() {
             >
                 {activeTab === "overview" && (
                     <div className={styles.stack}>
-                        <section className={styles.metricsGrid}>
-                            <div className={styles.metricCard}><Users size={20} /><div><h3>{teachers.length}</h3><p>Teachers</p></div></div>
-                            <div className={styles.metricCard}><GraduationCap size={20} /><div><h3>842</h3><p>Students</p></div></div>
-                            <div className={styles.metricCard}><BookOpen size={20} /><div><h3>24</h3><p>Courses</p></div></div>
-                            <div className={styles.metricCard}><DollarSign size={20} /><div><h3>৳5,25,000</h3><p>Revenue</p></div></div>
-                        </section>
+                        <div className={styles.sectionHeader}>
+                            <div>
+                                <h1 className={styles.sectionTitle}>Dashboard Overview</h1>
+                                <p className={styles.subtitle}>Welcome back, {user.user_metadata?.full_name || 'Admin'}</p>
+                            </div>
+                            <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
+                                <UserPlus size={16} /> New Teacher
+                            </button>
+                        </div>
+
+                        <AdminOverview 
+                            teacherCount={teachers.length}
+                            studentCount={842}
+                            courseCount={24}
+                            totalRevenue="৳5,25,000"
+                            onTabChange={setActiveTab}
+                        />
 
                         <section className={styles.panel}>
                             <div className={styles.panelHeader}>
@@ -233,7 +244,7 @@ function AdminDashboardContent() {
                                 </article>
                                 <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
                                     <Users size={18} />
-                                    <div><h3>Manage Faculty</h3><p>Review teacher status and access.</p></div>
+                                    <div><h3>Faculty Directory</h3><p>Review teacher status and access.</p></div>
                                 </article>
                                 <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
                                     <BarChart3 size={18} />
@@ -252,6 +263,67 @@ function AdminDashboardContent() {
                     </div>
                 )}
 
+                {activeTab === "teachers" && (
+                    <section className={styles.panel}>
+                        <div className={styles.panelHeader}>
+                            <div>
+                                <h2 className={styles.panelTitle}>Teacher Directory</h2>
+                                <p className={styles.subtitle}>Manage faculty access and profiles</p>
+                            </div>
+                            <button className={styles.primaryBtn} onClick={() => setIsAddTeacherOpen(true)}>
+                                <UserPlus size={16} /> Add Teacher
+                            </button>
+                        </div>
+
+                        {teachersLoading ? (
+                            <div className={styles.loader}>Analyzing faculty database...</div>
+                        ) : teachers.length > 0 ? (
+                            <div className={styles.teacherGrid}>
+                                {teachers.map((teacher) => (
+                                    <article key={teacher.id} className={styles.teacherCard}>
+                                        <div className={styles.cardHeader}>
+                                            <div className={styles.cardAvatar}>
+                                                {teacher.profile_image ? (
+                                                    <Image src={teacher.profile_image} alt={teacher.full_name} fill style={{ objectFit: 'cover' }} unoptimized/>
+                                                ) : getInitials(teacher.full_name || "T")}
+                                            </div>
+                                            <div className={styles.cardInfo}>
+                                                <h3>{teacher.full_name}</h3>
+                                                <p>{teacher.email || "Email pending"}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className={styles.cardContent}>
+                                            <div className={styles.academicInfo}>
+                                                {(teacher.designation || teacher.institution) ? (
+                                                    <p>{teacher.designation} {teacher.designation && teacher.institution ? 'at' : ''} {teacher.institution}</p>
+                                                ) : (
+                                                    <p className={styles.empty}>No academic info</p>
+                                                )}
+                                            </div>
+                                            <div className={styles.cardFooter}>
+                                                <div className={styles.listCol}>
+                                                    <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
+                                                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                                                        Joined {new Date(teacher.created_at).toLocaleDateString('en-GB')}
+                                                    </span>
+                                                </div>
+                                                <div className={styles.cardActions}>
+                                                    <button className={styles.actionBtn} onClick={() => handleResetPassword(teacher)} title="Reset Password"><MailCheck size={16} /></button>
+                                                    <button className={styles.actionBtn} onClick={() => setEditTeacherData(teacher)} title="Edit Profile"><Edit size={16} /></button>
+                                                    <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setDeleteTeacherData(teacher)} title="Deactivate"><Trash2 size={16} /></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={styles.infoBox}>No teachers found in the system.</div>
+                        )}
+                    </section>
+                )}
+
                 {activeTab === "payments" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Payment Approvals</h2>
@@ -262,80 +334,13 @@ function AdminDashboardContent() {
                     </section>
                 )}
 
-                {activeTab === "teachers" && (
-                    <section className={styles.panel}>
-                        <div className={styles.panelHeader}>
-                            <h2>Teacher Accounts</h2>
-                            <button className={styles.primaryBtn} onClick={() => setIsAddTeacherOpen(true)}>
-                                <UserPlus size={16} /> Add Teacher
-                            </button>
-                        </div>
-
-                        {teachersLoading ? (
-                            <div className={styles.infoBox}>Loading teachers...</div>
-                        ) : teachers.length > 0 ? (
-                            <div className={styles.teacherList}>
-                                {teachers.map((teacher) => (
-                                    <article key={teacher.id} className={styles.listRow}>
-                                        <div className={styles.teacherHead}>
-                                            <div className={styles.avatar} style={{ overflow: "hidden", position: "relative" }}>
-                                                {teacher.profile_image ? (
-                                                    <Image src={teacher.profile_image} alt={teacher.full_name} fill style={{ objectFit: 'cover' }} unoptimized/>
-                                                ) : getInitials(teacher.full_name || "T")}
-                                            </div>
-                                            <div className={styles.listCol}>
-                                                <h3>{teacher.full_name}</h3>
-                                                <p>{teacher.email || "Email pending"}</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className={styles.listCol}>
-                                            {(teacher.designation || teacher.institution || teacher.degrees) ? (
-                                                <>
-                                                    <p style={{ color: "var(--foreground)", fontWeight: 500 }}>
-                                                        {teacher.designation} {teacher.designation && teacher.institution ? "at" : ""} {teacher.institution}
-                                                    </p>
-                                                    {teacher.degrees && <span style={{ color: "var(--primary)", fontSize: "0.8rem", fontWeight: 700 }}>{teacher.degrees}</span>}
-                                                </>
-                                            ) : (
-                                                <p style={{fontStyle: "italic"}}>No academic details</p>
-                                            )}
-                                        </div>
-
-                                        <div className={styles.listCol}>
-                                            <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
-                                            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                                                Joined {new Date(teacher.created_at).toLocaleDateString('en-GB')}
-                                            </span>
-                                        </div>
-
-                                        <div className={styles.actionGroup}>
-                                            <button className={styles.iconBtn} title="Send Reset Mail" onClick={() => handleResetPassword(teacher)}>
-                                                <MailCheck size={16} />
-                                            </button>
-                                            <button className={styles.iconBtn} title="Edit Teacher" onClick={() => setEditTeacherData(teacher)}>
-                                                <Edit size={16} />
-                                            </button>
-                                            <button className={`${styles.iconBtn} ${styles.deleteBtn}`} title="Delete & Reassign" onClick={() => setDeleteTeacherData(teacher)}>
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </article>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className={styles.infoBox}>No teachers added yet.</div>
-                        )}
-                    </section>
-                )}
-
                 {activeTab === "analytics" && (
                     <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Analytics Snapshot</h2>
+                        <h2 className={styles.panelTitle}>Platform Performance</h2>
                         <div className={styles.simpleCards}>
-                            <div className={styles.simpleCard}><strong>74%</strong><span>Weekly Active Users</span></div>
-                            <div className={styles.simpleCard}><strong>4.8</strong><span>Average Course Rating</span></div>
-                            <div className={styles.simpleCard}><strong>+12%</strong><span>Monthly Revenue Growth</span></div>
+                            <div className={styles.simpleCard}><strong>74%</strong><span>DAU Engagement</span></div>
+                            <div className={styles.simpleCard}><strong>4.8</strong><span>Content Rating</span></div>
+                            <div className={styles.simpleCard}><strong>+12%</strong><span>Yield Growth</span></div>
                         </div>
                     </section>
                 )}
@@ -353,77 +358,90 @@ function AdminDashboardContent() {
                         <CouponManager />
                     </section>
                 )}
+
                 {activeTab === "sessions" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Device Sessions</h2>
                         <SessionsManager />
                     </section>
                 )}
+
                 {activeTab === "support" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Contact Requests</h2>
                         <ContactRequestsManager />
                     </section>
                 )}
+
                 {activeTab === "settings" && (
                     <section className={styles.panel}>
                         <h2 className={styles.panelTitle}>Platform Settings</h2>
                         <BkashSettings />
+                        <div className={styles.settingGrid} style={{ marginTop: '24px' }}>
+                            <article className={styles.settingCard}>
+                                <div className={styles.settingIcon}><Shield size={24} /></div>
+                                <div><h3>Security Scopes</h3><p>Configure global access tiers and RBAC.</p></div>
+                            </article>
+                            <article className={styles.settingCard}>
+                                <div className={styles.settingIcon}><Search size={24} /></div>
+                                <div><h3>Branding Library</h3><p>Control visual identity and platform metadata.</p></div>
+                            </article>
+                        </div>
                     </section>
                 )}
-            </DashboardShell>
 
-            <AddTeacherModal
-                isOpen={isAddTeacherOpen}
-                onClose={() => setIsAddTeacherOpen(false)}
-                onSuccess={() => {
-                    setIsAddTeacherOpen(false);
-                    fetchTeachers();
-                }}
-            />
+                <AddTeacherModal
+                    isOpen={isAddTeacherOpen}
+                    onClose={() => setIsAddTeacherOpen(false)}
+                    onSuccess={() => {
+                        setIsAddTeacherOpen(false);
+                        fetchTeachers();
+                    }}
+                />
 
-            <EditTeacherModal
-                isOpen={!!editTeacherData}
-                onClose={() => setEditTeacherData(null)}
-                onSuccess={() => fetchTeachers()}
-                teacher={editTeacherData}
-            />
+                <EditTeacherModal
+                    isOpen={!!editTeacherData}
+                    onClose={() => setEditTeacherData(null)}
+                    onSuccess={() => fetchTeachers()}
+                    teacher={editTeacherData}
+                />
 
-            <DeleteTeacherModal
-                isOpen={!!deleteTeacherData}
-                onClose={() => setDeleteTeacherData(null)}
-                onSuccess={() => fetchTeachers()}
-                teacherTarget={deleteTeacherData}
-                allTeachers={teachers}
-            />
+                <DeleteTeacherModal
+                    isOpen={!!deleteTeacherData}
+                    onClose={() => setDeleteTeacherData(null)}
+                    onSuccess={() => fetchTeachers()}
+                    teacherTarget={deleteTeacherData}
+                    allTeachers={teachers}
+                />
 
-            {resetConfirmTarget && (
-                <div className={styles.confirmBackdrop} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title">
-                    <div className={styles.confirmDialog}>
-                        <h3 id="reset-confirm-title">Send reset email?</h3>
-                        <p>
-                            Send a password reset link to <strong>{resetConfirmTarget.email}</strong> for {" "}
-                            {resetConfirmTarget.full_name}.
-                        </p>
-                        <div className={styles.confirmActions}>
-                            <button
-                                className={styles.confirmCancelBtn}
-                                onClick={() => setResetConfirmTarget(null)}
-                                disabled={isSendingReset}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className={styles.confirmPrimaryBtn}
-                                onClick={() => sendResetPassword(resetConfirmTarget)}
-                                disabled={isSendingReset}
-                            >
-                                {isSendingReset ? "Sending..." : "Send Email"}
-                            </button>
+                {resetConfirmTarget && (
+                    <div className={styles.confirmBackdrop} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title">
+                        <div className={styles.confirmDialog}>
+                            <h3 id="reset-confirm-title">Send reset email?</h3>
+                            <p>
+                                Send a password reset link to <strong>{resetConfirmTarget.email}</strong> for {" "}
+                                {resetConfirmTarget.full_name}.
+                            </p>
+                            <div className={styles.confirmActions}>
+                                <button
+                                    className={styles.confirmCancelBtn}
+                                    onClick={() => setResetConfirmTarget(null)}
+                                    disabled={isSendingReset}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className={styles.confirmPrimaryBtn}
+                                    onClick={() => sendResetPassword(resetConfirmTarget)}
+                                    disabled={isSendingReset}
+                                >
+                                    {isSendingReset ? "Sending..." : "Send Email"}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </DashboardShell>
         </>
     );
 }

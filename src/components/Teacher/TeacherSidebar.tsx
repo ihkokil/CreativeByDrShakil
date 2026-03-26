@@ -1,6 +1,6 @@
 "use client";
 
-
+import { motion } from "framer-motion";
 import styles from "./TeacherSidebar.module.css";
 import {
     LayoutDashboard,
@@ -10,14 +10,12 @@ import {
     Video,
     LogOut,
     Settings,
-    HelpCircle,
     ChevronLeft,
     ChevronRight,
-    Users as UsersIcon,
-    BookOpenCheck
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
+import Link from "next/link";
 
 type TabType = 'overview' | 'courses' | 'students' | 'assignments' | 'library';
 
@@ -27,10 +25,10 @@ interface TeacherSidebarProps {
     teacherName: string;
     teacherEmail?: string;
     teacherProfileImage?: string | null;
-    activeStudents: number;
-    totalCourses: number;
     isExpanded: boolean;
     onToggleExpand: () => void;
+    activeStudents?: number;
+    totalCourses?: number;
 }
 
 export default function TeacherSidebar({ 
@@ -47,146 +45,92 @@ export default function TeacherSidebar({
     const { signOut } = useAuth();
 
     const menuItems = [
-        { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={22} /> },
-        { id: 'courses', label: 'My Courses', icon: <BookOpen size={22} /> },
-        { id: 'students', label: 'Students', icon: <Users size={22} /> },
-        { id: 'assignments', label: 'Assignments', icon: <FileText size={22} /> },
-        { id: 'library', label: 'Video Library', icon: <Video size={22} /> },
+        { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+        { id: 'courses', label: 'Programs', icon: <BookOpen size={20} /> },
+        { id: 'students', label: 'Students', icon: <Users size={20} /> },
+        { id: 'assignments', label: 'Assessments', icon: <FileText size={20} /> },
+        { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },
     ];
 
-    const settingsItems = [
-        { id: 'settings', label: 'Settings', icon: <Settings size={22} /> },
-        { id: 'help', label: 'Help & Support', icon: <HelpCircle size={22} /> },
+    const sysItems = [
+        { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
     ];
 
-    // Extract initials from teacher name
     const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
+        return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
 
     return (
-        <>
-            {/* Toggle button for mobile */}
-            <button
-                className={styles.mobileToggle}
-                onClick={() => onToggleExpand()}
-                aria-label="Toggle sidebar"
-            >
-                {isExpanded ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
-            </button>
+        <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
+            <div className={styles.sidebarHeader}>
+                <Link href="/" className={styles.logoWrapper}>
+                    <div className={styles.logoIcon}>C</div>
+                    {isExpanded && <span className={styles.logoText}>Creative<span>Academy</span></span>}
+                </Link>
+                <button className={styles.toggleBtn} onClick={onToggleExpand}>
+                    {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+                </button>
+            </div>
 
-            <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : ''}`}>
-                <div className={styles.sidebarToggleDock}>
-                    <button
-                        className={styles.toggleBtn}
-                        onClick={() => onToggleExpand()}
-                        aria-label="Toggle sidebar expansion"
-                        title={isExpanded ? "Collapse" : "Expand"}
-                    >
-                        {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-                    </button>
+            <div className={styles.navContainer}>
+                <div className={styles.navSection}>
+                    {isExpanded && <span className={styles.sectionLabel}>Management</span>}
+                    {menuItems.map(item => (
+                        <button
+                            key={item.id}
+                            className={`${styles.navItem} ${activeTab === item.id ? styles.active : ''}`}
+                            onClick={() => setActiveTab(item.id as TabType)}
+                        >
+                            <span className={styles.icon}>{item.icon}</span>
+                            {isExpanded && <span className={styles.label}>{item.label}</span>}
+                            {activeTab === item.id && <motion.div layoutId="activeNav" className={styles.activeIndicator} />}
+                        </button>
+                    ))}
                 </div>
 
-                {/* Profile Section */}
-                <div className={styles.profileSection}>
-                    <div className={styles.profileHeader}>
-                        <div className={styles.avatarWrapper}>
-                            <div className={styles.avatar}>
-                                {teacherProfileImage ? (
-                                    <Image 
-                                        src={teacherProfileImage} 
-                                        alt={teacherName} 
-                                        fill 
-                                        className={styles.avatarImage}
-                                        unoptimized
-                                    />
-                                ) : (
-                                    getInitials(teacherName)
-                                )}
-                            </div>
-                        </div>
+                <div className={styles.navSection}>
+                    {isExpanded && <span className={styles.sectionLabel}>System</span>}
+                    {sysItems.map(item => (
+                        <button
+                            key={item.id}
+                            className={styles.navItem}
+                            onClick={() => {}}
+                        >
+                            <span className={styles.icon}>{item.icon}</span>
+                            {isExpanded && <span className={styles.label}>{item.label}</span>}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className={styles.footer}>
+                <div className={styles.profileBox}>
+                    <div className={styles.avatar}>
+                        {teacherProfileImage ? (
+                            <Image 
+                                src={teacherProfileImage} 
+                                alt={teacherName} 
+                                fill 
+                                className={styles.avatarImage}
+                                unoptimized
+                            />
+                        ) : (
+                            getInitials(teacherName)
+                        )}
                     </div>
                     {isExpanded && (
-                        <div className={styles.profileInfo}>
-                            <h3>{teacherName}</h3>
-                            <p className={styles.role}>{teacherEmail}</p>
-                            <p className={styles.role}>Instructor</p>
+                        <div className={styles.profileMeta}>
+                            <span className={styles.name}>{teacherName}</span>
+                            <span className={styles.email}>{teacherEmail}</span>
                         </div>
                     )}
+                    {isExpanded && (
+                        <button className={styles.logoutBtn} onClick={signOut} title="Sign Out">
+                            <LogOut size={16} />
+                        </button>
+                    )}
                 </div>
-
-                {/* Quick Stats Section */}
-                {isExpanded && (
-                    <div className={styles.quickStats}>
-                        <div className={styles.statItem}>
-                            <div className={styles.statIcon}>
-                                <UsersIcon size={18} />
-                            </div>
-                            <div className={styles.statContent}>
-                                <div className={styles.statValue}>{activeStudents}</div>
-                                <div className={styles.statLabel}>Active Students</div>
-                            </div>
-                        </div>
-                        <div className={styles.statItem}>
-                            <div className={styles.statIcon}>
-                                <BookOpenCheck size={18} />
-                            </div>
-                            <div className={styles.statContent}>
-                                <div className={styles.statValue}>{totalCourses}</div>
-                                <div className={styles.statLabel}>Courses</div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Navigation Links */}
-                <nav className={styles.navLinks}>
-                    <div className={styles.navSection}>
-                        {menuItems.map(item => (
-                            <button
-                                key={item.id}
-                                className={`${styles.navItem} ${activeTab === item.id ? styles.active : ''}`}
-                                onClick={() => setActiveTab(item.id as TabType)}
-                                title={!isExpanded ? item.label : ""}
-                            >
-                                <span className={styles.icon}>{item.icon}</span>
-                                {isExpanded && <span className={styles.label}>{item.label}</span>}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className={`${styles.navSection} ${styles.settingsSection}`}>
-                        {settingsItems.map(item => (
-                            <button
-                                key={item.id}
-                                className={styles.navItem}
-                                onClick={() => setActiveTab(item.id as TabType)}
-                                title={!isExpanded ? item.label : ""}
-                            >
-                                <span className={styles.icon}>{item.icon}</span>
-                                {isExpanded && <span className={styles.label}>{item.label}</span>}
-                            </button>
-                        ))}
-                    </div>
-                </nav>
-
-                {/* Logout Button */}
-                <div className={styles.bottomNav}>
-                    <button 
-                        className={styles.navItemLogout} 
-                        onClick={signOut}
-                        title="Logout"
-                    >
-                        <span className={styles.icon}><LogOut size={22} /></span>
-                        {isExpanded && <span className={styles.label}>Logout</span>}
-                    </button>
-                </div>
-            </aside>
-        </>
+            </div>
+        </aside>
     );
 }
