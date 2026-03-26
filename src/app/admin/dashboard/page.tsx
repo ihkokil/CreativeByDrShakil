@@ -3,7 +3,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
-import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./AdminDashboard.module.css";
 import {
     LayoutDashboard,
