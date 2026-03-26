@@ -8,26 +8,14 @@ import {
     LayoutDashboard,
     UserCog,
     TrendingUp,
-    ClipboardList,
     BookOpen,
-    Trophy,
-    Clock,
     ArrowRight,
-    Phone,
-    User as UserIcon,
     Loader2,
     AlertTriangle,
-    CheckCircle2,
-    CreditCard,
-    ExternalLink,
     KeyRound,
     Lock,
-    Receipt,
     ShieldCheck,
-    Wallet,
-    LineChart,
-    User,
-    Smartphone
+    Clock
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -47,29 +35,6 @@ interface DashboardCourse {
         totalCount: number;
         percentage: number;
     };
-}
-
-interface PurchaseItem {
-    id: string;
-    status: "pending" | "approved" | "rejected";
-    totalAmount: number;
-    discountAmount: number;
-    couponCode: string | null;
-    createdAt: string;
-    updatedAt: string;
-    course: {
-        id: string;
-        title: string;
-        slug: string | null;
-    };
-    payment: {
-        id: string;
-        status: string;
-        transactionId: string;
-        phoneNumber: string;
-        submittedAt: string;
-        approvedAt: string | null;
-    } | null;
 }
 
 interface DashboardProfile {
@@ -95,258 +60,143 @@ interface DashboardPayload {
         totalPurchases: number;
     };
     enrolledCourses: DashboardCourse[];
-    purchaseHistory: PurchaseItem[];
 }
 
-type TabKey = "overview" | "courses" | "purchases" | "profile" | "security" | "exams";
-
-const formatDate = (value?: string | null) => {
-    if (!value) return "N/A";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "N/A";
-    return date.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "2-digit" });
-};
-
-const formatDateTime = (value?: string | null) => {
-    if (!value) return "N/A";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "N/A";
-    return date.toLocaleString("en-GB", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-};
-
 function StudentDashboardContent() {
-    const { user, loading, signOut, refreshSession } = useAuth();
-    const router = useRouter();
-    const searchParams = useSearchParams();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const activeTab = (searchParams.get("tab") as "overview" | "courses" | "profile" | "security") || "overview";
 
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-    const [editingProfile, setEditingProfile] = useState(false);
-    const [savingProfile, setSavingProfile] = useState(false);
-    const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  // Profile Edit State
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    fullName: "",
+    phone: "",
+    bmdcNumber: "",
+    designation: "",
+    institution: "",
+    degrees: "",
+    profileImage: "" as string | null
+  });
+  const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-    const [changingPassword, setChangingPassword] = useState(false);
-    const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-    const [profileForm, setProfileForm] = useState<{
-        fullName: string;
-        phone: string;
-        bmdcNumber: string;
-        designation: string;
-        institution: string;
-        degrees: string;
-        profileImage: string | null;
-    }>({
-        fullName: "",
-        phone: "",
-        bmdcNumber: "",
-        designation: "",
-        institution: "",
-        degrees: "",
-        profileImage: "",
-    });
-
-    const [passwordForm, setPasswordForm] = useState({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-    });
-
-    const activeTab = (searchParams.get("tab") as TabKey) || "overview";
-
-    const setActiveTab = (tab: TabKey) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`?${params.toString()}`);
-    };
+  // Password Change State
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");
     }
-  }, [loading, user, router]);
+  }, [user, loading, router]);
 
   useEffect(() => {
-    if (loading || !user) return;
-
-    let cancelled = false;
-
+    if (!user) return;
     const fetchDashboard = async () => {
+      setFetching(true);
+      setError(null);
       try {
-        setFetching(true);
         const token = localStorage.getItem("auth_token");
-        const response = await fetch("/api/me/dashboard", {
+        const res = await fetch("/api/me/dashboard", {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
-
-        const payload = await response.json();
-        if (!response.ok) {
-          throw new Error(payload.error || "Failed to load dashboard data.");
-        }
-
-        if (!cancelled) {
-          setData(payload as DashboardPayload);
-          const profile = (payload as DashboardPayload).profile;
+        const d = await res.json();
+        if (res.ok) {
+          setData(d);
           setProfileForm({
-            fullName: profile.fullName || "",
-            phone: profile.phone || "",
-            bmdcNumber: profile.bmdcNumber || "",
-            designation: profile.designation || "",
-            institution: profile.institution || "",
-            degrees: profile.degrees || "",
-            profileImage: profile.profileImage || "",
+            fullName: d.profile.fullName || "",
+            phone: d.profile.phone || "",
+            bmdcNumber: d.profile.bmdcNumber || "",
+            designation: d.profile.designation || "",
+            institution: d.profile.institution || "",
+            degrees: d.profile.degrees || "",
+            profileImage: d.profile.profileImage || null
           });
-          setError(null);
+        } else {
+          setError(d.error || "Could not load dashboard data.");
         }
-      } catch (fetchError: any) {
-        if (!cancelled) {
-          setError(fetchError.message || "Failed to load dashboard data.");
-        }
+      } catch (err) {
+        setError("Network error when loading dashboard.");
       } finally {
-        if (!cancelled) {
-          setFetching(false);
-        }
+        setFetching(false);
       }
     };
-
     fetchDashboard();
+  }, [user]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, user, router]);
-
-  const navItems = useMemo(
-    () => [
-      { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
-      { key: "courses", label: "Courses", icon: BookOpen, mobilePrimary: true },
-      { key: "profile", label: "Profile", icon: UserCog },
-      { key: "security", label: "Security", icon: ShieldCheck },
-    ],
-    []
-  );
-
-  const quickStats = useMemo(() => {
-    if (!data) {
-      return [
-        { label: "Active Courses", value: "0", icon: BookOpen },
-        { label: "Completed Lessons", value: "0", icon: CheckCircle2 },
-        { label: "Average Progress", value: "0%", icon: LineChart },
-      ];
-    }
-
-    return [
-      { label: "Active Courses", value: String(data.studyStats.activeCourses), icon: BookOpen },
-      { label: "Completed Lessons", value: String(data.studyStats.completedLessons), icon: CheckCircle2 },
-      { label: "Average Progress", value: `${data.studyStats.averageProgress}%`, icon: LineChart },
-    ];
-  }, [data]);
-
-  const handleLogout = async () => {
-    await signOut();
-    router.push("/");
-  };
-
-  const handleProfileImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleProfileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setProfileMessage({ type: "error", text: "Please choose a valid image file." });
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      setProfileMessage({ type: "error", text: "Image size must be 2MB or less." });
-      return;
-    }
-
     const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setProfileForm((prev) => ({ ...prev, profileImage: reader.result as string }));
-      }
+    reader.onloadend = () => {
+      setProfileForm((prev) => ({ ...prev, profileImage: reader.result as string }));
     };
     reader.readAsDataURL(file);
   };
 
-  const handleSaveProfile = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSavingProfile(true);
     setProfileMessage(null);
-
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch("/api/user/update-profile", {
+      const res = await fetch("/api/user/update-profile", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify(profileForm),
       });
-
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to update profile.");
+      const resData = await res.json();
+      if (res.ok) {
+        setProfileMessage({ type: "success", text: "Profile updated successfully!" });
+        setEditingProfile(false);
+        // Refresh local names
+        if (data) {
+          setData({ ...data, profile: { ...data.profile, ...profileForm } });
+        }
+      } else {
+        setProfileMessage({ type: "error", text: resData.error || "Update failed." });
       }
-
-      setProfileMessage({ type: "success", text: "Profile updated successfully." });
-      setEditingProfile(false);
-      await refreshSession();
-
-      const refreshResponse = await fetch("/api/me/dashboard", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const refreshPayload = await refreshResponse.json();
-      if (refreshResponse.ok) {
-        setData(refreshPayload as DashboardPayload);
-      }
-    } catch (saveError: any) {
-      setProfileMessage({ type: "error", text: saveError.message || "Failed to update profile." });
+    } catch (err: any) {
+      setProfileMessage({ type: "error", text: err.message || "Failed to save profile." });
     } finally {
       setSavingProfile(false);
     }
   };
 
-  const handleChangePassword = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setPasswordMessage(null);
-
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      setPasswordMessage({ type: "error", text: "All password fields are required." });
-      return;
-    }
-
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage({ type: "error", text: "New password and confirmation do not match." });
+      setPasswordMessage({ type: "error", text: "New passwords do not match." });
       return;
     }
-
     setChangingPassword(true);
-
+    setPasswordMessage(null);
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch("/api/user/change-password", {
+      const res = await fetch("/api/user/change-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
         }),
       });
+      const resData = await res.json();
+      if (!res.ok) throw new Error(resData.error || "Password change failed.");
 
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to change password.");
-      }
-
-      setPasswordMessage({ type: "success", text: "Password changed successfully." });
+      setPasswordMessage({ type: "success", text: "Password changed successfully!" });
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (changeError: any) {
       setPasswordMessage({ type: "error", text: changeError.message || "Failed to change password." });
@@ -355,8 +205,21 @@ function StudentDashboardContent() {
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+  };
+
   if (loading || !user) {
-    return <div className={styles.loader}>Loading student portal...</div>;
+    return (
+        <div className={styles.loadingOverlay}>
+            <Loader2 className={styles.spinner} />
+            <span>Syncing Workspace...</span>
+        </div>
+    );
   }
 
   return (
@@ -368,15 +231,15 @@ function StudentDashboardContent() {
         </section>
       )}
 
-      {fetching && !data ? <div className={styles.loaderInline}>Loading your workspace...</div> : null}
+      {fetching && !data ? <div className={styles.loaderInline}>Securing your workspace...</div> : null}
 
       {activeTab === "overview" && data && (
         <div className={styles.stack}>
           <StudentOverview 
             courseCount={data.studyStats.activeCourses}
             completionPercent={data.studyStats.averageProgress}
-            certificatesCount={0}
-            studyHours="12.5h"
+            completedLessons={data.studyStats.completedLessons}
+            enrolledCourses={data.enrolledCourses}
             onTabChange={(tab) => {
               const url = new URL(window.location.href);
               url.searchParams.set("tab", tab);
@@ -389,8 +252,10 @@ function StudentDashboardContent() {
       {activeTab === "courses" && data && (
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h2>My Courses & Progress</h2>
-            <span className={styles.panelHint}>{data.enrolledCourses.length} active enrollments</span>
+            <div>
+                <h2>Academic Programs</h2>
+                <p className={styles.subtitle}>{data.enrolledCourses.length} active enrollments</p>
+            </div>
           </div>
 
           {data.enrolledCourses.length === 0 ? (
@@ -404,7 +269,7 @@ function StudentDashboardContent() {
                       <h3>{course.courseTitle}</h3>
                       <p>{course.category} · {course.duration}</p>
                     </div>
-                    <span className={styles.enrolledAt}>Enrolled {formatDate(course.enrolledAt)}</span>
+                    <span className={styles.enrolledAt}>Joined {formatDate(course.enrolledAt)}</span>
                   </div>
 
                   <div className={styles.progressRow}>
@@ -415,74 +280,11 @@ function StudentDashboardContent() {
                   </div>
 
                   <div className={styles.courseListBottom}>
-                    <span>{course.progress.completedCount}/{course.progress.totalCount} completed</span>
+                    <span>{course.progress.completedCount}/{course.progress.totalCount} lessons finished</span>
                     {course.courseSlug ? (
-                      <Link href={`/study/${course.courseSlug}`} className={styles.resumeBtn}>Go to Study</Link>
+                      <Link href={`/study/${course.courseSlug}`} className={styles.resumeBtn}>Enter Classroom</Link>
                     ) : (
-                      <span className={styles.resumeBtnDisabled}>Course unavailable</span>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {activeTab === "purchases" && data && (
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <h2>Purchase History</h2>
-            <span className={styles.panelHint}>{data.purchaseHistory.length} purchases</span>
-          </div>
-
-          {data.purchaseHistory.length === 0 ? (
-            <p className={styles.emptyText}>You do not have any purchase records yet.</p>
-          ) : (
-            <div className={styles.purchaseList}>
-              {data.purchaseHistory.map((purchase) => (
-                <article key={purchase.id} className={styles.purchaseCard}>
-                  <div className={styles.purchaseHead}>
-                    <div>
-                      <h3>{purchase.course.title}</h3>
-                      <p>Order #{purchase.id.slice(-8).toUpperCase()}</p>
-                    </div>
-                    <span className={`${styles.statusBadge} ${styles[`status_${purchase.status}`]}`}>
-                      {purchase.status}
-                    </span>
-                  </div>
-
-                  <div className={styles.purchaseMetaGrid}>
-                    <div>
-                      <span>Amount</span>
-                      <strong>৳{purchase.totalAmount.toLocaleString()}</strong>
-                    </div>
-                    <div>
-                      <span>Discount</span>
-                      <strong>৳{purchase.discountAmount.toLocaleString()}</strong>
-                    </div>
-                    <div>
-                      <span>Coupon</span>
-                      <strong>{purchase.couponCode || "N/A"}</strong>
-                    </div>
-                    <div>
-                      <span>Purchased</span>
-                      <strong>{formatDate(purchase.createdAt)}</strong>
-                    </div>
-                  </div>
-
-                  <div className={styles.paymentDetails}>
-                    <h4><Receipt size={15} /> Payment Details</h4>
-                    {purchase.payment ? (
-                      <ul>
-                        <li>Transaction ID: {purchase.payment.transactionId}</li>
-                        <li>Status: {purchase.payment.status}</li>
-                        <li>Phone: {purchase.payment.phoneNumber}</li>
-                        <li>Submitted: {formatDateTime(purchase.payment.submittedAt)}</li>
-                        <li>Approved: {formatDateTime(purchase.payment.approvedAt)}</li>
-                      </ul>
-                    ) : (
-                      <p>No payment details available for this order.</p>
+                      <span className={styles.resumeBtnDisabled}>Restricted</span>
                     )}
                   </div>
                 </article>
@@ -495,7 +297,10 @@ function StudentDashboardContent() {
       {activeTab === "profile" && data && (
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
-            <h2>Profile Details</h2>
+            <div>
+                <h2>Academic Profile</h2>
+                <p className={styles.subtitle}>Manage your credentials and identity</p>
+            </div>
             <button className={styles.secondaryBtn} onClick={() => setEditingProfile((prev) => !prev)}>
               <UserCog size={16} /> {editingProfile ? "Cancel" : "Edit Profile"}
             </button>
@@ -512,11 +317,11 @@ function StudentDashboardContent() {
               </div>
               <h3>{profileForm.fullName || data.profile.fullName}</h3>
               <p>{data.profile.email}</p>
-              <span className={styles.memberSince}>Member since {formatDate(data.profile.createdAt)}</span>
+              <span className={styles.memberSince}>Account active since {formatDate(data.profile.createdAt)}</span>
 
               {editingProfile && (
                 <label className={styles.uploadBtn}>
-                  Upload Image
+                  Change Avatar
                   <input type="file" accept="image/*" onChange={handleProfileImageSelect} />
                 </label>
               )}
@@ -535,14 +340,14 @@ function StudentDashboardContent() {
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Email</label>
+                    <label>Registration ID (Email)</label>
                     <input value={data.profile.email} disabled />
                   </div>
                 </div>
 
                 <div className={styles.formRowTwo}>
                   <div className={styles.formGroup}>
-                    <label>Phone</label>
+                    <label>Contact Phone</label>
                     <input
                       value={profileForm.phone}
                       onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))}
@@ -561,7 +366,7 @@ function StudentDashboardContent() {
 
                 <div className={styles.formRowTwo}>
                   <div className={styles.formGroup}>
-                    <label>Designation</label>
+                    <label>Primary Designation</label>
                     <input
                       value={profileForm.designation}
                       onChange={(event) => setProfileForm((prev) => ({ ...prev, designation: event.target.value }))}
@@ -569,7 +374,7 @@ function StudentDashboardContent() {
                     />
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Institution</label>
+                    <label>Affiliated Institution</label>
                     <input
                       value={profileForm.institution}
                       onChange={(event) => setProfileForm((prev) => ({ ...prev, institution: event.target.value }))}
@@ -579,7 +384,7 @@ function StudentDashboardContent() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Degrees</label>
+                  <label>Academic Degrees</label>
                   <input
                     value={profileForm.degrees}
                     onChange={(event) => setProfileForm((prev) => ({ ...prev, degrees: event.target.value }))}
@@ -595,7 +400,7 @@ function StudentDashboardContent() {
 
                 {editingProfile && (
                   <button className={styles.primaryBtn} type="submit" disabled={savingProfile}>
-                    {savingProfile ? "Saving..." : "Save Profile"}
+                    {savingProfile ? "Encrypting Changes..." : "Save Profile Details"}
                   </button>
                 )}
               </form>
@@ -608,13 +413,15 @@ function StudentDashboardContent() {
         <div className={styles.stack}>
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
-              <h2>Password & Security</h2>
-              <span className={styles.panelHint}>Recommended</span>
+              <div>
+                <h2>Privacy & Key Access</h2>
+                <p className={styles.subtitle}>Protect your account with robust credentials</p>
+              </div>
             </div>
 
             <form className={styles.securityForm} onSubmit={handleChangePassword}>
               <div className={styles.formGroup}>
-                <label>Current Password</label>
+                <label>Current Secure Key</label>
                 <input
                   type="password"
                   value={passwordForm.currentPassword}
@@ -625,7 +432,7 @@ function StudentDashboardContent() {
 
               <div className={styles.formRowTwo}>
                 <div className={styles.formGroup}>
-                  <label>New Password</label>
+                  <label>New Secure Key</label>
                   <input
                     type="password"
                     value={passwordForm.newPassword}
@@ -635,7 +442,7 @@ function StudentDashboardContent() {
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Confirm Password</label>
+                  <label>Confirm New Key</label>
                   <input
                     type="password"
                     value={passwordForm.confirmPassword}
@@ -653,37 +460,22 @@ function StudentDashboardContent() {
               )}
 
               <button className={styles.primaryBtn} type="submit" disabled={changingPassword}>
-                <KeyRound size={16} /> {changingPassword ? "Updating..." : "Change Password"}
+                <KeyRound size={16} /> {changingPassword ? "Updating Keys..." : "Update Security Key"}
               </button>
             </form>
           </section>
 
           <section className={styles.panel}>
             <div className={styles.panelHeader}>
-              <h2>Helpful Security Tips</h2>
+              <h2>System Security Protocols</h2>
             </div>
             <ul className={styles.tipList}>
-              <li><ShieldCheck size={15} /> Use a unique password with letters, numbers, and symbols.</li>
-              <li><Clock size={15} /> Update your password regularly, especially after shared-device usage.</li>
-              <li><Lock size={15} /> Avoid sharing OTP, session tokens, or login credentials.</li>
+              <li><ShieldCheck size={15} /> Use unique alphanumeric combinations with special characters.</li>
+              <li><Clock size={15} /> Rotate your security keys every 90 days for maximum safety.</li>
+              <li><Lock size={15} /> Multi-device sessions are monitored to prevent unauthorized access.</li>
             </ul>
           </section>
         </div>
-      )}
-      {activeTab === "exams" && (
-          <section className={styles.panel}>
-              <h2 className={styles.panelTitle}>Upcoming Exams</h2>
-              <div className={styles.examCards}>
-                  <article className={styles.examCard}>
-                      <h3>BCPS Part I Mock</h3>
-                      <p>March 15 · Timed mock with analytics</p>
-                  </article>
-                  <article className={styles.examCard}>
-                      <h3>Surgery Masterquiz</h3>
-                      <p>March 28 · High-yield revision sprint</p>
-                  </article>
-              </div>
-          </section>
       )}
     </>
   );

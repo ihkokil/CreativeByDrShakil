@@ -1,16 +1,20 @@
+"use client";
+
 import { motion, Variants } from "framer-motion";
 import { 
     Users, 
     BookOpen, 
-    DollarSign, 
     TrendingUp, 
     UserPlus, 
-    BarChart3, 
-    Shield, 
     ArrowRight,
     Search,
     MonitorIcon,
-    SmartphoneIcon
+    SmartphoneIcon,
+    LayoutGrid,
+    Inbox,
+    TicketPercent,
+    ShieldCheck,
+    Briefcase
 } from "lucide-react";
 import styles from "@/components/Teacher/TeacherOverview.module.css";
 
@@ -18,6 +22,8 @@ interface AdminOverviewProps {
     teacherCount: number;
     studentCount: number;
     courseCount: number;
+    totalEnrollments: number;
+    totalLessonsCompleted: number;
     onTabChange: (tab: string) => void;
 }
 
@@ -25,6 +31,8 @@ export default function AdminOverview({
     teacherCount,
     studentCount,
     courseCount,
+    totalEnrollments,
+    totalLessonsCompleted,
     onTabChange
 }: AdminOverviewProps) {
     
@@ -57,71 +65,39 @@ export default function AdminOverview({
             initial="hidden"
             animate="visible"
         >
-            {/* Primary Stats */}
+            {/* 1. Platform Summary Hero */}
             <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={cardVariants}>
                 <div className={styles.heroHeader}>
                     <div>
-                        <span className={styles.label}>Platform Analytics</span>
+                        <span className={styles.label}>Platform Command Center</span>
                         <div className={styles.revenueDisplay}>
                             <span className={styles.amount}>{studentCount + teacherCount}</span>
-                            <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Total Users</span>
+                            <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Active Scholars</span>
                         </div>
-                    </div>
-                    <div className={styles.heroAction}>
-                        <TrendingUp size={16} />
-                        <span>+12.5%</span>
-                    </div>
-                </div>
-                <div>
-                    {/* Simplified Chart representation */}
-                    <div className={styles.miniChart}>
-                        {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
-                            <motion.div 
-                                key={i}
-                                className={styles.bar}
-                                initial={{ height: 0 }}
-                                animate={{ height: `${h}%` }}
-                                transition={{ delay: 0.5 + (i * 0.1), duration: 0.8 }}
-                            />
-                        ))}
+                        <p style={{ color: 'var(--text-muted)', marginTop: '-8px' }}>
+                            Real-time participation and growth metrics across the platform.
+                        </p>
                     </div>
                 </div>
-                <button className={styles.viewAllBtn} onClick={() => onTabChange('analytics')} style={{ marginTop: '10px' }}>
-                    Detailed Analytics <ArrowRight size={16} />
-                </button>
-            </motion.div>
-
-            {/* Quick Actions */}
-            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
-                <div className={styles.cardHeader}>
-                    <h3>Quick Management</h3>
-                </div>
-                <div className={styles.actionGrid}>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('teachers')}>
-                        <div className={styles.actionIcon}><UserPlus size={20} /></div>
-                        <span>Invite Teacher</span>
-                    </button>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('coupons')}>
-                        <div className={styles.actionIcon}><TrendingUp size={20} /></div>
-                        <span>New Offer</span>
-                    </button>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('sessions')}>
-                        <div className={styles.actionIcon}><MonitorIcon size={20} /></div>
-                        <span>Lock Sync</span>
-                    </button>
+                
+                <div className={styles.nextLesson}>
+                    <div className={styles.lessonInfo}>
+                        <span className={styles.tag}>Live Snapshots</span>
+                        <p>{totalEnrollments} Successive Enrollments</p>
+                    </div>
                 </div>
             </motion.div>
 
-            {/* Key Metrics */}
+            {/* 2. Primary Metrics */}
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
                 <div className={styles.metricHeader}>
                     <div className={styles.iconBox} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                        <Users size={20} />
+                        <Briefcase size={20} />
                     </div>
                 </div>
                 <div className={styles.metricBody}>
                     <h4>{teacherCount}</h4>
-                    <p>Active Faculty</p>
+                    <p>Academic Faculty</p>
                 </div>
             </motion.div>
 
@@ -133,29 +109,40 @@ export default function AdminOverview({
                 </div>
                 <div className={styles.metricBody}>
                     <h4>{studentCount}</h4>
-                    <p>Total Students</p>
+                    <p>Registered Students</p>
                 </div>
             </motion.div>
 
-            {/* Platform Health */}
+            {/* 3. Governance Grid */}
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
-                <div className={styles.healthHeader}>
-                    <h3>System Pulse</h3>
-                    <div className={styles.livePulse} />
+                <div className={styles.cardHeader}>
+                    <h3>Governance Controls</h3>
                 </div>
-                <div className={styles.healthStats}>
-                    <div className={styles.healthItem}>
-                        <span>Auth Server</span>
-                        <span className={styles.statusOk}>99.9%</span>
-                    </div>
-                    <div className={styles.healthItem}>
-                        <span>Database</span>
-                        <span className={styles.statusOk}>Healthy</span>
-                    </div>
-                    <div className={styles.healthItem}>
-                        <span>Media Delivery</span>
-                        <span className={styles.statusOk}>Optimal</span>
-                    </div>
+                <div className={styles.actionGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
+                    <button className={styles.actionBtn} onClick={() => onTabChange('teachers')} style={{ padding: '12px' }}>
+                        <div className={styles.actionIcon}><UserPlus size={18} /></div>
+                        <span style={{ fontSize: '0.85rem' }}>Teachers</span>
+                    </button>
+                    <button className={styles.actionBtn} onClick={() => onTabChange('students')} style={{ padding: '12px' }}>
+                        <div className={styles.actionIcon}><Users size={18} /></div>
+                        <span style={{ fontSize: '0.85rem' }}>Students</span>
+                    </button>
+                    <button className={styles.actionBtn} onClick={() => onTabChange('coupons')} style={{ padding: '12px' }}>
+                        <div className={styles.actionIcon}><TicketPercent size={18} /></div>
+                        <span style={{ fontSize: '0.85rem' }}>Coupons</span>
+                    </button>
+                    <button className={styles.actionBtn} onClick={() => onTabChange('sessions')} style={{ padding: '12px' }}>
+                        <div className={styles.actionIcon}><MonitorIcon size={18} /></div>
+                        <span style={{ fontSize: '0.85rem' }}>Sessions</span>
+                    </button>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                    <button className={styles.viewAllBtn} onClick={() => onTabChange('categories')} style={{ flex: 1 }}>
+                        <LayoutGrid size={14} /> Global Taxonomy
+                    </button>
+                    <button className={styles.viewAllBtn} onClick={() => onTabChange('support')} style={{ flex: 1 }}>
+                        <Inbox size={14} /> Help Inbound
+                    </button>
                 </div>
             </motion.div>
 
@@ -167,19 +154,19 @@ export default function AdminOverview({
                 </div>
                 <div className={styles.metricBody}>
                     <h4>{courseCount}</h4>
-                    <p>Total Courses</p>
+                    <p>Academic Programs</p>
                 </div>
             </motion.div>
 
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
                 <div className={styles.metricHeader}>
                     <div className={styles.iconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                        <BarChart3 size={20} />
+                        <ShieldCheck size={20} />
                     </div>
                 </div>
                 <div className={styles.metricBody}>
-                    <h4>+18%</h4>
-                    <p>Monthly Growth</p>
+                    <h4>{totalLessonsCompleted}</h4>
+                    <p>Lessons Served</p>
                 </div>
             </motion.div>
         </motion.div>

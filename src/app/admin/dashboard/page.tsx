@@ -2,29 +2,23 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
-import styles from "./AdminDashboard.module.css";
+import { useEffect, useCallback, useState, Suspense } from "react";
 import {
     LayoutDashboard,
     Users,
-    BarChart3,
     Settings,
     TicketPercent,
     UserPlus,
     BookOpen,
-    DollarSign,
     GraduationCap,
     Shield,
     Edit,
     Trash2,
     MailCheck,
-    Smartphone,
-    CheckCircle2,
-    AlertTriangle,
-    X,
-    Inbox,
     Loader2,
-    Search
+    Search,
+    LayoutGrid,
+    Inbox
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
@@ -37,6 +31,7 @@ import CategoryManager from "@/components/Admin/CategoryManager";
 import StudentsList from "@/components/Admin/StudentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
+import styles from "./AdminDashboard.module.css";
 
 interface TeacherProfile {
     id: string;
@@ -46,30 +41,26 @@ interface TeacherProfile {
     email: string;
     designation?: string;
     institution?: string;
-    degrees?: string;
-    profile_image?: string;
+    profile_image?: string | null;
 }
 
-type ResetConfirmTarget = {
-    id: string;
-    email: string;
-    full_name: string;
-};
-
-type ToastState = {
-    type: "success" | "error" | "info";
-    text: string;
-} | null;
+interface AdminStats {
+    studentCount: number;
+    teacherCount: number;
+    courseCount: number;
+    totalEnrollments: number;
+    totalLessonsCompleted: number;
+}
 
 function AdminDashboardContent() {
-    const { user, loading, role, signOut } = useAuth();
+    const { user, loading, role } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -79,170 +70,148 @@ function AdminDashboardContent() {
 
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
-    const [toast, setToast] = useState<ToastState>(null);
-    const [resetConfirmTarget, setResetConfirmTarget] = useState<ResetConfirmTarget | null>(null);
+    const [stats, setStats] = useState<AdminStats | null>(null);
+    const [statsLoading, setStatsLoading] = useState(true);
     const [isSendingReset, setIsSendingReset] = useState(false);
-
-    useEffect(() => {
-        if (!toast) return;
-        const timer = window.setTimeout(() => setToast(null), 3200);
-        return () => window.clearTimeout(timer);
-    }, [toast]);
+    const [resetConfirmTarget, setResetConfirmTarget] = useState<{id: string; email: string; full_name: string} | null>(null);
 
     const fetchTeachers = useCallback(async () => {
         setTeachersLoading(true);
-        const token = localStorage.getItem("auth_token");
-        const response = await fetch("/api/admin/teachers", {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await response.json();
-
-        if (response.ok && Array.isArray(data.teachers)) {
-            setTeachers(data.teachers);
-        } else {
-            setTeachers([]);
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch("/api/admin/teachers", {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const data = await response.json();
+            if (response.ok && Array.isArray(data.teachers)) {
+                setTeachers(data.teachers);
+            }
+        } catch (error) {
+            console.error("Failed to fetch teachers:", error);
+        } finally {
+            setTeachersLoading(false);
         }
-        setTeachersLoading(false);
+    }, []);
+
+    const fetchStats = useCallback(async () => {
+        setStatsLoading(true);
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch("/api/admin/stats", {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setStats(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch admin stats:", error);
+        } finally {
+            setStatsLoading(false);
+        }
     }, []);
 
     useEffect(() => {
+        if (!loading && (!user || role !== "admin")) {
+            router.push("/");
+        }
         if (user && role === "admin") {
             fetchTeachers();
+            fetchStats();
         }
-    }, [user, role, fetchTeachers]);
+    }, [user, role, loading, router, fetchTeachers, fetchStats]);
 
-    const navItems = useMemo(
-        () => [
-            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
-            { key: "students", label: "Students", icon: GraduationCap, mobilePrimary: true },
-            { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
-            { key: "categories", label: "Categories", icon: BookOpen, mobilePrimary: true },
-            { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
-            { key: "sessions", label: "Sessions", icon: Smartphone, mobilePrimary: true },
-            { key: "support", label: "Support", icon: Inbox, mobilePrimary: true },
-            { key: "analytics", label: "Analytics", icon: BarChart3, mobilePrimary: true },
-            { key: "settings", label: "Settings", icon: Settings },
-        ],
-        [teachers.length]
-    );
-    const getInitials = (name: string) => {
-        return name
-            .split(" ")
-            .map((n) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2);
+    const handleResetPassword = (teacher: TeacherProfile) => {
+        setResetConfirmTarget({
+            id: teacher.id,
+            email: teacher.email,
+            full_name: teacher.full_name
+        });
     };
 
-    const handleLogout = async () => {
-        await signOut();
-        router.replace("/");
-        router.refresh();
-    };
-
-    const sendResetPassword = async (teacher: ResetConfirmTarget) => {
+    const sendResetPassword = async (target: {id: string; email: string}) => {
         setIsSendingReset(true);
         try {
             const token = localStorage.getItem("auth_token");
-            const res = await fetch(`/api/admin/teachers/${teacher.id}/reset-password`, {
-                method: 'POST',
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            const response = await fetch("/api/admin/teachers/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ userId: target.id }),
             });
-            const data = await res.json();
-            if (res.ok) {
-                setToast({ type: "success", text: data.message || "Password reset link dispatched." });
+            if (response.ok) {
+                alert("Reset link sent successfully.");
             } else {
-                setToast({ type: "error", text: data.error || "Failed to send reset email." });
+                const d = await response.json();
+                alert(d.error || "Failed to send reset link.");
             }
-        } catch {
-            setToast({ type: "error", text: "Network error while sending reset email." });
+        } catch (err) {
+            alert("Network error.");
         } finally {
             setIsSendingReset(false);
             setResetConfirmTarget(null);
         }
     };
 
-    const handleResetPassword = (teacher: TeacherProfile) => {
-        setResetConfirmTarget({
-            id: teacher.id,
-            email: teacher.email,
-            full_name: teacher.full_name,
-        });
+    const getInitials = (name: string) => {
+        return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
     };
 
-    if (loading || !user || role !== "admin") {
+    if (loading || !user) {
         return (
             <div className={styles.loadingOverlay}>
                 <Loader2 className={styles.spinner} />
-                <span>Redirecting...</span>
+                <span>Authenticating Admin...</span>
             </div>
         );
     }
 
     return (
         <>
-            {toast && (
-                <div className={styles.toastWrap} role="status" aria-live={toast.type === "error" ? "assertive" : "polite"}>
-                    <div className={`${styles.toast} ${toast.type === "success" ? styles.toastSuccess : toast.type === "error" ? styles.toastError : styles.toastInfo}`}>
-                        <div className={styles.toastBody}>
-                            <span className={styles.toastIcon}>
-                                {toast.type === "success" ? <CheckCircle2 size={16} /> : toast.type === "error" ? <AlertTriangle size={16} /> : <MailCheck size={16} />}
-                            </span>
-                            <span>{toast.text}</span>
-                        </div>
-                        <button className={styles.toastClose} onClick={() => setToast(null)} aria-label="Dismiss notification">
-                            <X size={14} />
-                        </button>
-                    </div>
-                </div>
-            )}
-
             {activeTab === "overview" && (
                 <div className={styles.stack}>
                     <div className={styles.sectionHeader}>
                         <div>
-                            <h1 className={styles.sectionTitle}>Dashboard Overview</h1>
-                            <p className={styles.subtitle}>Welcome back, {user.user_metadata?.full_name || 'Admin'}</p>
+                            <h1 className={styles.sectionTitle}>Dashboard Command</h1>
+                            <p className={styles.subtitle}>Welcome back, {user.user_metadata?.full_name || 'Administrator'}</p>
                         </div>
                         <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
-                            <UserPlus size={16} /> New Teacher
+                            <UserPlus size={16} /> Invite Faculty
                         </button>
                     </div>
 
-                    <AdminOverview 
-                        teacherCount={teachers.length}
-                        studentCount={842}
-                        courseCount={24}
-                        onTabChange={setActiveTab}
-                    />
+                    {statsLoading ? (
+                        <div className={styles.loader}>Aggregating platform metrics...</div>
+                    ) : (
+                        <AdminOverview 
+                            teacherCount={stats?.teacherCount || 0}
+                            studentCount={stats?.studentCount || 0}
+                            courseCount={stats?.courseCount || 0}
+                            totalEnrollments={stats?.totalEnrollments || 0}
+                            totalLessonsCompleted={stats?.totalLessonsCompleted || 0}
+                            onTabChange={setActiveTab}
+                        />
+                    )}
 
                     <section className={styles.panel}>
                         <div className={styles.panelHeader}>
-                            <h2>Quick Actions</h2>
-                            <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
-                                <UserPlus size={16} /> Add Teacher
-                            </button>
+                            <h2>Management Shortcuts</h2>
                         </div>
                         <div className={styles.actionGrid}>
                             <article className={styles.actionCard} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
                                 <UserPlus size={18} />
-                                <div><h3>Invite Teacher</h3><p>Send onboarding invite with role setup.</p></div>
-                            </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
-                                <Users size={18} />
-                                <div><h3>Faculty Directory</h3><p>Review teacher status and access.</p></div>
-                            </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
-                                <BarChart3 size={18} />
-                                <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
+                                <div><h3>Faculty Onboarding</h3><p>Invite new medical consultants.</p></div>
                             </article>
                             <article className={styles.actionCard} onClick={() => setActiveTab("students")}>
                                 <GraduationCap size={18} />
-                                <div><h3>Student Management</h3><p>View and manage all student accounts.</p></div>
+                                <div><h3>Student Records</h3><p>Manage enrollments and accounts.</p></div>
                             </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("settings")}>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("categories")}>
+                                <LayoutGrid size={18} />
+                                <div><h3>Global Taxonomy</h3><p>Configure course categories.</p></div>
+                            </article>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("sessions")}>
                                 <Shield size={18} />
-                                <div><h3>Security</h3><p>Review permissions and controls.</p></div>
+                                <div><h3>Security Pulse</h3><p>Monitor active device sessions.</p></div>
                             </article>
                         </div>
                     </section>
@@ -253,8 +222,8 @@ function AdminDashboardContent() {
                 <section className={styles.panel}>
                     <div className={styles.panelHeader}>
                         <div>
-                            <h2 className={styles.panelTitle}>Teacher Directory</h2>
-                            <p className={styles.subtitle}>Manage faculty access and profiles</p>
+                            <h2 className={styles.panelTitle}>Faculty Directory</h2>
+                            <p className={styles.subtitle}>Academic access control and management</p>
                         </div>
                         <button className={styles.primaryBtn} onClick={() => setIsAddTeacherOpen(true)}>
                             <UserPlus size={16} /> Add Teacher
@@ -262,7 +231,7 @@ function AdminDashboardContent() {
                     </div>
 
                     {teachersLoading ? (
-                        <div className={styles.loader}>Analyzing faculty database...</div>
+                        <div className={styles.loader}>Synchronizing faculty database...</div>
                     ) : teachers.length > 0 ? (
                         <div className={styles.teacherGrid}>
                             {teachers.map((teacher) => (
@@ -275,7 +244,7 @@ function AdminDashboardContent() {
                                         </div>
                                         <div className={styles.cardInfo}>
                                             <h3>{teacher.full_name}</h3>
-                                            <p>{teacher.email || "Email pending"}</p>
+                                            <p>{teacher.email}</p>
                                         </div>
                                     </div>
                                     
@@ -284,20 +253,17 @@ function AdminDashboardContent() {
                                             {(teacher.designation || teacher.institution) ? (
                                                 <p>{teacher.designation} {teacher.designation && teacher.institution ? 'at' : ''} {teacher.institution}</p>
                                             ) : (
-                                                <p className={styles.empty}>No academic info</p>
+                                                <p className={styles.empty}>No credentials provided</p>
                                             )}
                                         </div>
                                         <div className={styles.cardFooter}>
                                             <div className={styles.listCol}>
                                                 <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
-                                                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                                                    Joined {new Date(teacher.created_at).toLocaleDateString('en-GB')}
-                                                </span>
                                             </div>
                                             <div className={styles.cardActions}>
-                                                <button className={styles.actionBtn} onClick={() => handleResetPassword(teacher)} title="Reset Password"><MailCheck size={16} /></button>
+                                                <button className={styles.actionBtn} onClick={() => handleResetPassword(teacher)} title="Reset Secret"><MailCheck size={16} /></button>
                                                 <button className={styles.actionBtn} onClick={() => setEditTeacherData(teacher)} title="Edit Profile"><Edit size={16} /></button>
-                                                <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setDeleteTeacherData(teacher)} title="Deactivate"><Trash2 size={16} /></button>
+                                                <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setDeleteTeacherData(teacher)} title="Revoke Access"><Trash2 size={16} /></button>
                                             </div>
                                         </div>
                                     </div>
@@ -305,7 +271,7 @@ function AdminDashboardContent() {
                             ))}
                         </div>
                     ) : (
-                        <div className={styles.infoBox}>No teachers found in the system.</div>
+                        <div className={styles.infoBox}>Zero faculty members found.</div>
                     )}
                 </section>
             )}
@@ -315,66 +281,45 @@ function AdminDashboardContent() {
                     <div className={styles.panelHeader}>
                         <div>
                             <h2 className={styles.panelTitle}>Student Directory</h2>
-                            <p className={styles.subtitle}>Manage student accounts and access</p>
+                            <p className={styles.subtitle}>Enrolled scholars and user accounts</p>
                         </div>
                     </div>
                     <StudentsList />
                 </section>
             )}
 
-            {activeTab === "analytics" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Platform Performance</h2>
-                    <div className={styles.simpleCards}>
-                        <div className={styles.simpleCard}><strong>74%</strong><span>DAU Engagement</span></div>
-                        <div className={styles.simpleCard}><strong>4.8</strong><span>Content Rating</span></div>
-                        <div className={styles.simpleCard}><strong>+12%</strong><span>Yield Growth</span></div>
-                    </div>
-                </section>
-            )}
-
             {activeTab === "categories" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Categories</h2>
+                    <h2 className={styles.panelTitle}>Academic Categories</h2>
                     <CategoryManager />
                 </section>
             )}
 
             {activeTab === "coupons" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Coupon Management</h2>
+                    <h2 className={styles.panelTitle}>Promotion & Coupons</h2>
                     <CouponManager />
                 </section>
             )}
 
             {activeTab === "sessions" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Device Sessions</h2>
+                    <h2 className={styles.panelTitle}>Security Sessions</h2>
                     <SessionsManager />
                 </section>
             )}
 
             {activeTab === "support" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Contact Requests</h2>
+                    <h2 className={styles.panelTitle}>Inbound Help Requests</h2>
                     <ContactRequestsManager />
                 </section>
             )}
 
             {activeTab === "settings" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Platform Settings</h2>
+                    <h2 className={styles.panelTitle}>Platform Financials</h2>
                     <BkashSettings />
-                    <div className={styles.settingGrid} style={{ marginTop: '24px' }}>
-                        <article className={styles.settingCard}>
-                            <div className={styles.settingIcon}><Shield size={24} /></div>
-                            <div><h3>Security Scopes</h3><p>Configure global access tiers and RBAC.</p></div>
-                        </article>
-                        <article className={styles.settingCard}>
-                            <div className={styles.settingIcon}><Search size={24} /></div>
-                            <div><h3>Branding Library</h3><p>Control visual identity and platform metadata.</p></div>
-                        </article>
-                    </div>
                 </section>
             )}
 
@@ -405,25 +350,14 @@ function AdminDashboardContent() {
             {resetConfirmTarget && (
                 <div className={styles.confirmBackdrop} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title">
                     <div className={styles.confirmDialog}>
-                        <h3 id="reset-confirm-title">Send reset email?</h3>
+                        <h3>Authorize Secret Reset?</h3>
                         <p>
-                            Send a password reset link to <strong>{resetConfirmTarget.email}</strong> for {" "}
-                            {resetConfirmTarget.full_name}.
+                            This will send a secure reset key to <strong>{resetConfirmTarget.email}</strong>.
                         </p>
                         <div className={styles.confirmActions}>
-                            <button
-                                className={styles.confirmCancelBtn}
-                                onClick={() => setResetConfirmTarget(null)}
-                                disabled={isSendingReset}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className={styles.confirmPrimaryBtn}
-                                onClick={() => sendResetPassword(resetConfirmTarget)}
-                                disabled={isSendingReset}
-                            >
-                                {isSendingReset ? "Sending..." : "Send Email"}
+                            <button className={styles.confirmCancelBtn} onClick={() => setResetConfirmTarget(null)} disabled={isSendingReset}>Cancel</button>
+                            <button className={styles.confirmPrimaryBtn} onClick={() => sendResetPassword(resetConfirmTarget)} disabled={isSendingReset}>
+                                {isSendingReset ? "Sending Key..." : "Confirm & Send"}
                             </button>
                         </div>
                     </div>
@@ -435,7 +369,7 @@ function AdminDashboardContent() {
 
 export default function AdminDashboard() {
     return (
-        <Suspense fallback={<div className={styles.loader}>Loading Admin Panel...</div>}>
+        <Suspense fallback={<div className={styles.loader}>Accessing Admin Authority...</div>}>
             <AdminDashboardContent />
         </Suspense>
     );
