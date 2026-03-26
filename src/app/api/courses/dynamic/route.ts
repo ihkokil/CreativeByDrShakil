@@ -42,6 +42,13 @@ export async function GET() {
             displayName: true,
           },
         },
+        _count: {
+          select: {
+            orders: {
+              where: { status: 'approved' },
+            },
+          },
+        },
       },
     });
 
@@ -59,6 +66,7 @@ export async function GET() {
           priceValue: course.price,
           duration: course.duration,
           lessonCount,
+          enrolledCount: course._count.orders,
           isFeatured: course.isFeatured,
           description: course.overview || course.description,
           overview: course.overview,
