@@ -35,7 +35,6 @@ function TeacherDashboardLayoutContent({
     const mobileNavItems = [
         { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'courses', label: 'Programs', icon: BookOpen },
-        { id: 'students', label: 'Students', icon: Users },
         { id: 'library', label: 'Media', icon: Video },
     ];
 
@@ -57,8 +56,8 @@ function TeacherDashboardLayoutContent({
                 teacherEmail={user.email}
                 isExpanded={isSidebarExpanded}
                 onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                activeStudents={842}
-                totalCourses={4}
+                activeStudents={0} // Logic handled internally or removed
+                totalCourses={0}
             />
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>

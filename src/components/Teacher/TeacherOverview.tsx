@@ -2,37 +2,43 @@
 
 import { motion } from "framer-motion";
 import { 
-    Users, 
     BookOpen, 
-    Star, 
-    DollarSign, 
-    TrendingUp, 
-    ArrowUpRight, 
     Play, 
     Plus,
-    Calendar,
-    MessageSquare,
-    MoreVertical
+    Video,
+    ArrowUpRight,
+    LayoutDashboard,
+    Users,
+    CheckCircle
 } from "lucide-react";
 import styles from "./TeacherOverview.module.css";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-export default function TeacherOverview() {
+interface CourseProgress {
+    courseId: string;
+    courseTitle: string;
+    enrollmentCount: number;
+    avgProgress: number;
+}
+
+interface TeacherOverviewProps {
+    totalCourses: number;
+    totalEnrollments: number;
+    totalLessonsCompleted: number;
+    courseProgress: CourseProgress[];
+    teacherName: string;
+    onTabChange: (tab: string) => void;
+}
+
+export default function TeacherOverview({
+    totalCourses,
+    totalEnrollments,
+    totalLessonsCompleted,
+    courseProgress,
+    teacherName,
+    onTabChange
+}: TeacherOverviewProps) {
     const router = useRouter();
-
-    const stats = [
-        { label: "Active Students", value: "842", change: "+5.2%", icon: <Users size={20} />, color: "#3b82f6" },
-        { label: "Total Enrollments", value: "1,250", change: "+12.5%", icon: <TrendingUp size={20} />, color: "#8b5cf6" },
-        { label: "Total Courses", value: "4", change: "0%", icon: <BookOpen size={20} />, color: "#10b981" },
-        { label: "Avg. Rating", value: "4.9", change: "+0.1", icon: <Star size={20} />, color: "#f59e0b" },
-    ];
-
-    const recentActivity = [
-        { id: 1, type: 'enrollment', user: 'Dr. Sarah J.', course: 'FCPS Part 1', time: '2 mins ago', info: 'New enrollment' },
-        { id: 2, type: 'completion', user: 'Arif Ahmed', course: 'Surgery Secrets', time: '1 hour ago', info: 'Completed course' },
-        { id: 3, type: 'enrollment', user: 'Fatima Khan', course: 'Pediatrics Pro', time: '3 hours ago', info: 'New enrollment' },
-    ];
 
     const container = {
         hidden: { opacity: 0 },
@@ -56,107 +62,127 @@ export default function TeacherOverview() {
             initial="hidden"
             animate="show"
         >
-            {/* 1. Main Stats Section */}
+            {/* 1. Welcome Hero */}
             <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={item}>
                 <div className={styles.heroHeader}>
                     <div>
-                        <h2>Enrollment Overview</h2>
-                        <p>Total enrollments this month</p>
+                        <span className={styles.label}>Instructor Hub</span>
+                        <h2 className={styles.amount} style={{ fontSize: '2.5rem', marginTop: '8px' }}>
+                            Welcome back, <span className="gradient-text">{teacherName.split(' ')[0]}</span>
+                        </h2>
+                        <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>
+                            Manage your medical programs and monitor student success.
+                        </p>
                     </div>
-                    <div className={styles.heroAction}>
-                        <TrendingUp size={16} /> <span>14% increase</span>
-                    </div>
                 </div>
-                <div className={styles.revenueDisplay}>
-                    <span className={styles.amount}>1,250</span>
-                    <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Students</span>
-                </div>
-                <div className={styles.miniChart}>
-                    {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
-                        <div key={i} className={styles.bar} style={{ height: `${h}%` }} />
-                    ))}
-                </div>
-            </motion.div>
-
-            {/* 2. Quick Actions */}
-            <motion.div className={`${styles.bentoItem} ${styles.quickActions}`} variants={item}>
-                <h3>Quick Actions</h3>
-                <div className={styles.actionGrid}>
-                    <button onClick={() => router.push('/teacher/dashboard/courses/create')} className={styles.actionBtn}>
-                        <div className={styles.actionIcon}><Plus size={18} /></div>
-                        <span>Create Course</span>
-                    </button>
-                    <button className={styles.actionBtn}>
-                        <div className={styles.actionIcon}><Play size={18} /></div>
-                        <span>Upload Video</span>
-                    </button>
-                    <button className={styles.actionBtn}>
-                        <div className={styles.actionIcon}><Calendar size={18} /></div>
-                        <span>Schedule Live</span>
-                    </button>
-                    <button className={styles.actionBtn}>
-                        <div className={styles.actionIcon}><MessageSquare size={18} /></div>
-                        <span>Messages</span>
+                
+                <div className={styles.nextLesson}>
+                    <button onClick={() => router.push('/teacher/dashboard/courses/create')} className={styles.viewAllBtn} style={{ width: 'auto', marginTop: 0 }}>
+                        <Plus size={18} /> Create New Course
                     </button>
                 </div>
             </motion.div>
 
-            {/* 3. Metrics Cards */}
-            {stats.slice(1).map((stat, i) => (
-                <motion.div key={i} className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
-                    <div className={styles.metricHeader}>
-                        <div className={styles.iconBox} style={{ color: stat.color, background: `${stat.color}15` }}>
-                            {stat.icon}
-                        </div>
-                        <span className={styles.metricChange}>{stat.change}</span>
+            {/* 2. Key Metrics */}
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                        <BookOpen size={20} />
                     </div>
-                    <div className={styles.metricBody}>
-                        <h4>{stat.value}</h4>
-                        <p>{stat.label}</p>
-                    </div>
-                </motion.div>
-            ))}
+                </div>
+                <div className={styles.metricBody}>
+                    <h4>{totalCourses}</h4>
+                    <p>Total Programs</p>
+                </div>
+            </motion.div>
 
-            {/* 4. Recent Activity */}
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
+                <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                    <Users size={20} />
+                </div>
+                <div className={styles.metricBody} style={{ marginTop: '16px' }}>
+                    <h4>{totalEnrollments}</h4>
+                    <p>Total Enrollments</p>
+                </div>
+            </motion.div>
+
+            {/* 3. Quick Actions */}
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={item}>
                 <div className={styles.cardHeader}>
-                    <h3>Recent Activity</h3>
-                    <button className={styles.moreBtn}><MoreVertical size={16} /></button>
+                    <h3>Quick Management</h3>
                 </div>
-                <div className={styles.activities}>
-                    {recentActivity.map((act) => (
-                        <div key={act.id} className={styles.activityItem}>
-                            <div className={styles.actAvatar}>
-                                {act.user[0]}
-                            </div>
-                            <div className={styles.actInfo}>
-                                <strong>{act.user}</strong>
-                                <span>{act.type === 'enrollment' ? 'Enrolled in' : 'Completed'} {act.course}</span>
-                                <small>{act.time}</small>
-                            </div>
-                            <div className={styles.actValue}>
-                                <span className={styles.statusPill}>{act.info}</span>
-                            </div>
+                <div className={styles.actionGrid}>
+                    <button onClick={() => onTabChange("library")} className={styles.actionBtn}>
+                        <div className={styles.actionIcon}><Video size={18} /></div>
+                        <div>
+                            <strong>Media Vault</strong>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Manage video lectures</span>
                         </div>
-                    ))}
+                    </button>
+                    <button onClick={() => onTabChange("courses")} className={styles.actionBtn}>
+                        <div className={styles.actionIcon}><BookOpen size={18} /></div>
+                        <div>
+                            <strong>Course Manager</strong>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Curriculum & pricing</span>
+                        </div>
+                    </button>
                 </div>
-                <button className={styles.viewAllBtn}>View All Activity <ArrowUpRight size={14} /></button>
+                <button 
+                    className={styles.viewAllBtn} 
+                    style={{ marginTop: '20px' }}
+                    onClick={() => router.push('/courses')}
+                >
+                    View Student Site <ArrowUpRight size={14} />
+                </button>
             </motion.div>
 
-            {/* 5. Course Performance Teaser */}
-            <motion.div className={`${styles.bentoItem} ${styles.performanceTeaser}`} variants={item}>
-                <h3>Top Performing Course</h3>
-                <div className={styles.teaserContent}>
-                    <div className={styles.teaserThumb}>
-                        <Image src="/placeholder.svg" alt="Course" fill style={{ objectFit: 'cover' }} />
-                    </div>
-                    <div className={styles.teaserInfo}>
-                        <h4>FCPS Part 1 Preparation</h4>
-                        <div className={styles.teaserStats}>
-                            <span><Users size={12} /> 420 Students</span>
-                            <span><Star size={12} /> 4.9 Rating</span>
+            {/* 4. Course Progress / Performance */}
+            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={item}>
+                <div className={styles.cardHeader}>
+                    <h3>Program Performance</h3>
+                    <span className={styles.statusPill}>Aggregate Progress</span>
+                </div>
+                <div className={styles.activities}>
+                    {courseProgress.length > 0 ? (
+                        courseProgress.slice(0, 3).map((cp) => (
+                            <div key={cp.courseId} className={styles.activityItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <strong style={{ fontSize: '0.9rem' }}>{cp.courseTitle}</strong>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{cp.enrollmentCount} students</span>
+                                </div>
+                                <div className={styles.progressContainer} style={{ margin: '4px 0 0' }}>
+                                    <div className={styles.progressLabel}>
+                                        <span style={{ fontSize: '0.7rem' }}>Avg. Student Progress</span>
+                                        <span style={{ fontSize: '0.7rem' }}>{cp.avgProgress}%</span>
+                                    </div>
+                                    <div className={styles.progressBar}>
+                                        <div className={styles.progressFill} style={{ width: `${cp.avgProgress}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className={styles.infoBox} style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                            No courses available for analytics yet.
                         </div>
+                    )}
+                </div>
+                {courseProgress.length > 3 && (
+                    <button className={styles.viewAllBtn} onClick={() => onTabChange("courses")}>
+                        View All Programs <ArrowUpRight size={14} />
+                    </button>
+                )}
+            </motion.div>
+
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                        <CheckCircle size={20} />
                     </div>
+                </div>
+                <div className={styles.metricBody}>
+                    <h4>{totalLessonsCompleted}</h4>
+                    <p>Milestones Reached</p>
                 </div>
             </motion.div>
         </motion.div>
