@@ -34,7 +34,7 @@ import Image from "next/image";
 import SessionsManager from "@/components/Admin/SessionsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
 import CategoryManager from "@/components/Admin/CategoryManager";
-import { AdminPaymentsList } from "@/components/Admin/PaymentsList";
+import StudentsList from "@/components/Admin/StudentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
 
@@ -69,7 +69,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "payments" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -114,7 +114,7 @@ function AdminDashboardContent() {
     const navItems = useMemo(
         () => [
             { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
-            { key: "payments", label: "Payments", icon: DollarSign, mobilePrimary: true },
+            { key: "students", label: "Students", icon: GraduationCap, mobilePrimary: true },
             { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
             { key: "categories", label: "Categories", icon: BookOpen, mobilePrimary: true },
             { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
@@ -213,7 +213,6 @@ function AdminDashboardContent() {
                         teacherCount={teachers.length}
                         studentCount={842}
                         courseCount={24}
-                        totalRevenue="৳5,25,000"
                         onTabChange={setActiveTab}
                     />
 
@@ -237,9 +236,9 @@ function AdminDashboardContent() {
                                 <BarChart3 size={18} />
                                 <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
                             </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("payments")}>
-                                <DollarSign size={18} />
-                                <div><h3>Review Payments</h3><p>Approve or reject pending payment submissions.</p></div>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("students")}>
+                                <GraduationCap size={18} />
+                                <div><h3>Student Management</h3><p>View and manage all student accounts.</p></div>
                             </article>
                             <article className={styles.actionCard} onClick={() => setActiveTab("settings")}>
                                 <Shield size={18} />
@@ -311,13 +310,15 @@ function AdminDashboardContent() {
                 </section>
             )}
 
-            {activeTab === "payments" && (
+            {activeTab === "students" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Payment Approvals</h2>
-                    <AdminPaymentsList
-                        onApprove={() => setToast({ type: "success", text: "Order approved and access granted." })}
-                        onReject={() => setToast({ type: "info", text: "Order rejected." })}
-                    />
+                    <div className={styles.panelHeader}>
+                        <div>
+                            <h2 className={styles.panelTitle}>Student Directory</h2>
+                            <p className={styles.subtitle}>Manage student accounts and access</p>
+                        </div>
+                    </div>
+                    <StudentsList />
                 </section>
             )}
 

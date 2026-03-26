@@ -222,7 +222,6 @@ function StudentDashboardContent() {
     () => [
       { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
       { key: "courses", label: "Courses", icon: BookOpen, mobilePrimary: true },
-      { key: "purchases", label: "Purchases", icon: Receipt, mobilePrimary: true },
       { key: "profile", label: "Profile", icon: UserCog },
       { key: "security", label: "Security", icon: ShieldCheck },
     ],
@@ -235,7 +234,6 @@ function StudentDashboardContent() {
         { label: "Active Courses", value: "0", icon: BookOpen },
         { label: "Completed Lessons", value: "0", icon: CheckCircle2 },
         { label: "Average Progress", value: "0%", icon: LineChart },
-        { label: "Total Purchases", value: "0", icon: Wallet },
       ];
     }
 
@@ -243,7 +241,6 @@ function StudentDashboardContent() {
       { label: "Active Courses", value: String(data.studyStats.activeCourses), icon: BookOpen },
       { label: "Completed Lessons", value: String(data.studyStats.completedLessons), icon: CheckCircle2 },
       { label: "Average Progress", value: `${data.studyStats.averageProgress}%`, icon: LineChart },
-      { label: "Total Purchases", value: String(data.studyStats.totalPurchases), icon: Wallet },
     ];
   }, [data]);
 
