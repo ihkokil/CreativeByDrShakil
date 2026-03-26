@@ -56,5 +56,8 @@ export const formatLastUpdated = (value?: string | Date | null) => {
   if (!value) return null;
   const parsed = value instanceof Date ? value : parseAsLocalDate(value);
   if (!parsed) return null;
-  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(parsed);
+  const day = parsed.getDate();
+  const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(parsed);
+  const year = parsed.getFullYear();
+  return `${day} ${month}, ${year}`;
 };
