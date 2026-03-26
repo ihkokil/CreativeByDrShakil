@@ -13,7 +13,7 @@ interface Teacher {
     designation?: string;
     institution?: string;
     degrees?: string;
-    profile_image?: string;
+    profile_image?: string | null;
 }
 
 interface Props {
