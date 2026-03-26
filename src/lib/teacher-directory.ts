@@ -113,8 +113,13 @@ const enrichInstructor = (
 };
 
 export const enrichCoursesWithTeachers = (courses: Course[], teachers: PublicTeacher[]): Course[] =>
-  courses.map((course) => ({
-    ...course,
-    mainInstructor: enrichInstructor(course.mainInstructor, teachers),
-    subInstructors: course.subInstructors?.map((instructor) => enrichInstructor(instructor, teachers)),
-  }));
+  courses.map((course) => {
+    if (course.dynamicSource) {
+      return course;
+    }
+    return {
+      ...course,
+      mainInstructor: enrichInstructor(course.mainInstructor, teachers),
+      subInstructors: course.subInstructors?.map((instructor) => enrichInstructor(instructor, teachers)),
+    };
+  });
