@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import StudentOverview from "@/components/Student/StudentOverview";
 
 interface DashboardCourse {
     orderId: string;
@@ -374,64 +375,17 @@ function StudentDashboardContent() {
 
       {activeTab === "overview" && data && (
         <div className={styles.stack}>
-          <section className={styles.metricsGrid}>
-            {quickStats.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article key={item.label} className={styles.metricCard}>
-                  <span className={styles.metricIcon}><Icon size={18} /></span>
-                  <div>
-                    <strong>{item.value}</strong>
-                    <p>{item.label}</p>
-                  </div>
-                </article>
-              );
-            })}
-          </section>
-
-          <section className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>Continue Learning</h2>
-              <Link href="/courses" className={styles.inlineLink}>Explore catalog <ExternalLink size={14} /></Link>
-            </div>
-            <div className={styles.courseGrid}>
-              {data.enrolledCourses.slice(0, 3).map((course) => (
-                <article key={course.orderId} className={styles.courseCard}>
-                  <div className={styles.thumb}>
-                    <Image src={course.imageUrl || "/placeholder.svg"} alt={course.courseTitle} fill className={styles.thumbImage} unoptimized />
-                  </div>
-                  <div className={styles.courseBody}>
-                    <span className={styles.category}>{course.category}</span>
-                    <h3>{course.courseTitle}</h3>
-                    <div className={styles.progressTrack}>
-                      <div className={styles.progressFill} style={{ width: `${course.progress.percentage}%` }} />
-                    </div>
-                    <div className={styles.courseMeta}>
-                      <span>{course.progress.completedCount}/{course.progress.totalCount} lessons</span>
-                      {course.courseSlug ? (
-                        <Link href={`/study/${course.courseSlug}`} className={styles.resumeBtn}>Resume</Link>
-                      ) : (
-                        <span className={styles.resumeBtnDisabled}>Unavailable</span>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>Helpful Options</h2>
-              <span className={styles.panelHint}>Shortcuts</span>
-            </div>
-            <div className={styles.quickActionGrid}>
-              <Link className={styles.quickAction} href="/courses"><BookOpen size={16} /> Browse Courses</Link>
-              <Link className={styles.quickAction} href="/dashboard?tab=purchases"><CreditCard size={16} /> Purchase History</Link>
-              <Link className={styles.quickAction} href="/contact"><Phone size={16} /> Contact Support</Link>
-              <button className={styles.quickAction} onClick={() => setActiveTab("security")}><Lock size={16} /> Security Settings</button>
-            </div>
-          </section>
+          <StudentOverview 
+            courseCount={data.studyStats.activeCourses}
+            completionPercent={data.studyStats.averageProgress}
+            certificatesCount={0}
+            studyHours="12.5h"
+            onTabChange={(tab) => {
+              const url = new URL(window.location.href);
+              url.searchParams.set("tab", tab);
+              router.push(url.toString());
+            }}
+          />
         </div>
       )}
 

@@ -60,20 +60,23 @@ export default function AdminOverview({
             animate="visible"
         >
             {/* Primary Stats */}
-            <motion.div className={`${styles.bentoCard} ${styles.large}`} variants={cardVariants}>
-                <div className={styles.revenueHeader}>
+            <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={cardVariants}>
+                <div className={styles.heroHeader}>
                     <div>
                         <span className={styles.label}>Platform Revenue</span>
-                        <h2 className={styles.revenueAmount}>{totalRevenue}</h2>
+                        <div className={styles.revenueDisplay}>
+                            <span className={styles.currency}>৳</span>
+                            <span className={styles.amount}>{totalRevenue.replace('৳', '')}</span>
+                        </div>
                     </div>
-                    <div className={styles.trendUp}>
+                    <div className={styles.heroAction}>
                         <TrendingUp size={16} />
                         <span>+12.5%</span>
                     </div>
                 </div>
-                <div className={styles.revenueChartPlaceholder}>
+                <div>
                     {/* Simplified Chart representation */}
-                    <div className={styles.chartBars}>
+                    <div className={styles.miniChart}>
                         {[40, 70, 45, 90, 65, 80, 50].map((h, i) => (
                             <motion.div 
                                 key={i}
@@ -85,51 +88,61 @@ export default function AdminOverview({
                         ))}
                     </div>
                 </div>
-                <button className={styles.cardAction} onClick={() => onTabChange('analytics')}>
+                <button className={styles.viewAllBtn} onClick={() => onTabChange('analytics')} style={{ marginTop: '10px' }}>
                     Detailed Financials <ArrowRight size={16} />
                 </button>
             </motion.div>
 
             {/* Quick Actions */}
-            <motion.div className={`${styles.bentoCard} ${styles.medium}`} variants={cardVariants}>
-                <h3 className={styles.cardTitle}>Quick Management</h3>
-                <div className={styles.quickActions}>
-                    <button className={styles.actionItem} onClick={() => onTabChange('teachers')}>
-                        <UserPlus size={20} />
+            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
+                <div className={styles.cardHeader}>
+                    <h3>Quick Management</h3>
+                </div>
+                <div className={styles.actionGrid}>
+                    <button className={styles.actionBtn} onClick={() => onTabChange('teachers')}>
+                        <div className={styles.actionIcon}><UserPlus size={20} /></div>
                         <span>Invite Teacher</span>
                     </button>
-                    <button className={styles.actionItem} onClick={() => onTabChange('coupons')}>
-                        <TrendingUp size={20} />
+                    <button className={styles.actionBtn} onClick={() => onTabChange('coupons')}>
+                        <div className={styles.actionIcon}><TrendingUp size={20} /></div>
                         <span>New Offer</span>
                     </button>
-                    <button className={styles.actionItem} onClick={() => onTabChange('sessions')}>
-                        <MonitorIcon size={20} />
+                    <button className={styles.actionBtn} onClick={() => onTabChange('sessions')}>
+                        <div className={styles.actionIcon}><MonitorIcon size={20} /></div>
                         <span>Lock Sync</span>
                     </button>
                 </div>
             </motion.div>
 
             {/* Key Metrics */}
-            <motion.div className={styles.bentoCard} variants={cardVariants}>
-                <div className={styles.metricIcon} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                    <Users size={20} />
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                        <Users size={20} />
+                    </div>
                 </div>
-                <h3 className={styles.metricValue}>{teacherCount}</h3>
-                <p className={styles.metricLabel}>Active Faculty</p>
+                <div className={styles.metricBody}>
+                    <h4>{teacherCount}</h4>
+                    <p>Active Faculty</p>
+                </div>
             </motion.div>
 
-            <motion.div className={styles.bentoCard} variants={cardVariants}>
-                <div className={styles.metricIcon} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                    <Users size={20} />
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                        <Users size={20} />
+                    </div>
                 </div>
-                <h3 className={styles.metricValue}>{studentCount}</h3>
-                <p className={styles.metricLabel}>Total Students</p>
+                <div className={styles.metricBody}>
+                    <h4>{studentCount}</h4>
+                    <p>Total Students</p>
+                </div>
             </motion.div>
 
             {/* Platform Health */}
-            <motion.div className={`${styles.bentoCard} ${styles.medium}`} variants={cardVariants}>
+            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
                 <div className={styles.healthHeader}>
-                    <h3 className={styles.cardTitle}>System Pulse</h3>
+                    <h3>System Pulse</h3>
                     <div className={styles.livePulse} />
                 </div>
                 <div className={styles.healthStats}>
@@ -148,20 +161,28 @@ export default function AdminOverview({
                 </div>
             </motion.div>
 
-            <motion.div className={styles.bentoCard} variants={cardVariants}>
-                <div className={styles.metricIcon} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-                    <BookOpen size={20} />
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                        <BookOpen size={20} />
+                    </div>
                 </div>
-                <h3 className={styles.metricValue}>{courseCount}</h3>
-                <p className={styles.metricLabel}>Total Courses</p>
+                <div className={styles.metricBody}>
+                    <h4>{courseCount}</h4>
+                    <p>Total Courses</p>
+                </div>
             </motion.div>
 
-            <motion.div className={styles.bentoCard} variants={cardVariants}>
-                <div className={styles.metricIcon} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                    <BarChart3 size={20} />
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                        <BarChart3 size={20} />
+                    </div>
                 </div>
-                <h3 className={styles.metricValue}>+18%</h3>
-                <p className={styles.metricLabel}>Monthly Growth</p>
+                <div className={styles.metricBody}>
+                    <h4>+18%</h4>
+                    <p>Monthly Growth</p>
+                </div>
             </motion.div>
         </motion.div>
     );
