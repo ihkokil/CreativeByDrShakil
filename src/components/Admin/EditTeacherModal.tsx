@@ -10,9 +10,9 @@ interface Teacher {
     id: string;
     full_name: string;
     email: string;
-    designation?: string;
-    institution?: string;
-    degrees?: string;
+    designation?: string | null;
+    institution?: string | null;
+    degrees?: string | null;
     profile_image?: string | null;
 }
 
