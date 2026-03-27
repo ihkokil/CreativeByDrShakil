@@ -41,6 +41,7 @@ interface TeacherProfile {
     email: string;
     designation?: string;
     institution?: string;
+    degrees?: string | null;
     profile_image?: string | null;
 }
 
