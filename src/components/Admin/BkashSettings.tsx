@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import styles from '@/app/admin/dashboard/AdminDashboard.module.css'
+import styles from './BkashSettings.module.css'
 
 interface BkashConfig {
   sendMoneyNumber: string
@@ -173,18 +173,20 @@ export default function BkashSettings() {
       <div className={styles.bkashPreview}>
         <h4>Checkout Preview</h4>
         <div className={styles.previewCard}>
-          <p className={styles.previewLabel}>bKash Number</p>
-          <p className={styles.previewValue}>{config.sendMoneyNumber || 'Not set'}</p>
+          <div>
+            <p className={styles.previewLabel}>bKash Number</p>
+            <p className={styles.previewValue}>{config.sendMoneyNumber || 'Not set'}</p>
+          </div>
           {config.qrCodeUrl && (
-            <>
+            <div>
               <p className={styles.previewLabel}>QR Code</p>
               <div className={styles.previewQr}>
                 <img src={config.qrCodeUrl} alt="Preview" />
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
     </div>
   )
-}
+}
