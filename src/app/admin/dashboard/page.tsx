@@ -39,8 +39,8 @@ interface TeacherProfile {
     role: string;
     created_at: string;
     email: string;
-    designation?: string;
-    institution?: string;
+    designation?: string | null;
+    institution?: string | null;
     degrees?: string | null;
     profile_image?: string | null;
 }
