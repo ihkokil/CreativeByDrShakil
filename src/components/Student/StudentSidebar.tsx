@@ -11,7 +11,9 @@ import {
     ChevronLeft, 
     LogOut,
     Menu,
-    GraduationCap
+    GraduationCap,
+    ChevronRight,
+    Settings
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { motion } from "framer-motion";
@@ -37,11 +39,14 @@ export default function StudentSidebar({
     const router = useRouter();
 
     const menuItems = [
-        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-        { id: 'profile', label: 'My Profile', icon: UserCog },
-        { id: 'progress', label: 'My Progress', icon: TrendingUp },
-        { id: 'exams', label: 'Exams', icon: ClipboardList },
-        { id: 'browse', label: 'All Courses', icon: BookOpen, isLink: '/courses' },
+        { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
+        { id: 'profile', label: 'My Profile', icon: <UserCog size={20} /> },
+        { id: 'progress', label: 'My Progress', icon: <TrendingUp size={20} /> },
+        { id: 'browse', label: 'All Courses', icon: <BookOpen size={20} />, isLink: '/courses' },
+    ];
+
+    const sysItems = [
+        { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
     ];
 
     const handleLogout = async () => {
@@ -58,68 +63,76 @@ export default function StudentSidebar({
     };
 
     return (
-        <aside className={`${styles.sidebar} ${!isExpanded ? styles.collapsed : ""}`}>
-            <div className={styles.logoSection}>
-                <Link href="/" className={styles.logoLink}>
+        <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
+            <div className={styles.sidebarHeader}>
+                <Link href="/" className={styles.logoWrapper}>
                     <div className={styles.logoIcon}>
                         <GraduationCap className={styles.shieldIcon} size={24} />
                     </div>
                     {isExpanded && (
-                        <motion.span 
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className={styles.logoText}
-                        >
+                        <span className={styles.logoText}>
                             Student<span>Portal</span>
-                        </motion.span>
+                        </span>
                     )}
                 </Link>
-                <button 
-                    className={styles.toggleBtn}
-                    onClick={onToggleExpand}
-                >
-                    {isExpanded ? <ChevronLeft size={18} /> : <Menu size={18} />}
+                <button className={styles.toggleBtn} onClick={onToggleExpand}>
+                    {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
                 </button>
             </div>
 
-            <nav className={styles.nav}>
-                <div className={styles.navGroup}>
-                    {isExpanded && <span className={styles.groupLabel}>Learning Path</span>}
+            <div className={styles.navContainer}>
+                <div className={styles.navSection}>
+                    {isExpanded && <span className={styles.sectionLabel}>Learning Path</span>}
                     {menuItems.map((item) => (
                         <button
                             key={item.id}
                             className={`${styles.navItem} ${activeTab === item.id ? styles.active : ""}`}
                             onClick={() => handleAction(item)}
                         >
-                            <item.icon size={20} />
-                            {isExpanded && <span>{item.label}</span>}
-                            {activeTab === item.id && isExpanded && (
-                                <motion.div 
-                                    layoutId="activeIndicatorStudent"
-                                    className={styles.activeIndicator} 
-                                />
+                            <span className={styles.icon}>{item.icon}</span>
+                            {isExpanded && <span className={styles.label}>{item.label}</span>}
+                            {activeTab === item.id && (
+                                <motion.div layoutId="activeIndicatorStudent" className={styles.activeIndicator} />
                             )}
                         </button>
                     ))}
                 </div>
-            </nav>
+
+                <div className={styles.navSection}>
+                    {isExpanded && <span className={styles.sectionLabel}>System</span>}
+                    {sysItems.map((item) => (
+                        <button
+                            key={item.id}
+                            className={`${styles.navItem} ${activeTab === item.id ? styles.active : ""}`}
+                            onClick={() => handleAction(item)}
+                        >
+                            <span className={styles.icon}>{item.icon}</span>
+                            {isExpanded && <span className={styles.label}>{item.label}</span>}
+                            {activeTab === item.id && (
+                                <motion.div layoutId="activeIndicatorStudent" className={styles.activeIndicator} />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
             <div className={styles.footer}>
-                <div className={styles.userSection}>
-                    <div className={styles.userAvatar}>
+                <div className={styles.profileBox}>
+                    <div className={styles.avatar}>
                         {studentName[0].toUpperCase()}
                     </div>
                     {isExpanded && (
-                        <div className={styles.userInfo}>
-                            <span className={styles.userName}>{studentName}</span>
-                            <span className={styles.userRole}>Medical Student</span>
+                        <div className={styles.profileMeta}>
+                            <span className={styles.name}>{studentName}</span>
+                            <span className={styles.email}>Medical Student</span>
                         </div>
                     )}
+                    {isExpanded && (
+                        <button className={styles.logoutBtn} onClick={handleLogout} title="Sign Out">
+                            <LogOut size={16} />
+                        </button>
+                    )}
                 </div>
-                <button className={styles.logoutBtn} onClick={handleLogout}>
-                    <LogOut size={20} />
-                    {isExpanded && <span>Log Out</span>}
-                </button>
             </div>
         </aside>
     );

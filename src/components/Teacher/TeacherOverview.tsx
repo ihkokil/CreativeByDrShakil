@@ -22,16 +22,16 @@ export default function TeacherOverview() {
     const router = useRouter();
 
     const stats = [
-        { label: "Total Revenue", value: "৳1,25,000", change: "+12.5%", icon: <DollarSign size={20} />, color: "#8b5cf6" },
         { label: "Active Students", value: "842", change: "+5.2%", icon: <Users size={20} />, color: "#3b82f6" },
+        { label: "Total Enrollments", value: "1,250", change: "+12.5%", icon: <TrendingUp size={20} />, color: "#8b5cf6" },
         { label: "Total Courses", value: "4", change: "0%", icon: <BookOpen size={20} />, color: "#10b981" },
         { label: "Avg. Rating", value: "4.9", change: "+0.1", icon: <Star size={20} />, color: "#f59e0b" },
     ];
 
     const recentActivity = [
-        { id: 1, type: 'enrollment', user: 'Dr. Sarah J.', course: 'FCPS Part 1', time: '2 mins ago', amount: '৳5,000' },
-        { id: 2, type: 'assignment', user: 'Arif Ahmed', course: 'Surgery Secrets', time: '1 hour ago', status: 'Pending Review' },
-        { id: 3, type: 'enrollment', user: 'Fatima Khan', course: 'Radiology Quiz', time: '3 hours ago', amount: '৳2,500' },
+        { id: 1, type: 'enrollment', user: 'Dr. Sarah J.', course: 'FCPS Part 1', time: '2 mins ago', info: 'New enrollment' },
+        { id: 2, type: 'completion', user: 'Arif Ahmed', course: 'Surgery Secrets', time: '1 hour ago', info: 'Completed course' },
+        { id: 3, type: 'enrollment', user: 'Fatima Khan', course: 'Pediatrics Pro', time: '3 hours ago', info: 'New enrollment' },
     ];
 
     const container = {
@@ -60,16 +60,16 @@ export default function TeacherOverview() {
             <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={item}>
                 <div className={styles.heroHeader}>
                     <div>
-                        <h2>Revenue Overview</h2>
-                        <p>Total earnings this month</p>
+                        <h2>Enrollment Overview</h2>
+                        <p>Total enrollments this month</p>
                     </div>
                     <div className={styles.heroAction}>
                         <TrendingUp size={16} /> <span>14% increase</span>
                     </div>
                 </div>
                 <div className={styles.revenueDisplay}>
-                    <span className={styles.currency}>৳</span>
-                    <span className={styles.amount}>1,25,000</span>
+                    <span className={styles.amount}>1,250</span>
+                    <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Students</span>
                 </div>
                 <div className={styles.miniChart}>
                     {[40, 70, 45, 90, 65, 80, 100].map((h, i) => (
@@ -131,11 +131,11 @@ export default function TeacherOverview() {
                             </div>
                             <div className={styles.actInfo}>
                                 <strong>{act.user}</strong>
-                                <span>{act.type === 'enrollment' ? 'Enrolled in' : 'Submitted'} {act.course}</span>
+                                <span>{act.type === 'enrollment' ? 'Enrolled in' : 'Completed'} {act.course}</span>
                                 <small>{act.time}</small>
                             </div>
                             <div className={styles.actValue}>
-                                {act.amount || <span className={styles.statusPill}>Review</span>}
+                                <span className={styles.statusPill}>{act.info}</span>
                             </div>
                         </div>
                     ))}
