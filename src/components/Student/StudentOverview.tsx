@@ -1,3 +1,5 @@
+"use client";
+
 import { motion, Variants } from "framer-motion";
 import { 
     Trophy, 
@@ -6,26 +8,37 @@ import {
     Clock, 
     ArrowRight,
     PlayCircle,
-    Calendar,
-    Target
+    Target,
+    UserCog,
+    CheckCircle
 } from "lucide-react";
 import styles from "@/components/Teacher/TeacherOverview.module.css";
 import Link from "next/link";
-import Image from "next/image";
+
+interface EnrolledCourse {
+    orderId: string;
+    courseId: string;
+    courseSlug: string | null;
+    courseTitle: string;
+    category: string;
+    progress: {
+        percentage: number;
+    };
+}
 
 interface StudentOverviewProps {
     courseCount: number;
     completionPercent: number;
-    certificatesCount: number;
-    studyHours: string;
+    completedLessons: number;
+    enrolledCourses: EnrolledCourse[];
     onTabChange: (tab: string) => void;
 }
 
 export default function StudentOverview({
     courseCount,
     completionPercent,
-    certificatesCount,
-    studyHours,
+    completedLessons,
+    enrolledCourses,
     onTabChange
 }: StudentOverviewProps) {
     
@@ -58,22 +71,21 @@ export default function StudentOverview({
             initial="hidden"
             animate="visible"
         >
-            {/* Main Learning Card */}
+            {/* 1. Progress Hero Card */}
             <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={cardVariants}>
                 <div className={styles.heroHeader}>
                     <div>
-                        <span className={styles.label}>Continue Learning</span>
-                        <h2 className={styles.amount} style={{ fontSize: '2.2rem', marginTop: '4px' }}>Mastering BCPS</h2>
-                    </div>
-                    <div className={styles.heroAction}>
-                        <PlayCircle size={20} />
+                        <span className={styles.label}>Study Workspace</span>
+                        <h2 className={styles.amount} style={{ fontSize: '2.5rem', marginTop: '8px' }}>
+                            Your <span className="gradient-text">Learning Journey</span>
+                        </h2>
                     </div>
                 </div>
                 
                 <div className={styles.progressContainer}>
                     <div className={styles.progressLabel}>
-                        <span>Overall Progress</span>
-                        <span>{completionPercent}%</span>
+                        <span style={{ fontSize: '0.9rem' }}>Average Completion</span>
+                        <span style={{ fontSize: '0.9rem' }}>{completionPercent}%</span>
                     </div>
                     <div className={styles.progressBar}>
                         <motion.div 
@@ -86,29 +98,13 @@ export default function StudentOverview({
                 </div>
 
                 <div className={styles.nextLesson}>
-                    <div className={styles.lessonInfo}>
-                        <span className={styles.tag}>Next: Lesson 14</span>
-                        <p>High-yield Pediatric Emergencies</p>
-                    </div>
-                    <Link href="/study" className={styles.viewAllBtn} style={{ width: 'auto', marginTop: 0 }}>
-                        Resume Now <ArrowRight size={16} />
-                    </Link>
+                    <button onClick={() => onTabChange("courses")} className={styles.viewAllBtn} style={{ width: 'auto', marginTop: 0 }}>
+                        <PlayCircle size={18} /> Continue Studying
+                    </button>
                 </div>
             </motion.div>
 
-            {/* Quick Stats */}
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                        <Trophy size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>{certificatesCount}</h4>
-                    <p>Certificates</p>
-                </div>
-            </motion.div>
-
+            {/* 2. Key Metrics */}
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
                 <div className={styles.metricHeader}>
                     <div className={styles.iconBox} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
@@ -117,76 +113,92 @@ export default function StudentOverview({
                 </div>
                 <div className={styles.metricBody}>
                     <h4>{courseCount}</h4>
-                    <p>My Courses</p>
+                    <p>Enrolled Programs</p>
                 </div>
             </motion.div>
 
-            {/* Engagement info */}
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
+                <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                    <CheckCircle size={20} />
+                </div>
+                <div className={styles.metricBody} style={{ marginTop: '16px' }}>
+                    <h4>{completedLessons}</h4>
+                    <p>Lessons Completed</p>
+                </div>
+            </motion.div>
+
+            {/* 3. Course Progress List */}
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
                 <div className={styles.cardHeader}>
-                    <h3>Study Activity</h3>
+                    <h3>Recent Programs</h3>
                 </div>
-                <div className={styles.activityStats}>
-                    <div className={styles.activityItem}>
-                        <Clock size={16} />
-                        <div>
-                            <strong>{studyHours}</strong>
-                            <span>This Week</span>
-                        </div>
-                    </div>
-                    <div className={styles.activityItem}>
-                        <BookOpen size={16} />
-                        <div>
-                            <strong>15</strong>
-                            <span>Modules Completed</span>
-                        </div>
-                    </div>
+                <div className={styles.activities}>
+                    {enrolledCourses.length > 0 ? (
+                        enrolledCourses.slice(0, 3).map((course) => (
+                            <div key={course.courseId} className={styles.activityItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <strong style={{ fontSize: '0.9rem' }}>{course.courseTitle}</strong>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{course.category}</span>
+                                </div>
+                                <div className={styles.progressContainer} style={{ margin: '4px 0 0' }}>
+                                    <div className={styles.progressLabel}>
+                                        <span style={{ fontSize: '0.7rem' }}>Progress</span>
+                                        <span style={{ fontSize: '0.7rem' }}>{course.progress.percentage}%</span>
+                                    </div>
+                                    <div className={styles.progressBar}>
+                                        <div className={styles.progressFill} style={{ width: `${course.progress.percentage}%` }} />
+                                    </div>
+                                </div>
+                                {course.courseSlug && (
+                                    <Link href={`/study/${course.courseSlug}`} style={{ fontSize: '0.75rem', color: 'var(--primary)', marginTop: '4px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        Go to Classroom <ArrowRight size={12} />
+                                    </Link>
+                                )}
+                            </div>
+                        ))
+                    ) : (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>
+                            You haven't enrolled in any courses yet.
+                        </p>
+                    )}
                 </div>
-                <button className={styles.viewAllBtn} onClick={() => onTabChange('progress')}>
-                    Full Analytics <ArrowRight size={16} />
+                <button className={styles.viewAllBtn} onClick={() => onTabChange('courses')} style={{ marginTop: '20px' }}>
+                    View All Enrollments <ArrowRight size={16} />
                 </button>
             </motion.div>
 
-            {/* Upcoming/Goal Card */}
+            {/* 4. Quick Actions */}
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
-                <div className={styles.goalHeader}>
-                    <h3>Upcoming Modules</h3>
-                    <Target size={20} className={styles.goalIcon} />
+                <div className={styles.cardHeader}>
+                    <h3>Shortcuts</h3>
                 </div>
-                <div className={styles.upcomingTask}>
-                    <BookOpen size={16} />
-                    <span>Cardiology Basics</span>
-                </div>
-                <div className={styles.upcomingTask}>
-                    <BookOpen size={16} />
-                    <span>Surgery Principles</span>
-                </div>
-                <button className={styles.viewAllBtn} onClick={() => onTabChange('courses')}>
-                    View Curriculum <ArrowRight size={16} />
-                </button>
-            </motion.div>
-
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                        <TrendingUp size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>Top 5%</h4>
-                    <p>Batch Rank</p>
+                <div className={styles.actionGrid} style={{ gridTemplateColumns: '1fr' }}>
+                    <Link href="/courses" className={styles.actionBtn}>
+                        <div className={styles.actionIcon}><BookOpen size={18} /></div>
+                        <div>
+                            <strong>Course Catalog</strong>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Explore specialized programs</span>
+                        </div>
+                    </Link>
+                    <button onClick={() => onTabChange("profile")} className={styles.actionBtn}>
+                        <div className={styles.actionIcon}><UserCog size={18} /></div>
+                        <div>
+                            <strong>Profile Management</strong>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Academic & personal info</span>
+                        </div>
+                    </button>
                 </div>
             </motion.div>
 
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
                 <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-                        <BookOpen size={20} />
+                    <div className={styles.iconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                        <Trophy size={20} />
                     </div>
                 </div>
                 <div className={styles.metricBody}>
-                    <h4>12</h4>
-                    <p>Modules Remaining</p>
+                    <h4>Scholar</h4>
+                    <p>Learning Tier</p>
                 </div>
             </motion.div>
         </motion.div>
