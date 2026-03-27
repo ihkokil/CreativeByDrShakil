@@ -5,15 +5,12 @@ import Link from 'next/link';
 import { 
     LayoutDashboard, 
     UserCog, 
-    TrendingUp, 
-    ClipboardList, 
     BookOpen, 
     ChevronLeft, 
     LogOut,
-    Menu,
-    GraduationCap,
     ChevronRight,
-    Settings
+    ShieldCheck,
+    GraduationCap
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { motion } from "framer-motion";
@@ -40,13 +37,13 @@ export default function StudentSidebar({
 
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-        { id: 'profile', label: 'My Profile', icon: <UserCog size={20} /> },
-        { id: 'progress', label: 'My Progress', icon: <TrendingUp size={20} /> },
+        { id: 'courses', label: 'My Courses', icon: <BookOpen size={20} /> },
+        { id: 'profile', label: 'Profile Settings', icon: <UserCog size={20} /> },
+        { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
         { id: 'browse', label: 'All Courses', icon: <BookOpen size={20} />, isLink: '/courses' },
     ];
 
-    const sysItems = [
-        { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
+    const sysItems: any[] = [
     ];
 
     const handleLogout = async () => {

@@ -34,9 +34,10 @@ function AdminDashboardLayoutContent({
 
     const mobileNavItems = [
         { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'students', label: 'Students', icon: GraduationCap },
         { id: 'teachers', label: 'Teachers', icon: Users },
-        { id: 'coupons', label: 'Coupons', icon: TicketPercent },
-        { id: 'sessions', label: 'Sessions', icon: Smartphone },
+        { id: 'categories', label: 'Categories', icon: LayoutGrid },
+        { id: 'support', label: 'Inbox', icon: Inbox },
     ];
 
     if (loading || !user || role !== "admin") {

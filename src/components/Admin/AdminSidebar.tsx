@@ -8,14 +8,15 @@ import {
     Users, 
     Smartphone, 
     TicketPercent, 
-    BarChart3, 
     Settings, 
     ChevronLeft, 
     LogOut,
-    Menu,
-    Shield,
     GraduationCap,
-    ChevronRight
+    ChevronRight,
+    LayoutGrid,
+    Inbox,
+    BookOpen,
+    Shield
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,13 +41,23 @@ export default function AdminSidebar({
     const { signOut } = useAuth();
     const router = useRouter();
 
+    const handleAction = (item: any) => {
+        if (item.isLink) {
+            router.push(item.isLink);
+        } else {
+            setActiveTab(item.id);
+        }
+    };
+
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
         { id: 'students', label: 'Students', icon: <GraduationCap size={20} /> },
         { id: 'teachers', label: 'Teachers', icon: <Users size={20} /> },
+        { id: 'categories', label: 'Categories', icon: <LayoutGrid size={20} /> },
         { id: 'coupons', label: 'Coupons', icon: <TicketPercent size={20} /> },
         { id: 'sessions', label: 'Sessions', icon: <Smartphone size={20} /> },
-        { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+        { id: 'support', label: 'Contact Help', icon: <Inbox size={20} /> },
+        { id: 'browse', label: 'All Courses', icon: <BookOpen size={20} />, isLink: '/courses' },
     ];
 
     const sysItems = [
@@ -83,7 +94,7 @@ export default function AdminSidebar({
                         <button
                             key={item.id}
                             className={`${styles.navItem} ${activeTab === item.id ? styles.active : ""}`}
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => handleAction(item)}
                         >
                             <span className={styles.icon}>{item.icon}</span>
                             {isExpanded && <span className={styles.label}>{item.label}</span>}
@@ -100,7 +111,7 @@ export default function AdminSidebar({
                         <button
                             key={item.id}
                             className={`${styles.navItem} ${activeTab === item.id ? styles.active : ""}`}
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => handleAction(item)}
                         >
                             <span className={styles.icon}>{item.icon}</span>
                             {isExpanded && <span className={styles.label}>{item.label}</span>}

@@ -5,11 +5,8 @@ import styles from "./TeacherSidebar.module.css";
 import {
     LayoutDashboard,
     BookOpen,
-    Users,
-    FileText,
     Video,
     LogOut,
-    Settings,
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
@@ -17,7 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
 
-type TabType = 'overview' | 'courses' | 'students' | 'assignments' | 'library';
+type TabType = 'overview' | 'courses' | 'library';
 
 interface TeacherSidebarProps {
     activeTab: TabType;
@@ -47,13 +44,11 @@ export default function TeacherSidebar({
     const menuItems = [
         { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
         { id: 'courses', label: 'Programs', icon: <BookOpen size={20} /> },
-        { id: 'students', label: 'Students', icon: <Users size={20} /> },
-        { id: 'assignments', label: 'Assessments', icon: <FileText size={20} /> },
         { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },
     ];
 
-    const sysItems = [
-        { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
+    const sysItems: any[] = [
+        // Settings removed as no teacher settings page exists yet
     ];
 
     const getInitials = (name: string) => {
