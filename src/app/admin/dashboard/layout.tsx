@@ -6,7 +6,18 @@ import { useEffect, useState, Suspense } from "react";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminHeader from "@/components/Admin/AdminHeader";
 import styles from "./AdminDashboard.module.css";
-import { Loader2, LayoutDashboard, Users, Smartphone, TicketPercent, BarChart3, MoreHorizontal } from "lucide-react";
+import {
+    BarChart3,
+    GraduationCap,
+    Inbox,
+    LayoutDashboard,
+    LayoutGrid,
+    Loader2,
+    MoreHorizontal,
+    Smartphone,
+    TicketPercent,
+    Users,
+} from "lucide-react";
 
 function AdminDashboardLayoutContent({
     children,
