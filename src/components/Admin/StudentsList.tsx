@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Search, Loader2, Edit, Trash2, MailCheck, GraduationCap, X } from "lucide-react";
-import styles from "@/app/admin/dashboard/AdminDashboard.module.css";
+import dashStyles from "@/app/admin/dashboard/AdminDashboard.module.css";
+import localStyles from "./StudentsList.module.css";
 
 interface StudentProfile {
     id: string;
@@ -106,9 +107,9 @@ export default function StudentsList() {
     };
 
     return (
-        <div className={styles.categoryManager}>
-            <div className={styles.managerHeader}>
-                <div className={styles.searchBar}>
+        <div className={localStyles.wrapper}>
+            <div className={localStyles.header}>
+                <div className={localStyles.searchBar}>
                     <Search size={18} />
                     <input 
                         type="text" 
@@ -117,46 +118,46 @@ export default function StudentsList() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <button className={styles.primaryBtn} onClick={() => { setFormData({ fullName: '', email: '', phone: '', password: '' }); setIsAddOpen(true); }}>
+                <button className={dashStyles.primaryBtn} onClick={() => { setFormData({ fullName: '', email: '', phone: '', password: '' }); setIsAddOpen(true); }}>
                     <GraduationCap size={16} /> New Student
                 </button>
             </div>
 
             {loading ? (
-                <div className={styles.loader}>Loading students...</div>
+                <div className={dashStyles.loader}>Loading students...</div>
             ) : filteredStudents.length > 0 ? (
-                <div className={styles.teacherGrid}>
+                <div className={dashStyles.teacherGrid}>
                     {filteredStudents.map((student) => (
-                        <article key={student.id} className={styles.teacherCard}>
-                            <div className={styles.cardHeader}>
-                                <div className={styles.cardAvatar}>
+                        <article key={student.id} className={dashStyles.teacherCard}>
+                            <div className={dashStyles.cardHeader}>
+                                <div className={dashStyles.cardAvatar}>
                                     {student.profile_image ? (
                                         <Image src={student.profile_image} alt={student.full_name} fill style={{ objectFit: 'cover' }} unoptimized/>
                                     ) : getInitials(student.full_name)}
                                 </div>
-                                <div className={styles.cardInfo}>
+                                <div className={dashStyles.cardInfo}>
                                     <h3>{student.full_name || "Unknown"}</h3>
                                     <p>{student.email || "No email"}</p>
                                 </div>
                             </div>
                             
-                            <div className={styles.cardContent}>
-                                <div className={styles.academicInfo}>
+                            <div className={dashStyles.cardContent}>
+                                <div className={dashStyles.academicInfo}>
                                     <p>{student.phone || "No phone number available"}</p>
                                 </div>
-                                <div className={styles.cardFooter}>
-                                    <div className={styles.listCol}>
-                                        <span className={styles.rolePill} style={{width: "max-content", background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6'}}>
+                                <div className={dashStyles.cardFooter}>
+                                    <div className={dashStyles.listCol}>
+                                        <span className={dashStyles.rolePill} style={{width: "max-content", background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6'}}>
                                             {student.role}
                                         </span>
                                         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
                                             Joined {new Date(student.created_at).toLocaleDateString('en-GB')}
                                         </span>
                                     </div>
-                                    <div className={styles.cardActions}>
-                                        <button className={styles.actionBtn} onClick={() => alert('Reset Pass pending')} title="Reset Password"><MailCheck size={16} /></button>
-                                        <button className={styles.actionBtn} onClick={() => { setFormData({ fullName: student.full_name, email: student.email, phone: student.phone || '', password: '' }); setEditStudent(student); }} title="Edit Profile"><Edit size={16} /></button>
-                                        <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setDeleteStudent(student)} title="Delete"><Trash2 size={16} /></button>
+                                    <div className={dashStyles.cardActions}>
+                                        <button className={dashStyles.actionBtn} onClick={() => alert('Reset Pass pending')} title="Reset Password"><MailCheck size={16} /></button>
+                                        <button className={dashStyles.actionBtn} onClick={() => { setFormData({ fullName: student.full_name, email: student.email, phone: student.phone || '', password: '' }); setEditStudent(student); }} title="Edit Profile"><Edit size={16} /></button>
+                                        <button className={`${dashStyles.actionBtn} ${dashStyles.danger}`} onClick={() => setDeleteStudent(student)} title="Delete"><Trash2 size={16} /></button>
                                     </div>
                                 </div>
                             </div>
@@ -164,35 +165,35 @@ export default function StudentsList() {
                     ))}
                 </div>
             ) : (
-                <div className={styles.infoBox}>No students found matching your criteria.</div>
+                <div className={dashStyles.infoBox}>No students found matching your criteria.</div>
             )}
 
             {/* ADD MODAL */}
             {isAddOpen && (
-                <div className={styles.modalBackdrop}>
-                    <div className={styles.modal}>
-                        <div className={styles.modalHeader}>
+                <div className={localStyles.modalBackdrop}>
+                    <div className={localStyles.modal}>
+                        <div className={localStyles.modalHeader}>
                             <h2>Add New Student</h2>
-                            <button onClick={() => setIsAddOpen(false)} className={styles.closeBtn}><X size={20} /></button>
+                            <button onClick={() => setIsAddOpen(false)} className={localStyles.closeBtn}><X size={20} /></button>
                         </div>
-                        <form onSubmit={handleAdd} className={styles.modalBody}>
-                            <div className={styles.formGroup}>
+                        <form onSubmit={handleAdd} className={localStyles.modalBody}>
+                            <div className={localStyles.formGroup}>
                                 <label>Full Name</label>
-                                <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={styles.input} />
+                                <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={localStyles.input} placeholder="e.g. John Doe" />
                             </div>
-                            <div className={styles.formGroup}>
+                            <div className={localStyles.formGroup}>
                                 <label>Email Address</label>
-                                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={styles.input} />
+                                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={localStyles.input} placeholder="student@example.com" />
                             </div>
-                            <div className={styles.formGroup}>
+                            <div className={localStyles.formGroup}>
                                 <label>Temporary Password</label>
-                                <input required type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className={styles.input} />
+                                <input required type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className={localStyles.input} placeholder="SecurePass123" />
                             </div>
-                            <div className={styles.formGroup}>
+                            <div className={localStyles.formGroup}>
                                 <label>Phone (Optional)</label>
-                                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={styles.input} />
+                                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={localStyles.input} placeholder="+8801..." />
                             </div>
-                            <button disabled={isSubmitting} type="submit" className={styles.primaryBtn} style={{width: '100%', marginTop: '10px'}}>{isSubmitting ? 'Saving...' : 'Add Student'}</button>
+                            <button disabled={isSubmitting} type="submit" className={dashStyles.primaryBtn} style={{width: '100%', marginTop: '10px'}}>{isSubmitting ? 'Saving...' : 'Add Student'}</button>
                         </form>
                     </div>
                 </div>
@@ -200,22 +201,22 @@ export default function StudentsList() {
 
             {/* EDIT MODAL */}
             {editStudent && (
-                <div className={styles.modalBackdrop}>
-                    <div className={styles.modal}>
-                        <div className={styles.modalHeader}>
+                <div className={localStyles.modalBackdrop}>
+                    <div className={localStyles.modal}>
+                        <div className={localStyles.modalHeader}>
                             <h2>Edit Student</h2>
-                            <button onClick={() => setEditStudent(null)} className={styles.closeBtn}><X size={20} /></button>
+                            <button onClick={() => setEditStudent(null)} className={localStyles.closeBtn}><X size={20} /></button>
                         </div>
-                        <form onSubmit={handleEdit} className={styles.modalBody}>
-                            <div className={styles.formGroup}>
+                        <form onSubmit={handleEdit} className={localStyles.modalBody}>
+                            <div className={localStyles.formGroup}>
                                 <label>Full Name</label>
-                                <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={styles.input} />
+                                <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={localStyles.input} />
                             </div>
-                            <div className={styles.formGroup}>
+                            <div className={localStyles.formGroup}>
                                 <label>Phone (Optional)</label>
-                                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={styles.input} />
+                                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={localStyles.input} />
                             </div>
-                            <button disabled={isSubmitting} type="submit" className={styles.primaryBtn} style={{width: '100%', marginTop: '10px'}}>{isSubmitting ? 'Saving...' : 'Save Changes'}</button>
+                            <button disabled={isSubmitting} type="submit" className={dashStyles.primaryBtn} style={{width: '100%', marginTop: '10px'}}>{isSubmitting ? 'Saving...' : 'Save Changes'}</button>
                         </form>
                     </div>
                 </div>
@@ -223,13 +224,13 @@ export default function StudentsList() {
 
             {/* DELETE MODAL */}
             {deleteStudent && (
-                <div className={styles.confirmBackdrop} role="dialog">
-                    <div className={styles.confirmDialog}>
+                <div className={dashStyles.confirmBackdrop} role="dialog">
+                    <div className={dashStyles.confirmDialog}>
                         <h3>Delete Student?</h3>
                         <p>Are you sure you want to completely remove <strong>{deleteStudent.full_name}</strong>? This will revoke all course access and delete their history. This action cannot be undone.</p>
-                        <div className={styles.confirmActions}>
-                            <button className={styles.confirmCancelBtn} onClick={() => setDeleteStudent(null)} disabled={isSubmitting}>Cancel</button>
-                            <button className={styles.confirmPrimaryBtn} onClick={handleDelete} disabled={isSubmitting}>{isSubmitting ? "Deleting..." : "Permanently Delete"}</button>
+                        <div className={dashStyles.confirmActions}>
+                            <button className={dashStyles.confirmCancelBtn} onClick={() => setDeleteStudent(null)} disabled={isSubmitting}>Cancel</button>
+                            <button className={dashStyles.confirmPrimaryBtn} onClick={handleDelete} disabled={isSubmitting}>{isSubmitting ? "Deleting..." : "Permanently Delete"}</button>
                         </div>
                     </div>
                 </div>
