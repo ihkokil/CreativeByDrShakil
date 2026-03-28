@@ -10,6 +10,8 @@ import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurr
 import { mapDynamicCourseToCourse } from "@/lib/dynamic-course-client";
 import styles from "./CourseDetail.module.css";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
+import AuthModal from "@/components/Auth/AuthModal";
+import { useAuth } from "@/context/AuthContext";
 
 // New Premium Components
 import CourseHero from "@/components/Course/CourseHero";
@@ -34,11 +36,14 @@ export default function CourseDetailPage() {
     const [activeDynamicNode, setActiveDynamicNode] = useState<CurriculumNode | null>(null);
     const [loadingCourse, setLoadingCourse] = useState(true);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [authMode, setAuthMode] = useState<"login" | "register">("login");
     const [expandedModules, setExpandedModules] = useState<number[]>([]);
 
     const [userEnrolled, setUserEnrolled] = useState(false);
     const [courseStarted, setCourseStarted] = useState(false);
     const [progressLoading, setProgressLoading] = useState(true);
+    const { user } = useAuth();
 
     // Initial Data Fetching
     useEffect(() => {
@@ -309,7 +314,15 @@ export default function CourseDetailPage() {
                         userEnrolled={userEnrolled}
                         courseStarted={courseStarted}
                         onEnterCourse={onEnterCourse}
-                        onEnroll={() => setIsCheckoutOpen(true)}
+                        onEnroll={() => {
+                            if (!user) {
+                                localStorage.setItem("post_verify_redirect", window.location.pathname);
+                                setAuthMode("login");
+                                setIsAuthOpen(true);
+                            } else {
+                                setIsCheckoutOpen(true);
+                            }
+                        }}
                     />
                 </div>
             </div>
@@ -324,6 +337,16 @@ export default function CourseDetailPage() {
                 }}
                 isOpen={isCheckoutOpen}
                 onClose={() => setIsCheckoutOpen(false)}
+            />
+
+            <AuthModal 
+                isOpen={isAuthOpen} 
+                onClose={() => setIsAuthOpen(false)} 
+                defaultMode={authMode}
+                onSuccess={() => {
+                    setIsAuthOpen(false);
+                    setIsCheckoutOpen(true);
+                }}
             />
         </main>
     );

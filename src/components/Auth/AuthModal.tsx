@@ -9,10 +9,11 @@ import { useAuth } from "@/context/AuthContext";
 interface Props {
     isOpen: boolean;
     onClose: () => void;
+    onSuccess?: () => void;
     defaultMode?: "login" | "register" | "forgot";
 }
 
-export default function AuthModal({ isOpen, onClose, defaultMode = "login" }: Props) {
+export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: Props) {
     const { refreshSession } = useAuth();
     const [view, setView] = useState<"login" | "register" | "forgot">(defaultMode);
     const [email, setEmail] = useState("");
@@ -155,6 +156,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = "login" }: Pr
                     text: 'Successfully logged in!',
                 });
                 resetLoginForm();
+                if (onSuccess) {
+                    onSuccess();
+                }
                 setTimeout(onClose, 1200);
             } else {
                 setMessage({
