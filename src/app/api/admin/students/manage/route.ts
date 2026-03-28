@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
-import bcrypt from 'bcryptjs';
+import { extractBearerToken, extractCookieToken, verifyAuthToken, hashPassword } from '@/lib/auth-server';
+import { createTokenPair } from '@/lib/token-utils';
+import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 
 // Add a new student
 export async function POST(request: NextRequest) {
@@ -35,7 +36,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'A user with this email or phone already exists.' }, { status: 409 });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    // Create password reset token for the new student
+    const { token, tokenHash: resetTokenHash } = createTokenPair();
+    const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    const passwordHash = await hashPassword(password);
 
     const student = await prisma.user.create({
         data: {
@@ -45,10 +50,30 @@ export async function POST(request: NextRequest) {
             passwordHash,
             role: 'student',
             emailVerified: true, // Auto-verify internally added students
+            passwordResetTokenHash: resetTokenHash,
+            passwordResetExpires: resetExpiry,
         }
     });
 
-    return NextResponse.json({ message: 'Student created successfully.', student }, { status: 201 });
+    // Send password setup email
+    let emailSent = true;
+    try {
+        await sendPasswordSetupEmail({
+            email: student.email,
+            fullName: student.fullName,
+            token,
+        });
+    } catch (emailError) {
+        console.error('Failed to send password setup email:', emailError);
+        emailSent = false;
+    }
+
+    return NextResponse.json({ 
+        message: emailSent 
+            ? 'Student created successfully. A password setup email has been sent.' 
+            : 'Student created successfully, but password setup email could not be sent.',
+        student 
+    }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }

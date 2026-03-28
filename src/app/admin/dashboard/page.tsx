@@ -18,11 +18,13 @@ import {
     Loader2,
     Search,
     LayoutGrid,
-    Inbox
+    Inbox,
+    BarChart3
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
 import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
+import AddStudentToCourseModal from "@/components/Admin/AddStudentToCourseModal";
 import CouponManager from "@/components/Admin/CouponManager";
 import Image from "next/image";
 import SessionsManager from "@/components/Admin/SessionsManager";
@@ -61,13 +63,18 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "courses" | "categories" | "coupons" | "sessions" | "support" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
         params.set("tab", tab);
         router.push(`?${params.toString()}`);
     };
+
+    const [isAddStudentToCourseOpen, setIsAddStudentToCourseOpen] = useState(false);
+    const [enrollments, setEnrollments] = useState<any[]>([]);
+    const [coursesList, setCoursesList] = useState<any[]>([]);
+    const [enrollmentsLoading, setEnrollmentsLoading] = useState(true);
 
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
@@ -157,6 +164,43 @@ function AdminDashboardContent() {
         return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
     };
 
+    const fetchEnrollments = useCallback(async () => {
+        setEnrollmentsLoading(true);
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch("/api/admin/enrollments", {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await response.json();
+
+        if (response.ok && Array.isArray(data.enrollments)) {
+            setEnrollments(data.enrollments);
+        } else {
+            setEnrollments([]);
+        }
+        setEnrollmentsLoading(false);
+    }, []);
+
+    const fetchCoursesList = useCallback(async () => {
+        const token = localStorage.getItem("auth_token");
+        const response = await fetch("/api/admin/courses", {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await response.json();
+
+        if (response.ok && Array.isArray(data.courses)) {
+            setCoursesList(data.courses);
+        } else {
+            setCoursesList([]);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (user && role === "admin") {
+            fetchEnrollments();
+            fetchCoursesList();
+        }
+    }, [user, role, fetchEnrollments, fetchCoursesList]);
+
     if (loading || !user) {
         return (
             <div className={styles.loadingOverlay}>
@@ -195,24 +239,27 @@ function AdminDashboardContent() {
 
                     <section className={styles.panel}>
                         <div className={styles.panelHeader}>
-                            <h2>Management Shortcuts</h2>
+                            <h2>Quick Actions</h2>
+                            <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
+                                <UserPlus size={16} /> Add Teacher
+                            </button>
                         </div>
                         <div className={styles.actionGrid}>
+                            <article className={styles.actionCard} onClick={() => { setActiveTab("courses"); setIsAddStudentToCourseOpen(true); }}>
+                                <GraduationCap size={18} />
+                                <div><h3>Enroll Student</h3><p>Add student to any course.</p></div>
+                            </article>
                             <article className={styles.actionCard} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
                                 <UserPlus size={18} />
-                                <div><h3>Faculty Onboarding</h3><p>Invite new medical consultants.</p></div>
+                                <div><h3>Invite Teacher</h3><p>Send onboarding invite with role setup.</p></div>
                             </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("students")}>
-                                <GraduationCap size={18} />
-                                <div><h3>Student Records</h3><p>Manage enrollments and accounts.</p></div>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
+                                <Users size={18} />
+                                <div><h3>Manage Faculty</h3><p>Review teacher status and access.</p></div>
                             </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("categories")}>
-                                <LayoutGrid size={18} />
-                                <div><h3>Global Taxonomy</h3><p>Configure course categories.</p></div>
-                            </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("sessions")}>
-                                <Shield size={18} />
-                                <div><h3>Security Pulse</h3><p>Monitor active device sessions.</p></div>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
+                                <BarChart3 size={18} />
+                                <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
                             </article>
                         </div>
                     </section>
@@ -277,22 +324,48 @@ function AdminDashboardContent() {
                 </section>
             )}
 
-            {activeTab === "students" && (
+            {activeTab === "courses" && (
                 <section className={styles.panel}>
                     <div className={styles.panelHeader}>
-                        <div>
-                            <h2 className={styles.panelTitle}>Student Directory</h2>
-                            <p className={styles.subtitle}>Enrolled scholars and user accounts</p>
-                        </div>
+                        <h2>Course Enrollments</h2>
+                        <button className={styles.primaryBtn} onClick={() => setIsAddStudentToCourseOpen(true)}>
+                            <GraduationCap size={16} /> Add Student to Course
+                        </button>
                     </div>
-                    <StudentsList />
-                </section>
-            )}
 
-            {activeTab === "categories" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Academic Categories</h2>
-                    <CategoryManager />
+                    {enrollmentsLoading ? (
+                        <div className={styles.infoBox}>Loading enrollments...</div>
+                    ) : enrollments.length > 0 ? (
+                        <div className={styles.teacherList}>
+                            {enrollments.map((enrollment) => (
+                                <article key={enrollment.id} className={styles.listRow}>
+                                    <div className={styles.teacherHead}>
+                                        <div className={styles.avatar}>
+                                            {enrollment.student.fullName.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className={styles.listCol}>
+                                            <h3>{enrollment.student.fullName}</h3>
+                                            <p>{enrollment.student.email}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className={styles.listCol}>
+                                        <p style={{ color: "var(--foreground)", fontWeight: 500 }}>
+                                            {enrollment.course.title}
+                                        </p>
+                                    </div>
+
+                                    <div className={styles.listCol}>
+                                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                                            Enrolled {new Date(enrollment.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={styles.infoBox}>No enrollments yet.</div>
+                    )}
                 </section>
             )}
 
@@ -330,6 +403,15 @@ function AdminDashboardContent() {
                 onSuccess={() => {
                     setIsAddTeacherOpen(false);
                     fetchTeachers();
+                }}
+            />
+
+            <AddStudentToCourseModal
+                isOpen={isAddStudentToCourseOpen}
+                onClose={() => setIsAddStudentToCourseOpen(false)}
+                onSuccess={() => {
+                    setIsAddStudentToCourseOpen(false);
+                    fetchEnrollments();
                 }}
             />
 
