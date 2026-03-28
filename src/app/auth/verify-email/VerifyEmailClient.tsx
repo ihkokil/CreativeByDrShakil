@@ -24,6 +24,15 @@ export default function VerifyEmailClient({ token }: { token: string }) {
 
             if (response.ok) {
                 setMessage({ type: "success", text: data.message || "Email verified successfully." });
+                
+                // Redirect logic
+                const redirectPath = localStorage.getItem("post_verify_redirect");
+                if (redirectPath) {
+                    localStorage.removeItem("post_verify_redirect");
+                    setTimeout(() => {
+                        window.location.href = redirectPath;
+                    }, 2000);
+                }
             } else {
                 setMessage({ type: "error", text: data.error || "Verification failed." });
             }
