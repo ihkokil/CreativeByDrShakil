@@ -19,7 +19,11 @@ import {
     Search,
     LayoutGrid,
     Inbox,
-    BarChart3
+    BarChart3,
+    CreditCard,
+    CheckCircle,
+    Clock,
+    AlertCircle
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
@@ -63,7 +67,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "courses" | "categories" | "coupons" | "sessions" | "support" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "students" | "courses" | "payments" | "categories" | "coupons" | "sessions" | "support" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -75,6 +79,10 @@ function AdminDashboardContent() {
     const [enrollments, setEnrollments] = useState<any[]>([]);
     const [coursesList, setCoursesList] = useState<any[]>([]);
     const [enrollmentsLoading, setEnrollmentsLoading] = useState(true);
+
+    const [orders, setOrders] = useState<any[]>([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
 
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
@@ -119,6 +127,24 @@ function AdminDashboardContent() {
         }
     }, []);
 
+    const fetchOrders = useCallback(async (status: string) => {
+        setOrdersLoading(true);
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/admin/orders?status=${status}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const data = await response.json();
+            if (response.ok && Array.isArray(data.orders)) {
+                setOrders(data.orders);
+            }
+        } catch (error) {
+            console.error("Failed to fetch orders:", error);
+        } finally {
+            setOrdersLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (!loading && (!user || role !== "admin")) {
             router.push("/");
@@ -157,6 +183,28 @@ function AdminDashboardContent() {
         } finally {
             setIsSendingReset(false);
             setResetConfirmTarget(null);
+        }
+    };
+
+    const handleOrderDecision = async (orderId: string, decision: 'approve' | 'reject') => {
+        if (!confirm(`Are you sure you want to ${decision} this payment?`)) return;
+        
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/admin/orders/${orderId}/decision`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ decision }),
+            });
+            if (response.ok) {
+                fetchOrders(paymentStatus);
+                fetchStats();
+            } else {
+                const d = await response.json();
+                alert(d.error || `Failed to ${decision} payment.`);
+            }
+        } catch (err) {
+            alert("Network error.");
         }
     };
 
@@ -199,8 +247,11 @@ function AdminDashboardContent() {
             fetchEnrollments();
             fetchCoursesList();
         }
-    }, [user, role, fetchEnrollments, fetchCoursesList]);
-
+        if (user && role === "admin" && activeTab === "payments") {
+            fetchOrders(paymentStatus);
+        }
+    }, [user, role, activeTab, paymentStatus, fetchEnrollments, fetchCoursesList, fetchOrders]);
+    
     if (loading || !user) {
         return (
             <div className={styles.loadingOverlay}>
@@ -365,6 +416,111 @@ function AdminDashboardContent() {
                         </div>
                     ) : (
                         <div className={styles.infoBox}>No enrollments yet.</div>
+                    )}
+                </section>
+            )}
+
+            {activeTab === "payments" && (
+                <section className={styles.panel}>
+                    <div className={styles.panelHeader}>
+                        <div>
+                            <h2 className={styles.panelTitle}>Payment Verifications</h2>
+                            <p className={styles.subtitle}>Review and approve course purchase requests</p>
+                        </div>
+                        <div className={styles.cardActions} style={{ background: 'var(--surface-soft)', padding: '4px', borderRadius: '12px' }}>
+                            {(['pending', 'approved', 'rejected'] as const).map((status) => (
+                                <button 
+                                    key={status}
+                                    onClick={() => setPaymentStatus(status)}
+                                    className={styles.actionBtn}
+                                    style={{ 
+                                        width: 'auto', 
+                                        padding: '6px 12px', 
+                                        fontSize: '0.75rem', 
+                                        fontWeight: 700,
+                                        textTransform: 'capitalize',
+                                        background: paymentStatus === status ? 'var(--primary)' : 'transparent',
+                                        color: paymentStatus === status ? 'white' : 'var(--text-muted)',
+                                        border: 'none'
+                                    }}
+                                >
+                                    {status}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {ordersLoading ? (
+                        <div className={styles.loader}>Synchronizing payment records...</div>
+                    ) : orders.length > 0 ? (
+                        <div className={styles.teacherList}>
+                            {orders.map((order) => (
+                                <article key={order.id} className={styles.listRow}>
+                                    <div className={styles.teacherHead}>
+                                        <div className={styles.avatar}>
+                                            <CreditCard size={18} />
+                                        </div>
+                                        <div className={styles.listCol}>
+                                            <h3>{order.user.fullName}</h3>
+                                            <p>{order.user.email}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.listCol} style={{ flex: 1, paddingLeft: '20px' }}>
+                                        <p style={{ color: "var(--foreground)", fontWeight: 700, fontSize: '0.9rem' }}>
+                                            {order.course.title}
+                                        </p>
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                            Order ID: <span style={{ fontFamily: 'monospace' }}>{order.id.slice(-8).toUpperCase()}</span>
+                                        </p>
+                                    </div>
+
+                                    <div className={styles.listCol} style={{ minWidth: '150px' }}>
+                                        <p style={{ color: "var(--primary)", fontWeight: 800 }}>
+                                            ৳{order.payment?.amount || order.totalAmount}
+                                        </p>
+                                        <p style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>
+                                            TxID: {order.payment?.transactionId || 'N/A'}
+                                        </p>
+                                    </div>
+
+                                    <div className={styles.listCol} style={{ minWidth: '140px' }}>
+                                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Clock size={12} /> {new Date(order.createdAt).toLocaleDateString()}
+                                        </span>
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                            via {order.payment?.phoneNumber || 'bKash'}
+                                        </p>
+                                    </div>
+
+                                    <div className={styles.cardActions}>
+                                        {order.status === 'pending' && (
+                                            <>
+                                                <button 
+                                                    className={styles.actionBtn} 
+                                                    style={{ color: '#22c55e', borderColor: 'rgba(34, 197, 94, 0.2)' }}
+                                                    onClick={() => handleOrderDecision(order.id, 'approve')}
+                                                    title="Approve Payment"
+                                                >
+                                                    <CheckCircle size={18} />
+                                                </button>
+                                                <button 
+                                                    className={`${styles.actionBtn} ${styles.danger}`}
+                                                    onClick={() => handleOrderDecision(order.id, 'reject')}
+                                                    title="Reject Payment"
+                                                >
+                                                    <AlertCircle size={18} />
+                                                </button>
+                                            </>
+                                        )}
+                                        {order.status === 'approved' && <span className={styles.rolePill} style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}>Verified</span>}
+                                        {order.status === 'rejected' && <span className={styles.rolePill} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>Rejected</span>}
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={styles.infoBox}>No {paymentStatus} payments found.</div>
                     )}
                 </section>
             )}
