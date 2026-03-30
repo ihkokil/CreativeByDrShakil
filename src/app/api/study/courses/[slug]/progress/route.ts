@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import * as PrismaClientModule from '@prisma/client';
+const Prisma = PrismaClientModule.Prisma;
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -70,7 +71,7 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
 const collectPlayableNodes = (nodes: BuilderNodeWithAvailability[]) => {
   const playableMap = new Map<string, BuilderNodeWithAvailability>();
   const walk = (list: BuilderNodeWithAvailability[]) => {
-    list.forEach((node) => {
+    list.forEach((node: any) => {
       if (node.type !== 'folder') {
         playableMap.set(node.id, node);
       }
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       curriculum,
       computedReleaseGroupDates,
       isAdmin ? new Date('9999-12-31') : new Date(),
-      isAdmin ? [] : overrideRows.map((row) => ({
+      isAdmin ? [] : overrideRows.map((row: any) => ({
         lessonNodeId: row.lessonNodeId,
         availabilityMode: row.availabilityMode,
         availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
@@ -138,8 +139,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     const completedLessonIds = completedRows
-      .map((row) => row.lessonNodeId)
-      .filter((lessonNodeId) => playableNodes.has(lessonNodeId));
+      .map((row: any) => row.lessonNodeId)
+      .filter((lessonNodeId: string) => playableNodes.has(lessonNodeId));
 
     return NextResponse.json({
       course: {
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       curriculum,
       computedReleaseGroupDates,
       isAdmin ? new Date('9999-12-31') : new Date(),
-      isAdmin ? [] : overrideRows.map((row) => ({
+      isAdmin ? [] : overrideRows.map((row: any) => ({
         lessonNodeId: row.lessonNodeId,
         availabilityMode: row.availabilityMode,
         availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
@@ -246,8 +247,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     const completedLessonIds = completedRows
-      .map((row) => row.lessonNodeId)
-      .filter((id) => playableNodes.has(id));
+      .map((row: any) => row.lessonNodeId)
+      .filter((id: string) => playableNodes.has(id));
 
     return NextResponse.json({
       progress: {
