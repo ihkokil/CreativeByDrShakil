@@ -16,7 +16,7 @@ export async function GET() {
       return NextResponse.json({
         provider: 'bkash',
         sendMoneyNumber: '01700000000',
-        qrCodeUrl: '/bkash-qr.png',
+        qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
       })
     }
 
@@ -25,7 +25,7 @@ export async function GET() {
     return NextResponse.json({
       provider: 'bkash',
       sendMoneyNumber: '01700000000',
-      qrCodeUrl: '/bkash-qr.png',
+      qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
     })
   }
 }
