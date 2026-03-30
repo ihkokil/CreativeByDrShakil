@@ -275,14 +275,6 @@ export default function StudyCoursePage() {
                         }}
                     />
 
-                    {activeLesson && (
-                        <article className={styles.article}>
-                            <h1>{activeLesson.title}</h1>
-                            <p>
-                                Review this lesson and continue through the scheduled curriculum as each topic becomes available.
-                            </p>
-                        </article>
-                    )}
                 </div>
 
                 <footer className={styles.navBar}>

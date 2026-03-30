@@ -11,6 +11,13 @@
     grid-template-columns: 1fr 400px;
     gap: 60px;
     position: relative;
+    align-items: start; /* Ensure grid items don't stretch so sticky works */
+}
+
+.sidebarWrapper {
+    position: sticky;
+    top: 100px;
+    height: fit-content;
 }
 
 .leftContent {

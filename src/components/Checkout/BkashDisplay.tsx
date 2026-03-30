@@ -9,7 +9,7 @@ interface BkashDisplayProps {
 
 export function BkashDisplay({ amount }: BkashDisplayProps) {
   const [bkashNumber, setBkashNumber] = useState('01700000000')
-  const [qrCodeUrl, setQrCodeUrl] = useState('/bkash-qr.png')
+  const [qrCodeUrl, setQrCodeUrl] = useState('/uploads/bkash-qr/bkash-qr.png')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
