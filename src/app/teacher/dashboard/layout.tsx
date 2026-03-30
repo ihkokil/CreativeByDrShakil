@@ -8,7 +8,7 @@ import TeacherHeader from "@/components/Teacher/TeacherHeader";
 import styles from "./TeacherDashboard.module.css";
 import { Loader2, LayoutDashboard, BookOpen, Users, Video, FileText, MoreHorizontal } from "lucide-react";
 
-export default function TeacherDashboardLayout({
+function TeacherDashboardLayoutContent({
     children,
 }: {
     children: React.ReactNode;
@@ -89,5 +89,26 @@ export default function TeacherDashboardLayout({
                 </nav>
             </main>
         </div>
+    );
+}
+
+import { Suspense } from "react";
+
+export default function TeacherDashboardLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    return (
+        <Suspense fallback={
+            <div className={styles.loadingOverlay}>
+                <Loader2 className={styles.spinner} />
+                <span>Syncing Instructor Profile...</span>
+            </div>
+        }>
+            <TeacherDashboardLayoutContent>
+                {children}
+            </TeacherDashboardLayoutContent>
+        </Suspense>
     );
 }
