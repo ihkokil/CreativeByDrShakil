@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import * as PrismaClientModule from '@prisma/client';
-const Prisma = PrismaClientModule.Prisma;
+import { Prisma } from '@prisma/client';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
