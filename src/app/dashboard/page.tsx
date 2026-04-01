@@ -16,13 +16,15 @@ import {
     ArrowRight,
     Phone,
     User as UserIcon,
+    Loader2
 } from "lucide-react";
 import { COURSES } from "@/constants/courses";
 import Link from "next/link";
 import Image from "next/image";
+import StudentOverview from "@/components/Student/StudentOverview";
 
 function StudentDashboardContent() {
-    const { user, loading, refreshSession, signOut } = useAuth();
+    const { user, loading, refreshSession } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -33,32 +35,18 @@ function StudentDashboardContent() {
         params.set("tab", tab);
         router.push(`?${params.toString()}`);
     };
+    
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push("/");
-            return;
-        }
-
         if (user) {
             setFullName(user.user_metadata?.full_name || user.email?.split("@")[0] || "");
             setPhone(user.user_metadata?.phone || user.phone || "");
         }
-    }, [user, loading, router]);
-
-    const navItems = useMemo(
-        () => [
-            { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
-            { key: "profile", label: "Profile", icon: UserCog, mobilePrimary: true },
-            { key: "progress", label: "Progress", icon: TrendingUp, mobilePrimary: true },
-            { key: "exams", label: "Exams", icon: ClipboardList },
-        ],
-        []
-    );
+    }, [user]);
 
     const myCourses = useMemo(() => COURSES.slice(0, 3), []);
 
@@ -88,66 +76,39 @@ function StudentDashboardContent() {
         setSaving(false);
     };
 
-    const handleLogout = async () => {
-        await signOut();
-        router.push("/");
-    };
-
     if (loading || !user) {
-        return <div className={styles.loader}>Loading Dashboard...</div>;
+        return (
+            <div className={styles.loadingOverlay}>
+                <Loader2 className={styles.spinner} />
+                <span>Redirecting...</span>
+            </div>
+        );
     }
 
     return (
-        <DashboardShell
-            title="Student Dashboard"
-            subtitle="Track your courses, progress, and exam readiness from one place."
-            roleLabel="Student"
-            userName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Student"}
-            userEmail={user.email}
-            userAvatarUrl={user.user_metadata?.profile_image || null}
-            items={navItems}
-            activeKey={activeTab}
-            onSelect={(key) => setActiveTab(key as "overview" | "profile" | "progress" | "exams")}
-            onLogout={handleLogout}
-        >
+        <div className={styles.stack}>
             {activeTab === "overview" && (
-                <div className={styles.stack}>
-                    <section className={styles.metricsGrid}>
-                        <div className={styles.metricCard}>
-                            <Trophy size={20} />
-                            <div>
-                                <h3>12</h3>
-                                <p>Certificates</p>
-                            </div>
+                <>
+                    <div className={styles.sectionHeader}>
+                        <div>
+                            <h1 className={styles.sectionTitle}>Welcome back, {fullName.split(' ')[0]}!</h1>
+                            <p className={styles.subtitle}>You're in the top 5% of active learners this week.</p>
                         </div>
-                        <div className={styles.metricCard}>
-                            <BookOpen size={20} />
-                            <div>
-                                <h3>{myCourses.length}</h3>
-                                <p>Active Courses</p>
-                            </div>
-                        </div>
-                        <div className={styles.metricCard}>
-                            <TrendingUp size={20} />
-                            <div>
-                                <h3>85%</h3>
-                                <p>Average Score</p>
-                            </div>
-                        </div>
-                        <div className={styles.metricCard}>
-                            <Clock size={20} />
-                            <div>
-                                <h3>24h</h3>
-                                <p>Study This Week</p>
-                            </div>
-                        </div>
-                    </section>
+                    </div>
+
+                    <StudentOverview 
+                        courseCount={myCourses.length}
+                        completionPercent={45}
+                        certificatesCount={12}
+                        studyHours="24h"
+                        onTabChange={setActiveTab}
+                    />
 
                     <section className={styles.panel}>
                         <div className={styles.panelHeader}>
-                            <h2>Continue Learning</h2>
+                            <h2>Recent Courses</h2>
                             <Link href="/courses" className={styles.inlineLink}>
-                                Browse courses <ArrowRight size={14} />
+                                Browse All <ArrowRight size={14} />
                             </Link>
                         </div>
 
@@ -155,7 +116,7 @@ function StudentDashboardContent() {
                             {myCourses.map((course) => (
                                 <article key={course.id} className={styles.courseCard}>
                                     <div className={styles.thumb}>
-                                        <Image src="/placeholder.svg" alt={course.title} fill style={{ objectFit: "cover" }} />
+                                        <Image src="/teacher-placeholder.jpg" alt={course.title} fill style={{ objectFit: "cover" }} />
                                     </div>
                                     <div className={styles.courseBody}>
                                         <span className={styles.category}>{course.category}</span>
@@ -172,12 +133,18 @@ function StudentDashboardContent() {
                             ))}
                         </div>
                     </section>
-                </div>
+                </>
             )}
 
             {activeTab === "profile" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Profile & User Settings</h2>
+                    <div className={styles.panelHeader}>
+                        <div>
+                            <h2 className={styles.panelTitle}>Profile & Security</h2>
+                            <p className={styles.subtitle}>Manage your identity and contact info</p>
+                        </div>
+                    </div>
+                    
                     <form className={styles.profileForm} onSubmit={handleUpdateProfile}>
                         <div className={styles.formGroup}>
                             <label>Full Name</label>
@@ -196,7 +163,7 @@ function StudentDashboardContent() {
                         <div className={styles.formGroup}>
                             <label>Email Address</label>
                             <input type="email" value={user.email || ""} disabled className={styles.disabledInput} />
-                            <small>Email cannot be changed directly.</small>
+                            <small>Email is linked to your academic record.</small>
                         </div>
 
                         <div className={styles.formGroup}>
@@ -207,7 +174,7 @@ function StudentDashboardContent() {
                                     type="tel"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="+1 234 567 890"
+                                    placeholder="+8801XXXXXXXXX"
                                 />
                             </div>
                         </div>
@@ -215,7 +182,7 @@ function StudentDashboardContent() {
                         {message && <div className={`${styles.message} ${styles[message.type]}`}>{message.text}</div>}
 
                         <button type="submit" className={styles.primaryBtn} disabled={saving}>
-                            {saving ? "Saving..." : "Save Changes"}
+                            {saving ? "Saving Changes..." : "Update Profile"}
                         </button>
                     </form>
                 </section>
@@ -247,7 +214,7 @@ function StudentDashboardContent() {
                     </div>
                 </section>
             )}
-        </DashboardShell>
+        </div>
     );
 }
 
