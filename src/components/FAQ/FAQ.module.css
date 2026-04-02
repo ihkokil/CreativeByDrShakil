@@ -1,5 +1,11 @@
 .container {
-    max-width: 900px;
+    max-width: var(--layout-max-width);
+    margin: 0 auto;
+    width: 100%;
+}
+
+.list {
+    max-width: 980px;
     margin: 0 auto;
 }
 
@@ -37,7 +43,7 @@
 .activeItem {
     background: rgba(59, 130, 246, 0.05);
     border-color: var(--primary);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-soft);
 }
 
 .question {

@@ -22,9 +22,9 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
             whileHover={{ y: -5 }}
             className={`${styles.card} ${viewMode === 'list' ? styles.listCard : ''} glass`}
         >
-            <div className={styles.imageWrapper}>
+            <Link href={`/courses/${course.slug}`} className={styles.imageWrapper}>
                 <Image
-                    src="/placeholder.svg"
+                    src={course.category === "FCPS" || course.category === "Exams" ? "/placeholder.svg" : "/placeholder.svg"}
                     alt={course.title}
                     fill
                     style={{ objectFit: "cover" }}
@@ -33,7 +33,7 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     <Tag size={12} />
                     {course.category}
                 </div>
-            </div>
+            </Link>
 
             <div className={styles.cardInfo}>
                 <div className={styles.instructorSection}>
@@ -43,7 +43,9 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     <span className={styles.instructorName}>{course.mainInstructor.name}</span>
                 </div>
 
-                <h3 className={styles.courseTitle}>{course.title}</h3>
+                <Link href={`/courses/${course.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <h3 className={styles.courseTitle}>{course.title}</h3>
+                </Link>
 
                 <div className={styles.meta}>
                     <div className={styles.metaItem}>
@@ -60,9 +62,14 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
             </div>
 
             <div className={styles.cardFooter}>
-                <span className={styles.price}>{course.price}</span>
-                <Link href="/study" className={styles.enrollBtn}>
-                    Enroll Now
+                <div className={styles.priceContainer}>
+                    {course.originalPrice && (
+                        <span className={styles.originalPrice}>{course.originalPrice}</span>
+                    )}
+                    <span className={styles.price}>{course.price}</span>
+                </div>
+                <Link href={`/courses/${course.slug}`} className={styles.enrollBtn}>
+                    View Details
                 </Link>
             </div>
         </motion.div>

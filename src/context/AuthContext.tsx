@@ -1,15 +1,30 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { User, Session } from '@supabase/supabase-js';
+
+interface AppUser {
+    id: string;
+    email: string;
+    phone?: string | null;
+    role?: string;
+    user_metadata?: {
+        full_name?: string;
+        phone?: string | null;
+        bmdc_number?: string | null;
+    };
+}
+
+interface AppSession {
+    access_token: string;
+}
 
 interface AuthContextType {
-    user: User | null;
-    session: Session | null;
+    user: AppUser | null;
+    session: AppSession | null;
     loading: boolean;
     role: string | null;
     signOut: () => Promise<void>;
+    refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,61 +33,58 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     role: null,
     signOut: async () => { },
+    refreshSession: async () => { },
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [session, setSession] = useState<Session | null>(null);
+    const [user, setUser] = useState<AppUser | null>(null);
+    const [session, setSession] = useState<AppSession | null>(null);
     const [loading, setLoading] = useState(true);
     const [role, setRole] = useState<string | null>(null);
 
-    const fetchRole = async (userId: string) => {
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', userId)
-            .single();
+    const refreshSession = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch('/api/auth/session', {
+                method: 'GET',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
 
-        if (data && !error) {
-            setRole(data.role);
-        } else {
+            const data = await response.json();
+            setUser(data.user || null);
+            setRole(data.role || null);
+
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+                setSession({ access_token: data.token });
+            } else {
+                setSession(null);
+            }
+        } catch {
+            setUser(null);
             setRole(null);
+            setSession(null);
+            localStorage.removeItem('auth_token');
+        } finally {
+            setLoading(false);
         }
     };
 
     useEffect(() => {
-        // Check active session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchRole(session.user.id);
-            }
-            setLoading(false);
-        });
-
-        // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchRole(session.user.id);
-            } else {
-                setRole(null);
-            }
-            setLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
+        refreshSession();
     }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
+        await fetch('/api/auth/logout', { method: 'POST' });
+        localStorage.removeItem('auth_token');
+        setUser(null);
+        setSession(null);
         setRole(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, session, loading, role, signOut }}>
+        <AuthContext.Provider value={{ user, session, loading, role, signOut, refreshSession }}>
             {children}
         </AuthContext.Provider>
     );
