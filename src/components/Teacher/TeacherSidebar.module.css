@@ -1,0 +1,144 @@
+.sidebar {
+    width: 80px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: var(--glass);
+    border-right: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    padding: 30px 0;
+    transition: width 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    z-index: 2000;
+    overflow-x: hidden;
+}
+
+.sidebar:hover {
+    width: 250px;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+}
+
+.logoArea {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    margin-bottom: 50px;
+    min-width: 250px;
+}
+
+.iconPlaceholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.letter {
+    color: white;
+    font-weight: 900;
+    font-size: 1.2rem;
+}
+
+.logoText {
+    margin-left: 15px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+    color: var(--foreground);
+}
+
+.sidebar:hover .logoText {
+    opacity: 1;
+}
+
+.navLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 15px;
+    flex: 1;
+}
+
+.navItem {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 14px 15px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    min-width: 220px;
+    text-align: left;
+}
+
+.navItem:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--foreground);
+}
+
+.navItem.active {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+
+.navItem:hover .icon,
+.navItem.active .icon {
+    transform: scale(1.1);
+}
+
+.label {
+    margin-left: 15px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.sidebar:hover .label {
+    opacity: 1;
+}
+
+.bottomNav {
+    padding: 0 15px;
+}
+
+.navItemLogout {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    padding: 14px 15px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 220px;
+    text-align: left;
+}
+
+.navItemLogout:hover {
+    background: rgba(239, 68, 68, 0.1);
+}

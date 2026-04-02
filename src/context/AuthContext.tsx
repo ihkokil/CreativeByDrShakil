@@ -42,27 +42,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const [role, setRole] = useState<string | null>(null);
 
-    const refreshSession = async () => {
-        setLoading(true);
+    const fetchRole = async (userId: string) => {
         try {
-            const token = localStorage.getItem('auth_token');
-            const response = await fetch('/api/auth/session', {
-                method: 'GET',
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
+                .single();
 
-            const data = await response.json();
-            setUser(data.user || null);
-            setRole(data.role || null);
-
-            if (data.token) {
-                localStorage.setItem('auth_token', data.token);
-                setSession({ access_token: data.token });
+            if (data && !error) {
+                setRole(data.role);
             } else {
-                setSession(null);
+                setRole(null);
             }
-        } catch {
-            setUser(null);
+        } catch (e) {
             setRole(null);
             setSession(null);
             localStorage.removeItem('auth_token');
