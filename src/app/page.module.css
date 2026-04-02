@@ -110,9 +110,9 @@
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    width: 90%;
-    max-width: 1200px;
-    padding: 15px 30px;
+    width: min(100% - (var(--layout-gutter-desktop) * 2), var(--layout-max-width));
+    max-width: var(--layout-max-width);
+    padding: 15px var(--layout-gutter-tablet);
     display: flex;
     align-items: center;
     z-index: 1000;
@@ -247,8 +247,8 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 30px;
-    padding: 50px 20px;
-    max-width: 1200px;
+    padding: 50px var(--layout-gutter-desktop);
+    max-width: var(--layout-max-width);
     margin: 0 auto;
 }
 
@@ -279,7 +279,8 @@
     }
 
     .nav {
-        padding: 10px 20px;
+        width: min(100% - (var(--layout-gutter-mobile) * 2), var(--layout-max-width));
+        padding: 10px var(--layout-gutter-mobile);
     }
 
     .links {
