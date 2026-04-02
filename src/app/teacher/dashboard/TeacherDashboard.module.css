@@ -4,13 +4,46 @@
     background: var(--background);
 }
 
+/* Spacer pushes main content to the right to account for the fixed sidebar */
+.sidebarSpacer {
+    width: 280px;
+    flex-shrink: 0;
+    transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sidebarSpacerCollapsed {
+    width: 80px;
+}
+
 .mainContentArea {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    margin-left: 80px;
-    transition: margin-left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Override the global Navbar positioning so it doesn't overlap the sidebar */
+.navbarWrapper {
+    position: fixed;
+    top: 15px;
+    left: 295px;
+    right: 15px;
+    z-index: 1000;
+    transition: left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.navbarWrapperCollapsed {
+    left: 95px;
+}
+
+.navbarWrapper > :global(nav) {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .loader {
@@ -21,18 +54,15 @@
     font-size: 1.5rem;
     font-weight: 700;
     color: #8b5cf6;
-    /* Indigo accent */
 }
 
 .container {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 140px 40px 100px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 140px 5% 100px;
 }
 
 .tabPanel {
-    width: 100%;
     background: var(--glass);
     border: 1px solid var(--glass-border);
     border-radius: 24px;
@@ -327,6 +357,14 @@
 }
 
 @media (max-width: 768px) {
+    .sidebarSpacer {
+        display: none;
+    }
+
+    .navbarWrapper {
+        left: 15px;
+    }
+
     .container {
         padding: 120px 16px 80px;
     }

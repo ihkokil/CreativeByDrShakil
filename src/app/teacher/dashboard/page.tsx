@@ -30,6 +30,7 @@ export default function TeacherDashboard() {
     const { user, loading } = useAuth();
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'overview' | 'courses' | 'students' | 'assignments' | 'library'>('overview');
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -77,10 +78,18 @@ export default function TeacherDashboard() {
                 teacherEmail={user.email || "teacher@example.com"}
                 activeStudents={activeStudents}
                 totalCourses={totalCourses}
+                isExpanded={isSidebarExpanded}
+                onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
             />
 
+            {/* Spacer div takes up the same width as the fixed sidebar to push content right */}
+            <div className={`${styles.sidebarSpacer} ${!isSidebarExpanded ? styles.sidebarSpacerCollapsed : ''}`} />
+
             <main className={styles.mainContentArea}>
-                <Navbar />
+                {/* Navbar wrapper constrains the fixed navbar to the content area */}
+                <div className={`${styles.navbarWrapper} ${!isSidebarExpanded ? styles.navbarWrapperCollapsed : ''}`}>
+                    <Navbar />
+                </div>
 
                 <div className={styles.container}>
                     <header className={styles.header}>
