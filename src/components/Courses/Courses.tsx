@@ -18,38 +18,40 @@ export default function Courses() {
 
     return (
         <section className="section-padding">
-            <div className={styles.header}>
-                <div className={styles.titles}>
-                    <h2 className={styles.sectionTitle}>Featured Courses</h2>
-                    <p className={styles.subtitle}>Hand-picked professional training by senior consultants.</p>
-                </div>
-                <div className={styles.tabsSection}>
-                    <div className={styles.tabs}>
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                className={`${styles.tab} ${filter === cat ? styles.activeTab : ""}`}
-                                onClick={() => setFilter(cat)}
-                            >
-                                {cat}
-                            </button>
-                        ))}
+            <div className={styles.content}>
+                <div className={styles.header}>
+                    <div className={styles.titles}>
+                        <h2 className={styles.sectionTitle}>Featured Courses</h2>
+                        <p className={styles.subtitle}>Hand-picked professional training by senior consultants.</p>
+                    </div>
+                    <div className={styles.tabsSection}>
+                        <div className={styles.tabs}>
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    className={`${styles.tab} ${filter === cat ? styles.activeTab : ""}`}
+                                    onClick={() => setFilter(cat)}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <motion.div layout className={styles.grid}>
-                <AnimatePresence mode="popLayout">
-                    {filtered.map(course => (
-                        <CourseCard key={course.id} course={course} />
-                    ))}
-                </AnimatePresence>
-            </motion.div>
+                <motion.div layout className={styles.grid}>
+                    <AnimatePresence mode="popLayout">
+                        {filtered.map(course => (
+                            <CourseCard key={course.id} course={course} />
+                        ))}
+                    </AnimatePresence>
+                </motion.div>
 
-            <div className={styles.footer}>
-                <Link href="/courses" className={styles.viewAllBtn}>
-                    View All Courses <ArrowRight size={18} />
-                </Link>
+                <div className={styles.footer}>
+                    <Link href="/courses" className={styles.viewAllBtn}>
+                        View All Courses <ArrowRight size={18} />
+                    </Link>
+                </div>
             </div>
         </section>
     );

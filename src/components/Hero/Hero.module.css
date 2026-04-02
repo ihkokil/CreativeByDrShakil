@@ -12,9 +12,10 @@
 }
 
 .container {
-    max-width: 1400px;
+    max-width: var(--layout-max-width);
     margin: 0 auto;
-    width: 90%;
+    width: 100%;
+    padding-inline: var(--layout-gutter-desktop);
     display: grid;
     grid-template-columns: 1.1fr 1fr;
     align-items: center;
