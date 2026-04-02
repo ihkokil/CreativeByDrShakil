@@ -38,7 +38,7 @@ export default function TeacherSidebar({
     totalCourses = 0
 }: TeacherSidebarProps) {
     const { signOut } = useAuth();
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
 
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={22} /> },
