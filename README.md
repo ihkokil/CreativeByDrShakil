@@ -1,3 +1,3 @@
-# CreativeByDrShakil
+# Creative By Dr. Shakil [creativebydrshakil.com]
 
-Project initialized by Md. Iqbal Haider Khan.
+Creative By Dr. Shakil is a premium medical education platform for doctors and students.
