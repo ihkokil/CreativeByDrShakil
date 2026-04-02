@@ -3,26 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./Footer.module.css";
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight } from "lucide-react";
+import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react";
 
 export default function Footer() {
     return (
         <footer className={styles.footer}>
-            <div className={styles.newsletter}>
-                <div className={styles.newsletterContent}>
-                    <div className={styles.newsletterText}>
-                        <h3>Join our medical community</h3>
-                        <p>Receive weekly high-yield notes and exam updates directly in your inbox.</p>
-                    </div>
-                    <form className={styles.newsletterForm} onSubmit={(e) => e.preventDefault()}>
-                        <input type="email" placeholder="Enter your email" required />
-                        <button type="submit">
-                            Subscribe <ArrowRight size={18} />
-                        </button>
-                    </form>
-                </div>
-            </div>
-
             <div className={styles.mainFooter}>
                 <div className={styles.brandSide}>
                     <div className={styles.logo}>
