@@ -204,7 +204,7 @@ export default function TeacherDashboard() {
                 )}
 
                 {activeTab === 'courses' && (
-                    <div className={styles.profileSection}>
+                    <div className={styles.tabPanel}>
                         <h2>Course <span className="gradient-text">Management</span></h2>
                         <p>This is where you can create, edit, and publish your medical courses.</p>
                         {/* More detailed course management UI could go here */}
@@ -212,14 +212,14 @@ export default function TeacherDashboard() {
                 )}
 
                 {activeTab === 'students' && (
-                    <div className={styles.profileSection}>
+                    <div className={styles.tabPanel}>
                         <h2>Student <span className="gradient-text">Analytics</span></h2>
                         <p>Track student progress, attendance, and exam performance across all your courses.</p>
                     </div>
                 )}
 
                 {activeTab === 'assignments' && (
-                    <div className={styles.profileSection}>
+                    <div className={styles.tabPanel}>
                         <h2>Assignment <span className="gradient-text">Grading</span></h2>
                         <p>Review and grade submissions from your students.</p>
                     </div>
