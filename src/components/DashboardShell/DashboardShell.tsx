@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import styles from "./DashboardShell.module.css";
 import { LogOut, Menu, X, MoreHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -70,8 +71,9 @@ export default function DashboardShell({
         <div className={styles.shell}>
             <aside className={styles.sidebar}>
                 <div className={styles.sidebarHeader}>
-                    <Link href="/" className={styles.brandLink}>Creative Learning</Link>
-                    <span className={styles.rolePill}>{roleLabel}</span>
+                    <Link href="/" className={styles.brandLink} aria-label="Go to homepage">
+                        <Image src="/logo.png" alt="Creative Learning" width={152} height={40} priority />
+                    </Link>
                 </div>
 
                 <div className={styles.profileCard}>
@@ -114,13 +116,16 @@ export default function DashboardShell({
                         <h1>{title}</h1>
                         {subtitle ? <p>{subtitle}</p> : null}
                     </div>
-                    <button
-                        className={styles.mobileMoreBtn}
-                        onClick={() => setIsDrawerOpen(true)}
-                        aria-label="Open dashboard menu"
-                    >
-                        <Menu size={22} />
-                    </button>
+                    <div className={styles.topbarRight}>
+                        <span className={styles.rolePill}>{roleLabel}</span>
+                        <button
+                            className={styles.mobileMoreBtn}
+                            onClick={() => setIsDrawerOpen(true)}
+                            aria-label="Open dashboard menu"
+                        >
+                            <Menu size={22} />
+                        </button>
+                    </div>
                 </header>
 
                 <div className={styles.content}>{children}</div>
