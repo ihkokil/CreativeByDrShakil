@@ -21,6 +21,7 @@ interface DashboardShellProps {
     roleLabel: string;
     userName: string;
     userEmail?: string;
+    userAvatarUrl?: string | null;
     items: DashboardNavItem[];
     activeKey: string;
     onSelect: (key: string) => void;
@@ -34,6 +35,7 @@ export default function DashboardShell({
     roleLabel,
     userName,
     userEmail,
+    userAvatarUrl,
     items,
     activeKey,
     onSelect,
@@ -77,7 +79,20 @@ export default function DashboardShell({
                 </div>
 
                 <div className={styles.profileCard}>
-                    <div className={styles.avatar}>{initials}</div>
+                    <div className={styles.avatar}>
+                        {userAvatarUrl ? (
+                            <Image
+                                src={userAvatarUrl}
+                                alt={`${userName} profile`}
+                                fill
+                                unoptimized
+                                className={styles.avatarImage}
+                                sizes="38px"
+                            />
+                        ) : (
+                            initials
+                        )}
+                    </div>
                     <div className={styles.profileInfo}>
                         <strong>{userName}</strong>
                         <span>{userEmail || "Logged in"}</span>
@@ -112,23 +127,27 @@ export default function DashboardShell({
 
             <div className={styles.mainArea}>
                 <header className={styles.topbar}>
-                    <div>
-                        <h1>{title}</h1>
-                        {subtitle ? <p>{subtitle}</p> : null}
-                    </div>
-                    <div className={styles.topbarRight}>
-                        <span className={styles.rolePill}>{roleLabel}</span>
-                        <button
-                            className={styles.mobileMoreBtn}
-                            onClick={() => setIsDrawerOpen(true)}
-                            aria-label="Open dashboard menu"
-                        >
-                            <Menu size={22} />
-                        </button>
+                    <div className={styles.topbarInner}>
+                        <div>
+                            <h1>{title}</h1>
+                            {subtitle ? <p>{subtitle}</p> : null}
+                        </div>
+                        <div className={styles.topbarRight}>
+                            <span className={styles.rolePill}>{roleLabel}</span>
+                            <button
+                                className={styles.mobileMoreBtn}
+                                onClick={() => setIsDrawerOpen(true)}
+                                aria-label="Open dashboard menu"
+                            >
+                                <Menu size={22} />
+                            </button>
+                        </div>
                     </div>
                 </header>
 
-                <div className={styles.content}>{children}</div>
+                <div className={styles.content}>
+                    <div className={styles.contentInner}>{children}</div>
+                </div>
             </div>
 
             <nav className={styles.mobileBottomNav}>

@@ -4,8 +4,9 @@
   "description": "Project initialized by Md. Iqbal Haider Khan.",
   "type": "module",
   "scripts": {
+    "clean": "node -e \"require('fs').rmSync('.next',{ recursive: true, force: true })\"",
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "npm run clean && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "seed:teachers": "node scripts/seed-teachers.mjs"

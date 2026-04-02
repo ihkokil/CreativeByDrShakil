@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
           full_name: user.fullName,
           phone: user.phone,
           bmdc_number: user.bmdcNumber,
+          profile_image: user.profileImage,
         },
       },
       token,

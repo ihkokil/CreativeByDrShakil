@@ -1,0 +1,182 @@
+.loader {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.panel {
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    padding: 22px;
+}
+
+.panelTitle {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+}
+
+.form {
+    display: grid;
+    gap: 18px;
+}
+
+.avatarRow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.avatarPreview {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.avatarImage {
+    object-fit: cover;
+}
+
+.avatarActions {
+    display: grid;
+    gap: 10px;
+}
+
+.uploadBtn,
+.clearBtn {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+    color: var(--foreground);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    width: fit-content;
+}
+
+.uploadBtn input {
+    display: none;
+}
+
+.clearBtn {
+    border-color: color-mix(in srgb, #ef4444 30%, transparent);
+    color: #ef4444;
+    background: color-mix(in srgb, #ef4444 10%, transparent);
+}
+
+.avatarActions small {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.field {
+    display: grid;
+    gap: 8px;
+}
+
+.field label {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.field small {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.inputWrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0 10px;
+    background: color-mix(in srgb, var(--card-bg) 85%, transparent);
+}
+
+.inputWrap input {
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    padding: 10px 0;
+    width: 100%;
+}
+
+.field input {
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--card-bg) 85%, transparent);
+    color: var(--foreground);
+}
+
+.disabledInput {
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.message {
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.success {
+    border: 1px solid color-mix(in srgb, #22c55e 35%, transparent);
+    background: color-mix(in srgb, #22c55e 15%, transparent);
+    color: #22c55e;
+}
+
+.error {
+    border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
+    background: color-mix(in srgb, #ef4444 14%, transparent);
+    color: #ef4444;
+}
+
+.saveBtn {
+    border: none;
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-weight: 800;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    width: fit-content;
+}
+
+.saveBtn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+@media (max-width: 900px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
