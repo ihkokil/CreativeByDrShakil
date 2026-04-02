@@ -54,10 +54,35 @@ body {
   background-image: var(--bg-gradient);
   background-repeat: no-repeat;
   background-attachment: fixed;
+  background-size: 140% 140%;
+  background-position: 50% 50%;
+  animation: pageGradientDrift 42s ease-in-out infinite alternate;
+  will-change: background-position;
   color: var(--foreground);
   font-family: 'Outfit', sans-serif;
   -webkit-font-smoothing: antialiased;
   transition: background-color var(--transition), color var(--transition);
+}
+
+@keyframes pageGradientDrift {
+  0% {
+    background-position: 30% 50%;
+  }
+
+  50% {
+    background-position: 70% 49%;
+  }
+
+  100% {
+    background-position: 30% 51%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body {
+    animation: none;
+  }
 }
 
 a {
