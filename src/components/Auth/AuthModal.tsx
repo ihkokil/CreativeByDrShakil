@@ -1,20 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, Github, Chrome, User, Phone, FileText, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import Link from "next/link";
 
 interface Props {
     isOpen: boolean;
     onClose: () => void;
+    defaultMode?: "login" | "register" | "forgot";
 }
 
-export default function AuthModal({ isOpen, onClose }: Props) {
+export default function AuthModal({ isOpen, onClose, defaultMode = "login" }: Props) {
     const { refreshSession } = useAuth();
-    const [isLogin, setIsLogin] = useState(true);
+    const [view, setView] = useState<"login" | "register" | "forgot">(defaultMode);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -31,6 +31,35 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
+
+    useEffect(() => {
+        if (isOpen) {
+            setView(defaultMode);
+        }
+    }, [defaultMode, isOpen]);
+
+    const resetRegistrationForm = () => {
+        setEmail("");
+        setPassword("");
+        setFullName("");
+        setPhone("");
+        setBmdc("");
+        setConfirmPassword("");
+        setShowPassword(false);
+        setShowConfirmPassword(false);
+        setPendingVerificationEmail("");
+    };
+
+    const resetLoginForm = () => {
+        setEmail("");
+        setPassword("");
+        setShowPassword(false);
+        setPendingVerificationEmail("");
+    };
+
+    const isLogin = view === "login";
+    const isRegister = view === "register";
+    const isForgot = view === "forgot";
 
     const getPasswordStrength = (pass: string) => {
         let score = 0;
@@ -51,7 +80,34 @@ export default function AuthModal({ isOpen, onClose }: Props) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!isLogin) {
+        if (view === "forgot") {
+            setLoading(true);
+            setMessage(null);
+
+            const response = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                setMessage({
+                    type: 'success',
+                    text: data.message || 'Check your email for reset instructions.',
+                });
+            } else {
+                setMessage({
+                    type: 'error',
+                    text: data.error || 'Unable to process request.',
+                });
+            }
+
+            setLoading(false);
+            return;
+        }
+
+        if (isRegister) {
             const bdPhoneRegex = /^01[3-9]\d{8}$/;
             if (!bdPhoneRegex.test(phone)) {
                 setMessage({ type: 'error', text: 'Please enter a valid BD phone number (e.g., 017XXXXXXXX).' });
@@ -98,12 +154,15 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                     type: 'success',
                     text: 'Successfully logged in!',
                 });
+                resetLoginForm();
                 setTimeout(onClose, 1200);
             } else {
                 setMessage({
                     type: 'success',
                     text: data.message || 'Account created. Please verify your email before logging in.',
                 });
+                resetRegistrationForm();
+                setView('login');
             }
         }
         setLoading(false);
@@ -130,6 +189,35 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         setLoading(false);
     };
 
+    const handleSwitchView = (nextView: "login" | "register" | "forgot") => {
+        setView(nextView);
+        setMessage(null);
+        setPendingVerificationEmail("");
+
+        if (nextView === "login") {
+            setFullName("");
+            setPhone("");
+            setBmdc("");
+            setConfirmPassword("");
+            setShowConfirmPassword(false);
+        }
+
+        if (nextView === "register") {
+            setPassword("");
+            setShowPassword(false);
+        }
+
+        if (nextView === "forgot") {
+            setPassword("");
+            setConfirmPassword("");
+            setShowPassword(false);
+            setShowConfirmPassword(false);
+            setFullName("");
+            setPhone("");
+            setBmdc("");
+        }
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -147,16 +235,20 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
                         <div className={styles.header}>
                             <h2 className={styles.title}>
-                                {isLogin ? "Welcome " : "Create "}
+                                {isForgot ? "Reset " : isLogin ? "Welcome " : "Create "}
                                 <span className="gradient-text">Account</span>
                             </h2>
                             <p className={styles.subtitle}>
-                                {isLogin ? "Access your courses and progress." : "Start your medical journey today."}
+                                {isForgot
+                                    ? "Enter your email to receive a password reset link."
+                                    : isLogin
+                                        ? "Access your courses and progress."
+                                        : "Start your medical journey today."}
                             </p>
                         </div>
 
                         <form className={styles.form} onSubmit={handleSubmit}>
-                            {!isLogin && (
+                            {isRegister && (
                                 <div className={styles.inputGroup}>
                                     <User className={styles.inputIcon} size={18} />
                                     <input
@@ -169,22 +261,35 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                                 </div>
                             )}
 
-                            <div className={styles.inputGroup}>
-                                {isLogin && !email.includes('@') && email.length > 0 ? (
-                                    <Phone className={styles.inputIcon} size={18} />
-                                ) : (
+                            {isForgot ? (
+                                <div className={styles.inputGroup}>
                                     <Mail className={styles.inputIcon} size={18} />
-                                )}
-                                <input
-                                    type={isLogin ? "text" : "email"}
-                                    placeholder={isLogin ? "Email or Phone Number" : "Email Address"}
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
+                                    <input
+                                        type="email"
+                                        placeholder="Email Address"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            ) : (
+                                <div className={styles.inputGroup}>
+                                    {isLogin && !email.includes('@') && email.length > 0 ? (
+                                        <Phone className={styles.inputIcon} size={18} />
+                                    ) : (
+                                        <Mail className={styles.inputIcon} size={18} />
+                                    )}
+                                    <input
+                                        type={isLogin ? "text" : "email"}
+                                        placeholder={isLogin ? "Email or Phone Number" : "Email Address"}
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            )}
 
-                            {!isLogin && (
+                            {isRegister && (
                                 <div className={styles.row}>
                                     <div className={`${styles.inputGroup} ${styles.halfWidth}`}>
                                         <Phone className={styles.inputIcon} size={18} />
@@ -209,7 +314,8 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                                 </div>
                             )}
 
-                            <div>
+                            {!isForgot && (
+                                <div>
                                 <div className={styles.inputGroup}>
                                     <Lock className={styles.inputIcon} size={18} />
                                     <input
@@ -228,7 +334,7 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
-                                {!isLogin && password && (
+                                {isRegister && password && (
                                     <div className={styles.strengthContainer}>
                                         <div className={styles.strengthMeter}>
                                             <div
@@ -244,14 +350,15 @@ export default function AuthModal({ isOpen, onClose }: Props) {
 
                                 {isLogin && (
                                     <div className={styles.forgotWrap}>
-                                        <Link href="/auth/forgot-password" className={styles.forgotLink} onClick={onClose}>
+                                        <button type="button" className={styles.forgotLink} onClick={() => handleSwitchView("forgot")}>
                                             Forgot password?
-                                        </Link>
+                                        </button>
                                     </div>
                                 )}
-                            </div>
+                                </div>
+                            )}
 
-                            {!isLogin && (
+                            {isRegister && (
                                 <div className={styles.inputGroup}>
                                     <Lock className={styles.inputIcon} size={18} />
                                     <input
@@ -278,45 +385,67 @@ export default function AuthModal({ isOpen, onClose }: Props) {
                                 </div>
                             )}
 
-                            {pendingVerificationEmail && (
+                            {pendingVerificationEmail && isLogin && (
                                 <button type="button" className={styles.secondaryBtn} onClick={handleResendVerification}>
                                     Resend verification email
                                 </button>
                             )}
 
                             <button className={styles.submitBtn} disabled={loading}>
-                                {loading ? "Processing..." : (isLogin ? "Login Now" : "Sign Up")}
+                                {loading ? "Processing..." : (isForgot ? "Send Reset Link" : isLogin ? "Login Now" : "Sign Up")}
                                 {!loading && <ArrowRight size={18} />}
                             </button>
                         </form>
 
-                        <div className={styles.divider}>
-                            <span>Or continue with</span>
-                        </div>
+                        {!isForgot && (
+                            <>
+                                <div className={styles.divider}>
+                                    <span>Or continue with</span>
+                                </div>
 
-                        <div className={styles.socialBar}>
-                            <button className={styles.socialBtn}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
-                                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
-                                    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
-                                    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
-                                    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
-                                </svg>
-                                <span style={{ marginLeft: "8px" }}>Google</span>
-                            </button>
-                            <button className={styles.socialBtn}>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                                    <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                </svg>
-                                <span style={{ marginLeft: "8px" }}>Facebook</span>
-                            </button>
-                        </div>
+                                <div className={styles.socialBar}>
+                                    <button className={styles.socialBtn}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
+                                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
+                                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
+                                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
+                                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
+                                        </svg>
+                                        <span style={{ marginLeft: "8px" }}>Google</span>
+                                    </button>
+                                    <button className={styles.socialBtn}>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
+                                            <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                                        </svg>
+                                        <span style={{ marginLeft: "8px" }}>Facebook</span>
+                                    </button>
+                                </div>
+                            </>
+                        )}
 
                         <p className={styles.toggleText}>
-                            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-                            <button onClick={() => setIsLogin(!isLogin)}>
-                                {isLogin ? "Create one" : "Login here"}
-                            </button>
+                            {isForgot ? (
+                                <>
+                                    Remembered your password?{" "}
+                                    <button type="button" onClick={() => handleSwitchView("login")}>
+                                        Back to sign in
+                                    </button>
+                                </>
+                            ) : isLogin ? (
+                                <>
+                                    Don't have an account?{" "}
+                                    <button type="button" onClick={() => handleSwitchView("register")}>
+                                        Create one
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    Already have an account?{" "}
+                                    <button type="button" onClick={() => handleSwitchView("login")}>
+                                        Login here
+                                    </button>
+                                </>
+                            )}
                         </p>
                     </motion.div>
                 </div>
