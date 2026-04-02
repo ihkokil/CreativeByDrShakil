@@ -10,31 +10,25 @@ import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function AllCoursesPage() {
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [activeCategory, setActiveCategory] = useState("All");
     const [activeInstructor, setActiveInstructor] = useState("All");
     const [activeDuration, setActiveDuration] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-    const categories = ["FCPS", "Exams", "Residency", "Part II"];
+    const categories = ["All", "FCPS", "Exams", "Residency", "Part II"];
     const instructors = ["All", ...Object.values(INSTRUCTORS).map(i => i.name)];
     const durations = ["All", "2 Months", "3 Months", "4 Months", "6 Months"];
 
-    const toggleCategory = (cat: string) => {
-        setSelectedCategories(prev =>
-            prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
-        );
-    };
-
     const filteredCourses = useMemo(() => {
         return COURSES.filter(course => {
-            const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
+            const matchCategory = activeCategory === "All" || course.category === activeCategory;
             const matchInstructor = activeInstructor === "All" || course.mainInstructor.name === activeInstructor;
             const matchDuration = activeDuration === "All" || course.duration === activeDuration;
             const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchInstructor && matchDuration && matchSearch;
         });
-    }, [selectedCategories, activeInstructor, activeDuration, searchQuery]);
+    }, [activeCategory, activeInstructor, activeDuration, searchQuery]);
 
     return (
         <main className={styles.main}>
@@ -67,56 +61,48 @@ export default function AllCoursesPage() {
 
                         <div className={styles.filterGroup}>
                             <h4>Categories</h4>
-                            <div className={styles.checkboxList}>
-                                {categories.map(cat => (
-                                    <label key={cat} className={styles.checkboxItem}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedCategories.includes(cat)}
-                                            onChange={() => toggleCategory(cat)}
-                                        />
-                                        <span className={styles.checkmark}></span>
-                                        {cat}
-                                    </label>
+                            <select
+                                className={styles.selectControl}
+                                value={activeCategory}
+                                onChange={(e) => setActiveCategory(e.target.value)}
+                            >
+                                {categories.map((cat) => (
+                                    <option key={cat} value={cat}>{cat}</option>
                                 ))}
-                            </div>
+                            </select>
                         </div>
 
                         <div className={styles.filterGroup}>
                             <h4>Instructors</h4>
-                            <div className={styles.filterOptions}>
-                                {instructors.map(ins => (
-                                    <button
-                                        key={ins}
-                                        className={`${styles.filterBtn} ${activeInstructor === ins ? styles.active : ""}`}
-                                        onClick={() => setActiveInstructor(ins)}
-                                    >
-                                        {ins}
-                                    </button>
+                            <select
+                                className={styles.selectControl}
+                                value={activeInstructor}
+                                onChange={(e) => setActiveInstructor(e.target.value)}
+                            >
+                                {instructors.map((ins) => (
+                                    <option key={ins} value={ins}>{ins}</option>
                                 ))}
-                            </div>
+                            </select>
                         </div>
 
                         <div className={styles.filterGroup}>
                             <h4>Duration</h4>
-                            <div className={styles.filterOptions}>
-                                {durations.map(dur => (
-                                    <button
-                                        key={dur}
-                                        className={`${styles.filterBtn} ${activeDuration === dur ? styles.active : ""}`}
-                                        onClick={() => setActiveDuration(dur)}
-                                    >
-                                        {dur}
-                                    </button>
+                            <select
+                                className={styles.selectControl}
+                                value={activeDuration}
+                                onChange={(e) => setActiveDuration(e.target.value)}
+                            >
+                                {durations.map((dur) => (
+                                    <option key={dur} value={dur}>{dur}</option>
                                 ))}
-                            </div>
+                            </select>
                         </div>
 
-                        {(selectedCategories.length > 0 || activeInstructor !== "All" || activeDuration !== "All" || searchQuery) && (
+                        {(activeCategory !== "All" || activeInstructor !== "All" || activeDuration !== "All" || searchQuery) && (
                             <button
                                 className={styles.clearBtn}
                                 onClick={() => {
-                                    setSelectedCategories([]);
+                                    setActiveCategory("All");
                                     setActiveInstructor("All");
                                     setActiveDuration("All");
                                     setSearchQuery("");
