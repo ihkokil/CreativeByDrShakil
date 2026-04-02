@@ -1,7 +1,7 @@
 {
   "name": "creativebydrshakil",
   "version": "1.0.0",
-  "description": "Project initialized by Md. Iqbal Haider Khan.",
+  "description": "Creative By Dr. Shakil [creativebydrshakil.com] — medical education simplified.",
   "type": "module",
   "scripts": {
     "dev": "next dev",
