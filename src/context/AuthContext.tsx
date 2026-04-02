@@ -11,6 +11,7 @@ interface AppUser {
         full_name?: string;
         phone?: string | null;
         bmdc_number?: string | null;
+        profile_image?: string | null;
     };
 }
 
