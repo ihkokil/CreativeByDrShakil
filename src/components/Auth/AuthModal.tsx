@@ -4,7 +4,7 @@ import { useState } from "react";
 import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, Github, Chrome, User, Phone, FileText, Eye, EyeOff } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
     isOpen: boolean;
@@ -12,6 +12,7 @@ interface Props {
 }
 
 export default function AuthModal({ isOpen, onClose }: Props) {
+    const { refreshSession } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -67,38 +68,30 @@ export default function AuthModal({ isOpen, onClose }: Props) {
         setLoading(true);
         setMessage(null);
 
-        let loginData: any = {};
-        if (isLogin) {
-            const isEmail = email.includes('@');
-            if (isEmail) {
-                loginData = { email, password };
-            } else {
-                loginData = { phone: email, password };
-            }
-        }
+        const response = await fetch(isLogin ? '/api/auth/login' : '/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(
+                isLogin
+                    ? { identifier: email, password }
+                    : { email, password, fullName, phone, bmdc }
+            ),
+        });
 
-        const { error } = isLogin
-            ? await supabase.auth.signInWithPassword(loginData)
-            : await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                        phone,
-                        bmdc_number: bmdc
-                    }
-                }
-            });
+        const data = await response.json();
 
-        if (error) {
-            setMessage({ type: 'error', text: error.message });
+        if (!response.ok) {
+            setMessage({ type: 'error', text: data.error || 'Authentication failed.' });
         } else {
+            if (data.token) {
+                localStorage.setItem('auth_token', data.token);
+            }
+            await refreshSession();
             setMessage({
                 type: 'success',
-                text: isLogin ? 'Successfully logged in!' : 'Check your email for the confirmation link.'
+                text: isLogin ? 'Successfully logged in!' : 'Account created successfully!'
             });
-            if (isLogin) setTimeout(onClose, 1500);
+            setTimeout(onClose, 1200);
         }
         setLoading(false);
     };

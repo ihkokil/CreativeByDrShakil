@@ -4,8 +4,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(16px);
+    background: color-mix(in srgb, var(--background) 66%, transparent);
+    backdrop-filter: blur(8px);
     z-index: 2000;
     display: flex;
     align-items: center;
@@ -21,6 +21,7 @@
     position: relative;
     background: var(--glass);
     border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-medium);
 }
 
 .closeBtn {
@@ -87,7 +88,7 @@
 .inputGroup input {
     width: 100%;
     padding: 16px 20px 16px 50px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     border-radius: 14px;
     color: var(--foreground);
@@ -99,7 +100,7 @@
 .inputGroup input:focus {
     outline: none;
     border-color: var(--primary);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-strong);
 }
 
 .eyeBtn {
@@ -148,7 +149,7 @@
 
 .strengthMeter {
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-soft);
     border-radius: 2px;
     overflow: hidden;
     width: 100%;
@@ -240,7 +241,7 @@
 }
 
 .socialBtn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     border-color: var(--primary);
 }
 

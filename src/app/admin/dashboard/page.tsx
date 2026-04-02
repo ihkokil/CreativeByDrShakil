@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
-import { supabase } from "@/lib/supabase";
 
 interface TeacherProfile {
     id: string;
@@ -45,14 +44,16 @@ export default function AdminDashboard() {
 
     const fetchTeachers = useCallback(async () => {
         setTeachersLoading(true);
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('role', 'teacher')
-            .order('created_at', { ascending: false });
+        const token = localStorage.getItem('auth_token');
+        const response = await fetch('/api/admin/teachers', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await response.json();
 
-        if (data && !error) {
-            setTeachers(data);
+        if (response.ok && Array.isArray(data.teachers)) {
+            setTeachers(data.teachers);
+        } else {
+            setTeachers([]);
         }
         setTeachersLoading(false);
     }, []);

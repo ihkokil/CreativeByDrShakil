@@ -41,7 +41,7 @@ export default function TeacherDashboard() {
     }
 
     // Mock teacher data (assume Dr. Shakil for demonstration if metadata not set)
-    const teacherName = user.user_metadata?.full_name || "Dr. Shakil Ahmed";
+    const teacherName = user.user_metadata?.full_name || user.email?.split('@')[0] || "Dr. Shakil Ahmed";
     const myCourses = COURSES.filter(course =>
         course.mainInstructor.name === teacherName ||
         course.subInstructors?.some(ins => ins.name === teacherName)

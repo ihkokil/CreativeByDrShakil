@@ -4,6 +4,107 @@
     flex-direction: column;
 }
 
+.sectionShell {
+    position: relative;
+    isolation: isolate;
+    padding: 14px 0;
+}
+
+.sectionShell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-top: 1px solid color-mix(in srgb, var(--glass-border) 55%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 45%, transparent);
+    background: var(--section-bg, transparent);
+    background-size: 130% 130%;
+    background-position: 50% 50%;
+    animation: sectionGradientDrift 38s ease-in-out infinite alternate;
+    will-change: background-position;
+    z-index: -2;
+}
+
+.sectionShell::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -1px;
+    height: 54px;
+    background: linear-gradient(to bottom, var(--background), transparent);
+    pointer-events: none;
+    z-index: -1;
+}
+
+.heroShell {
+    --section-bg:
+        radial-gradient(circle at 12% 15%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 35%),
+        radial-gradient(circle at 82% 18%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 33%);
+}
+
+.heroShell::before {
+    animation-delay: -4s;
+}
+
+.upcomingShell {
+    --section-bg:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 80%, transparent), transparent 65%),
+        radial-gradient(circle at 88% 78%, color-mix(in srgb, var(--secondary) 8%, transparent), transparent 34%);
+}
+
+.upcomingShell::before {
+    animation-delay: -11s;
+}
+
+.coursesShell {
+    --section-bg:
+        linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--surface-soft) 70%, transparent) 45%, transparent 100%),
+        radial-gradient(circle at 10% 70%, color-mix(in srgb, var(--primary) 8%, transparent), transparent 32%);
+}
+
+.coursesShell::before {
+    animation-delay: -17s;
+}
+
+.faqShell {
+    --section-bg:
+        linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 55%, transparent), transparent 58%),
+        radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 30%);
+}
+
+.faqShell::before {
+    animation-delay: -23s;
+}
+
+@keyframes sectionGradientDrift {
+    0% {
+        background-position: 30% 50%;
+    }
+
+    50% {
+        background-position: 70% 49%;
+    }
+
+    100% {
+        background-position: 30% 51%;
+    }
+}
+
+[data-theme='light'] .sectionShell {
+    padding: 10px 0;
+}
+
+[data-theme='light'] .sectionShell::before {
+    border-top: 1px solid color-mix(in srgb, var(--glass-border) 35%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 28%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sectionShell::before {
+        animation: none;
+    }
+}
+
 .nav {
     position: fixed;
     top: 20px;
