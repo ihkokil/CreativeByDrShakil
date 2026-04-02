@@ -11,8 +11,8 @@ import {
     LogOut,
     Settings,
     HelpCircle,
-    Menu,
-    X,
+    ChevronLeft,
+    ChevronRight,
     Users as UsersIcon,
     BookOpenCheck
 } from "lucide-react";
@@ -71,10 +71,21 @@ export default function TeacherSidebar({
                 onClick={() => setIsExpanded(!isExpanded)}
                 aria-label="Toggle sidebar"
             >
-                {isExpanded ? <X size={24} /> : <Menu size={24} />}
+                {isExpanded ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}
             </button>
 
             <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : ''}`}>
+                <div className={styles.sidebarToggleDock}>
+                    <button
+                        className={styles.toggleBtn}
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        aria-label="Toggle sidebar expansion"
+                        title={isExpanded ? "Collapse" : "Expand"}
+                    >
+                        {isExpanded ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+                    </button>
+                </div>
+
                 {/* Profile Section */}
                 <div className={styles.profileSection}>
                     <div className={styles.profileHeader}>
@@ -83,14 +94,6 @@ export default function TeacherSidebar({
                                 {getInitials(teacherName)}
                             </div>
                         </div>
-                        <button
-                            className={styles.toggleBtn}
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            aria-label="Toggle sidebar expansion"
-                            title={isExpanded ? "Collapse" : "Expand"}
-                        >
-                            {isExpanded ? <X size={20} /> : <Menu size={20} />}
-                        </button>
                     </div>
                     {isExpanded && (
                         <div className={styles.profileInfo}>
