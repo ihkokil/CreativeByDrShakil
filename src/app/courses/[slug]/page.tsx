@@ -201,7 +201,7 @@ export default function CourseDetailPage() {
                             Enroll Now
                         </button>
 
-                        <h4 style={{ marginBottom: "15px", color: "var(--text-primary)" }}>This course includes:</h4>
+                        <h4 className={styles.includesTitle}>This course includes:</h4>
                         <ul className={styles.includesList}>
                             <li className={styles.includesItem}>
                                 <MonitorPlay size={18} className={styles.includesIcon} />
