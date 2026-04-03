@@ -191,6 +191,26 @@
 @media (max-width: 768px) {
     .timerWrapper {
         min-width: calc(100% - 40px);
+        padding: 15px 10px;
+    }
+    
+    .timer {
+        gap: 10px;
+    }
+    
+    .timeUnit span {
+        font-size: 1.5rem;
+    }
+    
+    .timerSeparator {
+        font-size: 1.5rem;
+        margin-top: -10px;
+    }
+
+    .featuredBox {
+        padding: 80px 20px 40px;
+        gap: 30px;
+        border-radius: 24px;
     }
 
     .info h3 {
@@ -199,5 +219,16 @@
 
     .actions {
         flex-direction: column;
+        width: 100%;
+    }
+    
+    .enrollBtn, .detailsBtn {
+        width: 100%;
+    }
+    
+    .meta {
+        flex-direction: column;
+        gap: 15px;
+        align-items: center;
     }
 }
