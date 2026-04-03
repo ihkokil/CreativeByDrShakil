@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth-server'
 import prisma from '@/lib/prisma'
+import { COURSES } from '@/constants/courses'
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +10,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { courseId, couponCode } = await request.json()
-    const course = await prisma.course.findUnique({ where: { id: courseId } })
+    let course = await prisma.course.findUnique({ where: { id: String(courseId) } })
+
+    // Fallback for legacy constant-based course IDs (e.g. 1, 2, 3) used by UI cards.
+    if (!course) {
+      const constantCourse = COURSES.find((c) => String(c.id) === String(courseId))
+      if (constantCourse) {
+        const normalizedPrice =
+          constantCourse.price.toLowerCase() === 'free'
+            ? 0
+            : Number(constantCourse.price.replace(/[^\d.]/g, '')) || 0
+
+        const existingByTitle = await prisma.course.findFirst({
+          where: { title: constantCourse.title },
+        })
+
+        course =
+          existingByTitle ||
+          (await prisma.course.create({
+            data: {
+              title: constantCourse.title,
+              description: constantCourse.description || 'Course description coming soon.',
+              price: normalizedPrice,
+              instructor: constantCourse.mainInstructor.name,
+              duration: constantCourse.duration,
+            },
+          }))
+      }
+    }
+
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
+    const resolvedCourseId = course.id
+
     const existingOrder = await prisma.order.findUnique({
-      where: { userId_courseId: { userId: session.user.id, courseId } }
+      where: { userId_courseId: { userId: session.user.id, courseId: resolvedCourseId } }
     })
     if (existingOrder?.status === 'approved') {
       return NextResponse.json({ error: 'You already own this course' }, { status: 400 })
@@ -29,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
     const totalAmount = course.price - discountAmount
     const order = await prisma.order.create({
-      data: { userId: session.user.id, courseId, couponCode, totalAmount, discountAmount },
+      data: { userId: session.user.id, courseId: resolvedCourseId, couponCode, totalAmount, discountAmount },
       include: { course: true }
     })
     return NextResponse.json({ order })
