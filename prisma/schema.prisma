@@ -8,6 +8,12 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  admin
+  teacher
+  student
+}
+
 model User {
   id                         String               @id @default(cuid())
   email                      String               @unique
@@ -19,17 +25,17 @@ model User {
   designation                String?
   institution                String?
   degrees                    String?
+  profileImage               String?              @db.LongText
+  emailVerified              Boolean              @default(true)
+  emailVerificationTokenHash String?              @db.VarChar(255)
+  emailVerificationExpires   DateTime?
+  passwordResetTokenHash     String?              @db.VarChar(255)
+  passwordResetExpires       DateTime?
   createdAt                  DateTime             @default(now())
   updatedAt                  DateTime             @updatedAt
-  emailVerificationExpires   DateTime?
-  emailVerificationTokenHash String?              @db.VarChar(255)
-  emailVerified              Boolean              @default(true)
-  passwordResetExpires       DateTime?
-  passwordResetTokenHash     String?              @db.VarChar(255)
-  profileImage               String?              @db.LongText
-  DeviceSession              DeviceSession[]
   orders                     Order[]
-  SessionLockSettings        SessionLockSettings?
+  deviceSessions             DeviceSession[]
+  sessionSettings            SessionLockSettings?
 }
 
 model Course {
@@ -64,15 +70,15 @@ model Order {
 }
 
 model Payment {
-  id            String    @id @default(cuid())
-  orderId       String    @unique
+  id            String   @id @default(cuid())
+  orderId       String   @unique
   phoneNumber   String
   transactionId String
   amount        Float
-  status        String    @default("pending")
-  submittedAt   DateTime  @default(now())
+  status        String   @default("pending")
+  submittedAt   DateTime @default(now())
   approvedAt    DateTime?
-  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model Coupon {
@@ -95,46 +101,40 @@ model PaymentConfig {
   updatedAt       DateTime @updatedAt
 }
 
-model DeviceSession {
-  id             String                   @id
-  userId         String
-  deviceType     DeviceSession_deviceType
-  browserName    String
-  userAgent      String                   @db.LongText
-  ipAddress      String
-  isLocked       Boolean                  @default(false)
-  loggedOutAt    DateTime?
-  createdAt      DateTime                 @default(now())
-  lastActivityAt DateTime                 @default(now())
-  User           User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum DeviceType {
+  desktop
+  mobile
+}
 
-  @@index([userId, deviceType])
+model DeviceSession {
+  id             String     @id @default(cuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceType     DeviceType
+  browserName    String
+  userAgent      String     @db.LongText
+  ipAddress      String
+  isLocked       Boolean    @default(false)
+  loggedOutAt    DateTime?
+  createdAt      DateTime   @default(now())
+  lastActivityAt DateTime   @default(now())
+
   @@index([userId])
+  @@index([userId, deviceType])
+}
+
+model SessionLockSettings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  autoLockFirstBrowser Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model GlobalSessionLockSettings {
   id                   String   @id @default("global")
   autoLockFirstBrowser Boolean  @default(true)
   createdAt            DateTime @default(now())
-  updatedAt            DateTime
-}
-
-model SessionLockSettings {
-  id                   String   @id
-  userId               String   @unique
-  autoLockFirstBrowser Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime
-  User                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-enum UserRole {
-  admin
-  teacher
-  student
-}
-
-enum DeviceSession_deviceType {
-  desktop
-  mobile
+  updatedAt            DateTime @updatedAt
 }
