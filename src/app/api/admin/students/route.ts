@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
         email: true,
         phone: true,
         profileImage: true,
+        bmdcNumber: true,
       },
       orderBy: { createdAt: 'desc' },
       take: 50, // limit for UI performance, can add pagination later
@@ -41,6 +42,7 @@ export async function GET(request: NextRequest) {
         email: student.email,
         phone: student.phone,
         profile_image: student.profileImage,
+        bmdcNumber: student.bmdcNumber,
       })),
     });
   } catch (error: any) {
