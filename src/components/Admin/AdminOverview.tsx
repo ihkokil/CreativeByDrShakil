@@ -14,7 +14,8 @@ import {
     Inbox,
     TicketPercent,
     ShieldCheck,
-    Briefcase
+    Briefcase,
+    CreditCard
 } from "lucide-react";
 import styles from "@/components/Teacher/TeacherOverview.module.css";
 
@@ -134,6 +135,10 @@ export default function AdminOverview({
                     <button className={styles.actionBtn} onClick={() => onTabChange('sessions')} style={{ padding: '12px' }}>
                         <div className={styles.actionIcon}><MonitorIcon size={18} /></div>
                         <span style={{ fontSize: '0.85rem' }}>Sessions</span>
+                    </button>
+                    <button className={styles.actionBtn} onClick={() => onTabChange('payments')} style={{ padding: '12px' }}>
+                        <div className={styles.actionIcon}><CreditCard size={18} /></div>
+                        <span style={{ fontSize: '0.85rem' }}>Payments</span>
                     </button>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>

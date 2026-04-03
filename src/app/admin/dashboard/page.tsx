@@ -19,7 +19,11 @@ import {
     Search,
     LayoutGrid,
     Inbox,
-    BarChart3
+    BarChart3,
+    CreditCard,
+    CheckCircle,
+    Clock,
+    AlertCircle
 } from "lucide-react";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
@@ -77,6 +81,10 @@ function AdminDashboardContent() {
     const [coursesList, setCoursesList] = useState<any[]>([]);
     const [enrollmentsLoading, setEnrollmentsLoading] = useState(true);
 
+    const [orders, setOrders] = useState<any[]>([]);
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
+
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
     const [stats, setStats] = useState<AdminStats | null>(null);
@@ -117,6 +125,24 @@ function AdminDashboardContent() {
             console.error("Failed to fetch admin stats:", error);
         } finally {
             setStatsLoading(false);
+        }
+    }, []);
+
+    const fetchOrders = useCallback(async (status: string) => {
+        setOrdersLoading(true);
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/admin/orders?status=${status}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const data = await response.json();
+            if (response.ok && Array.isArray(data.orders)) {
+                setOrders(data.orders);
+            }
+        } catch (error) {
+            console.error("Failed to fetch orders:", error);
+        } finally {
+            setOrdersLoading(false);
         }
     }, []);
 
@@ -161,6 +187,28 @@ function AdminDashboardContent() {
         }
     };
 
+    const handleOrderDecision = async (orderId: string, decision: 'approve' | 'reject') => {
+        if (!confirm(`Are you sure you want to ${decision} this payment?`)) return;
+        
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/admin/orders/${orderId}/decision`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ decision }),
+            });
+            if (response.ok) {
+                fetchOrders(paymentStatus);
+                fetchStats();
+            } else {
+                const d = await response.json();
+                alert(d.error || `Failed to ${decision} payment.`);
+            }
+        } catch (err) {
+            alert("Network error.");
+        }
+    };
+
     const getInitials = (name: string) => {
         return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
     };
@@ -200,8 +248,11 @@ function AdminDashboardContent() {
             fetchEnrollments();
             fetchCoursesList();
         }
-    }, [user, role, fetchEnrollments, fetchCoursesList]);
-
+        if (user && role === "admin" && activeTab === "payments") {
+            fetchOrders(paymentStatus);
+        }
+    }, [user, role, activeTab, paymentStatus, fetchEnrollments, fetchCoursesList, fetchOrders]);
+    
     if (loading || !user) {
         return (
             <div className={styles.loadingOverlay}>
