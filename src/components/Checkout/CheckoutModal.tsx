@@ -14,6 +14,7 @@ interface CheckoutModalProps {
 
 export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
   const [step, setStep] = useState(1)
+  const [showCoupon, setShowCoupon] = useState(false)
   const [coupon, setCoupon] = useState<string | null>(null)
   const [discount, setDiscount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -23,6 +24,14 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
   if (!isOpen) return null
 
   const amount = course.price - discount
+
+  const priceLabel = new Intl.NumberFormat('en-BD', {
+    maximumFractionDigits: 0,
+  }).format(course.price)
+
+  const totalLabel = new Intl.NumberFormat('en-BD', {
+    maximumFractionDigits: 0,
+  }).format(amount)
 
   const handleInitiateOrder = async () => {
     setLoading(true)
@@ -75,51 +84,126 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
   return (
     <div className={styles.modal}>
       <div className={styles.modalContent}>
-        <button className={styles.closeBtn} onClick={onClose}>✕</button>
+        <button className={styles.closeBtn} onClick={onClose} aria-label="Close checkout">
+          ✕
+        </button>
+
+        <div className={styles.header}>
+          <p className={styles.kicker}>Secure checkout</p>
+           <h2 className={styles.title}>{step === 1 ? 'Review & continue' : 'Send money'}</h2>
+          <p className={styles.subtitle}>{course.title}</p>
+        </div>
 
         {step === 1 && (
-          <>
-            <h2>Checkout - {course.title}</h2>
-            <p>Price: {course.price} TK</p>
-            <CouponInput
-              onApply={(code, disc) => {
-                setCoupon(code)
-                setDiscount(disc)
-              }}
-              onRemove={() => {
-                setCoupon(null)
-                setDiscount(0)
-              }}
-            />
-            <p className={styles.total}>Total: {amount} TK</p>
-            <button onClick={handleInitiateOrder} disabled={loading}>
-              {loading ? '...' : 'Continue to Payment'}
+          <div className={styles.contentBlock}>
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryRow}>
+                <span>Course price</span>
+                <strong>{priceLabel} TK</strong>
+              </div>
+              {discount > 0 && (
+                <div className={styles.summaryRow}>
+                  <span>Coupon discount</span>
+                  <strong className={styles.discountText}>- {discount} TK</strong>
+                </div>
+              )}
+              <div className={`${styles.summaryRow} ${styles.totalRow}`}>
+                 <span>Total payable</span>
+                <strong>{totalLabel} TK</strong>
+              </div>
+            </div>
+
+            {!coupon ? (
+              <button
+                type="button"
+                className={styles.couponToggle}
+                onClick={() => setShowCoupon((prev) => !prev)}
+              >
+                {showCoupon ? 'Hide coupon code' : 'Do you have a coupon?'}
+              </button>
+            ) : (
+              <div className={styles.appliedCouponBar}>
+                <span>Coupon applied: <strong>{coupon}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoupon(null)
+                    setDiscount(0)
+                    setShowCoupon(false)
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+
+            {showCoupon && !coupon && (
+              <div className={styles.couponSection}>
+                <CouponInput
+                  onApply={(code, disc) => {
+                    setCoupon(code)
+                    setDiscount(disc)
+                    setShowCoupon(false)
+                  }}
+                  onRemove={() => {
+                    setCoupon(null)
+                    setDiscount(0)
+                  }}
+                />
+              </div>
+            )}
+
+            <button
+              onClick={handleInitiateOrder}
+              disabled={loading}
+              className={styles.primaryBtn}
+            >
+                {loading ? 'Please wait...' : 'Continue to send money'}
             </button>
+
             {error && <p className={styles.error}>{error}</p>}
-          </>
+          </div>
         )}
 
         {step === 2 && order && (
-          <>
-            <h2>Send Payment</h2>
+          <div className={styles.contentBlock}>
+            <div className={styles.summaryCard}>
+              <div className={styles.summaryRow}>
+                 <span>Send money via bKash</span>
+                <strong>{totalLabel} TK</strong>
+              </div>
+              <p className={styles.helpText}>
+                 You may send exact amount or include charge. Then submit your transaction details.
+              </p>
+            </div>
+
             <BkashDisplay amount={amount} />
+
             <PaymentForm
               orderId={order.id}
               amount={amount}
               onSubmit={handlePaymentSubmit}
               loading={loading}
             />
+
             {error && <p className={styles.error}>{error}</p>}
-          </>
+          </div>
         )}
 
         {step === 3 && (
-          <>
-            <h2>✓ Payment Submitted</h2>
-            <p>Your payment has been submitted and is pending admin approval.</p>
-            <p>You will receive an email once approved.</p>
-            <button onClick={onClose}>Close</button>
-          </>
+          <div className={styles.contentBlock}>
+            <div className={styles.successCard}>
+              <p className={styles.successBadge}>Payment submitted</p>
+              <h3>We’ve received your request</h3>
+              <p>
+                Your payment is now under review. You’ll get access after approval.
+              </p>
+            </div>
+
+            <button onClick={onClose} className={styles.primaryBtn}>
+              Done
+            </button>
+          </div>
         )}
       </div>
     </div>
