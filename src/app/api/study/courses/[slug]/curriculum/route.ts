@@ -59,23 +59,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const isAdmin = payload.role === 'admin';
 
-    const hasAccess = await prisma.order.findFirst({
-      where: {
-        userId: payload.sub,
-        courseId: course.id,
-        status: 'approved',
-        updatedAt: {
-          gte: oneYearAgo,
+    if (!isAdmin) {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+      const hasAccess = await prisma.order.findFirst({
+        where: {
+          userId: payload.sub,
+          courseId: course.id,
+          status: 'approved',
+          updatedAt: {
+            gte: oneYearAgo,
+          },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      });
 
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
+      }
     }
 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
@@ -95,11 +99,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       WHERE courseId = ${course.id} AND userId = ${payload.sub}
     `);
 
+    // If admin, use a far-future-past 'now' to ensure everything is unlocked,
+    // or simply pass a flag to the availability annotator.
+    // Actually, passing a far future Date for 'now' to annotateCurriculumAvailability will unlock everything.
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
       computedReleaseGroupDates,
-      new Date(),
-      overrideRows.map((row) => ({
+      isAdmin ? new Date('9999-12-31') : new Date(),
+      isAdmin ? [] : overrideRows.map((row: any) => ({
         lessonNodeId: row.lessonNodeId,
         availabilityMode: row.availabilityMode,
         availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
@@ -115,7 +122,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         lessonNodeId: true,
       },
     });
-    const completedSet = new Set(completedRows.map((row) => row.lessonNodeId));
+    const completedSet = new Set<string>(completedRows.map((row: any) => row.lessonNodeId));
     const curriculumWithProgress = annotateCompletion(curriculumWithAvailability, completedSet);
 
     return NextResponse.json({

@@ -18,7 +18,7 @@ type OverrideRow = {
   availableAt: Date | string | null;
 };
 
-const getCourseWithAccess = async (slug: string, userId: string) => {
+const getCourseWithAccess = async (slug: string, userId: string, role?: string) => {
   const course = await prisma.course.findFirst({
     where: {
       slug,
@@ -39,6 +39,10 @@ const getCourseWithAccess = async (slug: string, userId: string) => {
 
   if (!course) {
     return { error: NextResponse.json({ error: 'Course not found.' }, { status: 404 }) };
+  }
+
+  if (role === 'admin') {
+    return { course };
   }
 
   const oneYearAgo = new Date();
@@ -66,7 +70,7 @@ const getCourseWithAccess = async (slug: string, userId: string) => {
 const collectPlayableNodes = (nodes: BuilderNodeWithAvailability[]) => {
   const playableMap = new Map<string, BuilderNodeWithAvailability>();
   const walk = (list: BuilderNodeWithAvailability[]) => {
-    list.forEach((node) => {
+    list.forEach((node: any) => {
       if (node.type !== 'folder') {
         playableMap.set(node.id, node);
       }
@@ -88,10 +92,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const resolvedParams = await params;
-    const result = await getCourseWithAccess(resolvedParams.slug, payload.sub);
+    const result = await getCourseWithAccess(resolvedParams.slug, payload.sub, payload.role);
     if (result.error) {
       return result.error;
     }
+
+    const isAdmin = payload.role === 'admin';
 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(result.course!.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
@@ -113,8 +119,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
       computedReleaseGroupDates,
-      new Date(),
-      overrideRows.map((row) => ({
+      isAdmin ? new Date('9999-12-31') : new Date(),
+      isAdmin ? [] : overrideRows.map((row: any) => ({
         lessonNodeId: row.lessonNodeId,
         availabilityMode: row.availabilityMode,
         availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
@@ -132,8 +138,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     const completedLessonIds = completedRows
-      .map((row) => row.lessonNodeId)
-      .filter((lessonNodeId) => playableNodes.has(lessonNodeId));
+      .map((row: any) => row.lessonNodeId)
+      .filter((lessonNodeId: string) => playableNodes.has(lessonNodeId));
 
     return NextResponse.json({
       course: {
@@ -159,10 +165,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const resolvedParams = await params;
-    const result = await getCourseWithAccess(resolvedParams.slug, payload.sub);
+    const result = await getCourseWithAccess(resolvedParams.slug, payload.sub, payload.role);
     if (result.error) {
       return result.error;
     }
+
+    const isAdmin = payload.role === 'admin';
 
     const body = await request.json();
     const lessonNodeId = typeof body.lessonNodeId === 'string' ? body.lessonNodeId.trim() : '';
@@ -190,8 +198,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
       computedReleaseGroupDates,
-      new Date(),
-      overrideRows.map((row) => ({
+      isAdmin ? new Date('9999-12-31') : new Date(),
+      isAdmin ? [] : overrideRows.map((row: any) => ({
         lessonNodeId: row.lessonNodeId,
         availabilityMode: row.availabilityMode,
         availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
@@ -204,7 +212,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Lesson not found in this course.' }, { status: 404 });
     }
 
-    if (lesson.locked) {
+    if (lesson.locked && !isAdmin) {
       return NextResponse.json({ error: 'This lesson is currently locked.' }, { status: 400 });
     }
 
@@ -238,8 +246,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     const completedLessonIds = completedRows
-      .map((row) => row.lessonNodeId)
-      .filter((id) => playableNodes.has(id));
+      .map((row: any) => row.lessonNodeId)
+      .filter((id: string) => playableNodes.has(id));
 
     return NextResponse.json({
       progress: {
