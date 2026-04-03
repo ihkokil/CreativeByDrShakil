@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from "react";
 import StudentSidebar from "@/components/Student/StudentSidebar";
 import StudentHeader from "@/components/Student/StudentHeader";
 import styles from "./StudentDashboard.module.css";
-import { Loader2, LayoutDashboard, UserCog, TrendingUp, ClipboardList, BookOpen, MoreHorizontal, ShieldCheck } from "lucide-react";
+import { Loader2, LayoutDashboard, UserCog, TrendingUp, ClipboardList, BookOpen, MoreHorizontal, ShieldCheck, ReceiptText } from "lucide-react";
 
 function StudentDashboardLayoutContent({
     children,
@@ -35,6 +35,7 @@ function StudentDashboardLayoutContent({
     const mobileNavItems = [
         { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'courses', label: 'Courses', icon: BookOpen },
+        { id: 'purchases', label: 'Payments', icon: ReceiptText },
         { id: 'profile', label: 'Profile', icon: UserCog },
         { id: 'security', label: 'Security', icon: ShieldCheck },
     ];

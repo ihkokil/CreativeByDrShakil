@@ -8,6 +8,7 @@ import AdminHeader from "@/components/Admin/AdminHeader";
 import styles from "./AdminDashboard.module.css";
 import {
     BarChart3,
+    CreditCard,
     GraduationCap,
     Inbox,
     LayoutDashboard,
@@ -47,6 +48,7 @@ function AdminDashboardLayoutContent({
         { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'students', label: 'Students', icon: GraduationCap },
         { id: 'teachers', label: 'Teachers', icon: Users },
+        { id: 'payments', label: 'Payments', icon: CreditCard },
         { id: 'categories', label: 'Categories', icon: LayoutGrid },
         { id: 'support', label: 'Inbox', icon: Inbox },
     ];
