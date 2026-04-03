@@ -18,6 +18,7 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
   const [discount, setDiscount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [order, setOrder] = useState<any>(null)
+  const [error, setError] = useState('')
 
   if (!isOpen) return null
 
@@ -25,6 +26,7 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
 
   const handleInitiateOrder = async () => {
     setLoading(true)
+    setError('')
     try {
       const res = await fetch('/api/orders/initiate', {
         method: 'POST',
@@ -35,10 +37,14 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
         }),
       })
       const data = await res.json()
+      if (!res.ok || !data?.order) {
+        setError(data?.error || 'Could not start checkout. Please try again.')
+        return
+      }
       setOrder(data.order)
       setStep(2)
     } catch (err) {
-      console.error(err)
+      setError('Could not start checkout. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -46,6 +52,7 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
 
   const handlePaymentSubmit = async (paymentData: any) => {
     setLoading(true)
+    setError('')
     try {
       const res = await fetch('/api/payments/submit', {
         method: 'POST',
@@ -55,9 +62,11 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
       const data = await res.json()
       if (res.ok) {
         setStep(3)
+      } else {
+        setError(data?.error || 'Payment submission failed. Please try again.')
       }
     } catch (err) {
-      console.error(err)
+      setError('Payment submission failed. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -86,6 +95,7 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
             <button onClick={handleInitiateOrder} disabled={loading}>
               {loading ? '...' : 'Continue to Payment'}
             </button>
+            {error && <p className={styles.error}>{error}</p>}
           </>
         )}
 
@@ -99,6 +109,7 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
               onSubmit={handlePaymentSubmit}
               loading={loading}
             />
+            {error && <p className={styles.error}>{error}</p>}
           </>
         )}
 

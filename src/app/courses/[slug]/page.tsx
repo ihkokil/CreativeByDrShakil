@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
+import { CheckoutModal } from "@/components/Checkout/CheckoutModal";
 import { COURSES, Course } from "@/constants/courses";
 import styles from "./CourseDetail.module.css";
 import { 
@@ -26,6 +27,7 @@ export default function CourseDetailPage() {
     const params = useParams();
     const router = useRouter();
     const [course, setCourse] = useState<Course | null>(null);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [expandedModules, setExpandedModules] = useState<number[]>([0]); // First module expanded by default
 
     useEffect(() => {
@@ -55,6 +57,18 @@ export default function CourseDetailPage() {
         setExpandedModules(prev => 
             prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
         );
+    };
+
+    const normalizePrice = (price: string) => {
+        if (price.toLowerCase() === "free") return 0;
+        const numeric = Number(price.replace(/[^\d.]/g, ""));
+        return Number.isNaN(numeric) ? 0 : numeric;
+    };
+
+    const checkoutCourse = {
+        id: String(course.id),
+        title: course.title,
+        price: normalizePrice(course.price),
     };
 
     return (
@@ -197,7 +211,10 @@ export default function CourseDetailPage() {
                             <div className={styles.price}>{course.price === "Free" ? "Free" : course.price}</div>
                         </div>
                         
-                        <button className={styles.enrollBtn}>
+                        <button
+                            className={styles.enrollBtn}
+                            onClick={() => setIsCheckoutOpen(true)}
+                        >
                             Enroll Now
                         </button>
 
@@ -226,6 +243,12 @@ export default function CourseDetailPage() {
             </div>
 
             <Footer />
+
+            <CheckoutModal
+                course={checkoutCourse}
+                isOpen={isCheckoutOpen}
+                onClose={() => setIsCheckoutOpen(false)}
+            />
         </main>
     );
 }
