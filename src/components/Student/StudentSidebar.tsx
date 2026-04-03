@@ -6,6 +6,7 @@ import {
     LayoutDashboard, 
     UserCog, 
     BookOpen, 
+    ReceiptText,
     ChevronLeft, 
     LogOut,
     ChevronRight,
@@ -38,6 +39,7 @@ export default function StudentSidebar({
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
         { id: 'courses', label: 'My Courses', icon: <BookOpen size={20} /> },
+        { id: 'purchases', label: 'Payments', icon: <ReceiptText size={20} /> },
         { id: 'profile', label: 'Profile Settings', icon: <UserCog size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
         { id: 'browse', label: 'All Courses', icon: <BookOpen size={20} />, isLink: '/courses' },
