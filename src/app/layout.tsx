@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import SessionWarningToast from "@/components/SessionWarning/SessionWarning";
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
             <body className={outfit.className}>
                 <AuthProvider>
                     {children}
+                    <SessionWarningToast />
                 </AuthProvider>
             </body>
         </html>

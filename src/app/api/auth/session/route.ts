@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { isSessionValid, updateSessionActivity } from '@/lib/session-manager';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,25 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = verifyAuthToken(token);
+
+    // Check if session is still valid (not locked or logged out)
+    if (payload.sessionId) {
+      const sessionValid = await isSessionValid(payload.sessionId);
+      if (!sessionValid) {
+        return NextResponse.json(
+          {
+            user: null,
+            role: null,
+            code: 'session_revoked',
+            message: 'Your session was terminated from another device.',
+          },
+          { status: 401 }
+        );
+      }
+
+      // Update last activity
+      await updateSessionActivity(payload.sessionId);
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: payload.sub },
@@ -46,6 +66,7 @@ export async function GET(request: NextRequest) {
       },
       role: user.role,
       token,
+      sessionId: payload.sessionId,
     });
   } catch {
     return NextResponse.json({ user: null, role: null }, { status: 200 });
