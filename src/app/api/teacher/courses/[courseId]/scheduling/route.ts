@@ -35,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const updateData: Record<string, unknown> = {};
 
     if (body.releaseMode !== undefined) {
-      const validModes = ['fixed_interval', 'groups_per_week', 'explicit_dates', 'instant', null];
+      const validModes = ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant', null];
       if (!validModes.includes(body.releaseMode)) {
         return NextResponse.json({ error: 'Invalid release mode.' }, { status: 400 });
       }
@@ -56,10 +56,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (body.releaseGroupsPerWeek !== undefined) {
       const parsed = Number(body.releaseGroupsPerWeek);
-      if (![2, 3].includes(parsed)) {
+      if (parsed !== null && ![2, 3].includes(parsed)) {
         return NextResponse.json({ error: 'releaseGroupsPerWeek must be 2 or 3.' }, { status: 400 });
       }
       updateData.releaseGroupsPerWeek = parsed;
+    }
+
+    if (body.releaseDaysOfWeek !== undefined) {
+      if (body.releaseDaysOfWeek !== null && (!Array.isArray(body.releaseDaysOfWeek) || body.releaseDaysOfWeek.some((d: any) => typeof d !== 'number' || d < 0 || d > 6))) {
+        return NextResponse.json({ error: 'releaseDaysOfWeek must be an array of numbers (0-6).' }, { status: 400 });
+      }
+      updateData.releaseDaysOfWeek = body.releaseDaysOfWeek;
     }
 
     if (body.releaseGroupDates !== undefined) {
@@ -93,6 +100,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       releaseStartAt: updatedCourse.releaseStartAt,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
+      releaseDaysOfWeek: updatedCourse.releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
@@ -104,6 +112,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         releaseStartAt: updatedCourse.releaseStartAt,
         releaseIntervalDays: updatedCourse.releaseIntervalDays,
         releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
+        releaseDaysOfWeek: updatedCourse.releaseDaysOfWeek,
         timezone: updatedCourse.timezone,
       },
       groups,
