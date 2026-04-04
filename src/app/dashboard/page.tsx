@@ -159,9 +159,21 @@ function StudentDashboardContent() {
   const handleProfileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setProfileMessage({ type: "error", text: "Please choose a valid image file." });
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileMessage({ type: "error", text: "Image must be 2MB or smaller." });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setProfileForm((prev) => ({ ...prev, profileImage: reader.result as string }));
+      setProfileMessage(null);
     };
     reader.readAsDataURL(file);
   };
@@ -438,13 +450,25 @@ function StudentDashboardContent() {
                     <span>{(profileForm.fullName || data.profile.fullName).slice(0, 2).toUpperCase()}</span>
                   )}
                 </div>
-                {editingProfile && (
-                  <div className={profileStyles.uploadOverlay}>
-                    <Camera size={24} />
-                    <input type="file" accept="image/*" onChange={handleProfileImageSelect} />
-                  </div>
-                )}
               </div>
+
+              {editingProfile && (
+                <div className={profileStyles.avatarActions}>
+                  <label className={profileStyles.uploadBtn}>
+                    <Camera size={16} />
+                    Update Photo
+                    <input type="file" accept="image/*" onChange={handleProfileImageSelect} />
+                  </label>
+                  <button 
+                    type="button" 
+                    className={profileStyles.removeBtn}
+                    onClick={() => setProfileForm(prev => ({ ...prev, profileImage: null }))}
+                    title="Remove Photo"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              )}
 
               <h3 className={profileStyles.userName}>{profileForm.fullName || data.profile.fullName}</h3>
               <p className={profileStyles.userEmail}>{data.profile.email}</p>
