@@ -49,6 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         releaseStartAt: true,
         releaseIntervalDays: true,
         releaseGroupsPerWeek: true,
+        releaseDaysOfWeek: true,
         releaseGroupDates: true,
         curriculumJson: true,
       },
@@ -84,11 +85,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
+
+    let studentEnrollmentDate: Date | null = null;
+    if (!isAdmin) {
+      const order = await prisma.order.findFirst({
+        where: {
+          userId: payload.sub,
+          courseId: course.id,
+          status: 'approved',
+        },
+        orderBy: { updatedAt: 'asc' },
+        select: { updatedAt: true },
+      });
+      studentEnrollmentDate = order?.updatedAt || null;
+    }
+
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,
-      releaseStartAt: course.releaseStartAt,
+      releaseStartAt: course.releaseStartAt || studentEnrollmentDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
+      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 

@@ -24,6 +24,7 @@ enum CoursePublishStatus {
 enum CourseReleaseMode {
   fixed_interval
   groups_per_week
+  day_of_week
   explicit_dates
   instant
 }
@@ -106,6 +107,7 @@ model Course {
   releaseStartAt DateTime?
   releaseIntervalDays Int?
   releaseGroupsPerWeek Int?
+  releaseDaysOfWeek Json?
   releaseGroupDates Json?
   curriculumJson Json?
   publishedAt DateTime?

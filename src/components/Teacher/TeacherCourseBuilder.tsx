@@ -150,6 +150,7 @@ export default function TeacherCourseBuilder() {
     const [releaseStartAt, setReleaseStartAt] = useState("");
     const [intervalDays, setIntervalDays] = useState("7");
     const [groupsPerWeek, setGroupsPerWeek] = useState("2");
+    const [selectedDays, setSelectedDays] = useState<number[]>([0]);
     const [courseStatus, setCourseStatus] = useState<"draft" | "scheduled" | "published" | "archived">("draft");
 
     const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
@@ -250,6 +251,7 @@ export default function TeacherCourseBuilder() {
         setReleaseStartAt(toLocalInputDateTime(data.course?.releaseStartAt || null));
         setIntervalDays(String(data.course?.releaseIntervalDays || 7));
         setGroupsPerWeek(String(data.course?.releaseGroupsPerWeek || 2));
+        setSelectedDays(data.course?.releaseDaysOfWeek || [0]);
         setCourseStatus((data.course?.status || "draft") as "draft" | "scheduled" | "published" | "archived");
     }, [authHeaders, applyCurriculumPayload]);
 
@@ -383,7 +385,7 @@ export default function TeacherCourseBuilder() {
             const releaseGroupDates = Object.entries(groupDateDrafts).reduce<Record<string, string>>((acc, [g, v]) => { const iso = toIsoString(v); if (iso) acc[g] = iso; return acc; }, {});
             const response = await fetch(`/api/teacher/courses/${selectedCourseId}/scheduling`, {
                 method: "PATCH", headers: authHeaders(),
-                body: JSON.stringify({ releaseMode, releaseStartAt: toIsoString(releaseStartAt), releaseIntervalDays: Number(intervalDays), releaseGroupsPerWeek: Number(groupsPerWeek), releaseGroupDates, status: courseStatus, timezone: "Asia/Dhaka" }),
+                body: JSON.stringify({ releaseMode, releaseStartAt: toIsoString(releaseStartAt), releaseIntervalDays: Number(intervalDays), releaseGroupsPerWeek: Number(groupsPerWeek), releaseDaysOfWeek: selectedDays, releaseGroupDates, status: courseStatus, timezone: "Asia/Dhaka" }),
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to save schedule.");
@@ -633,6 +635,7 @@ export default function TeacherCourseBuilder() {
                                                 <option value="instant">Instant on Purchase</option>
                                                 <option value="fixed_interval">Fixed Day Interval</option>
                                                 <option value="groups_per_week">Groups Per Week (bi/tri-weekly)</option>
+                                                <option value="day_of_week">Specific Days of Week</option>
                                                 <option value="explicit_dates">Explicit Group Dates</option>
                                             </select>
                                         </div>
@@ -653,6 +656,22 @@ export default function TeacherCourseBuilder() {
                                                     <option value="2">2 (bi-weekly)</option>
                                                     <option value="3">3 (tri-weekly)</option>
                                                 </select>
+                                            </div>
+                                        )}
+                                        {releaseMode === "day_of_week" && (
+                                            <div style={{ gridColumn: "1 / -1" }}>
+                                                <label>Release Days</label>
+                                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
+                                                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
+                                                        <label key={day} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", cursor: "pointer", background: selectedDays.includes(idx) ? "rgba(var(--primary-rgb), 0.1)" : "transparent" }}>
+                                                            <input type="checkbox" checked={selectedDays.includes(idx)} onChange={(e) => {
+                                                                if (e.target.checked) setSelectedDays(prev => [...prev, idx].sort((a, b) => a - b));
+                                                                else setSelectedDays(prev => prev.filter(d => d !== idx));
+                                                            }} />
+                                                            {day}
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
                                         {releaseMode === "instant" && (

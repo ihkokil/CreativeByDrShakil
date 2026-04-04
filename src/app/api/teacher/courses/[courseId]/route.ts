@@ -69,6 +69,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseStartAt: course.releaseStartAt,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
+      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
@@ -131,7 +132,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (body.releaseMode !== undefined) {
-      const validModes = ['fixed_interval', 'groups_per_week', 'explicit_dates', 'instant', null];
+      const validModes = ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant', null];
       if (!validModes.includes(body.releaseMode)) {
         return NextResponse.json({ error: 'Invalid release mode.' }, { status: 400 });
       }
@@ -151,6 +152,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (body.releaseGroupsPerWeek !== undefined) {
       const parsed = Number(body.releaseGroupsPerWeek);
       updateData.releaseGroupsPerWeek = parsed === 3 ? 3 : parsed === 2 ? 2 : null;
+    }
+
+    if (body.releaseDaysOfWeek !== undefined) {
+      if (body.releaseDaysOfWeek !== null && (!Array.isArray(body.releaseDaysOfWeek) || body.releaseDaysOfWeek.some((d: any) => typeof d !== 'number' || d < 0 || d > 6))) {
+        return NextResponse.json({ error: 'releaseDaysOfWeek must be an array of numbers (0-6).' }, { status: 400 });
+      }
+      updateData.releaseDaysOfWeek = body.releaseDaysOfWeek;
     }
 
     if (body.releaseGroupDates !== undefined) {
