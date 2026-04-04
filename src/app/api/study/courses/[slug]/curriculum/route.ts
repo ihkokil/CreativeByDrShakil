@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         releaseDaysOfWeek: true,
         releaseGroupDates: true,
         curriculumJson: true,
-      } as any,
+      },
     });
 
     if (!course) {
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseStartAt: course.releaseStartAt || studentEnrollmentDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],
+      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
