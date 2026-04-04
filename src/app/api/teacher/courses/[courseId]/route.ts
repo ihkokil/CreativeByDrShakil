@@ -69,7 +69,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseStartAt: course.releaseStartAt,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],
+      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
