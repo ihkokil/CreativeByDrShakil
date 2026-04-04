@@ -21,7 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 import StudentOverview from "@/components/Student/StudentOverview";
 import profileStyles from "./ProfileTab.module.css";
-import { Camera, Mail, Stethoscope, Save } from "lucide-react";
+import { Camera, Mail, Stethoscope, Save, Trash2 } from "lucide-react";
 
 interface DashboardCourse {
     orderId: string;
