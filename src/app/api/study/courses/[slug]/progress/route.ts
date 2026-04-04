@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import * as PrismaClientModule from '@prisma/client';
-const Prisma = PrismaClientModule.Prisma;
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -111,11 +109,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupDates,
     });
 
-    const overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
-      SELECT lessonNodeId, availabilityMode, availableAt
-      FROM StudentModuleAvailability
-      WHERE courseId = ${result.course!.id} AND userId = ${payload.sub}
-    `);
+    const overrideRows = await prisma.studentModuleAvailability.findMany({
+      where: {
+        courseId: result.course!.id,
+        userId: payload.sub,
+      },
+      select: {
+        lessonNodeId: true,
+        availabilityMode: true,
+        availableAt: true,
+      },
+    });
 
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
@@ -190,11 +194,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       releaseGroupDates,
     });
 
-    const overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
-      SELECT lessonNodeId, availabilityMode, availableAt
-      FROM StudentModuleAvailability
-      WHERE courseId = ${result.course!.id} AND userId = ${payload.sub}
-    `);
+    const overrideRows = await prisma.studentModuleAvailability.findMany({
+      where: {
+        courseId: result.course!.id,
+        userId: payload.sub,
+      },
+      select: {
+        lessonNodeId: true,
+        availabilityMode: true,
+        availableAt: true,
+      },
+    });
 
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
