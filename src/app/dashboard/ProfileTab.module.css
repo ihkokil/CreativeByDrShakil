@@ -80,30 +80,61 @@
   object-fit: cover;
 }
 
-.uploadOverlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  border-radius: 40px;
+.avatarActions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.uploadBtn {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.uploadBtn:hover {
+  background: var(--primary);
   color: white;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  cursor: pointer;
 }
 
-.avatarWrapper:hover .uploadOverlay {
-  opacity: 1;
-}
-
-.uploadOverlay input {
+.uploadBtn input {
   position: absolute;
-  inset: 0;
+  width: 0.1px;
+  height: 0.1px;
   opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.removeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
+  color: var(--danger);
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.removeBtn:hover {
+  background: var(--danger);
+  color: white;
 }
 
 .userName {
