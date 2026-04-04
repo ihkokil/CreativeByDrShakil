@@ -69,7 +69,7 @@ export default function CourseSidebar({
           <ul className={styles.includesList}>
             <li className={styles.includesItem}>
               <MonitorPlay size={18} className={styles.icon} />
-              <span>Full lifetime access</span>
+              <span>1 year of access</span>
             </li>
             <li className={styles.includesItem}>
               <FileText size={18} className={styles.icon} />

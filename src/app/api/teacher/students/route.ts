@@ -103,6 +103,23 @@ export async function GET(request: NextRequest) {
       ? courseIdParam
       : teacherCourses[0].id;
 
+    interface CourseResult {
+      id: string;
+      title: string;
+      slug: string | null;
+      status: any;
+      duration: string;
+      imageUrl: string | null;
+      releaseMode: any;
+      releaseStartAt: Date | null;
+      releaseIntervalDays: number | null;
+      releaseGroupsPerWeek: number | null;
+      releaseDaysOfWeek: any;
+      releaseGroupDates: any;
+      curriculumJson: any;
+      category: { displayName: string } | null;
+    }
+
     const selectedCourse = await prisma.course.findFirst({
       where: payload.role === 'admin' ? { id: selectedCourseId } : { id: selectedCourseId, teacherId: payload.sub },
       select: {
@@ -116,13 +133,14 @@ export async function GET(request: NextRequest) {
         releaseStartAt: true,
         releaseIntervalDays: true,
         releaseGroupsPerWeek: true,
+        ...({ releaseDaysOfWeek: true } as any),
         releaseGroupDates: true,
         curriculumJson: true,
         category: {
           select: { displayName: true },
         },
       },
-    });
+    }) as CourseResult | null;
 
     if (!selectedCourse) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -202,9 +220,20 @@ export async function GET(request: NextRequest) {
 
     const students: CourseStudent[] = enrollments.map((enrollment) => {
       const studentOverrides = overridesByUser.get(enrollment.user.id) || [];
+      
+      // For Evergreen courses, availability depends on when THIS student joined.
+      const studentComputedDates = computeReleaseGroupDates(groups, {
+        releaseMode: selectedCourse.releaseMode as any,
+        releaseStartAt: selectedCourse.releaseStartAt || enrollment.updatedAt,
+        releaseIntervalDays: selectedCourse.releaseIntervalDays,
+        releaseGroupsPerWeek: selectedCourse.releaseGroupsPerWeek,
+        releaseDaysOfWeek: (selectedCourse as any).releaseDaysOfWeek as number[],
+        releaseGroupDates,
+      });
+
       const annotatedCurriculum = annotateCurriculumAvailability(
         curriculum,
-        computedReleaseGroupDates,
+        studentComputedDates,
         new Date(),
         studentOverrides
       );
