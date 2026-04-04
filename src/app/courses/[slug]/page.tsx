@@ -18,7 +18,6 @@ import CourseHero from "@/components/Course/CourseHero";
 import CourseStats from "@/components/Course/CourseStats";
 import CourseSidebar from "@/components/Course/CourseSidebar";
 import CourseInstructors from "@/components/Course/CourseInstructors";
-import { useAuth } from "@/context/AuthContext";
 
 import { 
     CheckCircle2, 
