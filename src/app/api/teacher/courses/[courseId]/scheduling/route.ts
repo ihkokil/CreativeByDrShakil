@@ -100,7 +100,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       releaseStartAt: updatedCourse.releaseStartAt,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
-      releaseDaysOfWeek: updatedCourse.releaseDaysOfWeek as number[],
+      releaseDaysOfWeek: (updatedCourse as any).releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
@@ -112,7 +112,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         releaseStartAt: updatedCourse.releaseStartAt,
         releaseIntervalDays: updatedCourse.releaseIntervalDays,
         releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
-        releaseDaysOfWeek: updatedCourse.releaseDaysOfWeek,
+        releaseDaysOfWeek: (updatedCourse as any).releaseDaysOfWeek,
         timezone: updatedCourse.timezone,
       },
       groups,
