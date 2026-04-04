@@ -36,6 +36,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
+    interface CourseResult {
+      id: string;
+      title: string;
+      timezone: string;
+      releaseMode: any;
+      releaseStartAt: Date | null;
+      releaseIntervalDays: number | null;
+      releaseGroupsPerWeek: number | null;
+      releaseDaysOfWeek: any;
+      releaseGroupDates: any;
+      curriculumJson: any;
+    }
+
     const course = await prisma.course.findFirst({
       where: {
         slug: resolvedParams.slug,
@@ -49,11 +62,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         releaseStartAt: true,
         releaseIntervalDays: true,
         releaseGroupsPerWeek: true,
-        releaseDaysOfWeek: true,
+        ...({ releaseDaysOfWeek: true } as any),
         releaseGroupDates: true,
         curriculumJson: true,
       },
-    });
+    }) as CourseResult | null;
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -105,7 +118,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseStartAt: course.releaseStartAt || studentEnrollmentDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
+      releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
