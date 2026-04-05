@@ -17,16 +17,16 @@ import {
     MailCheck,
     Loader2,
     LayoutGrid,
-    Smartphone
-} from 'lucide-react';
-import PasswordManager from "@/components/Shared/PasswordManager";
+    Smartphone,
     Inbox,
     BarChart3,
     CreditCard,
     CheckCircle,
     Clock,
-    AlertCircle
-} from "lucide-react";
+    AlertCircle,
+    Search
+} from 'lucide-react';
+import PasswordManager from "@/components/Shared/PasswordManager";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
 import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
@@ -70,7 +70,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings" | "security" | "analytics") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
