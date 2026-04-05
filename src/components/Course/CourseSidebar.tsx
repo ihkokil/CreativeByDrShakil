@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { MonitorPlay, FileText, PlayCircle, Users, CheckCircle2 } from "lucide-react";
+import { MonitorPlay, FileText, PlayCircle, CheckCircle2, Smartphone, Video, Users, Stethoscope } from "lucide-react";
 import styles from "./CourseSidebar.module.css";
 import { Course } from "@/constants/courses";
 
@@ -69,19 +69,19 @@ export default function CourseSidebar({
           <ul className={styles.includesList}>
             <li className={styles.includesItem}>
               <MonitorPlay size={18} className={styles.icon} />
-              <span>1 year of access</span>
+              <span>1 Year of Course Access</span>
             </li>
             <li className={styles.includesItem}>
-              <FileText size={18} className={styles.icon} />
-              <span>Comprehensive study materials</span>
+              <Video size={18} className={styles.icon} />
+              <span>Monthly Live Classes</span>
             </li>
             <li className={styles.includesItem}>
-              <PlayCircle size={18} className={styles.icon} />
-              <span>On-demand video content</span>
+              <Smartphone size={18} className={styles.icon} />
+              <span>Practice exams using Android App</span>
             </li>
             <li className={styles.includesItem}>
-              <Users size={18} className={styles.icon} />
-              <span>Direct instructor support</span>
+              <Stethoscope size={18} className={styles.icon} />
+              <span>Professional Doctors as Instructors</span>
             </li>
           </ul>
         </div>
