@@ -17,6 +17,7 @@ import {
     Inbox,
     BookOpen,
     Shield,
+    ShieldCheck,
     Settings
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
@@ -64,6 +65,7 @@ export default function AdminSidebar({
 
     const sysItems = [
         { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
+        { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
     ];
 
     const handleLogout = async () => {

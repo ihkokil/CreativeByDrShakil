@@ -9,6 +9,7 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
+    ShieldCheck
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
@@ -45,6 +46,7 @@ export default function TeacherSidebar({
         { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
         { id: 'courses', label: 'Programs', icon: <BookOpen size={20} /> },
         { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },
+        { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
     ];
 
     const sysItems: any[] = [

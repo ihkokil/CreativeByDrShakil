@@ -8,6 +8,7 @@ import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 import CoursesTab from "@/components/Teacher/CoursesTab";
 import styles from "./TeacherDashboard.module.css";
 import { Loader2 } from "lucide-react";
+import PasswordManager from "@/components/Shared/PasswordManager";
 
 interface TeacherStats {
     totalCourses: number;
@@ -96,6 +97,10 @@ function TeacherDashboardContent() {
                 <section className={styles.panelNoPad}>
                     <VideoLibraryManager />
                 </section>
+            )}
+
+            {activeTab === "security" && (
+                <PasswordManager />
             )}
         </div>
     );
