@@ -82,7 +82,9 @@ export default function CourseDetailPage() {
                     const data = await response.json();
                     if (!cancelled && data.course) {
                         setCourse(mapDynamicCourseToCourse(data.course));
-                        setDynamicCurriculum(Array.isArray(data.curriculum) ? data.curriculum : []);
+                        // Only set public curriculum if we are NOT enrolled.
+                        // If enrolled, the other useEffect will handle it with personalized dates.
+                        setDynamicCurriculum(prev => prev.length === 0 ? (Array.isArray(data.curriculum) ? data.curriculum : []) : prev);
                         setActiveDynamicNode(null);
                         setLoadingCourse(false);
                         return;
@@ -119,14 +121,15 @@ export default function CourseDetailPage() {
                     const enrolled = dashData.enrolledCourses?.some((c: any) => c.courseSlug === courseSlug);
                     setUserEnrolled(enrolled);
                     if (enrolled) {
-                        const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`, { headers });
+                        const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`, { 
+                            headers,
+                            cache: 'no-store' 
+                        });
                         if (progRes.ok) {
                             const progData = await progRes.json();
                             setCourseStarted(Array.isArray(progData.progress?.completedLessonIds) && progData.progress.completedLessonIds.length > 0);
                             
-                            // If user is enrolled, we use the curriculum from progress API 
-                            // because it contains personalized release dates.
-                            if (Array.isArray(progData.curriculum)) {
+                            if (Array.isArray(progData.curriculum) && progData.curriculum.length > 0) {
                                 setDynamicCurriculum(progData.curriculum);
                             }
                         }
