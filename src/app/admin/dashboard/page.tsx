@@ -198,250 +198,237 @@ function AdminDashboardContent() {
                 </div>
             )}
 
-            <DashboardShell
-                title="Admin Dashboard"
-                subtitle="Control teachers, operations, and platform health with one consistent dashboard shell."
-                roleLabel="Admin"
-                userName={user.user_metadata?.full_name || "Admin"}
-                userEmail={user.email}
-                userAvatarUrl={user.user_metadata?.profile_image || null}
-                items={navItems}
-                activeKey={activeTab}
-                onSelect={(key) => setActiveTab(key as "overview" | "payments" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings")}
-                onLogout={handleLogout}
-            >
-                {activeTab === "overview" && (
-                    <div className={styles.stack}>
-                        <div className={styles.sectionHeader}>
-                            <div>
-                                <h1 className={styles.sectionTitle}>Dashboard Overview</h1>
-                                <p className={styles.subtitle}>Welcome back, {user.user_metadata?.full_name || 'Admin'}</p>
-                            </div>
-                            <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
-                                <UserPlus size={16} /> New Teacher
-                            </button>
+            {activeTab === "overview" && (
+                <div className={styles.stack}>
+                    <div className={styles.sectionHeader}>
+                        <div>
+                            <h1 className={styles.sectionTitle}>Dashboard Overview</h1>
+                            <p className={styles.subtitle}>Welcome back, {user.user_metadata?.full_name || 'Admin'}</p>
                         </div>
-
-                        <AdminOverview 
-                            teacherCount={teachers.length}
-                            studentCount={842}
-                            courseCount={24}
-                            totalRevenue="৳5,25,000"
-                            onTabChange={setActiveTab}
-                        />
-
-                        <section className={styles.panel}>
-                            <div className={styles.panelHeader}>
-                                <h2>Quick Actions</h2>
-                                <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
-                                    <UserPlus size={16} /> Add Teacher
-                                </button>
-                            </div>
-                            <div className={styles.actionGrid}>
-                                <article className={styles.actionCard} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
-                                    <UserPlus size={18} />
-                                    <div><h3>Invite Teacher</h3><p>Send onboarding invite with role setup.</p></div>
-                                </article>
-                                <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
-                                    <Users size={18} />
-                                    <div><h3>Faculty Directory</h3><p>Review teacher status and access.</p></div>
-                                </article>
-                                <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
-                                    <BarChart3 size={18} />
-                                    <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
-                                </article>
-                                <article className={styles.actionCard} onClick={() => setActiveTab("payments")}>
-                                    <DollarSign size={18} />
-                                    <div><h3>Review Payments</h3><p>Approve or reject pending payment submissions.</p></div>
-                                </article>
-                                <article className={styles.actionCard} onClick={() => setActiveTab("settings")}>
-                                    <Shield size={18} />
-                                    <div><h3>Security</h3><p>Review permissions and controls.</p></div>
-                                </article>
-                            </div>
-                        </section>
+                        <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
+                            <UserPlus size={16} /> New Teacher
+                        </button>
                     </div>
-                )}
 
-                {activeTab === "teachers" && (
+                    <AdminOverview 
+                        teacherCount={teachers.length}
+                        studentCount={842}
+                        courseCount={24}
+                        totalRevenue="৳5,25,000"
+                        onTabChange={setActiveTab}
+                    />
+
                     <section className={styles.panel}>
                         <div className={styles.panelHeader}>
-                            <div>
-                                <h2 className={styles.panelTitle}>Teacher Directory</h2>
-                                <p className={styles.subtitle}>Manage faculty access and profiles</p>
-                            </div>
-                            <button className={styles.primaryBtn} onClick={() => setIsAddTeacherOpen(true)}>
+                            <h2>Quick Actions</h2>
+                            <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
                                 <UserPlus size={16} /> Add Teacher
                             </button>
                         </div>
-
-                        {teachersLoading ? (
-                            <div className={styles.loader}>Analyzing faculty database...</div>
-                        ) : teachers.length > 0 ? (
-                            <div className={styles.teacherGrid}>
-                                {teachers.map((teacher) => (
-                                    <article key={teacher.id} className={styles.teacherCard}>
-                                        <div className={styles.cardHeader}>
-                                            <div className={styles.cardAvatar}>
-                                                {teacher.profile_image ? (
-                                                    <Image src={teacher.profile_image} alt={teacher.full_name} fill style={{ objectFit: 'cover' }} unoptimized/>
-                                                ) : getInitials(teacher.full_name || "T")}
-                                            </div>
-                                            <div className={styles.cardInfo}>
-                                                <h3>{teacher.full_name}</h3>
-                                                <p>{teacher.email || "Email pending"}</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className={styles.cardContent}>
-                                            <div className={styles.academicInfo}>
-                                                {(teacher.designation || teacher.institution) ? (
-                                                    <p>{teacher.designation} {teacher.designation && teacher.institution ? 'at' : ''} {teacher.institution}</p>
-                                                ) : (
-                                                    <p className={styles.empty}>No academic info</p>
-                                                )}
-                                            </div>
-                                            <div className={styles.cardFooter}>
-                                                <div className={styles.listCol}>
-                                                    <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
-                                                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                                                        Joined {new Date(teacher.created_at).toLocaleDateString('en-GB')}
-                                                    </span>
-                                                </div>
-                                                <div className={styles.cardActions}>
-                                                    <button className={styles.actionBtn} onClick={() => handleResetPassword(teacher)} title="Reset Password"><MailCheck size={16} /></button>
-                                                    <button className={styles.actionBtn} onClick={() => setEditTeacherData(teacher)} title="Edit Profile"><Edit size={16} /></button>
-                                                    <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setDeleteTeacherData(teacher)} title="Deactivate"><Trash2 size={16} /></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </article>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className={styles.infoBox}>No teachers found in the system.</div>
-                        )}
-                    </section>
-                )}
-
-                {activeTab === "payments" && (
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Payment Approvals</h2>
-                        <AdminPaymentsList
-                            onApprove={() => setToast({ type: "success", text: "Order approved and access granted." })}
-                            onReject={() => setToast({ type: "info", text: "Order rejected." })}
-                        />
-                    </section>
-                )}
-
-                {activeTab === "analytics" && (
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Platform Performance</h2>
-                        <div className={styles.simpleCards}>
-                            <div className={styles.simpleCard}><strong>74%</strong><span>DAU Engagement</span></div>
-                            <div className={styles.simpleCard}><strong>4.8</strong><span>Content Rating</span></div>
-                            <div className={styles.simpleCard}><strong>+12%</strong><span>Yield Growth</span></div>
-                        </div>
-                    </section>
-                )}
-
-                {activeTab === "categories" && (
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Categories</h2>
-                        <CategoryManager />
-                    </section>
-                )}
-
-                {activeTab === "coupons" && (
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Coupon Management</h2>
-                        <CouponManager />
-                    </section>
-                )}
-
-                {activeTab === "sessions" && (
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Device Sessions</h2>
-                        <SessionsManager />
-                    </section>
-                )}
-
-                {activeTab === "support" && (
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Contact Requests</h2>
-                        <ContactRequestsManager />
-                    </section>
-                )}
-
-                {activeTab === "settings" && (
-                    <section className={styles.panel}>
-                        <h2 className={styles.panelTitle}>Platform Settings</h2>
-                        <BkashSettings />
-                        <div className={styles.settingGrid} style={{ marginTop: '24px' }}>
-                            <article className={styles.settingCard}>
-                                <div className={styles.settingIcon}><Shield size={24} /></div>
-                                <div><h3>Security Scopes</h3><p>Configure global access tiers and RBAC.</p></div>
+                        <div className={styles.actionGrid}>
+                            <article className={styles.actionCard} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
+                                <UserPlus size={18} />
+                                <div><h3>Invite Teacher</h3><p>Send onboarding invite with role setup.</p></div>
                             </article>
-                            <article className={styles.settingCard}>
-                                <div className={styles.settingIcon}><Search size={24} /></div>
-                                <div><h3>Branding Library</h3><p>Control visual identity and platform metadata.</p></div>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
+                                <Users size={18} />
+                                <div><h3>Faculty Directory</h3><p>Review teacher status and access.</p></div>
+                            </article>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
+                                <BarChart3 size={18} />
+                                <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
+                            </article>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("payments")}>
+                                <DollarSign size={18} />
+                                <div><h3>Review Payments</h3><p>Approve or reject pending payment submissions.</p></div>
+                            </article>
+                            <article className={styles.actionCard} onClick={() => setActiveTab("settings")}>
+                                <Shield size={18} />
+                                <div><h3>Security</h3><p>Review permissions and controls.</p></div>
                             </article>
                         </div>
                     </section>
-                )}
+                </div>
+            )}
 
-                <AddTeacherModal
-                    isOpen={isAddTeacherOpen}
-                    onClose={() => setIsAddTeacherOpen(false)}
-                    onSuccess={() => {
-                        setIsAddTeacherOpen(false);
-                        fetchTeachers();
-                    }}
-                />
+            {activeTab === "teachers" && (
+                <section className={styles.panel}>
+                    <div className={styles.panelHeader}>
+                        <div>
+                            <h2 className={styles.panelTitle}>Teacher Directory</h2>
+                            <p className={styles.subtitle}>Manage faculty access and profiles</p>
+                        </div>
+                        <button className={styles.primaryBtn} onClick={() => setIsAddTeacherOpen(true)}>
+                            <UserPlus size={16} /> Add Teacher
+                        </button>
+                    </div>
 
-                <EditTeacherModal
-                    isOpen={!!editTeacherData}
-                    onClose={() => setEditTeacherData(null)}
-                    onSuccess={() => fetchTeachers()}
-                    teacher={editTeacherData}
-                />
+                    {teachersLoading ? (
+                        <div className={styles.loader}>Analyzing faculty database...</div>
+                    ) : teachers.length > 0 ? (
+                        <div className={styles.teacherGrid}>
+                            {teachers.map((teacher) => (
+                                <article key={teacher.id} className={styles.teacherCard}>
+                                    <div className={styles.cardHeader}>
+                                        <div className={styles.cardAvatar}>
+                                            {teacher.profile_image ? (
+                                                <Image src={teacher.profile_image} alt={teacher.full_name} fill style={{ objectFit: 'cover' }} unoptimized/>
+                                            ) : getInitials(teacher.full_name || "T")}
+                                        </div>
+                                        <div className={styles.cardInfo}>
+                                            <h3>{teacher.full_name}</h3>
+                                            <p>{teacher.email || "Email pending"}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className={styles.cardContent}>
+                                        <div className={styles.academicInfo}>
+                                            {(teacher.designation || teacher.institution) ? (
+                                                <p>{teacher.designation} {teacher.designation && teacher.institution ? 'at' : ''} {teacher.institution}</p>
+                                            ) : (
+                                                <p className={styles.empty}>No academic info</p>
+                                            )}
+                                        </div>
+                                        <div className={styles.cardFooter}>
+                                            <div className={styles.listCol}>
+                                                <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
+                                                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                                                    Joined {new Date(teacher.created_at).toLocaleDateString('en-GB')}
+                                                </span>
+                                            </div>
+                                            <div className={styles.cardActions}>
+                                                <button className={styles.actionBtn} onClick={() => handleResetPassword(teacher)} title="Reset Password"><MailCheck size={16} /></button>
+                                                <button className={styles.actionBtn} onClick={() => setEditTeacherData(teacher)} title="Edit Profile"><Edit size={16} /></button>
+                                                <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setDeleteTeacherData(teacher)} title="Deactivate"><Trash2 size={16} /></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={styles.infoBox}>No teachers found in the system.</div>
+                    )}
+                </section>
+            )}
 
-                <DeleteTeacherModal
-                    isOpen={!!deleteTeacherData}
-                    onClose={() => setDeleteTeacherData(null)}
-                    onSuccess={() => fetchTeachers()}
-                    teacherTarget={deleteTeacherData}
-                    allTeachers={teachers}
-                />
+            {activeTab === "payments" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Payment Approvals</h2>
+                    <AdminPaymentsList
+                        onApprove={() => setToast({ type: "success", text: "Order approved and access granted." })}
+                        onReject={() => setToast({ type: "info", text: "Order rejected." })}
+                    />
+                </section>
+            )}
 
-                {resetConfirmTarget && (
-                    <div className={styles.confirmBackdrop} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title">
-                        <div className={styles.confirmDialog}>
-                            <h3 id="reset-confirm-title">Send reset email?</h3>
-                            <p>
-                                Send a password reset link to <strong>{resetConfirmTarget.email}</strong> for {" "}
-                                {resetConfirmTarget.full_name}.
-                            </p>
-                            <div className={styles.confirmActions}>
-                                <button
-                                    className={styles.confirmCancelBtn}
-                                    onClick={() => setResetConfirmTarget(null)}
-                                    disabled={isSendingReset}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className={styles.confirmPrimaryBtn}
-                                    onClick={() => sendResetPassword(resetConfirmTarget)}
-                                    disabled={isSendingReset}
-                                >
-                                    {isSendingReset ? "Sending..." : "Send Email"}
-                                </button>
-                            </div>
+            {activeTab === "analytics" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Platform Performance</h2>
+                    <div className={styles.simpleCards}>
+                        <div className={styles.simpleCard}><strong>74%</strong><span>DAU Engagement</span></div>
+                        <div className={styles.simpleCard}><strong>4.8</strong><span>Content Rating</span></div>
+                        <div className={styles.simpleCard}><strong>+12%</strong><span>Yield Growth</span></div>
+                    </div>
+                </section>
+            )}
+
+            {activeTab === "categories" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Categories</h2>
+                    <CategoryManager />
+                </section>
+            )}
+
+            {activeTab === "coupons" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Coupon Management</h2>
+                    <CouponManager />
+                </section>
+            )}
+
+            {activeTab === "sessions" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Device Sessions</h2>
+                    <SessionsManager />
+                </section>
+            )}
+
+            {activeTab === "support" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Contact Requests</h2>
+                    <ContactRequestsManager />
+                </section>
+            )}
+
+            {activeTab === "settings" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Platform Settings</h2>
+                    <BkashSettings />
+                    <div className={styles.settingGrid} style={{ marginTop: '24px' }}>
+                        <article className={styles.settingCard}>
+                            <div className={styles.settingIcon}><Shield size={24} /></div>
+                            <div><h3>Security Scopes</h3><p>Configure global access tiers and RBAC.</p></div>
+                        </article>
+                        <article className={styles.settingCard}>
+                            <div className={styles.settingIcon}><Search size={24} /></div>
+                            <div><h3>Branding Library</h3><p>Control visual identity and platform metadata.</p></div>
+                        </article>
+                    </div>
+                </section>
+            )}
+
+            <AddTeacherModal
+                isOpen={isAddTeacherOpen}
+                onClose={() => setIsAddTeacherOpen(false)}
+                onSuccess={() => {
+                    setIsAddTeacherOpen(false);
+                    fetchTeachers();
+                }}
+            />
+
+            <EditTeacherModal
+                isOpen={!!editTeacherData}
+                onClose={() => setEditTeacherData(null)}
+                onSuccess={() => fetchTeachers()}
+                teacher={editTeacherData}
+            />
+
+            <DeleteTeacherModal
+                isOpen={!!deleteTeacherData}
+                onClose={() => setDeleteTeacherData(null)}
+                onSuccess={() => fetchTeachers()}
+                teacherTarget={deleteTeacherData}
+                allTeachers={teachers}
+            />
+
+            {resetConfirmTarget && (
+                <div className={styles.confirmBackdrop} role="dialog" aria-modal="true" aria-labelledby="reset-confirm-title">
+                    <div className={styles.confirmDialog}>
+                        <h3 id="reset-confirm-title">Send reset email?</h3>
+                        <p>
+                            Send a password reset link to <strong>{resetConfirmTarget.email}</strong> for {" "}
+                            {resetConfirmTarget.full_name}.
+                        </p>
+                        <div className={styles.confirmActions}>
+                            <button
+                                className={styles.confirmCancelBtn}
+                                onClick={() => setResetConfirmTarget(null)}
+                                disabled={isSendingReset}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className={styles.confirmPrimaryBtn}
+                                onClick={() => sendResetPassword(resetConfirmTarget)}
+                                disabled={isSendingReset}
+                            >
+                                {isSendingReset ? "Sending..." : "Send Email"}
+                            </button>
                         </div>
                     </div>
-                )}
-            </DashboardShell>
+                </div>
+            )}
         </>
     );
 }

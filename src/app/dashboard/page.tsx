@@ -364,18 +364,7 @@ function StudentDashboardContent() {
   }
 
   return (
-    <DashboardShell
-      title="Student Portal"
-      subtitle="Your study hub for courses, purchases, profile, and account security."
-      roleLabel="Student"
-      userName={data?.profile.fullName || user.user_metadata?.full_name || user.email?.split("@")[0] || "Student"}
-      userEmail={data?.profile.email || user.email}
-      userAvatarUrl={profileForm.profileImage || user.user_metadata?.profile_image || null}
-      items={navItems}
-      activeKey={activeTab}
-      onSelect={(key) => setActiveTab(key as TabKey)}
-      onLogout={handleLogout}
-    >
+    <>
       {error && (
         <section className={styles.alertCard}>
           <AlertTriangle size={18} />
@@ -643,6 +632,9 @@ function StudentDashboardContent() {
                 <div className={styles.formGroup}>
                   <label>Degrees</label>
                   <input
+                    value={profileForm.degrees}
+                    onChange={(event) => setProfileForm((prev) => ({ ...prev, degrees: event.target.value }))}
+                    disabled={!editingProfile}
                   />
                 </div>
 
@@ -744,7 +736,7 @@ function StudentDashboardContent() {
               </div>
           </section>
       )}
-    </DashboardShell>
+    </>
   );
 }
 
