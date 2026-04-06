@@ -128,8 +128,8 @@ export async function PATCH(
     const updatedCourse = await prisma.course.update({
       where: { id: course.id },
       data: {
-        curriculumJson: normalizedCurriculum as unknown as Prisma.InputJsonValue,
-        releaseGroupDates: compactReleaseGroupDates as Prisma.InputJsonValue,
+        curriculumJson: JSON.stringify(normalizedCurriculum),
+        releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
       },
     });
 
@@ -188,8 +188,8 @@ export async function DELETE(
     const updatedCourse = await prisma.course.update({
       where: { id: course.id },
       data: {
-        curriculumJson: normalizedCurriculum as unknown as Prisma.InputJsonValue,
-        releaseGroupDates: compactReleaseGroupDates as Prisma.InputJsonValue,
+        curriculumJson: JSON.stringify(normalizedCurriculum),
+        releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
       },
     });
 

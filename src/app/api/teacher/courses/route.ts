@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
         teacherId: payload.sub,
         status: 'draft',
         timezone: 'Asia/Dhaka',
-        curriculumJson: [] as Prisma.InputJsonValue,
-        releaseGroupDates: {} as Prisma.InputJsonValue,
+        curriculumJson: '[]',
+        releaseGroupDates: '{}',
       },
       include: {
         category: true,

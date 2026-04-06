@@ -158,11 +158,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (body.releaseDaysOfWeek !== null && (!Array.isArray(body.releaseDaysOfWeek) || body.releaseDaysOfWeek.some((d: any) => typeof d !== 'number' || d < 0 || d > 6))) {
         return NextResponse.json({ error: 'releaseDaysOfWeek must be an array of numbers (0-6).' }, { status: 400 });
       }
-      updateData.releaseDaysOfWeek = body.releaseDaysOfWeek;
+      updateData.releaseDaysOfWeek = body.releaseDaysOfWeek ? JSON.stringify(body.releaseDaysOfWeek) : null;
     }
 
     if (body.releaseGroupDates !== undefined) {
-      updateData.releaseGroupDates = parseReleaseGroupDateMap(body.releaseGroupDates);
+      updateData.releaseGroupDates = body.releaseGroupDates ? JSON.stringify(parseReleaseGroupDateMap(body.releaseGroupDates)) : null;
     }
 
     if (body.status !== undefined) {

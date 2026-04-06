@@ -146,8 +146,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const updatedCourse = await prisma.course.update({
       where: { id: course.id },
       data: {
-        curriculumJson: normalizedCurriculum as unknown as Prisma.InputJsonValue,
-        releaseGroupDates: compactReleaseGroupDates as Prisma.InputJsonValue,
+        curriculumJson: JSON.stringify(normalizedCurriculum),
+        releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
       },
     });
 
