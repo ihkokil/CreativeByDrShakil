@@ -89,9 +89,18 @@ export async function POST(request: NextRequest) {
         issueType,
         subject,
         message,
-        imageUrls,
+        imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
       },
     });
+
+    let parsedImageUrls: string[] = [];
+    try {
+      if (submission.imageUrls) {
+        parsedImageUrls = JSON.parse(submission.imageUrls);
+      }
+    } catch {
+      parsedImageUrls = [];
+    }
 
     const emailPayload = {
       fullName: submission.fullName,
@@ -100,7 +109,7 @@ export async function POST(request: NextRequest) {
       issueType: submission.issueType as ContactIssueType,
       subject: submission.subject,
       message: submission.message,
-      imageUrls: Array.isArray(submission.imageUrls) ? (submission.imageUrls as string[]) : [],
+      imageUrls: parsedImageUrls,
       submissionId: submission.id,
       createdAt: submission.createdAt,
     };
