@@ -120,6 +120,12 @@ export default function CourseDetailPage() {
                         if (progRes.ok) {
                             const progData = await progRes.json();
                             setCourseStarted(Array.isArray(progData.progress?.completedLessonIds) && progData.progress.completedLessonIds.length > 0);
+                            
+                            // If user is enrolled, we use the curriculum from progress API 
+                            // because it contains personalized release dates.
+                            if (Array.isArray(progData.curriculum)) {
+                                setDynamicCurriculum(progData.curriculum);
+                            }
                         }
                     }
                 }

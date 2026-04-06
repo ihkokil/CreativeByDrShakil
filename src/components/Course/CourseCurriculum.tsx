@@ -27,7 +27,7 @@ interface NodeProps {
 
 const formatAvailability = (dateValue?: string | null) => {
     if (!dateValue) return "";
-    return formatDisplayDate(dateValue);
+    return `Available on ${formatDisplayDate(dateValue)}`;
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
