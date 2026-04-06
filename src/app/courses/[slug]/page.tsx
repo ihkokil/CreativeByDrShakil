@@ -112,7 +112,8 @@ export default function CourseDetailPage() {
             setProgressLoading(true);
             try {
                 const token = localStorage.getItem("auth_token");
-                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+                const headers: Record<string, string> = {};
+                if (token) headers["Authorization"] = `Bearer ${token}`;
 
                 const dashRes = await fetch("/api/me/dashboard", { headers });
                 if (dashRes.ok) {
