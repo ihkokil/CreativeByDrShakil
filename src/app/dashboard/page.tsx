@@ -3,7 +3,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import DashboardShell from "@/components/DashboardShell/DashboardShell";
 import styles from "./Dashboard.module.css";
 import {
     LayoutDashboard,
@@ -32,7 +31,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import StudentOverview from "@/components/Student/StudentOverview";
 
 interface DashboardCourse {
     orderId: string;
