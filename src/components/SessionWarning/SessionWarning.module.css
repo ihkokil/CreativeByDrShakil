@@ -4,14 +4,18 @@
   right: 20px;
   z-index: 9999;
   max-width: 400px;
-  animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+.toastContainer.closing {
+  animation: slideOut 0.3s cubic-bezier(0.55, 0, 1, 0.45) forwards;
 }
 
 .toast {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 14px;
+  padding: 14px 16px;
   border-radius: 14px;
   background: var(--glass);
   border: 1px solid rgba(239, 68, 68, 0.3);
@@ -19,7 +23,7 @@
   color: #ef4444;
 }
 
-.toast > svg {
+.icon {
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -28,6 +32,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
 }
 
 .title {
@@ -46,14 +51,64 @@
   line-height: 1.4;
 }
 
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  margin-top: 1px;
+}
+
+.closeButton:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+/* Progress bar that depletes over 3s */
+.progressBar {
+  height: 3px;
+  border-radius: 0 0 14px 14px;
+  background: #ef4444;
+  animation: progressDrain 3s linear forwards;
+  transform-origin: left;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(400px);
+    transform: translateX(420px);
   }
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(420px);
+  }
+}
+
+@keyframes progressDrain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
   }
 }
 
