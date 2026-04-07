@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styles from "../AuthPages.module.css";
 
 export default function ResetPasswordClient({ token }: { token: string }) {
+    const router = useRouter();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (redirectTimerRef.current) {
+                clearTimeout(redirectTimerRef.current);
+            }
+        };
+    }, []);
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -37,6 +48,9 @@ export default function ResetPasswordClient({ token }: { token: string }) {
             setMessage({ type: "success", text: data.message || "Password updated. You can now log in." });
             setPassword("");
             setConfirmPassword("");
+            redirectTimerRef.current = setTimeout(() => {
+                router.replace("/?auth=login");
+            }, 1000);
         } else {
             setMessage({ type: "error", text: data.error || "Unable to reset password." });
         }
