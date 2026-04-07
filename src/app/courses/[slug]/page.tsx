@@ -115,7 +115,10 @@ export default function CourseDetailPage() {
                 const headers: Record<string, string> = {};
                 if (token) headers["Authorization"] = `Bearer ${token}`;
 
-                const dashRes = await fetch("/api/me/dashboard", { headers });
+                const dashRes = await fetch("/api/me/dashboard", { 
+                    headers,
+                    cache: 'no-store'
+                });
                 if (dashRes.ok) {
                     const dashData = await dashRes.json();
                     const courseSlug = params.slug as string;
