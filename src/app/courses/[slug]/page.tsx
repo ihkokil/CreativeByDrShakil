@@ -6,7 +6,8 @@ import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import { CheckoutModal } from "@/components/Checkout/CheckoutModal";
 import { Course } from "@/constants/courses";
-import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
+import { CurriculumNode } from "@/components/Course/CourseCurriculum";
+import CourseLessonList from "@/components/Course/CourseLessonList";
 import { mapDynamicCourseToCourse } from "@/lib/dynamic-course-client";
 import styles from "./CourseDetail.module.css";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
@@ -38,7 +39,6 @@ export default function CourseDetailPage() {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [authMode, setAuthMode] = useState<"login" | "register">("login");
-    const [expandedModules, setExpandedModules] = useState<number[]>([]);
 
     const { role: userRole } = useAuth();
     const [userEnrolled, setUserEnrolled] = useState(false);
@@ -167,12 +167,6 @@ export default function CourseDetailPage() {
         return Array.from(unique.values());
     }, [displayCourse]);
 
-    useEffect(() => {
-        if (displayCourse && !displayCourse.dynamicSource && displayCourse.curriculum?.length) {
-            setExpandedModules(displayCourse.curriculum.map((_, index) => index));
-        }
-    }, [displayCourse]);
-
     // Handlers
     const onEnterCourse = async () => {
         if (courseStarted) {
@@ -282,11 +276,7 @@ export default function CourseDetailPage() {
                     {dynamicCurriculum.length > 0 && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
-                            <CourseCurriculum
-                                data={dynamicCurriculum}
-                                onVideoSelect={() => {}} // Non-selectable in detail page
-                                activeNodeId={activeDynamicNode?.id}
-                            />
+                            <CourseLessonList curriculum={dynamicCurriculum} />
                         </section>
                     )}
 
@@ -294,34 +284,16 @@ export default function CourseDetailPage() {
                     {!displayCourse.dynamicSource && displayCourse.curriculum && displayCourse.curriculum.length > 0 && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
-                            <div className={styles.curriculum}>
-                                {displayCourse.curriculum.map((module, idx) => (
-                                    <div key={idx} className={styles.module}>
-                                        <div 
-                                            className={styles.moduleHeader}
-                                            onClick={() => setExpandedModules(prev => 
-                                                prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
-                                            )}
-                                        >
-                                            <span className={styles.moduleTitle}>{module.title}</span>
-                                            {expandedModules.includes(idx) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                        </div>
-                                        {expandedModules.includes(idx) && (
-                                            <ul className={styles.lessonList}>
-                                                {module.lessons.map((lesson, lessonIdx) => (
-                                                    <li key={lessonIdx} className={styles.lessonItem}>
-                                                        <div className={styles.lessonTitle}>
-                                                            <PlayCircle size={16} className={styles.playIcon} />
-                                                            <span>{lesson.title}</span>
-                                                        </div>
-                                                        <span>{lesson.duration}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                            <CourseLessonList
+                                curriculum={displayCourse.curriculum.flatMap(module => 
+                                    module.lessons.map(lesson => ({
+                                        id: lesson.title,
+                                        title: lesson.title,
+                                        type: 'youtube',
+                                        duration: lesson.duration
+                                    }))
+                                )}
+                            />
                         </section>
                     )}
 
