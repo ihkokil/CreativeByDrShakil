@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { createTokenPair } from "@/lib/token-utils";
 import { sendPasswordResetEmail } from "@/lib/auth-emails";
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
-    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const rateLimitError = await checkRateLimit(request, 5);
+    if (rateLimitError) return rateLimitError;
 
-    if (!normalizedEmail) {
-      return NextResponse.json({ error: "Email is required." }, { status: 400 });
+    const body = await request.json();
+    const parsed = forgotPasswordSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: (parsed.error as any).errors[0].message }, { status: 400 });
     }
+
+    const normalizedEmail = parsed.data.email.trim().toLowerCase();
 
     const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 

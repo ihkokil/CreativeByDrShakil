@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { prisma } from '@/lib/prisma';
 import { comparePassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
@@ -9,13 +11,24 @@ import {
   getAutoLockSetting,
 } from '@/lib/session-manager';
 
+const loginSchema = z.object({
+  identifier: z.string().min(1, 'Identifier is required'),
+  password: z.string().min(1, 'Password is required'),
+});
+
 export async function POST(request: NextRequest) {
   try {
-    const { identifier, password } = await request.json();
+    const rateLimitError = await checkRateLimit(request, 5);
+    if (rateLimitError) return rateLimitError;
 
-    if (!identifier || !password) {
-      return NextResponse.json({ error: 'Identifier and password are required.' }, { status: 400 });
+    const body = await request.json();
+    const parsed = loginSchema.safeParse(body);
+    
+    if (!parsed.success) {
+      return NextResponse.json({ error: (parsed.error as any).errors[0].message }, { status: 400 });
     }
+
+    const { identifier, password } = parsed.data;
 
     const user = await prisma.user.findFirst({
       where: {
