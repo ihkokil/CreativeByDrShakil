@@ -96,16 +96,32 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
 };
 
 export function parseCurriculumJson(raw: unknown): BuilderCurriculumNode[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
+  let data = raw;
+  if (typeof raw === 'string') {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(data)) return [];
+  return data
     .map(normalizeNode)
     .filter((node): node is BuilderCurriculumNode => Boolean(node));
 }
 
 export function parseReleaseGroupDateMap(raw: unknown): Record<string, string> {
-  if (!isObject(raw)) return {};
+  let data = raw;
+  if (typeof raw === 'string') {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+  if (!isObject(data)) return {};
 
-  return Object.entries(raw).reduce<Record<string, string>>((acc, [key, value]) => {
+  return Object.entries(data).reduce<Record<string, string>>((acc, [key, value]) => {
     if (typeof value !== 'string') return acc;
     const normalizedKey = key.trim();
     if (!normalizedKey) return acc;
@@ -341,7 +357,18 @@ export function computeReleaseGroupDates(
   }
 
   if (mode === 'day_of_week') {
-    const selectedDays = config.releaseDaysOfWeek || [0];
+    let selectedDays = config.releaseDaysOfWeek || [0];
+    if (typeof selectedDays === 'string') {
+      try {
+        selectedDays = JSON.parse(selectedDays);
+      } catch {
+        selectedDays = [0];
+      }
+    }
+    if (!Array.isArray(selectedDays)) {
+      selectedDays = [0];
+    }
+
     groups.forEach((group) => {
       let validDaysHit = 0;
       const currentCheckDate = new Date(startDate);
