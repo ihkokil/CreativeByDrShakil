@@ -1,0 +1,75 @@
+import React from 'react';
+import { PlayCircle, Clock, Video, FileText } from 'lucide-react';
+import styles from './CourseLessonList.module.css';
+import { CurriculumNode } from './CourseCurriculum';
+
+interface Props {
+  curriculum: CurriculumNode[];
+}
+
+export default function CourseLessonList({ curriculum }: Props) {
+  const lessons: CurriculumNode[] = [];
+  
+  const walk = (nodes: CurriculumNode[]) => {
+    nodes.forEach(node => {
+      if (node.type !== 'folder') {
+        lessons.push(node);
+      }
+      if (node.children?.length) {
+        walk(node.children);
+      }
+    });
+  };
+  
+  walk(curriculum);
+
+  if (lessons.length === 0) {
+    return <p className={styles.emptyState}>No lessons available yet.</p>;
+  }
+
+  return (
+    <div className={styles.container}>
+      {lessons.map((lesson, index) => (
+        <div key={lesson.id || index} className={styles.lessonCard}>
+          <div className={styles.indexColumn}>
+            <span className={styles.indexNumber}>
+              {String(index + 1).padStart(2, '0')}
+            </span>
+          </div>
+          
+          <div className={styles.contentColumn}>
+            <h4 className={styles.title}>{lesson.title}</h4>
+            <div className={styles.metaRow}>
+              {lesson.type === 'document' ? (
+                <div className={styles.metaBadge}>
+                  <FileText size={14} />
+                  <span>Document</span>
+                </div>
+              ) : (
+                <div className={styles.metaBadge}>
+                  <Video size={14} />
+                  <span>Video Lesson</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {lesson.duration && (
+            <div className={styles.durationColumn}>
+              <div className={styles.durationBadge}>
+                <Clock size={14} />
+                <span>{lesson.duration}</span>
+              </div>
+            </div>
+          )}
+          
+          <div className={styles.actionColumn}>
+            <button className={styles.playButton} aria-label="Preview Lesson">
+              <PlayCircle size={24} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
