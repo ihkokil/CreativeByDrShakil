@@ -376,12 +376,9 @@ export function computeReleaseGroupDates(
     });
   }
 
-  Object.entries(overrideDates).forEach(([groupId, value]) => {
-    const parsed = normalizeDate(value);
-    if (parsed) {
-      dates[groupId] = parsed.toISOString();
-    }
-  });
+  // For non-explicit modes, do NOT apply the stored releaseGroupDates map on top of
+  // the computed schedule — doing so would overwrite correct interval/week/day-of-week
+  // dates with stale admin-preview dates, making all modules appear unlocked.
 
   return dates;
 }
