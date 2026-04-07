@@ -34,3 +34,8 @@ build/
 # TypeScript
 *.tsbuildinfo
 /public/uploads/contact-submissions
+
+# Agent Architecture
+.tmp/
+credentials.json
+token.json
