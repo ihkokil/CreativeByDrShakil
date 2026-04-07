@@ -27,6 +27,15 @@
     background: rgba(255, 255, 255, 0.05);
 }
 
+.lockedNode {
+    opacity: 0.75;
+    cursor: not-allowed;
+}
+
+.lockedNode:hover {
+    background: transparent;
+}
+
 .activeNode {
     background: rgba(59, 130, 246, 0.15) !important;
     border-left: 3px solid var(--primary);
@@ -54,11 +63,22 @@
     opacity: 0.8;
 }
 
+.lockIcon {
+    color: #f59e0b;
+}
+
 .duration {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-left: auto;
     padding-right: 15px;
+}
+
+.availableAt {
+    font-size: 0.72rem;
+    color: #f59e0b;
+    margin-left: auto;
+    padding-right: 10px;
 }
 
 .chevron {

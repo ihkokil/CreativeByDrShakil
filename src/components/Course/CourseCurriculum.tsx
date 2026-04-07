@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styles from "./CourseCurriculum.module.css";
-import { ChevronDown, ChevronRight, PlayCircle, FolderOpen, Folder } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document';
@@ -11,6 +11,8 @@ export interface CurriculumNode {
     type: 'folder' | ContentType;
     duration?: string;
     url?: string;
+    locked?: boolean;
+    availableAt?: string | null;
     children?: CurriculumNode[];
 }
 
@@ -21,6 +23,17 @@ interface NodeProps {
     activeNodeId?: string;
 }
 
+const formatAvailability = (dateValue?: string | null) => {
+    if (!dateValue) return "";
+
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) {
+        return "";
+    }
+
+    return parsed.toLocaleString();
+};
+
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const isFolder = node.type === 'folder';
@@ -30,6 +43,9 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
         if (isFolder) {
             setIsOpen(!isOpen);
         } else {
+            if (node.locked) {
+                return;
+            }
             onVideoSelect(node);
         }
     };
@@ -37,9 +53,10 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
     return (
         <div className={styles.nodeContainer}>
             <button
-                className={`${styles.nodeBtn} ${isActive ? styles.activeNode : ''}`}
+                className={`${styles.nodeBtn} ${isActive ? styles.activeNode : ''} ${node.locked ? styles.lockedNode : ''}`}
                 onClick={handleClick}
                 style={{ paddingLeft: `${depth * 20 + 15}px` }}
+                disabled={!isFolder && node.locked}
             >
                 <div className={styles.nodeLabel}>
                     {isFolder ? (
@@ -51,7 +68,11 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                         <>
                             <PlayCircle size={16} className={styles.playIcon} />
                             <span className={styles.title}>{node.title}</span>
+                            {node.locked && <Lock size={14} className={styles.lockIcon} />}
                             {node.duration && <span className={styles.duration}>{node.duration}</span>}
+                            {node.locked && node.availableAt && (
+                                <span className={styles.availableAt}>{formatAvailability(node.availableAt)}</span>
+                            )}
                         </>
                     )}
                 </div>
