@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getSession } from '@/lib/auth-server'
 import prisma from '@/lib/prisma'
+
+const paymentSchema = z.object({
+  orderId: z.string().min(1, 'Order ID is required'),
+  phoneNumber: z.string().min(1, 'Phone number is required'),
+  transactionId: z.string().min(1, 'Transaction ID is required'),
+  amount: z.union([z.number(), z.string()]).optional(),
+  sentAmount: z.union([z.number(), z.string()]).optional(),
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,12 +18,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { orderId, phoneNumber, transactionId, amount, sentAmount } = await request.json()
+    const body = await request.json()
+    const parsed = paymentSchema.safeParse(body)
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: (parsed.error as any).errors[0].message }, { status: 400 })
+    }
+
+    const { orderId, phoneNumber, transactionId, amount, sentAmount } = parsed.data
 
     const paymentAmount = Number(sentAmount ?? amount)
 
-    if (!orderId || !phoneNumber || !transactionId || Number.isNaN(paymentAmount)) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    if (Number.isNaN(paymentAmount)) {
+      return NextResponse.json({ error: 'Invalid payment amount' }, { status: 400 })
     }
 
     const order = await prisma.order.findUnique({ where: { id: orderId } })
