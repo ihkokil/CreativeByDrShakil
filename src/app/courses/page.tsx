@@ -1,13 +1,14 @@
 "use client";
 
-import { Suspense, useState, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
-import { COURSES, INSTRUCTORS } from "@/constants/courses";
+import { COURSES, Course } from "@/constants/courses";
 import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
 
 export default function AllCoursesPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -15,24 +16,60 @@ export default function AllCoursesPage() {
     const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
 
-    const categories = ["FCPS", "Exams", "Residency", "Part II"];
-    const instructors = Object.values(INSTRUCTORS).map(i => i.name);
-    const durations = ["2 Months", "3 Months", "4 Months", "6 Months"];
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadDynamicCourses = async () => {
+            try {
+                const courses = await fetchPublishedDynamicCourses();
+                if (!cancelled) {
+                    setDynamicCourses(courses);
+                }
+            } catch {
+                // Keep the static catalog if dynamic fetch fails.
+            }
+        };
+
+        loadDynamicCourses();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const allCourses = useMemo(
+        () => mergeStaticAndDynamicCourses(COURSES, dynamicCourses),
+        [dynamicCourses]
+    );
+
+    const categories = useMemo(
+        () => Array.from(new Set(allCourses.map((course) => course.category))).sort(),
+        [allCourses]
+    );
+    const instructors = useMemo(
+        () => Array.from(new Set(allCourses.map((course) => course.mainInstructor.name))).sort(),
+        [allCourses]
+    );
+    const durations = useMemo(
+        () => Array.from(new Set(allCourses.map((course) => course.duration))).sort(),
+        [allCourses]
+    );
 
     const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
         setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
     };
 
     const filteredCourses = useMemo(() => {
-        return COURSES.filter(course => {
+        return allCourses.filter(course => {
             const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
             const matchInstructor = selectedInstructors.length === 0 || selectedInstructors.includes(course.mainInstructor.name);
             const matchDuration = selectedDurations.length === 0 || selectedDurations.includes(course.duration);
             const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchInstructor && matchDuration && matchSearch;
         });
-    }, [selectedCategories, selectedInstructors, selectedDurations, searchQuery]);
+    }, [allCourses, selectedCategories, selectedInstructors, selectedDurations, searchQuery]);
 
     return (
         <main className={styles.main}>
