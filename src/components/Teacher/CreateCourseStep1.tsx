@@ -5,19 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Upload, Calendar } from "lucide-react";
 import Image from "next/image";
 import styles from "./CreateCourseStep1.module.css";
-
-interface Category {
-  id: string;
-  name: string;
-  displayName: string;
-}
+import { fetchCategories, CategorySummary } from "@/lib/categories";
 
 function CreateCourseStep1Content() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,11 +31,7 @@ function CreateCourseStep1Content() {
     const init = async () => {
       try {
         // Fetch categories
-        const catResponse = await fetch("/api/categories");
-        if (catResponse.ok) {
-          const data = await catResponse.json();
-          setCategories(data.categories);
-        }
+        setCategories(await fetchCategories());
 
         // If editing, fetch existing course
         if (courseId) {
