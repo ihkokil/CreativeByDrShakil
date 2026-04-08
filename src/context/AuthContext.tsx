@@ -49,8 +49,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [role, setRole] = useState<string | null>(null);
     const [hasSessionTerminated, setHasSessionTerminated] = useState(false);
 
-    const refreshSession = async () => {
-        setLoading(true);
+    const refreshSession = async (silent = false) => {
+        if (!silent) {
+            setLoading(true);
+        }
+
         try {
             const token = localStorage.getItem('auth_token');
             const response = await fetch('/api/auth/session', {
@@ -58,19 +61,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
 
-            const data = await response.json();
+            if (!response.ok) {
+                if (response.status === 401) {
+                    const data = await response.json();
 
-            // Check if session was revoked
-            if (response.status === 401 && data.code === 'session_revoked') {
-                setUser(null);
-                setRole(null);
-                setSession(null);
-                setSessionId(null);
-                setHasSessionTerminated(true);
-                localStorage.removeItem('auth_token');
-                setLoading(false);
+                    if (data?.code === 'session_revoked') {
+                        setUser(null);
+                        setRole(null);
+                        setSession(null);
+                        setSessionId(null);
+                        setHasSessionTerminated(true);
+                        localStorage.removeItem('auth_token');
+                    }
+                    return;
+                }
+
+                // Keep current auth state on transient server/network failures.
                 return;
             }
+
+            const data = await response.json();
 
             setUser(data.user || null);
             setRole(data.role || null);
@@ -83,13 +93,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setSession(null);
             }
         } catch {
-            setUser(null);
-            setRole(null);
-            setSession(null);
-            setSessionId(null);
-            localStorage.removeItem('auth_token');
+            // Keep current auth state on transient client-side fetch failures.
         } finally {
-            setLoading(false);
+            if (!silent) {
+                setLoading(false);
+            }
         }
     };
 
@@ -102,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!user || !sessionId) return;
 
         const interval = setInterval(() => {
-            refreshSession();
+            refreshSession(true);
         }, 30000);
 
         return () => clearInterval(interval);
