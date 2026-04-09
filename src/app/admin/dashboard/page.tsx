@@ -33,6 +33,7 @@ import Image from "next/image";
 import SessionsManager from "@/components/Admin/SessionsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
 import CategoryManager from "@/components/Admin/CategoryManager";
+import { AdminPaymentsList } from "@/components/Admin/PaymentsList";
 
 interface TeacherProfile {
     id: string;
@@ -66,7 +67,7 @@ function AdminDashboardContent() {
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
     // Instead of useState for activeTab, derive it from searchParams
-    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "payments" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -117,6 +118,7 @@ function AdminDashboardContent() {
     const navItems = useMemo(
         () => [
             { key: "overview", label: "Overview", icon: LayoutDashboard, mobilePrimary: true },
+            { key: "payments", label: "Payments", icon: DollarSign, mobilePrimary: true },
             { key: "teachers", label: "Teachers", icon: Users, mobilePrimary: true, badge: teachers.length.toString() },
             { key: "categories", label: "Categories", icon: BookOpen, mobilePrimary: true },
             { key: "coupons", label: "Coupons", icon: TicketPercent, mobilePrimary: true },
@@ -204,7 +206,7 @@ function AdminDashboardContent() {
                 userAvatarUrl={user.user_metadata?.profile_image || null}
                 items={navItems}
                 activeKey={activeTab}
-                onSelect={(key) => setActiveTab(key as "overview" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings")}
+                onSelect={(key) => setActiveTab(key as "overview" | "payments" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "analytics" | "settings")}
                 onLogout={handleLogout}
             >
                 {activeTab === "overview" && (
@@ -236,6 +238,10 @@ function AdminDashboardContent() {
                                     <BarChart3 size={18} />
                                     <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
                                 </article>
+                                <article className={styles.actionCard} onClick={() => setActiveTab("payments")}>
+                                    <DollarSign size={18} />
+                                    <div><h3>Review Payments</h3><p>Approve or reject pending payment submissions.</p></div>
+                                </article>
                                 <article className={styles.actionCard} onClick={() => setActiveTab("settings")}>
                                     <Shield size={18} />
                                     <div><h3>Security</h3><p>Review permissions and controls.</p></div>
@@ -243,6 +249,16 @@ function AdminDashboardContent() {
                             </div>
                         </section>
                     </div>
+                )}
+
+                {activeTab === "payments" && (
+                    <section className={styles.panel}>
+                        <h2 className={styles.panelTitle}>Payment Approvals</h2>
+                        <AdminPaymentsList
+                            onApprove={() => setToast({ type: "success", text: "Order approved and access granted." })}
+                            onReject={() => setToast({ type: "info", text: "Order rejected." })}
+                        />
+                    </section>
                 )}
 
                 {activeTab === "teachers" && (
