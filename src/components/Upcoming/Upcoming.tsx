@@ -65,11 +65,7 @@ export default function Upcoming() {
     };
 
     const commencesLabel = course.courseStartDate
-        ? `Commencing: ${new Date(course.courseStartDate).toLocaleDateString("en-US", {
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-        })}`
+        ? `Commencing: ${new Date(course.courseStartDate).toLocaleDateString('en-GB')}`
         : "Commencing soon";
 
     return (
