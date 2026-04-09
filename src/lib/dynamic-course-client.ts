@@ -3,8 +3,10 @@ import { Course, Instructor } from '@/constants/courses';
 interface DynamicInstructorPayload {
   id: string;
   name: string;
-  role: string;
-  image: string;
+  role?: string;
+  designation?: string;
+  image?: string;
+  sortOrder?: number;
 }
 
 interface DynamicCoursePayload {
@@ -16,6 +18,9 @@ interface DynamicCoursePayload {
   rating?: number;
   duration: string;
   description?: string;
+  overview?: string | null;
+  learningOutcomes?: string | null;
+  instructors?: DynamicInstructorPayload[];
   level?: string;
   language?: string;
   image?: string | null;
@@ -25,25 +30,46 @@ interface DynamicCoursePayload {
 const normalizeInstructor = (payload: DynamicInstructorPayload): Instructor => ({
   id: payload.id,
   name: payload.name,
-  role: payload.role,
+  role: payload.role || payload.designation || 'Course Instructor',
   image: payload.image || '/placeholder.svg',
 });
 
-export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course => ({
-  id: payload.id,
-  slug: payload.slug,
-  title: payload.title,
-  category: payload.category || 'General',
-  price: payload.price || 'Free',
-  rating: payload.rating || 4.9,
-  duration: payload.duration || 'Self paced',
-  description: payload.description,
-  level: payload.level,
-  language: payload.language,
-  image: payload.image || '/placeholder.svg',
-  mainInstructor: normalizeInstructor(payload.mainInstructor),
-  dynamicSource: true,
-});
+export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course => {
+  const mainInstructor = normalizeInstructor(payload.mainInstructor);
+  const additionalInstructors = (payload.instructors || [])
+    .map((instructor) => ({
+      id: instructor.id,
+      name: instructor.name,
+      role: instructor.designation || instructor.role || 'Course Instructor',
+      image: '/placeholder.svg',
+    }))
+    .filter((instructor) => instructor.name && instructor.name !== mainInstructor.name);
+
+  const learningObjectives = typeof payload.learningOutcomes === 'string'
+    ? payload.learningOutcomes
+      .split(/\r?\n/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+    : undefined;
+
+  return {
+    id: payload.id,
+    slug: payload.slug,
+    title: payload.title,
+    category: payload.category || 'General',
+    price: payload.price || 'Free',
+    rating: payload.rating || 4.9,
+    duration: payload.duration || 'Self paced',
+    description: payload.overview || payload.description,
+    learningObjectives,
+    level: payload.level,
+    language: payload.language,
+    image: payload.image || '/placeholder.svg',
+    mainInstructor,
+    subInstructors: additionalInstructors.length ? additionalInstructors : undefined,
+    dynamicSource: true,
+  };
+};
 
 export const mergeStaticAndDynamicCourses = (staticCourses: Course[], dynamicCourses: Course[]) => {
   const mergedBySlug = new Map<string, Course>();
