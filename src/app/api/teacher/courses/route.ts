@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, slugify } from '@/lib/teacher-course-builder';
 import { COURSES } from '@/constants/courses';
+import { parseDisplayDateToIso } from '@/lib/date-format';
 
 const STATIC_COURSE_SLUGS = new Set(COURSES.map((course) => course.slug));
 
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     const categoryId = typeof body.categoryId === 'string' ? body.categoryId.trim() : null;
     const duration = typeof body.duration === 'string' ? body.duration.trim() : '';
     const imageUrl = typeof body.imageUrl === 'string' ? body.imageUrl.trim() : null;
-    const courseStartDate = typeof body.courseStartDate === 'string' ? new Date(body.courseStartDate) : null;
+    const courseStartDate = typeof body.courseStartDate === 'string' ? parseDisplayDateToIso(body.courseStartDate) : null;
     const isFeatured = body.isFeatured === true;
 
     if (!title) {
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
         instructor: teacher.fullName,
         imageUrl,
         duration: duration || 'Self paced',
-        courseStartDate: courseStartDate && !Number.isNaN(courseStartDate.getTime()) ? courseStartDate : null,
+        courseStartDate: courseStartDate ? new Date(courseStartDate) : null,
         isFeatured,
         teacherId: payload.sub,
         status: 'draft',
