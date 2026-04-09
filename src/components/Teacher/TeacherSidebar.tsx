@@ -101,6 +101,7 @@ export default function TeacherSidebar({
                     {isExpanded && (
                         <div className={styles.profileInfo}>
                             <h3>{teacherName}</h3>
+                            <p className={styles.role}>{teacherEmail}</p>
                             <p className={styles.role}>Instructor</p>
                         </div>
                     )}

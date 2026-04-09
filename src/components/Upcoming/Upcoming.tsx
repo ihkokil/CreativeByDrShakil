@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import styles from "./Upcoming.module.css";
-import { motion } from "framer-motion";
 import { Calendar, UserCheck } from "lucide-react";
 import { COURSES } from "@/constants/courses";
 
@@ -18,7 +17,7 @@ export default function Upcoming() {
         const timer = setInterval(() => {
             setTimeLeft((prev) => {
                 if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-                if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59, minutes_val: prev.minutes - 1 };
+                if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
                 // Simple decrement for demo
                 return { ...prev, seconds: 59 };
             });

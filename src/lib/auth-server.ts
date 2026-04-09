@@ -66,7 +66,7 @@ export async function getSession() {
         email: payload.email,
       },
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }

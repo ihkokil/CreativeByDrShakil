@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         const { token: resetToken, tokenHash } = createTokenPair();
         const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
-        const teacher = await prisma.user.create({
+        await prisma.user.create({
             data: {
                 email: normalizedEmail,
                 fullName,

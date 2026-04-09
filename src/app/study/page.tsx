@@ -7,13 +7,9 @@ import {
     PlayCircle,
     FileText,
     Video,
-    CheckCircle2,
-    Lock,
     ArrowLeft,
-    ChevronDown
 } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import MCQSection from "@/components/Study/MCQSection";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { mockBasicMedicineData } from "@/lib/mockCurriculumData";

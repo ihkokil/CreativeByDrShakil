@@ -6,26 +6,24 @@ import styles from "./ThemeToggle.module.css";
 import { Sun, Moon } from "lucide-react";
 
 export default function ThemeToggle() {
-    const [theme, setTheme] = useState<"light" | "dark">("dark");
-    const [mounted, setMounted] = useState(false);
+    const [theme, setTheme] = useState<"light" | "dark">(() => {
+        if (typeof window === "undefined") {
+            return "dark";
+        }
+
+        const savedTheme = localStorage.getItem("theme");
+        return savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
+    });
 
     useEffect(() => {
-        setMounted(true);
-        const savedTheme = localStorage.getItem("theme") as "light" | "dark";
-        if (savedTheme) {
-            setTheme(savedTheme);
-            document.documentElement.setAttribute("data-theme", savedTheme);
-        }
-    }, []);
+        document.documentElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+    }, [theme]);
 
     const toggleTheme = () => {
         const newTheme = theme === "light" ? "dark" : "light";
         setTheme(newTheme);
-        document.documentElement.setAttribute("data-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
     };
-
-    if (!mounted) return <div className={styles.placeholder} />;
 
     return (
         <motion.button

@@ -52,7 +52,7 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
       }
       setOrder(data.order)
       setStep(2)
-    } catch (err) {
+    } catch {
       setError('Could not start checkout. Please try again.')
     } finally {
       setLoading(false)
@@ -74,7 +74,7 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
       } else {
         setError(data?.error || 'Payment submission failed. Please try again.')
       }
-    } catch (err) {
+    } catch {
       setError('Payment submission failed. Please try again.')
     } finally {
       setLoading(false)
