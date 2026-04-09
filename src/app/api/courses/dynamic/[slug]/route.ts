@@ -61,10 +61,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               profileImage: true,
             },
           },
-        },
-        category: {
-          select: {
-            displayName: true,
+          category: {
+            select: {
+              displayName: true,
+            },
           },
         },
       });
