@@ -8,7 +8,7 @@ import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
 import { COURSES, Course } from "@/constants/courses";
 import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+
 import { fetchPublishedDynamicCourses, mergeStaticAndDynamicCourses } from "@/lib/dynamic-course-client";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
@@ -93,7 +93,7 @@ function AllCoursesContent() {
 
         const loadTeachers = async () => {
             try {
-                const response = await fetch("/api/teachers");
+                const response = await fetch("/api/teachers", { cache: "no-store" });
                 const data = await response.json();
                 if (!cancelled && response.ok && Array.isArray(data.teachers)) {
                     setTeachers(data.teachers);
@@ -247,13 +247,11 @@ function AllCoursesContent() {
                     </div>
 
                     <div className={`${styles.grid} ${viewMode === 'list' ? styles.listView : styles.gridView}`}>
-                        <AnimatePresence mode="popLayout">
                             {filteredCourses.map(course => (
                                 <div key={course.id} className={styles.cardWrapper}>
                                     <CourseCard course={course} viewMode={viewMode} />
                                 </div>
                             ))}
-                        </AnimatePresence>
                     </div>
 
                     {filteredCourses.length === 0 && (
