@@ -131,7 +131,15 @@ function StudentDashboardContent() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfileForm] = useState<{
+    fullName: string;
+    phone: string;
+    bmdcNumber: string;
+    designation: string;
+    institution: string;
+    degrees: string;
+    profileImage: string | null;
+  }>({
     fullName: "",
     phone: "",
     bmdcNumber: "",
@@ -262,7 +270,7 @@ function StudentDashboardContent() {
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        setProfileForm((prev) => ({ ...prev, profileImage: reader.result }));
+        setProfileForm((prev) => ({ ...prev, profileImage: reader.result as string }));
       }
     };
     reader.readAsDataURL(file);
