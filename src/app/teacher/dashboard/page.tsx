@@ -24,7 +24,7 @@ interface TeacherCourseCard {
     category?: { displayName: string } | null;
     duration: string;
     instructors: Array<{ id: string; name: string; designation?: string | null }>;
-    _count?: { orders?: number; lessonProgress?: number };
+    _count?: { orders?: number };
 }
 
 function TeacherDashboardContent() {

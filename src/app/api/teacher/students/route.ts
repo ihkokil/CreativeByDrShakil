@@ -25,7 +25,7 @@ type TeacherCourseSummary = {
   imageUrl: string | null;
   category: { displayName: string } | null;
   instructors: Array<{ id: string; name: string; designation?: string | null }>;
-  _count: { orders: number; lessonProgress: number };
+  _count: { orders: number };
 };
 
 type CourseStudent = {
@@ -63,7 +63,6 @@ const getTeacherCourses = async (teacherId: string, role: string) => {
       _count: {
         select: {
           orders: true,
-          lessonProgress: true,
         },
       },
     },
@@ -154,21 +153,34 @@ export async function GET(request: NextRequest) {
     });
 
     const userIds = enrollments.map((enrollment) => enrollment.user.id);
-    const progressRows = userIds.length > 0
-      ? await prisma.$queryRaw<ProgressRow[]>(Prisma.sql`
+    let progressRows: ProgressRow[] = [];
+    let overrideRows: OverrideRow[] = [];
+
+    // Safely query LessonProgress if it exists
+    if (userIds.length > 0) {
+      try {
+        progressRows = await prisma.$queryRaw<ProgressRow[]>(Prisma.sql`
           SELECT userId, lessonNodeId
           FROM LessonProgress
           WHERE courseId = ${selectedCourse.id} AND userId IN (${Prisma.join(userIds)})
-        `)
-      : [];
+        `);
+      } catch (err) {
+        console.warn('LessonProgress table not found, skipping progress queries', err);
+        progressRows = [];
+      }
 
-    const overrideRows = userIds.length > 0
-      ? await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
+      // Safely query StudentModuleAvailability if it exists
+      try {
+        overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
           SELECT userId, lessonNodeId, availabilityMode, availableAt
           FROM ${Prisma.raw(OVERRIDE_TABLE)}
           WHERE courseId = ${selectedCourse.id} AND userId IN (${Prisma.join(userIds)})
-        `)
-      : [];
+        `);
+      } catch (err) {
+        console.warn('StudentModuleAvailability table not found, skipping override queries', err);
+        overrideRows = [];
+      }
+    }
 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(selectedCourse.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
