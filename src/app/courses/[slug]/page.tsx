@@ -35,7 +35,7 @@ export default function CourseDetailPage() {
     const [activeDynamicNode, setActiveDynamicNode] = useState<CurriculumNode | null>(null);
     const [loadingCourse, setLoadingCourse] = useState(true);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-    const [expandedModules, setExpandedModules] = useState<number[]>([0]); // First module expanded by default
+    const [expandedModules, setExpandedModules] = useState<number[]>([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -118,6 +118,12 @@ export default function CourseDetailPage() {
         return enrichCoursesWithTeachers([course], teachers)[0] || course;
     }, [course, teachers]);
 
+    useEffect(() => {
+        if (displayCourse && !displayCourse.dynamicSource && displayCourse.curriculum?.length) {
+            setExpandedModules(displayCourse.curriculum.map((_, index) => index));
+        }
+    }, [displayCourse]);
+
     if (loadingCourse) {
         return (
             <main className={styles.main}>
@@ -165,9 +171,19 @@ export default function CourseDetailPage() {
         price: normalizePrice(displayCourse.price),
     };
 
-    const instructorList = [displayCourse.mainInstructor, ...(displayCourse.subInstructors || [])].filter(
-        (instructor, index, list) => list.findIndex((candidate) => candidate.name === instructor.name) === index
-    );
+    const instructorList = useMemo(() => {
+        const list = [displayCourse.mainInstructor, ...(displayCourse.subInstructors || [])].filter(Boolean);
+        const unique = new Map<string, typeof list[number]>();
+
+        list.forEach((instructor) => {
+            const key = instructor.id || `${instructor.name}-${instructor.role}`;
+            if (!unique.has(key)) {
+                unique.set(key, instructor);
+            }
+        });
+
+        return Array.from(unique.values());
+    }, [displayCourse]);
 
     return (
         <main className={styles.main}>
