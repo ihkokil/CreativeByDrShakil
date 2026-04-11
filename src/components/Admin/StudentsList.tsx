@@ -4,9 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Search, Loader2, Edit, Trash2, MailCheck, GraduationCap, X } from "lucide-react";
 import styles from "@/app/admin/dashboard/AdminDashboard.module.css";
-// import AddStudentModal from "./AddStudentModal";
-// import EditStudentModal from "./EditStudentModal";
-// import DeleteStudentModal from "./DeleteStudentModal";
 
 interface StudentProfile {
     id: string;
