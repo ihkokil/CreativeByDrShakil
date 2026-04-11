@@ -42,20 +42,10 @@ function TeacherDashboardContent() {
                     <div className={styles.simpleCards}>
                         <div className={styles.simpleCard}><strong>842</strong><span>Total Active Students</span></div>
                         <div className={styles.simpleCard}><strong>76%</strong><span>Weekly Retention</span></div>
-                        <div className={styles.simpleCard}><strong>91%</strong><span>Assignment Submission</span></div>
                     </div>
                 </section>
             )}
 
-            {activeTab === "assignments" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Assignment Center</h2>
-                    <div className={styles.assignmentList}>
-                        <article className={styles.assignmentCard}><h3>Clinical Case Reflection</h3><p>32 pending reviews · due in 2 days</p></article>
-                        <article className={styles.assignmentCard}><h3>Rapid Revision Quiz</h3><p>18 pending reviews · due in 4 days</p></article>
-                    </div>
-                </section>
-            )}
 
             {activeTab === "library" && (
                 <section className={styles.panelNoPad}>

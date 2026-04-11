@@ -18,7 +18,6 @@ interface AdminOverviewProps {
     teacherCount: number;
     studentCount: number;
     courseCount: number;
-    totalRevenue: string;
     onTabChange: (tab: string) => void;
 }
 
@@ -26,7 +25,6 @@ export default function AdminOverview({
     teacherCount,
     studentCount,
     courseCount,
-    totalRevenue,
     onTabChange
 }: AdminOverviewProps) {
     
@@ -63,10 +61,10 @@ export default function AdminOverview({
             <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={cardVariants}>
                 <div className={styles.heroHeader}>
                     <div>
-                        <span className={styles.label}>Platform Revenue</span>
+                        <span className={styles.label}>Platform Analytics</span>
                         <div className={styles.revenueDisplay}>
-                            <span className={styles.currency}>৳</span>
-                            <span className={styles.amount}>{totalRevenue.replace('৳', '')}</span>
+                            <span className={styles.amount}>{studentCount + teacherCount}</span>
+                            <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Total Users</span>
                         </div>
                     </div>
                     <div className={styles.heroAction}>
@@ -89,7 +87,7 @@ export default function AdminOverview({
                     </div>
                 </div>
                 <button className={styles.viewAllBtn} onClick={() => onTabChange('analytics')} style={{ marginTop: '10px' }}>
-                    Detailed Financials <ArrowRight size={16} />
+                    Detailed Analytics <ArrowRight size={16} />
                 </button>
             </motion.div>
 

@@ -135,10 +135,10 @@ export default function StudentOverview({
                         </div>
                     </div>
                     <div className={styles.activityItem}>
-                        <TrendingUp size={16} />
+                        <BookOpen size={16} />
                         <div>
-                            <strong>85%</strong>
-                            <span>Avg Score</span>
+                            <strong>15</strong>
+                            <span>Modules Completed</span>
                         </div>
                     </div>
                 </div>
@@ -150,19 +150,19 @@ export default function StudentOverview({
             {/* Upcoming/Goal Card */}
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
                 <div className={styles.goalHeader}>
-                    <h3>Upcoming Goal</h3>
+                    <h3>Upcoming Modules</h3>
                     <Target size={20} className={styles.goalIcon} />
                 </div>
                 <div className={styles.upcomingTask}>
-                    <Calendar size={16} />
-                    <span>BCPS Mock Exam · Mar 15</span>
+                    <BookOpen size={16} />
+                    <span>Cardiology Basics</span>
                 </div>
                 <div className={styles.upcomingTask}>
-                    <Calendar size={16} />
-                    <span>Surgery Masterquiz · Mar 28</span>
+                    <BookOpen size={16} />
+                    <span>Surgery Principles</span>
                 </div>
-                <button className={styles.viewAllBtn} onClick={() => onTabChange('exams')}>
-                    Exam Center <ArrowRight size={16} />
+                <button className={styles.viewAllBtn} onClick={() => onTabChange('courses')}>
+                    View Curriculum <ArrowRight size={16} />
                 </button>
             </motion.div>
 
@@ -181,12 +181,12 @@ export default function StudentOverview({
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
                 <div className={styles.metricHeader}>
                     <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-                        <Target size={20} />
+                        <BookOpen size={20} />
                     </div>
                 </div>
                 <div className={styles.metricBody}>
                     <h4>12</h4>
-                    <p>Tests Remaining</p>
+                    <p>Modules Remaining</p>
                 </div>
             </motion.div>
         </motion.div>
