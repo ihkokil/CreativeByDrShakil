@@ -2,13 +2,9 @@
 
 import { motion, Variants } from "framer-motion";
 import { 
-    Trophy, 
     BookOpen, 
-    TrendingUp, 
-    Clock, 
     ArrowRight,
     PlayCircle,
-    Target,
     UserCog,
     CheckCircle
 } from "lucide-react";
@@ -190,17 +186,6 @@ export default function StudentOverview({
                 </div>
             </motion.div>
 
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                        <Trophy size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>Scholar</h4>
-                    <p>Learning Tier</p>
-                </div>
-            </motion.div>
         </motion.div>
     );
 }
