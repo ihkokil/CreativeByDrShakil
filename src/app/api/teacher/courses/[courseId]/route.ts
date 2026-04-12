@@ -66,7 +66,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,
-      releaseStartAt: course.releaseStartAt,
+      releaseStartAt: course.releaseStartAt || course.courseStartDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
       releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],

@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,
-      releaseStartAt: course.releaseStartAt,
+      releaseStartAt: course.releaseStartAt || course.courseStartDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
       releaseGroupDates,
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         slug: course.slug,
         status: course.status,
         releaseMode: course.releaseMode,
-        releaseStartAt: course.releaseStartAt,
+        releaseStartAt: course.releaseStartAt || course.courseStartDate,
         releaseIntervalDays: course.releaseIntervalDays,
         releaseGroupsPerWeek: course.releaseGroupsPerWeek,
         timezone: course.timezone,
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt,
+      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
       releaseGroupDates: compactReleaseGroupDates,

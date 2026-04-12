@@ -135,7 +135,7 @@ export async function PATCH(
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt,
+      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
       releaseGroupDates: compactReleaseGroupDates,
@@ -195,7 +195,7 @@ export async function DELETE(
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt,
+      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
       releaseGroupDates: compactReleaseGroupDates,

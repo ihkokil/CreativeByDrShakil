@@ -97,7 +97,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const releaseGroupDates = parseReleaseGroupDateMap(updatedCourse.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt,
+      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
       releaseDaysOfWeek: (updatedCourse as any).releaseDaysOfWeek as number[],
@@ -109,7 +109,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         id: updatedCourse.id,
         status: updatedCourse.status,
         releaseMode: updatedCourse.releaseMode,
-        releaseStartAt: updatedCourse.releaseStartAt,
+        releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
         releaseIntervalDays: updatedCourse.releaseIntervalDays,
         releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
         releaseDaysOfWeek: (updatedCourse as any).releaseDaysOfWeek,
