@@ -274,7 +274,7 @@ function AdminDashboardContent() {
                             <p className={styles.subtitle}>Welcome back, {user.user_metadata?.full_name || 'Administrator'}</p>
                         </div>
                         <button className={styles.primaryBtn} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
-                            <UserPlus size={16} /> Invite Faculty
+                            <UserPlus size={16} /> Invite Instructor
                         </button>
                     </div>
 
@@ -309,7 +309,7 @@ function AdminDashboardContent() {
                             </article>
                             <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
                                 <Users size={18} />
-                                <div><h3>Manage Faculty</h3><p>Review teacher status and access.</p></div>
+                                <div><h3>Manage Instructors</h3><p>Review teacher status and access.</p></div>
                             </article>
                             <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
                                 <BarChart3 size={18} />
@@ -324,8 +324,8 @@ function AdminDashboardContent() {
                 <section className={styles.panel}>
                     <div className={styles.panelHeader}>
                         <div>
-                            <h2 className={styles.panelTitle}>Faculty Directory</h2>
-                            <p className={styles.subtitle}>Academic access control and management</p>
+                            <h2 className={styles.panelTitle}>Instructor Directory</h2>
+                            <p className={styles.subtitle}>Instructor access control and management</p>
                         </div>
                         <button className={styles.primaryBtn} onClick={() => setIsAddTeacherOpen(true)}>
                             <UserPlus size={16} /> Add Teacher
@@ -333,7 +333,7 @@ function AdminDashboardContent() {
                     </div>
 
                     {teachersLoading ? (
-                        <div className={styles.loader}>Synchronizing faculty database...</div>
+                        <div className={styles.loader}>Synchronizing instructor database...</div>
                     ) : teachers.length > 0 ? (
                         <div className={styles.teacherGrid}>
                             {teachers.map((teacher) => (
@@ -373,7 +373,7 @@ function AdminDashboardContent() {
                             ))}
                         </div>
                     ) : (
-                        <div className={styles.infoBox}>Zero faculty members found.</div>
+                        <div className={styles.infoBox}>No instructors found.</div>
                     )}
                 </section>
             )}
@@ -383,7 +383,7 @@ function AdminDashboardContent() {
                     <div className={styles.panelHeader}>
                         <div>
                             <h2 className={styles.panelTitle}>Student Directory</h2>
-                            <p className={styles.subtitle}>Enrolled scholars and user accounts</p>
+                            <p className={styles.subtitle}>Enrolled students and user accounts</p>
                         </div>
                     </div>
                     <StudentsList />
@@ -437,7 +437,7 @@ function AdminDashboardContent() {
 
             {activeTab === "categories" && (
                 <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Academic Categories</h2>
+                    <h2 className={styles.panelTitle}>Course Categories</h2>
                     <CategoryManager />
                 </section>
             )}
