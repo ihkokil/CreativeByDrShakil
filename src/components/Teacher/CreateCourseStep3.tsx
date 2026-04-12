@@ -339,11 +339,33 @@ function CreateCourseStep3Content() {
         setLoading(true);
         const headers = getAuthHeaders();
 
+        const initialSelectedIds = new Set<string>();
+        const initialExcludedIds: Record<string, boolean> = {};
+        let loadedCourseData: any = null;
+
         const courseResponse = await fetch(`/api/teacher/courses/${courseId}`, { headers });
         if (courseResponse.ok) {
-          const courseData = await courseResponse.json();
-          if (courseData.course?.courseStartDate) {
-            setPublishStartDate(formatDisplayDate(courseData.course.courseStartDate));
+          loadedCourseData = await courseResponse.json();
+          if (loadedCourseData.course?.courseStartDate) {
+            setPublishStartDate(formatDisplayDate(loadedCourseData.course.courseStartDate));
+          }
+          
+          if (loadedCourseData.course?.releaseMode) {
+             const modeMap: Record<string, any> = {
+                "instant": "instant",
+                "fixed_interval": "interval",
+                "day_of_week": "dayOfWeek"
+             };
+             setPublishFreqMode(modeMap[loadedCourseData.course.releaseMode] || "interval");
+          }
+          if (loadedCourseData.course?.releaseIntervalDays) {
+             setPublishIntervalDays(loadedCourseData.course.releaseIntervalDays);
+          }
+          if (loadedCourseData.course?.releaseDaysOfWeek) {
+             try {
+                const days = JSON.parse(loadedCourseData.course.releaseDaysOfWeek);
+                if (Array.isArray(days)) setPublishDaysOfWeek(days);
+             } catch(e) {}
           }
         }
 
@@ -356,7 +378,6 @@ function CreateCourseStep3Content() {
           const topics = Array.isArray(topicData.topics) ? topicData.topics : [];
           topics.forEach((t: any) => {
             if (!seenIds.has(t.id)) {
-              // Convert StarterSubTopic to StarterItem model for starters
               const mappedSubTopics: StarterItem[] = (t.subTopics || []).map((st: any) => ({
                 id: st.id,
                 type: "folder",
@@ -388,7 +409,78 @@ function CreateCourseStep3Content() {
           });
         }
 
+        // Process existing curriculum for persistence
+        if (loadedCourseData?.course?.curriculumJson) {
+          try {
+            const curriculum = JSON.parse(loadedCourseData.course.curriculumJson);
+            const curriculumIdMap = new Map<string, any>();
+            
+            const mapNodes = (nodes: any[]) => {
+              nodes.forEach(node => {
+                curriculumIdMap.set(node.id, node);
+                if (node.children) mapNodes(node.children);
+              });
+            };
+            mapNodes(curriculum);
+
+            // 1. Mark existing catalog topics as selected
+            allTopics.forEach(topic => {
+              if (curriculumIdMap.has(topic.id)) {
+                initialSelectedIds.add(topic.id);
+                
+                // Recursively check for exclusions
+                const trackExclusions = (items: StarterItem[]) => {
+                  items.forEach(item => {
+                    if (!curriculumIdMap.has(item.id)) {
+                      initialExcludedIds[item.id] = true;
+                    } else {
+                      if (item.type === 'folder') {
+                        initialSelectedIds.add(item.id);
+                      }
+                      if (item.items) trackExclusions(item.items);
+                    }
+                  });
+                };
+                trackExclusions(topic.subTopics);
+              }
+            });
+
+            // 2. Load custom topics that are not in the catalog
+            curriculum.forEach((topicNode: any) => {
+              if (!seenIds.has(topicNode.id)) {
+                const convertNodeToItem = (node: any): StarterItem => ({
+                  id: node.id,
+                  type: node.type,
+                  title: node.title,
+                  url: node.url || undefined,
+                  items: node.children ? node.children.map(convertNodeToItem) : undefined
+                });
+
+                const customTopic: StarterMainTopic = {
+                  id: topicNode.id,
+                  title: topicNode.title,
+                  subTopics: topicNode.children ? topicNode.children.map(convertNodeToItem) : [],
+                  source: "custom"
+                };
+                allTopics.push(customTopic);
+                seenIds.add(topicNode.id);
+                initialSelectedIds.add(topicNode.id);
+                
+                if (topicNode.children) {
+                   topicNode.children.forEach((st: any) => {
+                     if (st.type === 'folder') initialSelectedIds.add(st.id);
+                   });
+                }
+              }
+            });
+          } catch (e) {
+            console.error("Failed to parse existing curriculum", e);
+          }
+        }
+
         setTopicOptions(allTopics);
+        setSelectedTopicIds(Array.from(initialSelectedIds));
+        setExcludedItemIds(initialExcludedIds);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load course");

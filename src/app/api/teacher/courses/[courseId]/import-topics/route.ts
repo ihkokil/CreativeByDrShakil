@@ -104,7 +104,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const importedNodes = topics.length
       ? buildCurriculumFromPayloadTopics(topics)
       : buildCurriculumFromStarter(mainTopicIds, await getStarterCatalogFromDB());
-    const mergedCurriculum = ensureGroupInheritance([...existingCurriculum, ...importedNodes]);
+
+    // If topics were provided explicitly (from the wizard), they represent the FULL desired state of selected modules.
+    // If only mainTopicIds were provided (from the standalone builder), they represent NEW modules to append.
+    const mergedCurriculum = ensureGroupInheritance(
+      topics.length ? importedNodes : [...existingCurriculum, ...importedNodes]
+    );
 
     const groups = collectSecondChildGroups(mergedCurriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
