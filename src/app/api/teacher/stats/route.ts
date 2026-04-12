@@ -24,11 +24,14 @@ export async function GET(request: NextRequest) {
 
     const courseIds = courses.map((c) => c.id);
 
-    // 2. Get approved orders for these courses
+    // 2. Get approved orders for these courses from users with 'student' role
     const approvedOrders = await prisma.order.findMany({
       where: {
         courseId: { in: courseIds },
         status: 'approved',
+        user: {
+          role: 'student'
+        }
       },
       select: {
         id: true,
@@ -37,10 +40,16 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // 3. Get progress entries for these courses
+    const uniqueStudentIds = new Set(approvedOrders.map(o => o.userId));
+    const totalStudents = uniqueStudentIds.size;
+
+    // 3. Get progress entries for these courses (only for students)
     const progressEntries = await prisma.lessonProgress.findMany({
       where: {
         courseId: { in: courseIds },
+        user: {
+          role: 'student'
+        }
       },
       select: {
         userId: true,
@@ -86,6 +95,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       totalCourses: courses.length,
+      totalStudents,
       totalEnrollments,
       totalLessonsCompleted,
       courseProgress: courseStats,

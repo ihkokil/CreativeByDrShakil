@@ -23,6 +23,7 @@ interface CourseProgress {
 
 interface TeacherOverviewProps {
     totalCourses: number;
+    totalStudents: number;
     totalEnrollments: number;
     totalLessonsCompleted: number;
     courseProgress: CourseProgress[];
@@ -32,6 +33,7 @@ interface TeacherOverviewProps {
 
 export default function TeacherOverview({
     totalCourses,
+    totalStudents,
     totalEnrollments,
     totalLessonsCompleted,
     courseProgress,
@@ -101,8 +103,8 @@ export default function TeacherOverview({
                     <Users size={20} />
                 </div>
                 <div className={styles.metricBody} style={{ marginTop: '16px' }}>
-                    <h4>{totalEnrollments}</h4>
-                    <p>Total Enrollments</p>
+                    <h4>{totalStudents}</h4>
+                    <p>Total Students</p>
                 </div>
             </motion.div>
 
