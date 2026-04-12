@@ -109,7 +109,7 @@ export default function StudentOverview({
                 </div>
                 <div className={styles.metricBody}>
                     <h4>{courseCount}</h4>
-                    <p>Enrolled Programs</p>
+                    <p>My Courses</p>
                 </div>
             </motion.div>
 
@@ -126,7 +126,7 @@ export default function StudentOverview({
             {/* 3. Course Progress List */}
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
                 <div className={styles.cardHeader}>
-                    <h3>Recent Programs</h3>
+                    <h3>Recent Courses</h3>
                 </div>
                 <div className={styles.activities}>
                     {enrolledCourses.length > 0 ? (
@@ -171,16 +171,16 @@ export default function StudentOverview({
                 <div className={styles.actionGrid} style={{ gridTemplateColumns: '1fr' }}>
                     <Link href="/courses" className={styles.actionBtn}>
                         <div className={styles.actionIcon}><BookOpen size={18} /></div>
-                        <div>
+                        <div className={styles.actionInfo}>
                             <strong>Course Catalog</strong>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Explore specialized programs</span>
+                            <span>Explore specialized programs</span>
                         </div>
                     </Link>
                     <button onClick={() => onTabChange("profile")} className={styles.actionBtn}>
                         <div className={styles.actionIcon}><UserCog size={18} /></div>
-                        <div>
+                        <div className={styles.actionInfo}>
                             <strong>Profile Management</strong>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Academic & personal info</span>
+                            <span>Profile & personal info</span>
                         </div>
                     </button>
                 </div>
