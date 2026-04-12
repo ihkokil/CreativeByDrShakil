@@ -24,6 +24,7 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
     timezone: string;
     releaseMode: any;
     releaseStartAt: Date | null;
+    courseStartDate: Date | null;
     releaseIntervalDays: number | null;
     releaseGroupsPerWeek: number | null;
     releaseDaysOfWeek: any;
@@ -42,6 +43,7 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
       timezone: true,
       releaseMode: true,
       releaseStartAt: true,
+      courseStartDate: true,
       releaseIntervalDays: true,
       releaseGroupsPerWeek: true,
       ...({ releaseDaysOfWeek: true } as any),
@@ -118,7 +120,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course!.releaseMode,
-      releaseStartAt: result.course!.releaseStartAt || result.studentEnrollmentDate,
+      releaseStartAt: result.course!.releaseStartAt || result.course!.courseStartDate || result.studentEnrollmentDate,
       releaseIntervalDays: result.course!.releaseIntervalDays,
       releaseGroupsPerWeek: result.course!.releaseGroupsPerWeek,
       releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
@@ -205,7 +207,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course!.releaseMode,
-      releaseStartAt: result.course!.releaseStartAt || result.studentEnrollmentDate,
+      releaseStartAt: result.course!.releaseStartAt || result.course!.courseStartDate || result.studentEnrollmentDate,
       releaseIntervalDays: result.course!.releaseIntervalDays,
       releaseGroupsPerWeek: result.course!.releaseGroupsPerWeek,
       releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
