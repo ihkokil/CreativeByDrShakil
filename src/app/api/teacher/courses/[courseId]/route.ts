@@ -200,9 +200,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    if (existingCourse.status === 'published') {
+    // Published courses or courses with orders cannot be deleted
+    const orderCount = await prisma.order.count({ where: { courseId: existingCourse.id } });
+    if (existingCourse.status === 'published' || orderCount > 0) {
       return NextResponse.json(
-        { error: 'Published courses cannot be deleted. Archive the course instead.' },
+        { error: 'Published courses or courses with orders cannot be deleted. Archive the course instead.' },
         { status: 400 }
       );
     }
