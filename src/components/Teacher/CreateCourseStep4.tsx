@@ -93,7 +93,7 @@ function CreateCourseStep4Content() {
         throw new Error(publishError.error || "Failed to publish");
       }
 
-      router.push("/teacher/dashboard?tab=courses&published=true");
+      router.push("/teacher/dashboard?tab=courses");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to publish course");
     } finally {
