@@ -195,6 +195,74 @@
     box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 40%, transparent);
 }
 
+.secondaryBtn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 86%, transparent);
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.secondaryBtn:hover {
+    background: var(--surface-soft);
+    color: var(--foreground);
+    border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+/* ===== Tab System ===== */
+
+.tabGroup {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: color-mix(in srgb, var(--background) 40%, transparent);
+    padding: 6px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    margin-bottom: 24px;
+    width: fit-content;
+}
+
+.tabItem {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tabItem:hover {
+    color: var(--foreground);
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+}
+
+.tabItemActive {
+    background: var(--card-bg);
+    color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tabStats {
+    margin-left: auto;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    padding-right: 12px;
+}
+
 /* ===== Action Grid (Quick Actions on Overview) ===== */
 
 .actionGrid {
@@ -336,6 +404,36 @@
     padding: 4px 10px;
     border-radius: 999px;
     letter-spacing: 0.04em;
+}
+
+.statusBadge {
+    display: inline-flex;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.statusSuccess {
+    background: color-mix(in srgb, #10b981 15%, transparent);
+    color: #10b981;
+}
+
+.statusWarning {
+    background: color-mix(in srgb, #f59e0b 15%, transparent);
+    color: #f59e0b;
+}
+
+.statusDanger {
+    background: color-mix(in srgb, #ef4444 15%, transparent);
+    color: #ef4444;
+}
+
+.statusInfo {
+    background: color-mix(in srgb, #0ea5e9 15%, transparent);
+    color: #0ea5e9;
 }
 
 .cardActions {
@@ -740,5 +838,17 @@
 
     .confirmDialog {
         padding: 22px;
+    }
+
+    .tabGroup {
+        width: 100%;
+    }
+
+    .tabStats {
+        width: 100%;
+        margin-top: 8px;
+        padding-left: 10px;
+        border-top: 1px solid var(--glass-border);
+        padding-top: 8px;
     }
 }

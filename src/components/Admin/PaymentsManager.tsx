@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styles from "@/app/admin/dashboard/AdminDashboard.module.css";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 
 type PaymentStatus = "pending" | "approved" | "rejected";
 
@@ -23,10 +23,10 @@ type OrderRow = {
   };
 };
 
-const STATUS_TABS: { id: PaymentStatus; label: string }[] = [
-  { id: "pending", label: "Pending Approval" },
-  { id: "approved", label: "Approved" },
-  { id: "rejected", label: "Rejected" },
+const STATUS_TABS: { id: PaymentStatus; label: string; icon: any }[] = [
+  { id: "pending", label: "Pending Approval", icon: Clock },
+  { id: "approved", label: "Approved", icon: CheckCircle2 },
+  { id: "rejected", label: "Rejected", icon: XCircle },
 ];
 
 export default function PaymentsManager() {
@@ -121,22 +121,20 @@ export default function PaymentsManager() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+      <div className={styles.tabGroup}>
         {STATUS_TABS.map((t) => (
           <button
             key={t.id}
-            className={styles.secondaryBtn}
+            className={`${styles.tabItem} ${status === t.id ? styles.tabItemActive : ""}`}
             onClick={() => setStatus(t.id)}
-            style={{
-              borderColor: status === t.id ? "var(--primary)" : undefined,
-              color: status === t.id ? "var(--primary)" : undefined,
-            }}
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
           >
+            <t.icon size={16} />
             {t.label}
           </button>
         ))}
-        <div style={{ marginLeft: "auto", color: "var(--text-muted)", fontWeight: 600 }}>
-          {loading ? "Loading..." : `${totals.count} items · ৳${Math.round(totals.amount)}`}
+        <div className={styles.tabStats}>
+          {loading ? "Syncing..." : `${totals.count} items · ৳${Math.round(totals.amount)}`}
         </div>
       </div>
 
@@ -166,9 +164,15 @@ export default function PaymentsManager() {
 
               <div className={styles.cardContent}>
                 <div className={styles.academicInfo}>
-                  <p style={{ marginBottom: 8 }}>
-                    <strong>Status:</strong> {String(o.status).toUpperCase()}
-                  </p>
+                  <div style={{ marginBottom: 10 }}>
+                    <span className={`${styles.statusBadge} ${
+                      o.status === "approved" ? styles.statusSuccess : 
+                      o.status === "rejected" ? styles.statusDanger : 
+                      styles.statusWarning
+                    }`}>
+                      {String(o.status)}
+                    </span>
+                  </div>
                   <p style={{ marginBottom: 8 }}>
                     <strong>Amount:</strong> ৳{Math.round(Number(o.payment?.amount ?? o.totalAmount))}
                   </p>
@@ -226,7 +230,15 @@ export default function PaymentsManager() {
               </div>
               <div>
                 <strong>Order Status</strong>
-                <div>{String(selected.status).toUpperCase()}</div>
+                <div style={{ marginTop: 4 }}>
+                  <span className={`${styles.statusBadge} ${
+                    selected.status === "approved" ? styles.statusSuccess : 
+                    selected.status === "rejected" ? styles.statusDanger : 
+                    styles.statusWarning
+                  }`}>
+                    {String(selected.status)}
+                  </span>
+                </div>
               </div>
               <div>
                 <strong>Amount</strong>
