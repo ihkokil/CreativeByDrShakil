@@ -14,7 +14,9 @@ import {
     Users,
     ChevronRight,
     Loader2,
-    Eye
+    Eye,
+    Copy,
+    Archive
 } from "lucide-react";
 import Image from "next/image";
 import styles from "./CoursesTab.module.css";
@@ -63,6 +65,84 @@ export default function CoursesTab() {
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDelete = async (courseId: string, title: string) => {
+        if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/teacher/courses/${courseId}`, {
+                method: "DELETE",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                alert(data.error || "Failed to delete course.");
+                return;
+            }
+
+            setCourses(prev => prev.filter(c => c.id !== courseId));
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while deleting the course.");
+        }
+    };
+
+    const handleDuplicate = async (courseId: string) => {
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/teacher/courses/${courseId}/duplicate`, {
+                method: "POST",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                alert(data.error || "Failed to duplicate course.");
+                return;
+            }
+
+            // Refresh list
+            fetchCourses();
+            alert("Course duplicated successfully as draft.");
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while duplicating the course.");
+        }
+    };
+
+    const handleArchive = async (courseId: string, title: string) => {
+        if (!confirm(`Are you sure you want to archive "${title}"? This will hide it from the student site.`)) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/teacher/courses/${courseId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({ status: "archived" }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                alert(data.error || "Failed to archive course.");
+                return;
+            }
+
+            setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: "archived" } : c));
+            alert("Course archived successfully.");
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while archiving the course.");
         }
     };
 
@@ -149,10 +229,34 @@ export default function CoursesTab() {
                                             <button className={styles.iconAction} onClick={() => window.open(`/courses/${course.slug}`, '_blank')} title="View on Student Site">
                                                 <ExternalLink size={18} />
                                             </button>
-                                            <button className={styles.iconAction} onClick={() => router.push(`/teacher/dashboard/courses/create?courseId=${course.id}`)} title="Edit">
+                                            <button 
+                                                className={styles.iconAction} 
+                                                onClick={() => router.push(`/teacher/dashboard/courses/create?courseId=${course.id}`)} 
+                                                title="Edit"
+                                            >
                                                 <Edit2 size={18} />
                                             </button>
-                                            <button className={`${styles.iconAction} ${styles.delete}`} title="Archive">
+                                            <button 
+                                                className={styles.iconAction} 
+                                                onClick={() => handleDuplicate(course.id)} 
+                                                title="Duplicate"
+                                            >
+                                                <Copy size={18} />
+                                            </button>
+                                            {course.status !== "archived" && (
+                                                <button 
+                                                    className={styles.iconAction} 
+                                                    onClick={() => handleArchive(course.id, course.title)} 
+                                                    title="Archive"
+                                                >
+                                                    <Archive size={18} />
+                                                </button>
+                                            )}
+                                            <button 
+                                                className={`${styles.iconAction} ${styles.delete}`} 
+                                                onClick={() => handleDelete(course.id, course.title)}
+                                                title="Delete"
+                                            >
                                                 <Trash2 size={18} />
                                             </button>
                                         </div>
