@@ -20,6 +20,8 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import StudentOverview from "@/components/Student/StudentOverview";
+import profileStyles from "./ProfileTab.module.css";
+import { Camera, Mail, Stethoscope, Save } from "lucide-react";
 
 interface DashboardCourse {
     orderId: string;
@@ -295,118 +297,169 @@ function StudentDashboardContent() {
       )}
 
       {activeTab === "profile" && data && (
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-                <h2>Academic Profile</h2>
-                <p className={styles.subtitle}>Manage your credentials and identity</p>
+        <div className={profileStyles.wrapper}>
+          <header className={profileStyles.header}>
+            <div className={profileStyles.headerTitle}>
+              <h2>Academic Profile</h2>
+              <p>Manage your medical credentials and personal identity</p>
             </div>
-            <button className={styles.secondaryBtn} onClick={() => setEditingProfile((prev) => !prev)}>
-              <UserCog size={16} /> {editingProfile ? "Cancel" : "Edit Profile"}
+            <button 
+              className={`${profileStyles.editButton} ${editingProfile ? profileStyles.active : ""}`} 
+              onClick={() => setEditingProfile(!editingProfile)}
+            >
+              <UserCog size={18} />
+              {editingProfile ? "Finish Editing" : "Edit Profile"}
             </button>
-          </div>
+          </header>
 
-          <div className={styles.profileGrid}>
-            <div className={styles.profileCardAside}>
-              <div className={styles.profileAvatar}>
-                {profileForm.profileImage ? (
-                  <Image src={profileForm.profileImage} alt={profileForm.fullName || "Profile"} fill className={styles.profileAvatarImage} unoptimized />
-                ) : (
-                  <span>{(profileForm.fullName || data.profile.fullName).slice(0, 2).toUpperCase()}</span>
+          <div className={profileStyles.bentoGrid}>
+            <aside className={`${profileStyles.card} ${profileStyles.identityCard}`}>
+              <div className={profileStyles.avatarWrapper}>
+                <div className={profileStyles.avatar}>
+                  {profileForm.profileImage ? (
+                    <Image 
+                      src={profileForm.profileImage} 
+                      alt={profileForm.fullName || "Profile"} 
+                      fill 
+                      className={profileStyles.avatarImage} 
+                      unoptimized 
+                    />
+                  ) : (
+                    <span>{(profileForm.fullName || data.profile.fullName).slice(0, 2).toUpperCase()}</span>
+                  )}
+                </div>
+                {editingProfile && (
+                  <div className={profileStyles.uploadOverlay}>
+                    <Camera size={24} />
+                    <input type="file" accept="image/*" onChange={handleProfileImageSelect} />
+                  </div>
                 )}
               </div>
-              <h3>{profileForm.fullName || data.profile.fullName}</h3>
-              <p>{data.profile.email}</p>
-              <span className={styles.memberSince}>Account active since {formatDate(data.profile.createdAt)}</span>
 
-              {editingProfile && (
-                <label className={styles.uploadBtn}>
-                  Change Avatar
-                  <input type="file" accept="image/*" onChange={handleProfileImageSelect} />
-                </label>
-              )}
-            </div>
+              <h3 className={profileStyles.userName}>{profileForm.fullName || data.profile.fullName}</h3>
+              <p className={profileStyles.userEmail}>{data.profile.email}</p>
+              
+              <div className={profileStyles.roleBadge}>
+                {data.profile.role} Student
+              </div>
 
-            <div>
-              <form className={styles.profileForm} onSubmit={handleSaveProfile}>
-                <div className={styles.formRowTwo}>
-                  <div className={styles.formGroup}>
-                    <label>Full Name</label>
-                    <input
-                      value={profileForm.fullName}
-                      onChange={(event) => setProfileForm((prev) => ({ ...prev, fullName: event.target.value }))}
-                      disabled={!editingProfile}
-                      required
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label>Registration ID (Email)</label>
-                    <input value={data.profile.email} disabled />
-                  </div>
+              <div className={profileStyles.statsRow}>
+                <div className={profileStyles.statItem}>
+                  <span className={profileStyles.statLabel}>Member Since</span>
+                  <span className={profileStyles.statValue}>{formatDate(data.profile.createdAt)}</span>
                 </div>
-
-                <div className={styles.formRowTwo}>
-                  <div className={styles.formGroup}>
-                    <label>Contact Phone</label>
-                    <input
-                      value={profileForm.phone}
-                      onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))}
-                      disabled={!editingProfile}
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label>BMDC Number</label>
-                    <input
-                      value={profileForm.bmdcNumber}
-                      onChange={(event) => setProfileForm((prev) => ({ ...prev, bmdcNumber: event.target.value }))}
-                      disabled={!editingProfile}
-                    />
-                  </div>
+                <div className={profileStyles.statItem}>
+                  <span className={profileStyles.statLabel}>Active Courses</span>
+                  <span className={profileStyles.statValue}>{data.studyStats.activeCourses}</span>
                 </div>
+              </div>
+            </aside>
 
-                <div className={styles.formRowTwo}>
-                  <div className={styles.formGroup}>
-                    <label>Primary Designation</label>
-                    <input
-                      value={profileForm.designation}
-                      onChange={(event) => setProfileForm((prev) => ({ ...prev, designation: event.target.value }))}
-                      disabled={!editingProfile}
-                    />
-                  </div>
-                  <div className={styles.formGroup}>
-                    <label>Affiliated Institution</label>
-                    <input
-                      value={profileForm.institution}
-                      onChange={(event) => setProfileForm((prev) => ({ ...prev, institution: event.target.value }))}
-                      disabled={!editingProfile}
-                    />
-                  </div>
+            <main className={profileStyles.formSections}>
+              <section className={profileStyles.card}>
+                <div className={profileStyles.sectionHeader}>
+                  <UserCog size={20} className={profileStyles.sectionIcon} />
+                  <h3>Personal Information</h3>
                 </div>
-
-                <div className={styles.formGroup}>
-                  <label>Academic Degrees</label>
-                  <input
-                    value={profileForm.degrees}
-                    onChange={(event) => setProfileForm((prev) => ({ ...prev, degrees: event.target.value }))}
-                    disabled={!editingProfile}
-                  />
-                </div>
-
-                {profileMessage && (
-                  <div className={`${styles.message} ${profileMessage.type === "success" ? styles.success : styles.error}`}>
-                    {profileMessage.text}
+                
+                <form className={profileStyles.profileForm} onSubmit={handleSaveProfile}>
+                  <div className={profileStyles.formGrid}>
+                    <div className={profileStyles.formGroup}>
+                      <label>Full Name</label>
+                      <input
+                        className={profileStyles.input}
+                        value={profileForm.fullName}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, fullName: e.target.value }))}
+                        disabled={!editingProfile}
+                        placeholder="Dr. John Doe"
+                        required
+                      />
+                    </div>
+                    <div className={profileStyles.formGroup}>
+                      <label>Email Address</label>
+                      <div style={{ position: 'relative' }}>
+                        <input className={profileStyles.input} value={data.profile.email} disabled />
+                        <Mail size={16} style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                      </div>
+                    </div>
+                    <div className={profileStyles.formGroup}>
+                      <label>Contact Phone</label>
+                      <input
+                        className={profileStyles.input}
+                        value={profileForm.phone}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                        disabled={!editingProfile}
+                        placeholder="+880..."
+                      />
+                    </div>
+                    <div className={profileStyles.formGroup}>
+                      <label>BM&DC Number</label>
+                      <input
+                        className={profileStyles.input}
+                        value={profileForm.bmdcNumber}
+                        onChange={(e) => setProfileForm(prev => ({ ...prev, bmdcNumber: e.target.value }))}
+                        disabled={!editingProfile}
+                        placeholder="A-12345"
+                      />
+                    </div>
                   </div>
-                )}
 
-                {editingProfile && (
-                  <button className={styles.primaryBtn} type="submit" disabled={savingProfile}>
-                    {savingProfile ? "Encrypting Changes..." : "Save Profile Details"}
-                  </button>
-                )}
-              </form>
-            </div>
+                  <div style={{ marginTop: '24px' }}>
+                    <div className={profileStyles.sectionHeader}>
+                      <Stethoscope size={20} className={profileStyles.sectionIcon} />
+                      <h3>Professional Details</h3>
+                    </div>
+                    <div className={profileStyles.formGrid}>
+                      <div className={profileStyles.formGroup}>
+                        <label>Current Designation</label>
+                        <input
+                          className={profileStyles.input}
+                          value={profileForm.designation}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, designation: e.target.value }))}
+                          disabled={!editingProfile}
+                          placeholder="Medical Officer"
+                        />
+                      </div>
+                      <div className={profileStyles.formGroup}>
+                        <label>Affiliated Institution</label>
+                        <input
+                          className={profileStyles.input}
+                          value={profileForm.institution}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, institution: e.target.value }))}
+                          disabled={!editingProfile}
+                          placeholder="DMC / BSMMU"
+                        />
+                      </div>
+                      <div className={`${profileStyles.formGroup} ${profileStyles.fullWidth}`}>
+                        <label>Academic Degrees</label>
+                        <input
+                          className={profileStyles.input}
+                          value={profileForm.degrees}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, degrees: e.target.value }))}
+                          disabled={!editingProfile}
+                          placeholder="MBBS, FCPS Part 1 (Surgery)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {profileMessage && (
+                    <div className={`${profileStyles.message} ${profileStyles[profileMessage.type]}`}>
+                      {profileMessage.text}
+                    </div>
+                  )}
+
+                  {editingProfile && (
+                    <button className={profileStyles.saveButton} type="submit" disabled={savingProfile}>
+                      {savingProfile ? <Loader2 size={18} className="spinner" /> : <Save size={18} />}
+                      {savingProfile ? "Encrypting Changes..." : "Save Profile Details"}
+                    </button>
+                  )}
+                </form>
+              </section>
+            </main>
           </div>
-        </section>
+        </div>
       )}
 
       {activeTab === "security" && (
