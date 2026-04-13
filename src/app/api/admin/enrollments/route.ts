@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create password reset token for the new student
-      const { token, tokenHash } = createTokenPair();
+      const { token: setupToken, tokenHash } = createTokenPair();
       const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       // Create student with a temporary password hash (will be set via email)
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         await sendPasswordSetupEmail({
           email: student.email,
           fullName: student.fullName,
-          token,
+          token: setupToken,
         });
       } catch (emailError) {
         console.error('Failed to send password setup email:', emailError);
