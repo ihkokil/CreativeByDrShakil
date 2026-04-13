@@ -155,3 +155,35 @@ export async function sendPasswordResetEmail({
     html,
   });
 }
+
+export async function sendPasswordSetupEmail({
+  email,
+  fullName,
+  token,
+}: {
+  email: string;
+  fullName: string;
+  token: string;
+}) {
+  const appUrl = getAppUrl();
+  const setupUrl = `${appUrl}/auth/reset-password?token=${token}`;
+  const safeName = escapeHtml(fullName || "there");
+
+  const html = createEmailTemplate({
+    preheader: "Welcome! Set up your password to access your courses.",
+    heading: "Set Up Your Password",
+    greeting: `Hi ${safeName},`,
+    lead: "Welcome to CreativeByDrShakil! An admin has enrolled you in a course. Please set up your password to access your account and start learning.",
+    actionLabel: "Set Password",
+    actionUrl: setupUrl,
+    expiryText: "This setup link will expire in 24 hours.",
+    warningText: "If you did not expect this email, please contact support.",
+  });
+
+  await sendMail({
+    to: email,
+    subject: "Welcome to CreativeByDrShakil - Set Your Password",
+    text: `Hi ${fullName},\n\nWelcome to CreativeByDrShakil! An admin has enrolled you in a course. Please set up your password by visiting:\n${setupUrl}\n\nThis link expires in 24 hours.`,
+    html,
+  });
+}

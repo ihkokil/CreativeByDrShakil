@@ -53,11 +53,11 @@ export default function AdminSidebar({
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
         { id: 'students', label: 'Students', icon: <GraduationCap size={20} /> },
         { id: 'teachers', label: 'Teachers', icon: <Users size={20} /> },
+        { id: 'courses', label: 'Enrollments', icon: <BookOpen size={20} /> },
         { id: 'categories', label: 'Categories', icon: <LayoutGrid size={20} /> },
         { id: 'coupons', label: 'Coupons', icon: <TicketPercent size={20} /> },
         { id: 'sessions', label: 'Sessions', icon: <Smartphone size={20} /> },
         { id: 'support', label: 'Contact Help', icon: <Inbox size={20} /> },
-        { id: 'browse', label: 'All Courses', icon: <BookOpen size={20} />, isLink: '/courses' },
     ];
 
     const sysItems = [
