@@ -31,6 +31,7 @@ import CategoryManager from "@/components/Admin/CategoryManager";
 import StudentsList from "@/components/Admin/StudentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
+import PaymentsManager from "@/components/Admin/PaymentsManager";
 import styles from "./AdminDashboard.module.css";
 
 interface TeacherProfile {
@@ -61,7 +62,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "categories" | "coupons" | "sessions" | "support" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -294,6 +295,10 @@ function AdminDashboardContent() {
                     <h2 className={styles.panelTitle}>Academic Categories</h2>
                     <CategoryManager />
                 </section>
+            )}
+
+            {activeTab === "payments" && (
+                <PaymentsManager />
             )}
 
             {activeTab === "coupons" && (

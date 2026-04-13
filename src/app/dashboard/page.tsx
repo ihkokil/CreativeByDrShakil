@@ -62,6 +62,24 @@ interface DashboardPayload {
         totalPurchases: number;
     };
     enrolledCourses: DashboardCourse[];
+    purchaseHistory: Array<{
+        id: string;
+        status: string;
+        totalAmount: number;
+        discountAmount: number;
+        couponCode: string | null;
+        createdAt: string;
+        updatedAt: string;
+        course: { id: string; title: string; slug: string | null };
+        payment: null | {
+            id: string;
+            status: string;
+            transactionId: string;
+            phoneNumber: string;
+            submittedAt: string;
+            approvedAt: string | null;
+        };
+    }>;
 }
 
 function StudentDashboardContent() {
@@ -69,7 +87,7 @@ function StudentDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const activeTab = (searchParams.get("tab") as "overview" | "courses" | "profile" | "security") || "overview";
+  const activeTab = (searchParams.get("tab") as "overview" | "courses" | "purchases" | "profile" | "security") || "overview";
 
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [fetching, setFetching] = useState(true);
@@ -215,6 +233,16 @@ function StudentDashboardContent() {
     });
   };
 
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   if (loading || !user) {
     return (
         <div className={styles.loadingOverlay}>
@@ -291,6 +319,88 @@ function StudentDashboardContent() {
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {activeTab === "purchases" && data && (
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <h2>Payments</h2>
+              <p className={styles.subtitle}>
+                Track your payment approvals. Course access is enabled after admin approval.
+              </p>
+            </div>
+          </div>
+
+          {data.purchaseHistory.length === 0 ? (
+            <p className={styles.emptyText}>No purchases yet.</p>
+          ) : (
+            <div className={styles.courseList}>
+              {data.purchaseHistory.map((order) => {
+                const orderStatus = String(order.status || "").toLowerCase();
+                const paymentStatus = String(order.payment?.status || orderStatus || "").toLowerCase();
+                const isApproved = orderStatus === "approved";
+                const isRejected = orderStatus === "rejected";
+                const isPending = !isApproved && !isRejected;
+
+                return (
+                  <article key={order.id} className={styles.courseListCard}>
+                    <div className={styles.courseListTop}>
+                      <div>
+                        <h3>{order.course?.title || "Course"}</h3>
+                        <p>
+                          Amount: ৳{Math.round(order.totalAmount)}{" "}
+                          {order.couponCode ? `· Coupon: ${order.couponCode}` : ""}
+                        </p>
+                      </div>
+                      <span className={styles.enrolledAt}>Requested {formatDate(order.createdAt)}</span>
+                    </div>
+
+                    <div className={styles.progressRow} style={{ alignItems: "center" }}>
+                      <div>
+                        <strong>Status:</strong>{" "}
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            color: isApproved ? "var(--success)" : isRejected ? "var(--danger)" : "var(--primary)",
+                          }}
+                        >
+                          {isApproved ? "APPROVED" : isRejected ? "REJECTED" : "PENDING"}
+                        </span>
+                        <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
+                          Payment: {paymentStatus ? paymentStatus.toUpperCase() : "—"}
+                          {order.payment?.transactionId ? ` · TX: ${order.payment.transactionId}` : ""}
+                        </div>
+                        {order.payment?.submittedAt ? (
+                          <div style={{ color: "var(--text-muted)", marginTop: 2 }}>
+                            Submitted {formatDateTime(order.payment.submittedAt)}
+                          </div>
+                        ) : null}
+                        {order.payment?.approvedAt ? (
+                          <div style={{ color: "var(--text-muted)", marginTop: 2 }}>
+                            Approved {formatDateTime(order.payment.approvedAt)}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+                        {isApproved && order.course?.slug ? (
+                          <Link href={`/study/${order.course.slug}`} className={styles.resumeBtn}>
+                            Enter Classroom
+                          </Link>
+                        ) : isPending ? (
+                          <span className={styles.resumeBtnDisabled}>Awaiting approval</span>
+                        ) : (
+                          <span className={styles.resumeBtnDisabled}>Access denied</span>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>
