@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!fullCourse.categoryId) missingFields.push('category');
     if (fullCourse.price === undefined || fullCourse.price === null) missingFields.push('price');
     if (!fullCourse.duration) missingFields.push('duration');
-    if (!fullCourse.imageUrl) missingFields.push('image');
+    // imageUrl is now optional
     if (!fullCourse.overview) missingFields.push('overview');
     if (fullCourse.instructors.length === 0) missingFields.push('instructors');
 
