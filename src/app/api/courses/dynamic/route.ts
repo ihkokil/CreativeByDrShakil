@@ -63,6 +63,7 @@ export async function GET() {
           title: course.title,
           category: course.category?.displayName || 'General',
           price: formatPrice(course.price),
+          salePrice: course.salePrice ? formatPrice(course.salePrice) : null,
           priceValue: course.price,
           duration: course.duration,
           lessonCount,
