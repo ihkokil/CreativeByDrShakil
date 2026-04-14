@@ -220,18 +220,26 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {});
 
+    const allStudentsComputedDates: Record<string, Record<string, string>> = {};
+
     const students: CourseStudent[] = enrollments.map((enrollment) => {
       const studentOverrides = overridesByUser.get(enrollment.user.id) || [];
       
-      // For Evergreen courses, availability depends on when THIS student joined.
+      const courseAnchor = selectedCourse.releaseStartAt || selectedCourse.courseStartDate || null;
+      const studentReleaseStartAt = courseAnchor && enrollment.updatedAt
+        ? new Date(Math.max(courseAnchor.getTime(), enrollment.updatedAt.getTime()))
+        : courseAnchor || enrollment.updatedAt;
+
       const studentComputedDates = computeReleaseGroupDates(groups, {
         releaseMode: selectedCourse.releaseMode as any,
-        releaseStartAt: selectedCourse.releaseStartAt || selectedCourse.courseStartDate || enrollment.updatedAt,
+        releaseStartAt: studentReleaseStartAt,
         releaseIntervalDays: selectedCourse.releaseIntervalDays,
         releaseGroupsPerWeek: selectedCourse.releaseGroupsPerWeek,
         releaseDaysOfWeek: (selectedCourse as any).releaseDaysOfWeek as number[],
         releaseGroupDates,
       });
+
+      allStudentsComputedDates[enrollment.user.id] = studentComputedDates;
 
       const annotatedCurriculum = annotateCurriculumAvailability(
         curriculum,
@@ -274,6 +282,7 @@ export async function GET(request: NextRequest) {
         availabilityMode: row.availabilityMode,
         availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
       })),
+      studentComputedDatesMap: allStudentsComputedDates,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
