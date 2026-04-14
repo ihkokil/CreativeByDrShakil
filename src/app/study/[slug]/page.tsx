@@ -10,10 +10,10 @@ import {
     Lock,
 } from "lucide-react";
 import Link from "next/link";
-import MCQSection from "@/components/Study/MCQSection";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { useParams } from "next/navigation";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
+import LessonPlayer from "@/components/Study/LessonPlayer";
 
 const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
     for (const node of nodes) {
@@ -46,29 +46,6 @@ const collectLessonNodes = (nodes: CurriculumNode[]): CurriculumNode[] => {
     return lessons;
 };
 
-const toYoutubeEmbedUrl = (rawUrl: string) => {
-    try {
-        const url = new URL(rawUrl);
-        if (url.hostname.includes("youtube.com")) {
-            if (url.pathname.startsWith("/embed/")) {
-                return rawUrl;
-            }
-            const id = url.searchParams.get("v");
-            if (id) {
-                return `https://www.youtube.com/embed/${id}`;
-            }
-        }
-        if (url.hostname.includes("youtu.be")) {
-            const id = url.pathname.replace("/", "").trim();
-            if (id) {
-                return `https://www.youtube.com/embed/${id}`;
-            }
-        }
-        return rawUrl;
-    } catch {
-        return rawUrl;
-    }
-};
 
 export default function StudyCoursePage() {
     const params = useParams<{ slug: string }>();
@@ -225,27 +202,6 @@ export default function StudyCoursePage() {
         return annotate(curriculum);
     }, [curriculum, completedLessonIds]);
 
-    // Auto-advance for YouTube videos using postMessage API
-    useEffect(() => {
-        if (!activeLesson || activeLesson.type !== "youtube" || !activeLesson.url) return;
-        const iframe = document.getElementById("study-youtube-iframe") as HTMLIFrameElement | null;
-        if (!iframe) return;
-        // Listen for YouTube player events
-        function onMessage(event: MessageEvent) {
-            if (!event.data || typeof event.data !== "object") return;
-            // YouTube IFrame API event
-            if (event.data.event === "onStateChange" && event.data.info === 0) {
-                // 0 = ended
-                if (nextLesson) setActiveLesson(nextLesson);
-            }
-        }
-        window.addEventListener("message", onMessage);
-        // Inject API if needed
-        iframe.contentWindow?.postMessage(JSON.stringify({ event: "listening" }), "*");
-        return () => {
-            window.removeEventListener("message", onMessage);
-        };
-    }, [activeLesson, nextLesson]);
 
     if (loading) {
         return <div className={styles.layout}>Loading study workspace...</div>;
@@ -312,46 +268,12 @@ export default function StudyCoursePage() {
                     {progressError && (
                         <div style={{ marginBottom: "16px", color: "#ef4444", fontWeight: 600 }}>{progressError}</div>
                     )}
-                    <div className={styles.videoPlayer} style={{ position: 'relative' }}>
-                        <VideoWatermark />
-                        {activeLesson ? (
-                            activeLesson.type === "youtube" && activeLesson.url ? (
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    src={toYoutubeEmbedUrl(activeLesson.url)}
-                                    title={activeLesson.title}
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                    className={styles.iframePlayer}
-                                    id="study-youtube-iframe"
-                                />
-                            ) : activeLesson.type === "self-hosted" && activeLesson.url ? (
-                                <video
-                                    width="100%"
-                                    height="100%"
-                                    src={activeLesson.url}
-                                    controls
-                                    className={styles.iframePlayer}
-                                    onEnded={() => {
-                                        if (nextLesson) setActiveLesson(nextLesson);
-                                    }}
-                                />
-                            ) : (
-                                <div className={styles.mockVideo}>
-                                    <FileText size={60} />
-                                    <span>{activeLesson.title}</span>
-                                    <span>YouTube playback is enabled for this release. This lesson type is not yet supported in-page.</span>
-                                </div>
-                            )
-                        ) : (
-                            <div className={styles.mockVideo}>
-                                <Video size={60} />
-                                <span>No unlocked lessons are available yet.</span>
-                            </div>
-                        )}
-                    </div>
+                    <LessonPlayer 
+                        lesson={activeLesson as any} 
+                        nextLesson={() => {
+                            if (nextLesson) setActiveLesson(nextLesson);
+                        }}
+                    />
 
                     {activeLesson && (
                         <article className={styles.article}>
@@ -361,8 +283,6 @@ export default function StudyCoursePage() {
                             </p>
                         </article>
                     )}
-
-                    <MCQSection />
                 </div>
 
                 <footer className={styles.navBar}>
