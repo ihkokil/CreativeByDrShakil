@@ -255,13 +255,15 @@ export default function StudyCoursePage() {
                     <div className={styles.breadcrumbs}>
                         <span>{courseTitle}</span> <ChevronRight size={14} /> <span>{breadcrumbs}</span>
                     </div>
-                    <button
-                        className={styles.completeBtn}
-                        onClick={handleMarkComplete}
-                        disabled={!activeLesson || activeLesson.locked || activeLesson.type === "folder" || markingComplete}
-                    >
-                        {markingComplete ? "Saving..." : completedLessonIds.includes(activeLesson?.id || "") ? "Completed" : "Mark as Complete"}
-                    </button>
+                    {activeLesson && !activeLesson.locked && activeLesson.type !== "folder" && (
+                        <button
+                            className={styles.completeBtn}
+                            onClick={handleMarkComplete}
+                            disabled={markingComplete}
+                        >
+                            {markingComplete ? "Saving..." : completedLessonIds.includes(activeLesson.id) ? "Completed" : "Mark as Complete"}
+                        </button>
+                    )}
                 </header>
 
                 <div className={styles.contentArea}>
