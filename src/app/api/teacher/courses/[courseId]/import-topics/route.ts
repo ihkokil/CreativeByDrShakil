@@ -45,7 +45,7 @@ const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {
     duration: typeof raw.duration === 'string' && raw.duration.trim() ? raw.duration.trim() : null,
     storagePath: typeof raw.storagePath === 'string' && raw.storagePath.trim() ? raw.storagePath.trim() : null,
     releaseGroupId: null,
-    releaseAt: null,
+    releaseAt: typeof raw.releaseAt === 'string' && raw.releaseAt.trim() ? raw.releaseAt.trim() : null,
     children,
   };
 };
@@ -69,7 +69,7 @@ const buildCurriculumFromPayloadTopics = (topics: any[]): BuilderCurriculumNode[
       title,
       type: 'folder',
       releaseGroupId: null,
-      releaseAt: null,
+      releaseAt: typeof topic.releaseAt === 'string' && topic.releaseAt.trim() ? topic.releaseAt.trim() : null,
       children,
     });
   });

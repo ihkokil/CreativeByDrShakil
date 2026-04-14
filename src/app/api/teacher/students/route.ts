@@ -112,6 +112,7 @@ export async function GET(request: NextRequest) {
       imageUrl: string | null;
       releaseMode: any;
       releaseStartAt: Date | null;
+      courseStartDate: Date | null;
       releaseIntervalDays: number | null;
       releaseGroupsPerWeek: number | null;
       releaseDaysOfWeek: any;
@@ -136,6 +137,7 @@ export async function GET(request: NextRequest) {
         ...({ releaseDaysOfWeek: true } as any),
         releaseGroupDates: true,
         curriculumJson: true,
+        courseStartDate: true,
         category: {
           select: { displayName: true },
         },
@@ -224,7 +226,7 @@ export async function GET(request: NextRequest) {
       // For Evergreen courses, availability depends on when THIS student joined.
       const studentComputedDates = computeReleaseGroupDates(groups, {
         releaseMode: selectedCourse.releaseMode as any,
-        releaseStartAt: selectedCourse.releaseStartAt || enrollment.updatedAt,
+        releaseStartAt: selectedCourse.releaseStartAt || selectedCourse.courseStartDate || enrollment.updatedAt,
         releaseIntervalDays: selectedCourse.releaseIntervalDays,
         releaseGroupsPerWeek: selectedCourse.releaseGroupsPerWeek,
         releaseDaysOfWeek: (selectedCourse as any).releaseDaysOfWeek as number[],
