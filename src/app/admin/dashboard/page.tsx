@@ -33,6 +33,7 @@ import CategoryManager from "@/components/Admin/CategoryManager";
 import StudentsList from "@/components/Admin/StudentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
+import PaymentsManager from "@/components/Admin/PaymentsManager";
 import styles from "./AdminDashboard.module.css";
 
 interface TeacherProfile {
@@ -63,7 +64,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "teachers" | "courses" | "categories" | "coupons" | "sessions" | "support" | "settings") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -324,6 +325,18 @@ function AdminDashboardContent() {
                 </section>
             )}
 
+            {activeTab === "students" && (
+                <section className={styles.panel}>
+                    <div className={styles.panelHeader}>
+                        <div>
+                            <h2 className={styles.panelTitle}>Student Directory</h2>
+                            <p className={styles.subtitle}>Enrolled scholars and user accounts</p>
+                        </div>
+                    </div>
+                    <StudentsList />
+                </section>
+            )}
+
             {activeTab === "courses" && (
                 <section className={styles.panel}>
                     <div className={styles.panelHeader}>
@@ -367,6 +380,17 @@ function AdminDashboardContent() {
                         <div className={styles.infoBox}>No enrollments yet.</div>
                     )}
                 </section>
+            )}
+
+            {activeTab === "categories" && (
+                <section className={styles.panel}>
+                    <h2 className={styles.panelTitle}>Academic Categories</h2>
+                    <CategoryManager />
+                </section>
+            )}
+
+            {activeTab === "payments" && (
+                <PaymentsManager />
             )}
 
             {activeTab === "coupons" && (
