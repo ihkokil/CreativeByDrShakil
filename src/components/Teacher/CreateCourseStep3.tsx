@@ -542,7 +542,7 @@ function CreateCourseStep3Content() {
     try {
       const headers = getAuthHeaders();
 
-      const serializeItems = (items: StarterItem[], forceInclude = false): StarterItem[] => {
+      const serializeItems = (items: StarterItem[], forceInclude = false): any[] => {
         return items.flatMap((item) => {
           const isExcluded = excludedItemIds[item.id];
           const isIncluded = forceInclude || selectedTopicIds.includes(item.id);
@@ -551,8 +551,11 @@ function CreateCourseStep3Content() {
             return [];
           }
 
+          const overrideDate = dateOverrides[item.id];
+          const releaseAt = overrideDate ? parseDisplayDateToIso(overrideDate) || overrideDate : null;
+
           if (item.type !== "folder") {
-            return [{ id: item.id, type: item.type, title: item.title, url: item.url }];
+            return [{ id: item.id, type: item.type, title: item.title, url: item.url, releaseAt }];
           }
 
           return [
@@ -561,6 +564,7 @@ function CreateCourseStep3Content() {
               type: "folder",
               title: item.title,
               url: item.url,
+              releaseAt,
               items: serializeItems(item.items || [], true),
             },
           ];
@@ -576,11 +580,15 @@ function CreateCourseStep3Content() {
             return null;
           }
 
+          const overrideDate = dateOverrides[topic.id];
+          const releaseAt = overrideDate ? parseDisplayDateToIso(overrideDate) || overrideDate : null;
+
           return {
             id: topic.id,
             title: topic.title,
             subTopics,
             source: topic.source,
+            releaseAt,
           };
         })
         .filter(Boolean);
