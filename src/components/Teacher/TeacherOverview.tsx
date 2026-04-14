@@ -27,6 +27,7 @@ interface TeacherOverviewProps {
     totalEnrollments: number;
     totalLessonsCompleted: number;
     courseProgress: CourseProgress[];
+    aggregateProgress: number;
     teacherName: string;
     onTabChange: (tab: string) => void;
 }
@@ -37,6 +38,7 @@ export default function TeacherOverview({
     totalEnrollments,
     totalLessonsCompleted,
     courseProgress,
+    aggregateProgress,
     teacherName,
     onTabChange
 }: TeacherOverviewProps) {
@@ -142,7 +144,7 @@ export default function TeacherOverview({
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={item}>
                 <div className={styles.cardHeader}>
                     <h3>Program Performance</h3>
-                    <span className={styles.statusPill}>Aggregate Progress</span>
+                    <span className={styles.statusPill}>Avg. {aggregateProgress}% Student Completion</span>
                 </div>
                 <div className={styles.activities}>
                     {courseProgress.length > 0 ? (

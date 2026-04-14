@@ -70,7 +70,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings" | "security" | "analytics") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings" | "security") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -310,10 +310,6 @@ function AdminDashboardContent() {
                             <article className={styles.actionCard} onClick={() => setActiveTab("teachers")}>
                                 <Users size={18} />
                                 <div><h3>Manage Instructors</h3><p>Review teacher status and access.</p></div>
-                            </article>
-                            <article className={styles.actionCard} onClick={() => setActiveTab("analytics")}>
-                                <BarChart3 size={18} />
-                                <div><h3>View Analytics</h3><p>Track growth, engagement, and revenue.</p></div>
                             </article>
                         </div>
                     </section>

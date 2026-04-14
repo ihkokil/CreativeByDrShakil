@@ -43,6 +43,8 @@ export default function CoursesTab() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [selectedCourseForStudents, setSelectedCourseForStudents] = useState<{id: string, title: string} | null>(null);
 
     useEffect(() => {
@@ -148,9 +150,11 @@ export default function CoursesTab() {
         }
     };
 
-    const filteredCourses = courses.filter(c => 
-        c.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCourses = courses.filter(c => {
+        const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+        return matchesSearch && matchesStatus;
+    });
 
     if (loading) {
         return (
@@ -174,7 +178,45 @@ export default function CoursesTab() {
                     />
                 </div>
                 <div className={styles.actions}>
-                    <button className={styles.filterBtn}><Filter size={18} /> Filters</button>
+                    <div className={styles.filterWrapper}>
+                        <button className={styles.filterBtn} onClick={() => setIsFilterOpen(!isFilterOpen)}>
+                            <Filter size={18} /> Filters
+                            {statusFilter !== "all" && <span className={styles.filterBadge} />}
+                        </button>
+                        
+                        <AnimatePresence>
+                            {isFilterOpen && (
+                                <>
+                                    <div className={styles.backdrop} onClick={() => setIsFilterOpen(false)} />
+                                    <motion.div 
+                                        className={styles.filterDropdown}
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    >
+                                        <div className={styles.filterSection}>
+                                            <span className={styles.filterLabel}>Course Status</span>
+                                            <div className={styles.filterOptions}>
+                                                {["all", "published", "draft", "archived"].map((status) => (
+                                                    <button 
+                                                        key={status}
+                                                        className={`${styles.filterChip} ${statusFilter === status ? styles.active : ""}`}
+                                                        onClick={() => {
+                                                            setStatusFilter(status);
+                                                            setIsFilterOpen(false);
+                                                        }}
+                                                    >
+                                                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
                     <button 
                         className={styles.createBtn}
                         onClick={() => router.push("/teacher/dashboard/courses/create")}
