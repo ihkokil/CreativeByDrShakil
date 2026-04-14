@@ -108,8 +108,6 @@ export default function TeacherSidebar({
                         );
                     })}
                 </div>
-
-                </div>
             </div>
 
             <div className={styles.footer}>
