@@ -138,12 +138,11 @@ export default function AdminSidebar({
                             <span className={styles.email}>Security Master</span>
                         </div>
                     )}
-                    {isExpanded && (
-                        <button className={styles.logoutBtn} onClick={handleLogout} title="Sign Out">
-                            <LogOut size={16} />
-                        </button>
-                    )}
                 </div>
+                <button className={styles.logoutButtonFull} onClick={handleLogout} title="Sign Out">
+                    <LogOut size={18} />
+                    {isExpanded && <span>Sign Out</span>}
+                </button>
             </div>
         </aside>
     );
