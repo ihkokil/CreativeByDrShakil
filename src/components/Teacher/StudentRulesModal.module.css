@@ -1,0 +1,262 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.header {
+  padding: 24px;
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+  background: color-mix(in srgb, var(--text-muted) 10%, transparent);
+  color: var(--foreground);
+}
+
+.body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.studentName {
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 8px;
+  display: inline-block;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.optionsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.optionCard {
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--card-bg) 50%, transparent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: grid;
+  gap: 8px;
+}
+
+.optionCard:hover {
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent);
+}
+
+.optionCard.selected {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.optionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.optionCard.selected .radio {
+  border-color: var(--primary);
+}
+
+.optionCard.selected .radio::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.optionTitle {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.optionDesc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-left: 32px;
+}
+
+.subConfig {
+  margin-left: 32px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--glass-border);
+}
+
+.daysGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dayBtn {
+  background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dayBtn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.intervalInput {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.intervalInput input {
+  width: 80px;
+  background: color-mix(in srgb, var(--background) 80%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+.footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: color-mix(in srgb, var(--card-bg) 30%, transparent);
+}
+
+.footerActions {
+  display: flex;
+  gap: 12px;
+}
+
+.advancedBtn {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.advancedBtn:hover {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.cancelBtn, .saveBtn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--foreground);
+}
+
+.cancelBtn:hover {
+  background: color-mix(in srgb, var(--card-bg) 80%, transparent);
+}
+
+.saveBtn {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: white;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 85%, black);
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorBanner {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
+  color: #ef4444;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}

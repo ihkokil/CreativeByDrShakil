@@ -84,13 +84,7 @@ function TeacherDashboardLayoutContent({
                             <span>{item.label}</span>
                         </button>
                     ))}
-                    <Link
-                        href="/teacher/dashboard/students"
-                        className={`${styles.mobileTab} ${pathname?.startsWith('/teacher/dashboard/students') ? styles.mobileTabActive : ""}`}
-                    >
-                        <Users size={20} />
-                        <span>Students</span>
-                    </Link>
+
                     <button className={styles.mobileTab} onClick={() => setIsSidebarExpanded(true)}>
                         <MoreHorizontal size={20} />
                         <span>Menu</span>

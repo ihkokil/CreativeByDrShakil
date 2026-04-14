@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     const courseId = typeof body.courseId === 'string' ? body.courseId.trim() : '';
     const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
     const action = typeof body.action === 'string' ? body.action.trim() : '';
-    const customDelayDays = Number(body.customDelayDays) || 7;
+    const intervalDays = Number(body.intervalDays) || 7;
+    const daysOfWeek = Array.isArray(body.daysOfWeek) ? body.daysOfWeek : [];
 
     if (!courseId || !userId || !action) {
       return NextResponse.json({ error: 'courseId, userId, and action are required.' }, { status: 400 });
@@ -43,64 +44,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Student enrollment not found.' }, { status: 404 });
     }
 
+    if (action === 'continue_with_batch') {
+      // Clear custom overrides to fall back to course schedule
+      await prisma.studentModuleAvailability.deleteMany({
+        where: { courseId, userId }
+      });
+      return NextResponse.json({ success: true });
+    }
+
     const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
-    const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const groupIdToNodeId = new Map(groups.map(g => [g.id, g.nodeId]));
 
     let targetDates: Record<string, string> = {};
+    let anchor = new Date(); // Start from today
+    let mode: any = course.releaseMode;
+    let computedInterval = course.releaseIntervalDays || 7;
+    let computedDaysOfWeek = (course as any).releaseDaysOfWeek as any;
 
-    if (action === 'all_available') {
-      // Logic for all available handled below
+    if (action === 'start_from_today') {
+      // Use course's interval/mode but start from today
+      mode = course.releaseMode;
+      computedInterval = course.releaseIntervalDays || 7;
+      computedDaysOfWeek = (course as any).releaseDaysOfWeek as any;
+    } else if (action === 'custom_interval') {
+      mode = 'fixed_interval';
+      computedInterval = intervalDays;
+    } else if (action === 'week_days') {
+      mode = 'days_of_week';
+      computedDaysOfWeek = daysOfWeek;
     } else {
-      let anchor: Date;
-      let interval: number;
-      let mode: any = course.releaseMode;
-
-      const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
-
-      if (action === 'original') {
-        anchor = (courseAnchor || order.updatedAt) as Date;
-        interval = course.releaseIntervalDays || 7;
-      } else if (action === 'custom_delay') {
-        // As per user: count from enrollment day
-        anchor = order.updatedAt;
-        interval = customDelayDays;
-        mode = 'fixed_interval';
-      } else if (action === 'weekly') {
-        // As per user: count from enrollment day
-        anchor = order.updatedAt;
-        interval = 7;
-        mode = 'fixed_interval';
-      } else {
-        return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
-      }
-
-      targetDates = computeReleaseGroupDates(groups, {
-        releaseMode: mode,
-        releaseStartAt: anchor,
-        releaseIntervalDays: interval,
-        releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-        releaseDaysOfWeek: (course as any).releaseDaysOfWeek as any,
-        releaseGroupDates: action === 'original' ? releaseGroupDates : {},
-      });
+      return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
     }
 
-    const dataToInsert = action === 'all_available'
-      ? groups.map(group => ({
-          courseId,
-          userId,
-          lessonNodeId: group.nodeId,
-          availabilityMode: 'available',
-          availableAt: null
-        }))
-      : Object.entries(targetDates).map(([groupId, dateStr]) => ({
-          courseId,
-          userId,
-          lessonNodeId: groupIdToNodeId.get(groupId)!,
-          availabilityMode: 'available',
-          availableAt: dateStr ? new Date(dateStr) : null
-        }));
+    targetDates = computeReleaseGroupDates(groups, {
+      releaseMode: mode,
+      releaseStartAt: anchor,
+      releaseIntervalDays: computedInterval,
+      releaseGroupsPerWeek: course.releaseGroupsPerWeek,
+      releaseDaysOfWeek: computedDaysOfWeek,
+      releaseGroupDates: {}, // Ignore custom group dates when overriding schedule
+    });
+
+    const dataToInsert = Object.entries(targetDates).map(([groupId, dateStr]) => ({
+      courseId,
+      userId,
+      lessonNodeId: groupIdToNodeId.get(groupId)!,
+      availabilityMode: 'available',
+      availableAt: dateStr ? new Date(dateStr) : null
+    }));
 
     await prisma.$transaction([
       prisma.studentModuleAvailability.deleteMany({
