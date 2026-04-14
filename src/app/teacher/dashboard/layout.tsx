@@ -7,6 +7,8 @@ import TeacherSidebar from "@/components/Teacher/TeacherSidebar";
 import TeacherHeader from "../../../components/Teacher/TeacherHeader";
 import styles from "./TeacherDashboard.module.css";
 import { Loader2, LayoutDashboard, BookOpen, Users, Video, FileText, MoreHorizontal } from "lucide-react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 function TeacherDashboardLayoutContent({
     children,
@@ -19,6 +21,7 @@ function TeacherDashboardLayoutContent({
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
     const activeTab = (searchParams.get("tab") as any) || "overview";
+    const pathname = usePathname();
 
     useEffect(() => {
         if (!loading && !user) {
@@ -81,6 +84,13 @@ function TeacherDashboardLayoutContent({
                             <span>{item.label}</span>
                         </button>
                     ))}
+                    <Link
+                        href="/teacher/dashboard/students"
+                        className={`${styles.mobileTab} ${pathname?.startsWith('/teacher/dashboard/students') ? styles.mobileTabActive : ""}`}
+                    >
+                        <Users size={20} />
+                        <span>Students</span>
+                    </Link>
                     <button className={styles.mobileTab} onClick={() => setIsSidebarExpanded(true)}>
                         <MoreHorizontal size={20} />
                         <span>Menu</span>
