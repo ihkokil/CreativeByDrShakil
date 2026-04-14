@@ -48,7 +48,6 @@ export default function TeacherSidebar({
     const menuItems = [
         { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
         { id: 'courses', label: 'Programs', icon: <BookOpen size={20} /> },
-        { id: 'students', label: 'Students', icon: <Users size={20} />, href: '/teacher/dashboard/students' },
         { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
     ];
