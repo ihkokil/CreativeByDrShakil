@@ -12,6 +12,10 @@ import {
   Save,
   Users,
   PlayCircle,
+  RotateCcw,
+  CheckCircle,
+  Calendar,
+  Zap,
 } from "lucide-react";
 import { annotateCurriculumAvailability, BuilderNodeWithAvailability } from "@/lib/teacher-course-builder";
 import styles from "./TeacherStudentsPage.module.css";
@@ -67,6 +71,7 @@ type TeacherStudentsResponse = {
   students: StudentSummary[];
   selectedStudentId: string | null;
   overrides: OverrideRow[];
+  studentComputedDatesMap: Record<string, Record<string, string>>;
 };
 
 type DraftAvailability = {
@@ -125,6 +130,54 @@ export default function TeacherStudentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
   const [draftAvailability, setDraftAvailability] = useState<Record<string, DraftAvailability>>({});
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [customDelay, setCustomDelay] = useState("5");
+
+  const handleBatchOverride = async (action: string) => {
+    if (!selectedCourse || !selectedStudentId) return;
+    
+    const confirmMsg = action === 'all_available' 
+      ? "Are you sure you want to make all modules available immediately for this student?"
+      : `Are you sure you want to reset the schedule for this student using the "${action.replace('_', ' ')}" action?`;
+      
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setBatchLoading(true);
+      setError(null);
+      const response = await fetch("/api/teacher/students/batch-override", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          courseId: selectedCourse.id,
+          userId: selectedStudentId,
+          action,
+          customDelayDays: customDelay,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to apply batch schedule override.");
+      }
+
+      // Refresh data
+      const refresh = await fetch(
+        courseIdParam ? `/api/teacher/students?courseId=${encodeURIComponent(courseIdParam)}` : "/api/teacher/students",
+        { headers: getAuthHeaders() }
+      );
+      const refreshed = (await refresh.json()) as TeacherStudentsResponse & { error?: string };
+      if (refresh.ok) {
+        setData(refreshed);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to apply batch override.");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -172,11 +225,13 @@ export default function TeacherStudentsPage() {
   );
 
   const selectedStudentCurriculum = useMemo(() => {
-    if (!selectedCourse) return [];
+    if (!selectedCourse || !selectedStudentId) return [];
+
+    const studentComputedDates = (data as any)?.studentComputedDatesMap?.[selectedStudentId] || selectedCourse.computedReleaseGroupDates || {};
 
     return annotateCurriculumAvailability(
       selectedCourse.curriculum,
-      selectedCourse.computedReleaseGroupDates || {},
+      studentComputedDates,
       new Date(),
       selectedStudentOverrides.map((override) => ({
         lessonNodeId: override.lessonNodeId,
@@ -184,7 +239,7 @@ export default function TeacherStudentsPage() {
         availableAt: override.availableAt,
       }))
     );
-  }, [selectedCourse, selectedStudentOverrides]);
+  }, [selectedCourse, selectedStudentOverrides, selectedStudentId, data]);
 
   useEffect(() => {
     if (!selectedCourse) {
@@ -208,9 +263,9 @@ export default function TeacherStudentsPage() {
       });
     };
 
-    walk(selectedCourse.curriculum);
+    walk(selectedStudentCurriculum);
     setDraftAvailability(nextDrafts);
-  }, [selectedCourse, selectedStudentOverrides]);
+  }, [selectedStudentCurriculum, selectedStudentOverrides]);
 
   const selectedCourseStats = useMemo(() => {
     if (!selectedCourse) {
@@ -471,9 +526,59 @@ export default function TeacherStudentsPage() {
               </div>
 
               {!selectedStudent ? (
-                <div className={styles.emptyInline}>No student selected.</div>
+                <div className={styles.emptyInline}>Select a student above to manage their module schedule.</div>
               ) : (
                 <div className={styles.treeWrap}>
+                  {/* Batch Schedule Override Panel */}
+                  <div className={styles.batchBar}>
+                    <span className={styles.batchLabel}>Batch Actions:</span>
+                    <div className={styles.batchActions}>
+                      <button 
+                        className={styles.batchBtn} 
+                        onClick={() => handleBatchOverride('original')}
+                        disabled={batchLoading}
+                        title="Reset to original course start date schedule"
+                      >
+                        <RotateCcw size={14} /> Original
+                      </button>
+                      <button 
+                        className={styles.batchBtn} 
+                        onClick={() => handleBatchOverride('all_available')}
+                        disabled={batchLoading}
+                        title="Unlock all modules immediately"
+                      >
+                        <CheckCircle size={14} /> All Available
+                      </button>
+                      <button 
+                        className={styles.batchBtn} 
+                        onClick={() => handleBatchOverride('weekly')}
+                        disabled={batchLoading}
+                        title="Set 7-day interval from enrollment"
+                      >
+                        <Calendar size={14} /> Weekly
+                      </button>
+                      <div className={styles.batchGroup}>
+                        <button 
+                          className={styles.batchBtn} 
+                          onClick={() => handleBatchOverride('custom_delay')}
+                          disabled={batchLoading}
+                          title="Set custom interval from enrollment"
+                        >
+                          <Zap size={14} /> Set Delay:
+                        </button>
+                        <input 
+                          type="number" 
+                          className={styles.batchInput}
+                          value={customDelay}
+                          onChange={(e) => setCustomDelay(e.target.value)}
+                          min="1"
+                        />
+                        <span className={styles.batchLabel}>days</span>
+                      </div>
+                    </div>
+                    {batchLoading && <span className={styles.eyebrow} style={{ margin: 0, marginLeft: 'auto' }}>Applying...</span>}
+                  </div>
+
                   {selectedStudentCurriculum.map((node) => renderNode(node, 0))}
                 </div>
               )}
