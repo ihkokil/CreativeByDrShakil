@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      enrolledCourses = allPublishedCourses.map(course => {
+      enrolledCourses = allPublishedCourses.map((course: any) => {
         const curriculum = parseCurriculumJson(course.curriculumJson);
         const lessonNodes = collectVideoNodes(curriculum);
         return {
@@ -97,11 +97,11 @@ export async function GET(request: NextRequest) {
         };
       });
     } else {
-      const approvedOrders = orders.filter((order) => {
+      const approvedOrders = orders.filter((order: any) => {
         if (order.status !== 'approved') return false;
         return order.updatedAt >= oneYearAgo;
       });
-      enrolledCourses = approvedOrders.map(order => {
+      enrolledCourses = approvedOrders.map((order: any) => {
         const curriculum = parseCurriculumJson(order.course.curriculumJson);
         const lessonNodes = collectVideoNodes(curriculum);
         return {
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
-    const progressByCourse = progressRows.reduce<Record<string, Set<string>>>((acc, row) => {
+    const progressByCourse = progressRows.reduce<Record<string, Set<string>>>((acc: any, row: any) => {
       if (!acc[row.courseId]) {
         acc[row.courseId] = new Set<string>();
       }
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
       totalPurchases: orders.length,
     };
 
-    const purchaseHistory = orders.map((order) => ({
+    const purchaseHistory = orders.map((order: any) => ({
       id: order.id,
       status: order.status,
       totalAmount: order.totalAmount,
