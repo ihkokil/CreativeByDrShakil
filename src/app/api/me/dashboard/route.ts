@@ -33,9 +33,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
+    const isAdmin = user.role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    const orders = await prisma.order.findMany({
+    let orders = await prisma.order.findMany({
       where: {
         userId: user.id,
       },
@@ -70,12 +71,54 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const approvedOrders = orders.filter((order) => {
-      if (order.status !== 'approved') return false;
-      return order.updatedAt >= oneYearAgo;
-    });
+    let enrolledCourses: any[] = [];
+    
+    if (isAdmin) {
+      const allPublishedCourses = await prisma.course.findMany({
+        where: { status: 'published' },
+        include: {
+          category: { select: { displayName: true } }
+        }
+      });
 
-    const courseIds = approvedOrders.map((order) => order.courseId);
+      enrolledCourses = allPublishedCourses.map(course => {
+        const curriculum = parseCurriculumJson(course.curriculumJson);
+        const lessonNodes = collectVideoNodes(curriculum);
+        return {
+          orderId: `admin-${course.id}`,
+          courseId: course.id,
+          courseSlug: course.slug,
+          courseTitle: course.title,
+          imageUrl: course.imageUrl,
+          duration: course.duration,
+          category: course.category?.displayName || 'General',
+          enrolledAt: course.createdAt,
+          lessonNodes // Store for progress calculation
+        };
+      });
+    } else {
+      const approvedOrders = orders.filter((order) => {
+        if (order.status !== 'approved') return false;
+        return order.updatedAt >= oneYearAgo;
+      });
+      enrolledCourses = approvedOrders.map(order => {
+        const curriculum = parseCurriculumJson(order.course.curriculumJson);
+        const lessonNodes = collectVideoNodes(curriculum);
+        return {
+          orderId: order.id,
+          courseId: order.course.id,
+          courseSlug: order.course.slug,
+          courseTitle: order.course.title,
+          imageUrl: order.course.imageUrl,
+          duration: order.course.duration,
+          category: order.course.category?.displayName || 'General',
+          enrolledAt: order.updatedAt,
+          lessonNodes
+        };
+      });
+    }
+
+    const courseIds = enrolledCourses.map((c) => c.courseId);
     const progressRows = courseIds.length
       ? await prisma.lessonProgress.findMany({
           where: {
@@ -85,7 +128,6 @@ export async function GET(request: NextRequest) {
           select: {
             courseId: true,
             lessonNodeId: true,
-            updatedAt: true,
           },
         })
       : [];
@@ -98,22 +140,21 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {});
 
-    const enrolledCourses = approvedOrders.map((order) => {
-      const lessonNodes = collectVideoNodes(parseCurriculumJson(order.course.curriculumJson));
-      const completedIds = progressByCourse[order.courseId] || new Set<string>();
-      const completedCount = lessonNodes.filter((node) => completedIds.has(node.id)).length;
-      const totalCount = lessonNodes.length;
+    enrolledCourses = enrolledCourses.map((item) => {
+      const completedIds = progressByCourse[item.courseId] || new Set<string>();
+      const completedCount = item.lessonNodes.filter((node: any) => completedIds.has(node.id)).length;
+      const totalCount = item.lessonNodes.length;
       const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
       return {
-        orderId: order.id,
-        courseId: order.course.id,
-        courseSlug: order.course.slug,
-        courseTitle: order.course.title,
-        imageUrl: order.course.imageUrl,
-        duration: order.course.duration,
-        category: order.course.category?.displayName || 'General',
-        enrolledAt: order.updatedAt,
+        orderId: item.orderId,
+        courseId: item.courseId,
+        courseSlug: item.courseSlug,
+        courseTitle: item.courseTitle,
+        imageUrl: item.imageUrl,
+        duration: item.duration,
+        category: item.category,
+        enrolledAt: item.enrolledAt,
         progress: {
           completedCount,
           totalCount,
