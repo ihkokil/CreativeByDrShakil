@@ -17,7 +17,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type TabType = 'overview' | 'courses' | 'library';
+type TabType = 'overview' | 'courses' | 'library' | 'security';
 
 interface TeacherSidebarProps {
     activeTab: TabType;
@@ -109,18 +109,6 @@ export default function TeacherSidebar({
                     })}
                 </div>
 
-                <div className={styles.navSection}>
-                    {isExpanded && <span className={styles.sectionLabel}>System</span>}
-                    {sysItems.map(item => (
-                        <button
-                            key={item.id}
-                            className={styles.navItem}
-                            onClick={() => {}}
-                        >
-                            <span className={styles.icon}>{item.icon}</span>
-                            {isExpanded && <span className={styles.label}>{item.label}</span>}
-                        </button>
-                    ))}
                 </div>
             </div>
 

@@ -93,12 +93,20 @@ export async function GET(request: NextRequest) {
     const totalEnrollments = approvedOrders.length;
     const totalLessonsCompleted = progressEntries.length;
 
+    // Calculate overall aggregate progress (weighted average)
+    let aggregateProgress = 0;
+    if (totalEnrollments > 0) {
+      const totalProgressSum = courseStats.reduce((sum, cs) => sum + (cs.avgProgress * cs.enrollmentCount), 0);
+      aggregateProgress = Math.round(totalProgressSum / totalEnrollments);
+    }
+
     return NextResponse.json({
       totalCourses: courses.length,
       totalStudents,
       totalEnrollments,
       totalLessonsCompleted,
       courseProgress: courseStats,
+      aggregateProgress,
     });
   } catch (error: any) {
     console.error('[TEACHER_STATS_ERROR]', error);
