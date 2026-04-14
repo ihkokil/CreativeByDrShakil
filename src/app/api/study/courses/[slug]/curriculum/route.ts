@@ -47,6 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseDaysOfWeek: any;
       releaseGroupDates: any;
       curriculumJson: any;
+      courseStartDate: Date | null;
     }
 
     const course = await prisma.course.findFirst({
