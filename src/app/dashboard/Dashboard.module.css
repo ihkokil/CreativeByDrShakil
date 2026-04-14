@@ -614,3 +614,368 @@
   font-size: 0.82rem;
   color: var(--text-muted);
 }
+
+/* ====================================================================
+   REDESIGNED COURSES TAB — Premium Card Grid
+   ==================================================================== */
+
+.coursesTab {
+  display: grid;
+  gap: 20px;
+}
+
+/* ---- Header ---- */
+.coursesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-border);
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--primary) 12%, transparent), transparent 50%),
+    color-mix(in srgb, var(--card-bg) 88%, transparent);
+}
+
+.coursesHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.coursesHeaderIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: white;
+  flex-shrink: 0;
+}
+
+.coursesTitle {
+  font-size: 1.2rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.coursesSubtitle {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
+
+.coursesHeaderStats {
+  display: flex;
+  gap: 20px;
+}
+
+.coursesMiniStat {
+  text-align: center;
+}
+
+.coursesMiniStat span {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.coursesMiniStat label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Empty State ---- */
+.coursesEmpty {
+  text-align: center;
+  padding: 60px 20px;
+  border-radius: 18px;
+  border: 1px dashed var(--glass-border);
+  background: color-mix(in srgb, var(--card-bg) 60%, transparent);
+}
+
+.coursesEmptyIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 20%, transparent), color-mix(in srgb, var(--accent) 20%, transparent));
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+
+.coursesEmpty h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.coursesEmpty p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+/* ---- Card Grid ---- */
+.coursesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* ---- Course Card ---- */
+.courseCard2 {
+  border-radius: 18px;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  overflow: hidden;
+  transition: all 0.35s var(--ease-premium);
+  position: relative;
+}
+
+.courseCard2:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 40px -8px rgba(59, 130, 246, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* -- Card Image Header -- */
+.courseCardHeader {
+  position: relative;
+  height: 140px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--primary) 60%, #000),
+    color-mix(in srgb, var(--accent) 50%, #000));
+  overflow: hidden;
+}
+
+.courseCardImg {
+  object-fit: cover;
+  transition: transform 0.5s var(--ease-premium);
+}
+
+.courseCard2:hover .courseCardImg {
+  transform: scale(1.06);
+}
+
+.courseCardOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.55) 100%);
+  z-index: 1;
+}
+
+.courseCardCategory {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* -- Circular Progress Ring -- */
+.courseCardRing {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ringChart {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.ringBg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 5;
+}
+
+.ringFill {
+  fill: none;
+  stroke: var(--ring-color, #3b82f6);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s var(--ease-premium);
+}
+
+.ringLabel {
+  position: relative;
+  z-index: 1;
+  font-size: 0.68rem;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* -- Card Body -- */
+.courseCardBody {
+  padding: 16px 16px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.courseCardTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.courseCardMeta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.courseCardMetaItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* -- Linear Progress Bar -- */
+.courseCardProgress {
+  padding: 0;
+}
+
+.courseCardTrack {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  overflow: hidden;
+}
+
+.courseCardFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s var(--ease-premium);
+}
+
+/* -- Dates -- */
+.courseCardDates {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.courseCardDate {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* -- CTA Button -- */
+.courseCardAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  text-decoration: none;
+  transition: all 0.3s var(--ease-premium);
+  border: none;
+  cursor: pointer;
+}
+
+.courseCardAction:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+  filter: brightness(1.1);
+}
+
+.courseCardActionDisabled {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  border: 1px dashed var(--glass-border);
+  cursor: not-allowed;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 840px) {
+  .coursesHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .coursesHeaderStats {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 24px;
+    padding-top: 10px;
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .coursesMiniStat {
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .coursesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .courseCardDates {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}

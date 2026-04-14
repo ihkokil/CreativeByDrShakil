@@ -11,7 +11,12 @@ import {
     BookOpen,
     ArrowRight,
     Loader2,
-    AlertTriangle
+    AlertTriangle,
+    CalendarDays,
+    Timer,
+    GraduationCap,
+    Sparkles,
+    Play
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -258,51 +263,139 @@ function StudentDashboardContent() {
       )}
 
       {activeTab === "courses" && data && (
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <div>
-                <h2>My Courses</h2>
-                <p className={styles.subtitle}>{data.enrolledCourses.length} active enrollments</p>
+        <div className={styles.coursesTab}>
+          {/* Courses Header */}
+          <div className={styles.coursesHeader}>
+            <div className={styles.coursesHeaderLeft}>
+              <div className={styles.coursesHeaderIcon}>
+                <GraduationCap size={22} />
+              </div>
+              <div>
+                <h2 className={styles.coursesTitle}>My Learning</h2>
+                <p className={styles.coursesSubtitle}>
+                  {data.enrolledCourses.length} {data.enrolledCourses.length === 1 ? 'course' : 'courses'} enrolled
+                </p>
+              </div>
             </div>
+            {data.enrolledCourses.length > 0 && (
+              <div className={styles.coursesHeaderStats}>
+                <div className={styles.coursesMiniStat}>
+                  <span>{data.studyStats.completedLessons}</span>
+                  <label>Lessons Done</label>
+                </div>
+                <div className={styles.coursesMiniStat}>
+                  <span>{data.studyStats.averageProgress}%</span>
+                  <label>Avg. Progress</label>
+                </div>
+              </div>
+            )}
           </div>
 
           {data.enrolledCourses.length === 0 ? (
-            <p className={styles.emptyText}>No active courses yet. Start by purchasing a course from the catalog.</p>
+            <div className={styles.coursesEmpty}>
+              <div className={styles.coursesEmptyIcon}>
+                <Sparkles size={32} />
+              </div>
+              <h3>No courses yet</h3>
+              <p>Your learning journey starts here. Enroll in a course to begin.</p>
+            </div>
           ) : (
-            <div className={styles.courseList}>
-              {data.enrolledCourses.map((course) => (
-                <article key={course.orderId} className={styles.courseListCard}>
-                  <div className={styles.courseListTop}>
-                    <div>
-                      <h3>{course.courseTitle}</h3>
-                      <p>{course.category} · {course.duration}</p>
+            <div className={styles.coursesGrid}>
+              {data.enrolledCourses.map((course) => {
+                const pct = course.progress.percentage;
+                const circumference = 2 * Math.PI * 28;
+                const dashOffset = circumference - (pct / 100) * circumference;
+                const isComplete = pct === 100;
+                return (
+                  <article key={course.orderId} className={styles.courseCard2}>
+                    {/* Card Image / Gradient Header */}
+                    <div className={styles.courseCardHeader}>
+                      {course.imageUrl ? (
+                        <Image
+                          src={course.imageUrl}
+                          alt={course.courseTitle}
+                          fill
+                          className={styles.courseCardImg}
+                          unoptimized
+                        />
+                      ) : null}
+                      <div className={styles.courseCardOverlay} />
+                      <span className={styles.courseCardCategory}>{course.category}</span>
+                      {/* Circular Progress */}
+                      <div className={styles.courseCardRing}>
+                        <svg viewBox="0 0 64 64" className={styles.ringChart}>
+                          <circle cx="32" cy="32" r="28" className={styles.ringBg} />
+                          <circle
+                            cx="32" cy="32" r="28"
+                            className={styles.ringFill}
+                            strokeDasharray={circumference}
+                            strokeDashoffset={dashOffset}
+                            style={{ '--ring-color': isComplete ? '#10b981' : '#3b82f6' } as React.CSSProperties}
+                          />
+                        </svg>
+                        <span className={styles.ringLabel}>{pct}%</span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                      <span className={styles.enrolledAt}>Joined {formatDate(course.enrolledAt)}</span>
-                      <span className={styles.enrolledAt} style={{ color: 'var(--primary)', fontWeight: 600 }}>Expires {getExpiryDate(course.enrolledAt)}</span>
-                    </div>
-                  </div>
 
-                  <div className={styles.progressRow}>
-                    <div className={styles.progressTrackLarge}>
-                      <div className={styles.progressFill} style={{ width: `${course.progress.percentage}%` }} />
-                    </div>
-                    <strong>{course.progress.percentage}%</strong>
-                  </div>
+                    {/* Card Body */}
+                    <div className={styles.courseCardBody}>
+                      <h3 className={styles.courseCardTitle}>{course.courseTitle}</h3>
 
-                  <div className={styles.courseListBottom}>
-                    <span>{course.progress.completedCount}/{course.progress.totalCount} lessons finished</span>
-                    {course.courseSlug ? (
-                      <Link href={`/study/${course.courseSlug}`} className={styles.resumeBtn}>Enter Classroom</Link>
-                    ) : (
-                      <span className={styles.resumeBtnDisabled}>Restricted</span>
-                    )}
-                  </div>
-                </article>
-              ))}
+                      <div className={styles.courseCardMeta}>
+                        <div className={styles.courseCardMetaItem}>
+                          <Timer size={13} />
+                          <span>{course.duration}</span>
+                        </div>
+                        <div className={styles.courseCardMetaItem}>
+                          <BookOpen size={13} />
+                          <span>{course.progress.completedCount}/{course.progress.totalCount}</span>
+                        </div>
+                      </div>
+
+                      {/* Linear Progress */}
+                      <div className={styles.courseCardProgress}>
+                        <div className={styles.courseCardTrack}>
+                          <div
+                            className={styles.courseCardFill}
+                            style={{
+                              width: `${pct}%`,
+                              background: isComplete
+                                ? 'linear-gradient(90deg, #10b981, #34d399)'
+                                : 'linear-gradient(90deg, #3b82f6, #8b5cf6)'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className={styles.courseCardDates}>
+                        <div className={styles.courseCardDate}>
+                          <CalendarDays size={12} />
+                          <span>Joined {formatDate(course.enrolledAt)}</span>
+                        </div>
+                        <div className={styles.courseCardDate} style={{ color: 'var(--primary)' }}>
+                          <Timer size={12} />
+                          <span>Expires {getExpiryDate(course.enrolledAt)}</span>
+                        </div>
+                      </div>
+
+                      {course.courseSlug ? (
+                        <Link href={`/study/${course.courseSlug}`} className={styles.courseCardAction}>
+                          <Play size={15} />
+                          {isComplete ? 'Review Course' : pct > 0 ? 'Continue Learning' : 'Start Learning'}
+                          <ArrowRight size={15} />
+                        </Link>
+                      ) : (
+                        <span className={styles.courseCardActionDisabled}>
+                          Access Restricted
+                        </span>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
-        </section>
+        </div>
       )}
 
       {activeTab === "purchases" && data && (
