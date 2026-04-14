@@ -131,12 +131,11 @@ export default function TeacherSidebar({
                             <span className={styles.email}>{teacherEmail}</span>
                         </div>
                     )}
-                    {isExpanded && (
-                        <button className={styles.logoutBtn} onClick={signOut} title="Sign Out">
-                            <LogOut size={16} />
-                        </button>
-                    )}
                 </div>
+                <button className={styles.logoutButtonFull} onClick={signOut} title="Sign Out">
+                    <LogOut size={18} />
+                    {isExpanded && <span>Sign Out</span>}
+                </button>
             </div>
         </aside>
     );
