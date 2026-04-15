@@ -1,0 +1,65 @@
+.playerContainer {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.vidstackPlayer {
+    width: 100%;
+    height: 100%;
+    --video-brand: var(--primary);
+    --video-focus: var(--primary);
+}
+
+.mockVideo {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: linear-gradient(135deg, #1e1e2e 0%, #0f0f1a 100%);
+    color: #fff;
+    text-align: center;
+    padding: 40px;
+}
+
+.subtext {
+    font-size: 0.9rem;
+    opacity: 0.6;
+    max-width: 300px;
+}
+
+/* Watermark needs higher z-index to stay above Vidstack controls */
+.watermarkWrapper {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+}
+
+/* 
+   Vidstack Shield 
+   This overlay helps mask YouTube-specific interactions 
+   while allowing Vidstack's custom UI to handle playback.
+*/
+.vidstackShield {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    z-index: 10;
+    pointer-events: none; /* We rely on Vidstack's UI masking for most things */
+}
+
+/* Customize Vidstack default layout theme to match glassmorphism */
+:global(.vds-video-layout) {
+    --video-bg: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(8px);
+}

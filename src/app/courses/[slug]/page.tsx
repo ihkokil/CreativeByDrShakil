@@ -18,6 +18,7 @@ import CourseHero from "@/components/Course/CourseHero";
 import CourseStats from "@/components/Course/CourseStats";
 import CourseSidebar from "@/components/Course/CourseSidebar";
 import CourseInstructors from "@/components/Course/CourseInstructors";
+import { useAuth } from "@/context/AuthContext";
 
 import { 
     CheckCircle2, 
@@ -40,10 +41,19 @@ export default function CourseDetailPage() {
     const [authMode, setAuthMode] = useState<"login" | "register">("login");
     const [expandedModules, setExpandedModules] = useState<number[]>([]);
 
+    const { role: userRole } = useAuth();
     const [userEnrolled, setUserEnrolled] = useState(false);
     const [courseStarted, setCourseStarted] = useState(false);
     const [progressLoading, setProgressLoading] = useState(true);
     const { user } = useAuth();
+
+    useEffect(() => {
+        if (userRole === 'admin') {
+            setUserEnrolled(true);
+            // Even if admin is auto-enrolled, we still might want to check if they've 
+            // started the course (marked any lesson complete) for the button label.
+        }
+    }, [userRole]);
 
     // Initial Data Fetching
     useEffect(() => {
