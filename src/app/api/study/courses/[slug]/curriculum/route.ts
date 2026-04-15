@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import * as PrismaClientModule from '@prisma/client';
-const Prisma = PrismaClientModule.Prisma;
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -94,11 +92,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupDates,
     });
 
-    const overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
-      SELECT lessonNodeId, availabilityMode, availableAt
-      FROM StudentModuleAvailability
-      WHERE courseId = ${course.id} AND userId = ${payload.sub}
-    `);
+    const overrideRows = await prisma.studentModuleAvailability.findMany({
+      where: {
+        courseId: course.id,
+        userId: payload.sub,
+      },
+      select: {
+        lessonNodeId: true,
+        availabilityMode: true,
+        availableAt: true,
+      },
+    });
 
     // If admin, use a far-future-past 'now' to ensure everything is unlocked,
     // or simply pass a flag to the availability annotator.
