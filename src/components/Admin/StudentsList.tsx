@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
-import { Search, Loader2, Edit, Trash2, MailCheck, GraduationCap, X } from "lucide-react";
+import { Search, Loader2, Edit, Trash2, MailCheck, GraduationCap, X, User, Mail, Phone, FileText, ImagePlus, Send } from "lucide-react";
 import dashStyles from "@/app/admin/dashboard/AdminDashboard.module.css";
 import localStyles from "./StudentsList.module.css";
 
@@ -11,6 +11,7 @@ interface StudentProfile {
     full_name: string;
     email: string;
     phone?: string;
+    bmdcNumber?: string;
     role: string;
     created_at: string;
     profile_image?: string;
@@ -25,8 +26,20 @@ export default function StudentsList() {
     const [deleteStudent, setDeleteStudent] = useState<StudentProfile | null>(null);
 
     // Form states
-    const [formData, setFormData] = useState({ fullName: '', email: '', phone: '', password: '' });
+    const [formData, setFormData] = useState({ 
+        fullName: '', 
+        email: '', 
+        phone: '', 
+        bmdcNumber: '', 
+        profileImage: '' 
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const showMessage = (msg: { type: 'success' | 'error'; text: string }) => {
+        setMessage(msg);
+        setTimeout(() => setMessage(null), 4000);
+    };
 
     const fetchStudents = useCallback(async () => {
         setLoading(true);
@@ -37,10 +50,21 @@ export default function StudentsList() {
             });
             const data = await res.json();
             if (res.ok && data.students) {
-                setStudents(data.students);
+                // The API already maps these fields, but we ensure the interface matches
+                const mappedStudents = data.students.map((s: any) => ({
+                    id: s.id,
+                    full_name: s.full_name,
+                    email: s.email,
+                    phone: s.phone,
+                    bmdcNumber: s.bmdcNumber,
+                    role: s.role,
+                    created_at: s.created_at,
+                    profile_image: s.profile_image
+                }));
+                setStudents(mappedStudents);
             }
         } catch (err) {
-            console.error("Failed to fecth students", err);
+            console.error("Failed to fetch students", err);
         } finally {
             setLoading(false);
         }
@@ -49,6 +73,17 @@ export default function StudentsList() {
     useEffect(() => {
         fetchStudents();
     }, [fetchStudents]);
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, profileImage: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const getInitials = (name: string) => {
         return name ? name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) : "ST";
@@ -62,33 +97,61 @@ export default function StudentsList() {
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setMessage(null);
         try {
             const token = localStorage.getItem("auth_token");
-            await fetch("/api/admin/students/manage", {
+            const res = await fetch("/api/admin/students/manage", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", ...token ? { Authorization: `Bearer ${token}` } : {} },
-                body: JSON.stringify({ fullName: formData.fullName, email: formData.email, phone: formData.phone, password: formData.password })
+                body: JSON.stringify(formData)
             });
-            setIsAddOpen(false);
-            setFormData({ fullName: '', email: '', phone: '', password: '' });
-            fetchStudents();
-        } finally { setIsSubmitting(false); }
+            const data = await res.json();
+            
+            if (res.ok) {
+                showMessage({ type: 'success', text: data.message || 'Student added and invitation sent.' });
+                setTimeout(() => {
+                    setIsAddOpen(false);
+                    setFormData({ fullName: '', email: '', phone: '', bmdcNumber: '', profileImage: '' });
+                    fetchStudents();
+                }, 2000);
+            } else {
+                showMessage({ type: 'error', text: data.error || 'Failed to add student.' });
+            }
+        } catch (err) {
+            showMessage({ type: 'error', text: 'Network error. Please try again.' });
+        } finally { 
+            setIsSubmitting(false); 
+        }
     };
 
     const handleEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         if(!editStudent) return;
         setIsSubmitting(true);
+        setMessage(null);
         try {
             const token = localStorage.getItem("auth_token");
-            await fetch("/api/admin/students/manage", {
+            const res = await fetch("/api/admin/students/manage", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json", ...token ? { Authorization: `Bearer ${token}` } : {} },
-                body: JSON.stringify({ id: editStudent.id, fullName: formData.fullName, phone: formData.phone })
+                body: JSON.stringify({ id: editStudent.id, ...formData })
             });
-            setEditStudent(null);
-            fetchStudents();
-        } finally { setIsSubmitting(false); }
+            const data = await res.json();
+
+            if (res.ok) {
+                showMessage({ type: 'success', text: 'Student updated successfully.' });
+                setTimeout(() => {
+                    setEditStudent(null);
+                    fetchStudents();
+                }, 1500);
+            } else {
+                showMessage({ type: 'error', text: data.error || 'Failed to update student.' });
+            }
+        } catch (err) {
+            showMessage({ type: 'error', text: 'Network error. Please try again.' });
+        } finally { 
+            setIsSubmitting(false); 
+        }
     };
 
     const handleDelete = async () => {
@@ -118,13 +181,20 @@ export default function StudentsList() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <button className={dashStyles.primaryBtn} onClick={() => { setFormData({ fullName: '', email: '', phone: '', password: '' }); setIsAddOpen(true); }}>
+                <button className={dashStyles.primaryBtn} onClick={() => { 
+                    setFormData({ fullName: '', email: '', phone: '', bmdcNumber: '', profileImage: '' }); 
+                    setMessage(null);
+                    setIsAddOpen(true); 
+                }}>
                     <GraduationCap size={16} /> New Student
                 </button>
             </div>
 
             {loading ? (
-                <div className={dashStyles.loader}>Loading students...</div>
+                <div className={dashStyles.loader}>
+                    <Loader2 className={dashStyles.spinner} />
+                    Loading students...
+                </div>
             ) : filteredStudents.length > 0 ? (
                 <div className={dashStyles.teacherGrid}>
                     {filteredStudents.map((student) => (
@@ -143,7 +213,14 @@ export default function StudentsList() {
                             
                             <div className={dashStyles.cardContent}>
                                 <div className={dashStyles.academicInfo}>
-                                    <p>{student.phone || "No phone number available"}</p>
+                                    <p style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <Phone size={14} /> {student.phone || "No phone"}
+                                    </p>
+                                    {student.bmdcNumber && (
+                                        <p style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                            <FileText size={14} /> BM&DC: {student.bmdcNumber}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className={dashStyles.cardFooter}>
                                     <div className={dashStyles.listCol}>
@@ -155,8 +232,7 @@ export default function StudentsList() {
                                         </span>
                                     </div>
                                     <div className={dashStyles.cardActions}>
-                                        <button className={dashStyles.actionBtn} onClick={() => alert('Reset Pass pending')} title="Reset Password"><MailCheck size={16} /></button>
-                                        <button className={dashStyles.actionBtn} onClick={() => { setFormData({ fullName: student.full_name, email: student.email, phone: student.phone || '', password: '' }); setEditStudent(student); }} title="Edit Profile"><Edit size={16} /></button>
+                                        <button className={dashStyles.actionBtn} onClick={() => { setFormData({ fullName: student.full_name, email: student.email, phone: student.phone || '', bmdcNumber: student.bmdcNumber || '', profileImage: student.profile_image || '' }); setEditStudent(student); setMessage(null); }} title="Edit Profile"><Edit size={16} /></button>
                                         <button className={`${dashStyles.actionBtn} ${dashStyles.danger}`} onClick={() => setDeleteStudent(student)} title="Delete"><Trash2 size={16} /></button>
                                     </div>
                                 </div>
@@ -171,29 +247,70 @@ export default function StudentsList() {
             {/* ADD MODAL */}
             {isAddOpen && (
                 <div className={localStyles.modalBackdrop}>
-                    <div className={localStyles.modal}>
+                    <div className={`${localStyles.modal} glass`}>
                         <div className={localStyles.modalHeader}>
                             <h2>Add New Student</h2>
                             <button onClick={() => setIsAddOpen(false)} className={localStyles.closeBtn}><X size={20} /></button>
                         </div>
                         <form onSubmit={handleAdd} className={localStyles.modalBody}>
+                            <div className={localStyles.imageUploadWrapper}>
+                                <label className={localStyles.imageLabel}>
+                                    {formData.profileImage ? (
+                                        <img src={formData.profileImage} alt="Preview" className={localStyles.imagePreview} />
+                                    ) : (
+                                        <div className={localStyles.imagePlaceholder}>
+                                            <ImagePlus size={20} />
+                                            <span>Upload Photo</span>
+                                        </div>
+                                    )}
+                                    <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                                </label>
+                            </div>
+
                             <div className={localStyles.formGroup}>
                                 <label>Full Name</label>
-                                <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={localStyles.input} placeholder="e.g. John Doe" />
+                                <div style={{ position: 'relative' }}>
+                                    <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                    <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={localStyles.input} placeholder="e.g. John Doe" style={{ paddingLeft: '40px', width: '100%' }} />
+                                </div>
                             </div>
                             <div className={localStyles.formGroup}>
                                 <label>Email Address</label>
-                                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={localStyles.input} placeholder="student@example.com" />
+                                <div style={{ position: 'relative' }}>
+                                    <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                    <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={localStyles.input} placeholder="student@example.com" style={{ paddingLeft: '40px', width: '100%' }} />
+                                </div>
                             </div>
-                            <div className={localStyles.formGroup}>
-                                <label>Temporary Password</label>
-                                <input required type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className={localStyles.input} placeholder="SecurePass123" />
+                            <div className={localStyles.row}>
+                                <div className={`${localStyles.formGroup} ${localStyles.halfWidth}`}>
+                                    <label>Phone</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <Phone size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                        <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={localStyles.input} placeholder="017..." style={{ paddingLeft: '40px', width: '100%' }} />
+                                    </div>
+                                </div>
+                                <div className={`${localStyles.formGroup} ${localStyles.halfWidth}`}>
+                                    <label>BM&DC Number</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <FileText size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                        <input type="text" value={formData.bmdcNumber} onChange={e => setFormData({...formData, bmdcNumber: e.target.value})} className={localStyles.input} placeholder="A-12345" style={{ paddingLeft: '40px', width: '100%' }} />
+                                    </div>
+                                </div>
                             </div>
-                            <div className={localStyles.formGroup}>
-                                <label>Phone (Optional)</label>
-                                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={localStyles.input} placeholder="+8801..." />
-                            </div>
-                            <button disabled={isSubmitting} type="submit" className={dashStyles.primaryBtn} style={{width: '100%', marginTop: '10px'}}>{isSubmitting ? 'Saving...' : 'Add Student'}</button>
+
+                            {message && (
+                                <div className={`${localStyles.message} ${localStyles[message.type]}`}>
+                                    {message.text}
+                                </div>
+                            )}
+
+                            <button disabled={isSubmitting} type="submit" className={dashStyles.primaryBtn} style={{width: '100%', marginTop: '10px', justifyContent: 'center'}}>
+                                {isSubmitting ? 'Sending Invitation...' : 'Send Invitation'}
+                                {!isSubmitting && <Send size={16} style={{ marginLeft: '8px' }} />}
+                            </button>
+                            <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                                An email will be sent to the student to set their password.
+                            </p>
                         </form>
                     </div>
                 </div>
@@ -202,21 +319,60 @@ export default function StudentsList() {
             {/* EDIT MODAL */}
             {editStudent && (
                 <div className={localStyles.modalBackdrop}>
-                    <div className={localStyles.modal}>
+                    <div className={`${localStyles.modal} glass`}>
                         <div className={localStyles.modalHeader}>
-                            <h2>Edit Student</h2>
+                            <h2>Edit Student Profile</h2>
                             <button onClick={() => setEditStudent(null)} className={localStyles.closeBtn}><X size={20} /></button>
                         </div>
                         <form onSubmit={handleEdit} className={localStyles.modalBody}>
+                            <div className={localStyles.imageUploadWrapper}>
+                                <label className={localStyles.imageLabel}>
+                                    {formData.profileImage ? (
+                                        <img src={formData.profileImage} alt="Preview" className={localStyles.imagePreview} />
+                                    ) : (
+                                        <div className={localStyles.imagePlaceholder}>
+                                            <ImagePlus size={20} />
+                                            <span>Upload Photo</span>
+                                        </div>
+                                    )}
+                                    <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                                </label>
+                            </div>
+
                             <div className={localStyles.formGroup}>
                                 <label>Full Name</label>
-                                <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={localStyles.input} />
+                                <div style={{ position: 'relative' }}>
+                                    <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                    <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={localStyles.input} style={{ paddingLeft: '40px', width: '100%' }} />
+                                </div>
                             </div>
-                            <div className={localStyles.formGroup}>
-                                <label>Phone (Optional)</label>
-                                <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={localStyles.input} />
+                            
+                            <div className={localStyles.row}>
+                                <div className={`${localStyles.formGroup} ${localStyles.halfWidth}`}>
+                                    <label>Phone</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <Phone size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                        <input type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={localStyles.input} style={{ paddingLeft: '40px', width: '100%' }} />
+                                    </div>
+                                </div>
+                                <div className={`${localStyles.formGroup} ${localStyles.halfWidth}`}>
+                                    <label>BM&DC Number</label>
+                                    <div style={{ position: 'relative' }}>
+                                        <FileText size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                        <input type="text" value={formData.bmdcNumber} onChange={e => setFormData({...formData, bmdcNumber: e.target.value})} className={localStyles.input} style={{ paddingLeft: '40px', width: '100%' }} />
+                                    </div>
+                                </div>
                             </div>
-                            <button disabled={isSubmitting} type="submit" className={dashStyles.primaryBtn} style={{width: '100%', marginTop: '10px'}}>{isSubmitting ? 'Saving...' : 'Save Changes'}</button>
+
+                            {message && (
+                                <div className={`${localStyles.message} ${localStyles[message.type]}`}>
+                                    {message.text}
+                                </div>
+                            )}
+
+                            <button disabled={isSubmitting} type="submit" className={dashStyles.primaryBtn} style={{width: '100%', marginTop: '10px', justifyContent: 'center'}}>
+                                {isSubmitting ? 'Saving...' : 'Save Changes'}
+                            </button>
                         </form>
                     </div>
                 </div>
