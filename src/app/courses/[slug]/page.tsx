@@ -37,6 +37,11 @@ export default function CourseDetailPage() {
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [expandedModules, setExpandedModules] = useState<number[]>([]);
 
+    // New: Track user purchase and progress state
+    const [userEnrolled, setUserEnrolled] = useState(false);
+    const [courseStarted, setCourseStarted] = useState(false);
+    const [progressLoading, setProgressLoading] = useState(true);
+
     useEffect(() => {
         let cancelled = false;
 
@@ -107,6 +112,40 @@ export default function CourseDetailPage() {
             cancelled = true;
         };
     }, [params, router]);
+
+    // New: Fetch user dashboard and progress for this course
+    useEffect(() => {
+        let cancelled = false;
+        const fetchUserCourseState = async () => {
+            setProgressLoading(true);
+            setUserEnrolled(false);
+            setCourseStarted(false);
+            try {
+                // 1. Fetch dashboard to check if user is enrolled
+                const dashRes = await fetch("/api/me/dashboard");
+                if (!dashRes.ok) throw new Error("Failed to fetch dashboard");
+                const dashData = await dashRes.json();
+                const courseSlug = params?.slug as string;
+                const enrolled = dashData.enrolledCourses?.some((c: any) => c.courseSlug === courseSlug);
+                setUserEnrolled(enrolled);
+                if (enrolled) {
+                    // 2. Fetch progress for this course
+                    const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`);
+                    if (progRes.ok) {
+                        const progData = await progRes.json();
+                        // If any lessons completed, course is started
+                        setCourseStarted(Array.isArray(progData.progress?.completedLessonIds) && progData.progress.completedLessonIds.length > 0);
+                    }
+                }
+            } catch {
+                // ignore errors for now
+            } finally {
+                if (!cancelled) setProgressLoading(false);
+            }
+        };
+        if (params?.slug) fetchUserCourseState();
+        return () => { cancelled = true; };
+    }, [params]);
 
     const displayCourse = useMemo(() => {
         if (!course) {
@@ -373,12 +412,63 @@ export default function CourseDetailPage() {
                             </div>
                         </div>
                         
-                        <button
-                            className={styles.enrollBtn}
-                            onClick={() => setIsCheckoutOpen(true)}
-                        >
-                            Enroll Now
-                        </button>
+                        {/* Show Start Course or Enroll button based on user state */}
+                        {progressLoading ? (
+                            <button className={styles.enrollBtn} disabled>Loading...</button>
+                        ) : userEnrolled ? (
+                            courseStarted ? (
+                                <button
+                                    className={styles.enrollBtn}
+                                    onClick={() => router.push(`/study/${params.slug}`)}
+                                >
+                                    Continue Course
+                                </button>
+                            ) : (
+                                <button
+                                    className={styles.enrollBtn}
+                                    onClick={async () => {
+                                        // Find first lesson node (not folder, not locked)
+                                        function findFirstLesson(nodes) {
+                                            for (const node of nodes) {
+                                                if (node.type !== "folder" && !node.locked) return node;
+                                                if (node.children?.length) {
+                                                    const found = findFirstLesson(node.children);
+                                                    if (found) return found;
+                                                }
+                                            }
+                                            return null;
+                                        }
+                                        const nodes = dynamicCurriculum.length > 0 ? dynamicCurriculum : (displayCourse.curriculum || []);
+                                        const firstLesson = findFirstLesson(nodes);
+                                        if (!firstLesson) {
+                                            alert("No available lesson to start.");
+                                            return;
+                                        }
+                                        try {
+                                            const res = await fetch(`/api/study/courses/${params.slug}/progress`, {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ lessonNodeId: firstLesson.id }),
+                                            });
+                                            if (!res.ok) throw new Error("Failed to start course");
+                                            // Optionally update state here
+                                            router.push(`/study/${params.slug}`);
+                                        } catch {
+                                            alert("Failed to start course. Please try again.");
+                                        }
+                                    }}
+                                >
+                                    Start Course
+                                </button>
+                            )
+                        ) : (
+                            <button
+                                className={styles.enrollBtn}
+                                onClick={() => setIsCheckoutOpen(true)}
+                            >
+                                Enroll Now
+                            </button>
+                        )}
 
                         <h4 className={styles.includesTitle}>This course includes:</h4>
                         <ul className={styles.includesList}>
