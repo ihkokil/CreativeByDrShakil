@@ -40,6 +40,7 @@ import StudentsList from "@/components/Admin/StudentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
 import PaymentsManager from "@/components/Admin/PaymentsManager";
+import ProfileTab from "@/components/Shared/ProfileTab";
 import styles from "./AdminDashboard.module.css";
 
 interface TeacherProfile {
@@ -70,7 +71,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings" | "security") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings" | "security" | "profile") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -472,6 +473,10 @@ function AdminDashboardContent() {
 
             {activeTab === "security" && (
                 <PasswordManager />
+            )}
+
+            {activeTab === "profile" && (
+                <ProfileTab />
             )}
 
             <AddTeacherModal

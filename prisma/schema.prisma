@@ -42,6 +42,7 @@ model User {
   lessonProgress              LessonProgress[]
   orders                      Order[]
   sessionSettings             SessionLockSettings?
+  canManagePayments           Boolean                     @default(false)
   moduleAvailabilityOverrides StudentModuleAvailability[]
 }
 

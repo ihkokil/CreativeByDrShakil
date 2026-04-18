@@ -10,7 +10,8 @@ import {
     ChevronLeft,
     ChevronRight,
     ShieldCheck,
-    Users
+    Users,
+    User as UserIcon
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";

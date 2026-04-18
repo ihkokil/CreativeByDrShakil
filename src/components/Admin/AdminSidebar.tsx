@@ -18,7 +18,8 @@ import {
     BookOpen,
     Shield,
     ShieldCheck,
-    Settings
+    Settings,
+    UserCog
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -64,7 +65,8 @@ export default function AdminSidebar({
     ];
 
     const sysItems = [
-        { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
+        { id: 'profile', label: 'My Profile', icon: <UserCog size={20} /> },
+        { id: 'settings', label: 'Financials', icon: <Settings size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
     ];
 
