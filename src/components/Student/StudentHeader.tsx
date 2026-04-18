@@ -23,6 +23,9 @@ export default function StudentHeader({ title, user }: StudentHeaderProps) {
 
     return (
         <header className={styles.header}>
+            <div className={styles.left}>
+                <h1 className={styles.title}>{title}</h1>
+            </div>
             <div className={styles.right}>
                 <div className={styles.themeWrapper}>
                     <ThemeToggle />
