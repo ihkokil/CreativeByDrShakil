@@ -10,6 +10,7 @@ import ProfileTab from "@/components/Shared/ProfileTab";
 import styles from "./TeacherDashboard.module.css";
 import { Loader2 } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
+import PaymentsManager from "@/components/Admin/PaymentsManager";
 
 interface TeacherStats {
     totalCourses: number;
@@ -110,6 +111,12 @@ function TeacherDashboardContent() {
 
             {activeTab === "profile" && (
                 <ProfileTab />
+            )}
+
+            {activeTab === "payments" && user?.user_metadata?.canManagePayments && (
+                <section className={styles.panelNoPad}>
+                    <PaymentsManager />
+                </section>
             )}
         </div>
     );

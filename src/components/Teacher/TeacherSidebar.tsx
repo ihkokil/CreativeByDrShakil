@@ -18,7 +18,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type TabType = 'overview' | 'courses' | 'library' | 'security' | 'profile';
+type TabType = 'overview' | 'courses' | 'library' | 'security' | 'profile' | 'payments';
 
 interface TeacherSidebarProps {
     activeTab: TabType;
@@ -53,6 +53,11 @@ export default function TeacherSidebar({
         { id: 'profile', label: 'My Profile', icon: <UserIcon size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
     ];
+
+    const { user } = useAuth();
+    if (user?.user_metadata?.canManagePayments) {
+        menuItems.splice(3, 0, { id: 'payments', label: 'Payments', icon: <Users size={20} /> });
+    }
 
     const sysItems: any[] = [
         // Settings removed as no teacher settings page exists yet

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAdmin } from '@/lib/admin-auth';
+import { requirePaymentManager } from '@/lib/admin-auth';
 
 type Decision = 'approve' | 'reject';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ orderId: string }> }) {
   try {
-    const adminCheck = await requireAdmin(request);
+    const adminCheck = await requirePaymentManager(request);
     if (!adminCheck.ok) {
       return adminCheck.response;
     }

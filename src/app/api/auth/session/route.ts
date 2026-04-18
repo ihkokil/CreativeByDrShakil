@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         fullName: true,
         bmdcNumber: true,
         profileImage: true,
+        canManagePayments: true,
       },
     });
 
@@ -62,6 +63,7 @@ export async function GET(request: NextRequest) {
           phone: user.phone,
           bmdc_number: user.bmdcNumber,
           profile_image: user.profileImage,
+          canManagePayments: user.canManagePayments,
         },
       },
       role: user.role,
