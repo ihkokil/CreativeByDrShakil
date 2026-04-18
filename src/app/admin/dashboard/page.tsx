@@ -53,6 +53,7 @@ interface TeacherProfile {
     institution?: string | null;
     degrees?: string | null;
     profile_image?: string | null;
+    canManagePayments?: boolean;
 }
 
 interface AdminStats {
@@ -112,6 +113,25 @@ function AdminDashboardContent() {
             setTeachersLoading(false);
         }
     }, []);
+
+    const toggleSpecialTeacher = async (teacher: TeacherProfile) => {
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch(`/api/admin/teachers/${teacher.id}/special`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ canManagePayments: !teacher.canManagePayments }),
+            });
+            if (response.ok) {
+                fetchTeachers();
+            } else {
+                const d = await response.json();
+                alert(d.error || "Failed to update teacher status.");
+            }
+        } catch (err) {
+            alert("Network error.");
+        }
+    };
 
     const fetchStats = useCallback(async () => {
         setStatsLoading(true);
@@ -358,8 +378,10 @@ function AdminDashboardContent() {
                                         <div className={styles.cardFooter}>
                                             <div className={styles.listCol}>
                                                 <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
+                                                {teacher.canManagePayments && <span className={styles.rolePill} style={{width: "max-content", marginLeft: "4px", background: "rgba(16, 185, 129, 0.1)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.2)"}}>Payment Admin</span>}
                                             </div>
                                             <div className={styles.cardActions}>
+                                                <button className={`${styles.actionBtn} ${teacher.canManagePayments ? styles.active : ''}`} onClick={() => toggleSpecialTeacher(teacher)} title={teacher.canManagePayments ? "Revoke Payment Access" : "Grant Payment Access"}><CreditCard size={16} /></button>
                                                 <button className={styles.actionBtn} onClick={() => handleResetPassword(teacher)} title="Reset Secret"><MailCheck size={16} /></button>
                                                 <button className={styles.actionBtn} onClick={() => setEditTeacherData(teacher)} title="Edit Profile"><Edit size={16} /></button>
                                                 <button className={`${styles.actionBtn} ${styles.danger}`} onClick={() => setDeleteTeacherData(teacher)} title="Revoke Access"><Trash2 size={16} /></button>

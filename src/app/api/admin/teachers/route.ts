@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         institution: true,
         degrees: true,
         profileImage: true,
+        canManagePayments: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
         institution: string | null;
         degrees: string | null;
         profileImage: string | null;
+        canManagePayments: boolean;
       }) => ({
         id: teacher.id,
         full_name: teacher.fullName,
@@ -54,6 +56,7 @@ export async function GET(request: NextRequest) {
         institution: teacher.institution,
         degrees: teacher.degrees,
         profile_image: teacher.profileImage,
+        canManagePayments: teacher.canManagePayments,
       })),
     });
   } catch (error: any) {
