@@ -18,6 +18,19 @@ type OverrideRow = {
 };
 
 const getCourseWithAccess = async (slug: string, userId: string, role?: string) => {
+  interface CourseResult {
+    id: string;
+    title: string;
+    timezone: string;
+    releaseMode: any;
+    releaseStartAt: Date | null;
+    releaseIntervalDays: number | null;
+    releaseGroupsPerWeek: number | null;
+    releaseDaysOfWeek: any;
+    releaseGroupDates: any;
+    curriculumJson: any;
+  }
+
   const course = await prisma.course.findFirst({
     where: {
       slug,
@@ -31,17 +44,18 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
       releaseStartAt: true,
       releaseIntervalDays: true,
       releaseGroupsPerWeek: true,
+      ...({ releaseDaysOfWeek: true } as any),
       releaseGroupDates: true,
       curriculumJson: true,
     },
-  });
+  }) as CourseResult | null;
 
   if (!course) {
     return { error: NextResponse.json({ error: 'Course not found.' }, { status: 404 }) };
   }
 
   if (role === 'admin') {
-    return { course };
+    return { course, studentEnrollmentDate: null };
   }
 
   const oneYearAgo = new Date();
@@ -56,14 +70,15 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
         gte: oneYearAgo,
       },
     },
-    select: { id: true },
+    orderBy: { updatedAt: 'asc' },
+    select: { id: true, updatedAt: true },
   });
 
   if (!hasAccess) {
     return { error: NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 }) };
   }
 
-  return { course };
+  return { course, studentEnrollmentDate: hasAccess.updatedAt };
 };
 
 const collectPlayableNodes = (nodes: BuilderNodeWithAvailability[]) => {
@@ -103,9 +118,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course!.releaseMode,
-      releaseStartAt: result.course!.releaseStartAt,
+      releaseStartAt: result.course!.releaseStartAt || result.studentEnrollmentDate,
       releaseIntervalDays: result.course!.releaseIntervalDays,
       releaseGroupsPerWeek: result.course!.releaseGroupsPerWeek,
+      releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
@@ -188,9 +204,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course!.releaseMode,
-      releaseStartAt: result.course!.releaseStartAt,
+      releaseStartAt: result.course!.releaseStartAt || result.studentEnrollmentDate,
       releaseIntervalDays: result.course!.releaseIntervalDays,
       releaseGroupsPerWeek: result.course!.releaseGroupsPerWeek,
+      releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 

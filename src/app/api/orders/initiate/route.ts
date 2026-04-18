@@ -19,7 +19,11 @@ export async function POST(request: NextRequest) {
     const existingOrder = await prisma.order.findUnique({
       where: { userId_courseId: { userId: session.user.id, courseId: resolvedCourseId } }
     })
-    if (existingOrder?.status === 'approved') {
+
+    const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000
+    const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS)
+
+    if (existingOrder?.status === 'approved' && existingOrder.updatedAt >= oneYearAgo) {
       return NextResponse.json({ error: 'You already own this course' }, { status: 400 })
     }
     let discountAmount = 0
