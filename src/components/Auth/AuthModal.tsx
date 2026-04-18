@@ -240,7 +240,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                         <div className={styles.header}>
                             <h2 className={styles.title}>
                                 {isForgot ? "Reset " : isLogin ? "Welcome " : "Create "}
-                                <span className="gradient-text">Account</span>
+                                <span className="gradient-text">{isLogin ? "User!" : isForgot ? "Password" : "Account"}</span>
                             </h2>
                             <p className={styles.subtitle}>
                                 {isForgot
@@ -401,7 +401,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                             </button>
                         </form>
 
-                        {!isForgot && (
+                        {/* Hiding social login buttons for now as they are non-functional */}
+                        {/* {!isForgot && (
                             <>
                                 <div className={styles.divider}>
                                     <span>Or continue with</span>
@@ -425,7 +426,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                     </button>
                                 </div>
                             </>
-                        )}
+                        )} */}
 
                         <p className={styles.toggleText}>
                             {isForgot ? (
