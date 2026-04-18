@@ -112,27 +112,7 @@ export default function TeacherSidebar({
             </div>
 
             <div className={styles.footer}>
-                <div className={styles.profileBox}>
-                    <div className={styles.avatar}>
-                        {teacherProfileImage ? (
-                            <Image 
-                                src={teacherProfileImage} 
-                                alt={teacherName} 
-                                fill 
-                                className={styles.avatarImage}
-                                unoptimized
-                            />
-                        ) : (
-                            getInitials(teacherName)
-                        )}
-                    </div>
-                    {isExpanded && (
-                        <div className={styles.profileMeta}>
-                            <span className={styles.name}>{teacherName}</span>
-                            <span className={styles.email}>{teacherEmail}</span>
-                        </div>
-                    )}
-                </div>
+
                 <button className={styles.logoutButtonFull} onClick={signOut} title="Sign Out">
                     <LogOut size={18} />
                     {isExpanded && <span>Sign Out</span>}

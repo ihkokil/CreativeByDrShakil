@@ -117,17 +117,7 @@ export default function StudentSidebar({
             </div>
 
             <div className={styles.footer}>
-                <div className={styles.profileBox}>
-                    <div className={styles.avatar}>
-                        {studentName[0].toUpperCase()}
-                    </div>
-                    {isExpanded && (
-                        <div className={styles.profileMeta}>
-                            <span className={styles.name}>{studentName}</span>
-                            <span className={styles.email}>Medical Student</span>
-                        </div>
-                    )}
-                </div>
+
                 <button className={styles.logoutButtonFull} onClick={handleLogout} title="Sign Out">
                     <LogOut size={18} />
                     {isExpanded && <span>Sign Out</span>}
