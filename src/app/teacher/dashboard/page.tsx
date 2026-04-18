@@ -6,6 +6,7 @@ import { useEffect, useCallback, useState, Suspense } from "react";
 import TeacherOverview from "@/components/Teacher/TeacherOverview";
 import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
 import CoursesTab from "@/components/Teacher/CoursesTab";
+import ProfileTab from "@/components/Teacher/ProfileTab";
 import styles from "./TeacherDashboard.module.css";
 import { Loader2 } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
@@ -105,6 +106,10 @@ function TeacherDashboardContent() {
 
             {activeTab === "security" && (
                 <PasswordManager />
+            )}
+
+            {activeTab === "profile" && (
+                <ProfileTab />
             )}
         </div>
     );
