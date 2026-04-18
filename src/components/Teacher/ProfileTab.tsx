@@ -1,16 +1,14 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Upload, Trash2, Phone, User as UserIcon, IdCard, CheckCircle2, AlertCircle } from "lucide-react";
-import styles from "./TeacherUserPage.module.css";
-import dashboardStyles from "../TeacherDashboard.module.css";
+import styles from "./ProfileTab.module.css";
+import dashboardStyles from "@/app/teacher/dashboard/TeacherDashboard.module.css";
 
-export default function TeacherUserPage() {
-    const { user, loading, role, refreshSession } = useAuth();
-    const router = useRouter();
+export default function ProfileTab() {
+    const { user, refreshSession } = useAuth();
 
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
@@ -20,18 +18,13 @@ export default function TeacherUserPage() {
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
     useEffect(() => {
-        if (!loading && (!user || role !== "teacher")) {
-            router.push("/");
-            return;
-        }
-
         if (user) {
             setFullName(user.user_metadata?.full_name || user.email?.split("@")[0] || "");
             setPhone(user.user_metadata?.phone || user.phone || "");
             setBmdcNumber(user.user_metadata?.bmdc_number || "");
             setProfileImage(user.user_metadata?.profile_image || null);
         }
-    }, [loading, role, router, user]);
+    }, [user]);
 
     const initials = (fullName || user?.email || "DR")
         .split(" ")
@@ -71,36 +64,36 @@ export default function TeacherUserPage() {
         setSaving(true);
         setMessage(null);
 
-        const token = localStorage.getItem("auth_token");
-        const response = await fetch("/api/user/update-profile", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-                fullName,
-                phone,
-                bmdcNumber,
-                profileImage,
-            }),
-        });
+        try {
+            const token = localStorage.getItem("auth_token");
+            const response = await fetch("/api/user/update-profile", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    fullName,
+                    phone,
+                    bmdcNumber,
+                    profileImage,
+                }),
+            });
 
-        const data = await response.json();
+            const data = await response.json();
 
-        if (!response.ok) {
-            setMessage({ type: "error", text: data.error || "Failed to update profile." });
-        } else {
-            setMessage({ type: "success", text: "Profile updated successfully." });
-            await refreshSession();
+            if (!response.ok) {
+                setMessage({ type: "error", text: data.error || "Failed to update profile." });
+            } else {
+                setMessage({ type: "success", text: "Profile updated successfully." });
+                await refreshSession();
+            }
+        } catch (err) {
+            setMessage({ type: "error", text: "An error occurred while saving profile." });
+        } finally {
+            setSaving(false);
         }
-
-        setSaving(false);
     };
-
-    if (loading || !user || role !== "teacher") {
-        return <div className={dashboardStyles.loader}>Loading profile...</div>;
-    }
 
     return (
         <div className={dashboardStyles.stack}>
@@ -151,7 +144,7 @@ export default function TeacherUserPage() {
 
                         <div className={styles.field}>
                             <label>Email Address</label>
-                            <input value={user.email || ""} disabled className={styles.disabledInput} />
+                            <input value={user?.email || ""} disabled className={styles.disabledInput} />
                             <small>Email cannot be changed.</small>
                         </div>
 

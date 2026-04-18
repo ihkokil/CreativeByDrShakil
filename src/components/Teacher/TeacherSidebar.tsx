@@ -17,7 +17,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type TabType = 'overview' | 'courses' | 'library' | 'security';
+type TabType = 'overview' | 'courses' | 'library' | 'security' | 'profile';
 
 interface TeacherSidebarProps {
     activeTab: TabType;
@@ -49,6 +49,7 @@ export default function TeacherSidebar({
         { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
         { id: 'courses', label: 'Programs', icon: <BookOpen size={20} /> },
         { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },
+        { id: 'profile', label: 'My Profile', icon: <UserIcon size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
     ];
 
