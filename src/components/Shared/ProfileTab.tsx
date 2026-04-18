@@ -5,10 +5,9 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Upload, Trash2, Phone, User as UserIcon, IdCard, CheckCircle2, AlertCircle } from "lucide-react";
 import styles from "./ProfileTab.module.css";
-import dashboardStyles from "@/app/teacher/dashboard/TeacherDashboard.module.css";
 
 export default function ProfileTab() {
-    const { user, refreshSession } = useAuth();
+    const { user, refreshSession, role } = useAuth();
 
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
@@ -96,11 +95,11 @@ export default function ProfileTab() {
     };
 
     return (
-        <div className={dashboardStyles.stack}>
+        <div className={styles.stack}>
             <section className={styles.panel}>
                 <div className={styles.header}>
-                    <h2 className={styles.panelTitle}>Professional Profile</h2>
-                    <p className={styles.subtitle}>Update your identity and clinical credentials.</p>
+                    <h2 className={styles.panelTitle}>{role === 'admin' ? 'Administrative Profile' : 'Professional Profile'}</h2>
+                    <p className={styles.subtitle}>{role === 'admin' ? 'Manage your administrative identity and contact details.' : 'Update your identity and clinical credentials.'}</p>
                 </div>
 
                 <form className={styles.form} onSubmit={handleSave}>
@@ -156,13 +155,15 @@ export default function ProfileTab() {
                             </div>
                         </div>
 
-                        <div className={styles.field}>
-                            <label>BMDC Number</label>
-                            <div className={styles.inputWrap}>
-                                <IdCard size={16} />
-                                <input value={bmdcNumber} onChange={(e) => setBmdcNumber(e.target.value)} placeholder="BMDC-XXXX" />
+                        {role === 'teacher' && (
+                            <div className={styles.field}>
+                                <label>BMDC Number</label>
+                                <div className={styles.inputWrap}>
+                                    <IdCard size={16} />
+                                    <input value={bmdcNumber} onChange={(e) => setBmdcNumber(e.target.value)} placeholder="BMDC-XXXX" />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {message && (
