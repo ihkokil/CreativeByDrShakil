@@ -21,7 +21,8 @@ import Link from "next/link";
 import Image from "next/image";
 import StudentOverview from "@/components/Student/StudentOverview";
 import profileStyles from "./ProfileTab.module.css";
-import { Camera, Mail, Stethoscope, Save, Trash2 } from "lucide-react";
+import { Camera, Mail, Stethoscope, Save, Trash2, KeyRound, Lock, ShieldCheck, Clock } from "lucide-react";
+import PasswordManager from "@/components/Shared/PasswordManager";
 
 interface DashboardCourse {
     orderId: string;
@@ -107,14 +108,6 @@ function StudentDashboardContent() {
   });
   const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Password Change State
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
-  });
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -207,35 +200,6 @@ function StudentDashboardContent() {
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage({ type: "error", text: "New passwords do not match." });
-      return;
-    }
-    setChangingPassword(true);
-    setPasswordMessage(null);
-    try {
-      const token = localStorage.getItem("auth_token");
-      const res = await fetch("/api/user/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword,
-        }),
-      });
-      const resData = await res.json();
-      if (!res.ok) throw new Error(resData.error || "Password change failed.");
-
-      setPasswordMessage({ type: "success", text: "Password changed successfully!" });
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (changeError: any) {
-      setPasswordMessage({ type: "error", text: changeError.message || "Failed to change password." });
-    } finally {
-      setChangingPassword(false);
-    }
-  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("en-GB", {
@@ -597,72 +561,7 @@ function StudentDashboardContent() {
       )}
 
       {activeTab === "security" && (
-        <div className={styles.stack}>
-          <section className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <h2>Privacy & Key Access</h2>
-                <p className={styles.subtitle}>Protect your account with robust credentials</p>
-              </div>
-            </div>
-
-            <form className={styles.securityForm} onSubmit={handleChangePassword}>
-              <div className={styles.formGroup}>
-                <label>Current Secure Key</label>
-                <input
-                  type="password"
-                  value={passwordForm.currentPassword}
-                  onChange={(event) => setPasswordForm((prev) => ({ ...prev, currentPassword: event.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className={styles.formRowTwo}>
-                <div className={styles.formGroup}>
-                  <label>New Secure Key</label>
-                  <input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(event) => setPasswordForm((prev) => ({ ...prev, newPassword: event.target.value }))}
-                    required
-                    minLength={8}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>Confirm New Key</label>
-                  <input
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(event) => setPasswordForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
-                    required
-                    minLength={8}
-                  />
-                </div>
-              </div>
-
-              {passwordMessage && (
-                <div className={`${styles.message} ${passwordMessage.type === "success" ? styles.success : styles.error}`}>
-                  {passwordMessage.text}
-                </div>
-              )}
-
-              <button className={styles.primaryBtn} type="submit" disabled={changingPassword}>
-                <KeyRound size={16} /> {changingPassword ? "Updating Keys..." : "Update Security Key"}
-              </button>
-            </form>
-          </section>
-
-          <section className={styles.panel}>
-            <div className={styles.panelHeader}>
-              <h2>System Security Protocols</h2>
-            </div>
-            <ul className={styles.tipList}>
-              <li><ShieldCheck size={15} /> Use unique alphanumeric combinations with special characters.</li>
-              <li><Clock size={15} /> Rotate your security keys every 90 days for maximum safety.</li>
-              <li><Lock size={15} /> Multi-device sessions are monitored to prevent unauthorized access.</li>
-            </ul>
-          </section>
-        </div>
+        <PasswordManager />
       )}
     </>
   );

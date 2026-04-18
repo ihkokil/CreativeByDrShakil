@@ -16,8 +16,10 @@ import {
     Trash2,
     MailCheck,
     Loader2,
-    Search,
     LayoutGrid,
+    Smartphone
+} from 'lucide-react';
+import PasswordManager from "@/components/Shared/PasswordManager";
     Inbox,
     BarChart3,
     CreditCard,
@@ -470,6 +472,10 @@ function AdminDashboardContent() {
                     <h2 className={styles.panelTitle}>Platform Financials</h2>
                     <BkashSettings />
                 </section>
+            )}
+
+            {activeTab === "security" && (
+                <PasswordManager />
             )}
 
             <AddTeacherModal
