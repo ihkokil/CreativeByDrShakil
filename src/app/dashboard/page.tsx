@@ -205,6 +205,12 @@ function StudentDashboardContent() {
     });
   };
 
+  const getExpiryDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    date.setFullYear(date.getFullYear() + 1);
+    return formatDate(date.toISOString());
+  };
+
   const formatDateTime = (dateStr: string) => {
     return new Date(dateStr).toLocaleString("en-GB", {
       day: "2-digit",
@@ -271,7 +277,10 @@ function StudentDashboardContent() {
                       <h3>{course.courseTitle}</h3>
                       <p>{course.category} · {course.duration}</p>
                     </div>
-                    <span className={styles.enrolledAt}>Joined {formatDate(course.enrolledAt)}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <span className={styles.enrolledAt}>Joined {formatDate(course.enrolledAt)}</span>
+                      <span className={styles.enrolledAt} style={{ color: 'var(--primary)', fontWeight: 600 }}>Expires {getExpiryDate(course.enrolledAt)}</span>
+                    </div>
                   </div>
 
                   <div className={styles.progressRow}>
