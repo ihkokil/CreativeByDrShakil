@@ -494,6 +494,29 @@ function CreateCourseStep3Content() {
         .filter(Boolean);
 
       if (topicsPayload.length > 0) {
+        // Save scheduling config first
+        const scheduleModeMap: Record<string, string> = {
+          "instant": "instant",
+          "interval": "fixed_interval",
+          "dayOfWeek": "day_of_week"
+        };
+
+        const scheduleResponse = await fetch(`/api/teacher/courses/${courseId}/scheduling`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({
+            releaseMode: scheduleModeMap[publishFreqMode],
+            releaseIntervalDays: publishIntervalDays,
+            releaseDaysOfWeek: publishDaysOfWeek,
+            // startDate is already in the course settings, but we could update it if needed
+          }),
+        });
+
+        if (!scheduleResponse.ok) {
+          const scheduleError = await scheduleResponse.json();
+          throw new Error(scheduleError.error || "Failed to save publish schedule.");
+        }
+
         const topicImportResponse = await fetch(`/api/teacher/courses/${courseId}/import-topics`, {
           method: "POST",
           headers,

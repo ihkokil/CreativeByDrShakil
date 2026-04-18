@@ -1,5 +1,5 @@
 export type CurriculumContentType = 'folder' | 'youtube' | 'self-hosted' | 'document';
-export type CourseReleaseModeValue = 'fixed_interval' | 'groups_per_week' | 'explicit_dates' | 'instant';
+export type CourseReleaseModeValue = 'fixed_interval' | 'groups_per_week' | 'day_of_week' | 'explicit_dates' | 'instant';
 
 export interface LessonAvailabilityOverride {
   lessonNodeId: string;
@@ -41,6 +41,7 @@ export interface CourseScheduleConfig {
   releaseStartAt?: string | Date | null;
   releaseIntervalDays?: number | null;
   releaseGroupsPerWeek?: number | null;
+  releaseDaysOfWeek?: number[] | null;
   releaseGroupDates?: Record<string, string>;
 }
 
@@ -336,6 +337,33 @@ export function computeReleaseGroupDates(
     groups.forEach((group) => {
       const date = new Date(startDate.getTime() + group.index * stepMs);
       dates[group.id] = date.toISOString();
+    });
+  }
+
+  if (mode === 'day_of_week') {
+    const selectedDays = config.releaseDaysOfWeek || [0];
+    groups.forEach((group) => {
+      let validDaysHit = 0;
+      const currentCheckDate = new Date(startDate);
+
+      if (selectedDays.includes(currentCheckDate.getDay())) {
+        if (group.index === 0) {
+          dates[group.id] = currentCheckDate.toISOString();
+          return;
+        }
+        validDaysHit++;
+      }
+
+      while (validDaysHit <= group.index) {
+        currentCheckDate.setDate(currentCheckDate.getDate() + 1);
+        if (selectedDays.includes(currentCheckDate.getDay())) {
+          if (validDaysHit === group.index) {
+            dates[group.id] = currentCheckDate.toISOString();
+            return;
+          }
+          validDaysHit++;
+        }
+      }
     });
   }
 
