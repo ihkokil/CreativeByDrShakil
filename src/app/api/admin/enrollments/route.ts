@@ -98,106 +98,119 @@ export async function POST(request: NextRequest) {
     let student;
     let isNewRegistration = false;
 
-    if (isNewStudent) {
-      // Register new student
-      if (!email || !fullName) {
-        return NextResponse.json({ error: 'Email and full name are required for new students.' }, { status: 400 });
+    const result = await prisma.$transaction(async (tx) => {
+      let finalStudent = student;
+      let isNewRegistration = false;
+
+      if (isNewStudent) {
+        // Register new student
+        if (!email || !fullName) {
+          throw new Error('Email and full name are required for new students.');
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+
+        // Check if user already exists
+        const existingUser = await tx.user.findFirst({
+          where: {
+            OR: [{ email: normalizedEmail }, ...(phone ? [{ phone }] : [])],
+          },
+        });
+
+        if (existingUser) {
+          throw new Error('A user with this email or phone already exists.');
+        }
+
+        // Create password reset token for the new student
+        const { token: setupToken, tokenHash } = createTokenPair();
+        const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // Create student with a temporary password hash
+        const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+        const passwordHashVal = await hashPassword(tempPassword);
+
+        finalStudent = await tx.user.create({
+          data: {
+            email: normalizedEmail,
+            fullName,
+            phone: phone || null,
+            passwordHash: passwordHashVal,
+            role: 'student',
+            emailVerified: true,
+            passwordResetTokenHash: tokenHash,
+            passwordResetExpires: resetExpiry,
+          },
+        });
+
+        isNewRegistration = true;
+        
+        // Return tokens for email sending after transaction
+        return { student: finalStudent, isNewRegistration, setupToken };
+      } else {
+        // Use existing student
+        if (!studentId) {
+          throw new Error('Student ID is required for existing students.');
+        }
+
+        finalStudent = await tx.user.findFirst({
+          where: { id: studentId, role: 'student' },
+        });
+
+        if (!finalStudent) {
+          throw new Error('Student not found.');
+        }
       }
 
-      const normalizedEmail = String(email).trim().toLowerCase();
-
-      // Check if user already exists
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          OR: [{ email: normalizedEmail }, ...(phone ? [{ phone }] : [])],
-        },
+      // Check if already enrolled
+      const existingOrder = await tx.order.findUnique({
+        where: { userId_courseId: { userId: finalStudent.id, courseId } },
       });
 
-      if (existingUser) {
-        return NextResponse.json({ error: 'A user with this email or phone already exists.' }, { status: 409 });
+      if (existingOrder?.status === 'approved') {
+        throw new Error('Student is already enrolled in this course.');
       }
 
-      // Create password reset token for the new student
-      const { token: setupToken, tokenHash } = createTokenPair();
-      const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      // Create or update order with approved status
+      let finalOrder;
+      if (existingOrder) {
+        finalOrder = await tx.order.update({
+          where: { id: existingOrder.id },
+          data: { 
+            status: 'approved',
+            totalAmount: 0,
+            discountAmount: 0,
+          },
+          include: { course: true, user: true },
+        });
+      } else {
+        finalOrder = await tx.order.create({
+          data: {
+            userId: finalStudent.id,
+            courseId,
+            status: 'approved',
+            totalAmount: 0,
+            discountAmount: 0,
+          },
+          include: { course: true, user: true },
+        });
+      }
 
-      // Create student with a temporary password hash (will be set via email)
-      const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
-      const passwordHash = await hashPassword(tempPassword);
+      return { student: finalStudent, isNewRegistration, order: finalOrder };
+    });
 
-      student = await prisma.user.create({
-        data: {
-          email: normalizedEmail,
-          fullName,
-          phone: phone || null,
-          passwordHash,
-          role: 'student',
-          emailVerified: true,
-          passwordResetTokenHash: tokenHash,
-          passwordResetExpires: resetExpiry,
-        },
-      });
+    const { student: studentResult, isNewRegistration, order } = result as any;
 
-      isNewRegistration = true;
-
-      // Send password setup email
+    if (isNewRegistration && (result as any).setupToken) {
+      // Send password setup email outside transaction
       try {
         await sendPasswordSetupEmail({
-          email: student.email,
-          fullName: student.fullName,
-          token: setupToken,
+          email: studentResult.email,
+          fullName: studentResult.fullName,
+          token: (result as any).setupToken,
         });
       } catch (emailError) {
         console.error('Failed to send password setup email:', emailError);
-        // Continue with enrollment even if email fails
       }
-    } else {
-      // Use existing student
-      if (!studentId) {
-        return NextResponse.json({ error: 'Student ID is required for existing students.' }, { status: 400 });
-      }
-
-      student = await prisma.user.findFirst({
-        where: { id: studentId, role: 'student' },
-      });
-
-      if (!student) {
-        return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
-      }
-    }
-
-    // Check if already enrolled
-    const existingOrder = await prisma.order.findUnique({
-      where: { userId_courseId: { userId: student.id, courseId } },
-    });
-
-    if (existingOrder?.status === 'approved') {
-      return NextResponse.json({ error: 'Student is already enrolled in this course.' }, { status: 409 });
-    }
-
-    // Create or update order with approved status (direct enrollment by admin)
-    let order;
-    if (existingOrder) {
-      order = await prisma.order.update({
-        where: { id: existingOrder.id },
-        data: { 
-          status: 'approved',
-          totalAmount: 0, // Admin enrollment is free
-          discountAmount: 0,
-        },
-        include: { course: true, user: true },
-      });
-    } else {
-      order = await prisma.order.create({
-        data: {
-          userId: student.id,
-          courseId,
-          status: 'approved',
-          totalAmount: 0, // Admin enrollment is free
-          discountAmount: 0,
-        },
-        include: { course: true, user: true },
-      });
     }
 
     return NextResponse.json({
