@@ -21,7 +21,8 @@ export async function GET() {
     }
 
     return NextResponse.json(config)
-  } catch {
+  } catch (error) {
+    console.error('Failed to fetch payment configuration:', error);
     return NextResponse.json({
       provider: 'bkash',
       sendMoneyNumber: '01700000000',

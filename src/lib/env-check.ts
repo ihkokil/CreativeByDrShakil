@@ -4,11 +4,19 @@ export function checkEnvVariables() {
   const defaultSecret = 'replace_with_a_long_random_secret_at_least_32_chars';
   
   if (process.env.JWT_SECRET === defaultSecret) {
-    console.warn('\x1b[31m%s\x1b[0m', '==================================================');
-    console.warn('\x1b[31m%s\x1b[0m', '[CRITICAL SECURITY WARNING]');
-    console.warn('\x1b[31m%s\x1b[0m', 'Your JWT_SECRET is using the default insecure value!');
-    console.warn('\x1b[31m%s\x1b[0m', 'Please update your .env.local file immediately.');
-    console.warn('\x1b[31m%s\x1b[0m', '==================================================');
+    const errorMessage = '[CRITICAL SECURITY ERROR] Your JWT_SECRET is using the default insecure value! Please update your .env.local file immediately.';
+    
+    if (process.env.NODE_ENV === 'production') {
+      console.error('\x1b[31m%s\x1b[0m', '==================================================');
+      console.error('\x1b[31m%s\x1b[0m', errorMessage);
+      console.error('\x1b[31m%s\x1b[0m', '==================================================');
+      throw new Error(errorMessage);
+    } else {
+      console.warn('\x1b[31m%s\x1b[0m', '==================================================');
+      console.warn('\x1b[31m%s\x1b[0m', '[SECURITY WARNING]');
+      console.warn('\x1b[31m%s\x1b[0m', errorMessage);
+      console.warn('\x1b[31m%s\x1b[0m', '==================================================');
+    }
   }
 }
 
