@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 interface AppUser {
     id: string;
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         );
     };
 
-    const refreshSession = async (silent = false) => {
+    const refreshSession = useCallback(async (silent = false) => {
         if (!silent) {
             setLoading(true);
         }
@@ -124,11 +124,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setLoading(false);
             }
         }
-    };
+    }, []);
 
     useEffect(() => {
         refreshSession();
-    }, []);
+    }, [refreshSession]);
 
     // Poll session validity every 30 seconds
     useEffect(() => {
@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [sessionId]);
+    }, [user, sessionId, refreshSession]);
 
     const signOut = async () => {
         const currentSessionId = sessionId;

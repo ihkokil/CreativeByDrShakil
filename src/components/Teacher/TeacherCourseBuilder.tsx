@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
     BuilderCurriculumNode,
     CourseReleaseModeValue,
@@ -8,7 +8,7 @@ import {
 } from "@/lib/teacher-course-builder";
 import { CategorySummary, fetchCategories } from "@/lib/categories";
 import styles from "./TeacherCourseBuilder.module.css";
-import { FolderPlus, Plus, Save, Trash2, UploadCloud, BookOpen, Calendar, Layers, FolderOpen, Video, Loader2 } from "lucide-react";
+import { FolderPlus, Plus, Save, Trash2, UploadCloud, BookOpen, Calendar, Layers, FolderOpen, Video } from "lucide-react";
 import { formatDisplayDate } from "@/lib/date-format";
 
 interface TeacherCourseSummary {
@@ -176,22 +176,22 @@ export default function TeacherCourseBuilder() {
     // Step-based UI for the builder section
     const [builderStep, setBuilderStep] = useState<"content" | "schedule" | "tree">("content");
 
-    const authHeaders = () => {
+    const authHeaders = useCallback(() => {
         const token = localStorage.getItem("auth_token");
         return {
             "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
-    };
+    }, []);
 
-    const authHeadersForUpload = (): HeadersInit => {
+    const authHeadersForUpload = useCallback((): HeadersInit => {
         const token = localStorage.getItem("auth_token");
         const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;
         return headers;
-    };
+    }, []);
 
-    const applyCurriculumPayload = (payload: any) => {
+    const applyCurriculumPayload = useCallback((payload: any) => {
         const nextCurriculum = Array.isArray(payload.curriculum) ? payload.curriculum : [];
         const nextGroups = Array.isArray(payload.groups) ? payload.groups : [];
         const nextComputed = payload.computedReleaseGroupDates || {};
@@ -216,30 +216,30 @@ export default function TeacherCourseBuilder() {
             (node.children || []).forEach((child) => stack.push(child));
         }
         setNodeOverrideDrafts(nextNodeOverrides);
-    };
+    }, []);
 
-    const loadCourses = async () => {
+    const loadCourses = useCallback(async () => {
         const response = await fetch("/api/teacher/courses", { method: "GET", headers: authHeaders() });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to load courses.");
         const list = Array.isArray(data.courses) ? data.courses : [];
         setCourses(list);
         if (!selectedCourseId && list[0]?.id) setSelectedCourseId(list[0].id);
-    };
+    }, [authHeaders, selectedCourseId]);
 
-    const loadTopics = async () => {
+    const loadTopics = useCallback(async () => {
         const response = await fetch("/api/teacher/starter-catalog", { method: "GET", headers: authHeaders() });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Failed to load starter catalog.");
         setTopics(Array.isArray(data.topics) ? data.topics : []);
-    };
+    }, [authHeaders]);
 
-    const loadCategories = async () => {
+    const loadCategories = useCallback(async () => {
         const list = await fetchCategories();
         setCategories(list);
-    };
+    }, []);
 
-    const loadCourseContext = async (courseId: string) => {
+    const loadCourseContext = useCallback(async (courseId: string) => {
         if (!courseId) { setCurriculum([]); setGroups([]); setComputedGroupDates({}); return; }
         const response = await fetch(`/api/teacher/courses/${courseId}/curriculum`, { method: "GET", headers: authHeaders() });
         const data = await response.json();
@@ -251,7 +251,7 @@ export default function TeacherCourseBuilder() {
         setIntervalDays(String(data.course?.releaseIntervalDays || 7));
         setGroupsPerWeek(String(data.course?.releaseGroupsPerWeek || 2));
         setCourseStatus((data.course?.status || "draft") as "draft" | "scheduled" | "published" | "archived");
-    };
+    }, [authHeaders, applyCurriculumPayload]);
 
     useEffect(() => {
         let cancelled = false;
@@ -263,7 +263,7 @@ export default function TeacherCourseBuilder() {
         };
         init();
         return () => { cancelled = true; };
-    }, []);
+    }, [loadCourses, loadTopics, loadCategories]);
 
     useEffect(() => {
         if (!newCourseCategoryId && categories[0]?.id) {
@@ -282,7 +282,7 @@ export default function TeacherCourseBuilder() {
         };
         load();
         return () => { cancelled = true; };
-    }, [selectedCourseId]);
+    }, [selectedCourseId, loadCourseContext]);
 
     const folderOptions = useMemo(() => flattenFolderOptions(curriculum), [curriculum]);
     const videoNodes = useMemo(() => collectVideoNodes(curriculum), [curriculum]);
