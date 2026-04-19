@@ -67,7 +67,7 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                             {node.completed && <CheckCircle2 size={14} className={styles.completedIcon} />}
                             {node.locked && <Lock size={14} className={styles.lockIcon} />}
                             {node.duration && <span className={styles.duration}>{node.duration}</span>}
-                            {node.locked && node.availableAt && (
+                            {node.availableAt && (
                                 <span className={styles.availableAt}>{formatAvailability(node.availableAt)}</span>
                             )}
                         </>
