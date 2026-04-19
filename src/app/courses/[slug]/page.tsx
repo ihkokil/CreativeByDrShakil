@@ -109,14 +109,17 @@ export default function CourseDetailPage() {
             if (!params?.slug) return;
             setProgressLoading(true);
             try {
-                const dashRes = await fetch("/api/me/dashboard");
+                const token = localStorage.getItem("auth_token");
+                const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+                const dashRes = await fetch("/api/me/dashboard", { headers });
                 if (dashRes.ok) {
                     const dashData = await dashRes.json();
                     const courseSlug = params.slug as string;
                     const enrolled = dashData.enrolledCourses?.some((c: any) => c.courseSlug === courseSlug);
                     setUserEnrolled(enrolled);
                     if (enrolled) {
-                        const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`);
+                        const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`, { headers });
                         if (progRes.ok) {
                             const progData = await progRes.json();
                             setCourseStarted(Array.isArray(progData.progress?.completedLessonIds) && progData.progress.completedLessonIds.length > 0);
