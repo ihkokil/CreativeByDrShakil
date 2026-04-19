@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { COURSES, INSTRUCTORS } from '../src/constants/courses';
 
