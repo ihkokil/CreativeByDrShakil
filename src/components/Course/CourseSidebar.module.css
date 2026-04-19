@@ -1,0 +1,132 @@
+.sidebar {
+    position: sticky;
+    top: calc(var(--layout-page-top) + 20px);
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--shadow-medium);
+    margin-top: -300px; /* Offset for hero overlap */
+    z-index: 20;
+}
+
+.imageWrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.content {
+    padding: 32px;
+}
+
+.priceRow {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 24px;
+}
+
+.originalPrice {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.price {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--foreground);
+}
+
+.buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.btn {
+    width: 100%;
+    height: 56px;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    border: none;
+    transition: var(--transition);
+}
+
+.primaryBtn {
+    background: var(--primary);
+    color: white;
+}
+
+.primaryBtn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--primary) 85%, white);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.secondaryBtn {
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    color: var(--foreground);
+}
+
+.secondaryBtn:hover:not(:disabled) {
+    background: var(--surface-strong);
+    border-color: var(--primary);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.includes {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.includesTitle {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.includesList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.includesItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.icon {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+    .sidebar {
+        margin-top: 40px;
+        position: static;
+    }
+}

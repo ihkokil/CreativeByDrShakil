@@ -8,6 +8,14 @@ interface Order {
   course: { id: string; title: string }
   totalAmount: number
   status: string
+  createdAt: string
+  payment: {
+    phoneNumber: string
+    transactionId: string
+    amount: number
+    status: string
+    submittedAt: string
+  } | null
 }
 
 interface AdminPaymentsListProps {
@@ -19,14 +27,18 @@ export function AdminPaymentsList({ onApprove, onReject }: AdminPaymentsListProp
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await fetch('/api/admin/orders')
+        const token = localStorage.getItem('auth_token')
+        const res = await fetch('/api/admin/orders?status=pending', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
         if (!res.ok) throw new Error('Failed to fetch orders')
         const data = await res.json()
-        setOrders(Array.isArray(data) ? data : [])
+        setOrders(Array.isArray(data.orders) ? data.orders : [])
       } catch (err) {
         setError('Failed to load pending payments')
         console.error(err)
@@ -38,27 +50,35 @@ export function AdminPaymentsList({ onApprove, onReject }: AdminPaymentsListProp
     fetchOrders()
   }, [])
 
-  const handleApprove = async (orderId: string) => {
+  const handleDecision = async (orderId: string, decision: 'approve' | 'reject') => {
+    setProcessingOrderId(orderId)
     try {
-      const res = await fetch(`/api/orders/approve?token=${orderId}`, { method: 'GET' })
-      if (res.ok) {
-        setOrders(orders.filter(o => o.id !== orderId))
-        onApprove?.(orderId)
-      }
-    } catch (err) {
-      console.error('Approval failed:', err)
-    }
-  }
+      const token = localStorage.getItem('auth_token')
+      const res = await fetch(`/api/admin/orders/${orderId}/decision`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ decision }),
+      })
 
-  const handleReject = async (orderId: string) => {
-    try {
-      const res = await fetch(`/api/orders/reject?token=${orderId}`, { method: 'GET' })
       if (res.ok) {
         setOrders(orders.filter(o => o.id !== orderId))
-        onReject?.(orderId)
+        if (decision === 'approve') {
+          onApprove?.(orderId)
+        } else {
+          onReject?.(orderId)
+        }
+      } else {
+        const payload = await res.json().catch(() => ({ error: 'Request failed' }))
+        setError(payload.error || 'Request failed')
       }
     } catch (err) {
-      console.error('Rejection failed:', err)
+      console.error('Order decision failed:', err)
+      setError('Failed to process this order')
+    } finally {
+      setProcessingOrderId(null)
     }
   }
 
@@ -82,6 +102,7 @@ export function AdminPaymentsList({ onApprove, onReject }: AdminPaymentsListProp
                 <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Student</th>
                 <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Course</th>
                 <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Amount</th>
+                <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Payment Proof</th>
                 <th style={{ padding: '1rem', textAlign: 'left', fontWeight: '600' }}>Actions</th>
               </tr>
             </thead>
@@ -97,8 +118,19 @@ export function AdminPaymentsList({ onApprove, onReject }: AdminPaymentsListProp
                   <td style={{ padding: '1rem' }}>{order.course.title}</td>
                   <td style={{ padding: '1rem' }}>৳{order.totalAmount.toFixed(0)}</td>
                   <td style={{ padding: '1rem' }}>
+                    {order.payment ? (
+                      <div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{order.payment.phoneNumber}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#666' }}>{order.payment.transactionId}</div>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.82rem', color: '#666' }}>No payment submitted</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '1rem' }}>
                     <button
-                      onClick={() => handleApprove(order.id)}
+                      onClick={() => handleDecision(order.id, 'approve')}
+                      disabled={processingOrderId === order.id}
                       style={{
                         marginRight: '0.5rem',
                         background: '#4CAF50',
@@ -109,12 +141,14 @@ export function AdminPaymentsList({ onApprove, onReject }: AdminPaymentsListProp
                         cursor: 'pointer',
                         fontWeight: '500',
                         fontSize: '0.85rem',
+                        opacity: processingOrderId === order.id ? 0.7 : 1,
                       }}
                     >
                       Approve
                     </button>
                     <button
-                      onClick={() => handleReject(order.id)}
+                      onClick={() => handleDecision(order.id, 'reject')}
+                      disabled={processingOrderId === order.id}
                       style={{
                         background: '#f44336',
                         color: 'white',
@@ -124,6 +158,7 @@ export function AdminPaymentsList({ onApprove, onReject }: AdminPaymentsListProp
                         cursor: 'pointer',
                         fontWeight: '500',
                         fontSize: '0.85rem',
+                        opacity: processingOrderId === order.id ? 0.7 : 1,
                       }}
                     >
                       Reject

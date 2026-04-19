@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import prisma from '@/lib/prisma';
+import { countLessons, parseCurriculumJson } from '@/lib/teacher-course-builder';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -25,34 +27,66 @@ export async function GET() {
             profileImage: true,
           },
         },
+        instructors: {
+          orderBy: { sortOrder: 'asc' },
+          select: {
+            id: true,
+            name: true,
+            designation: true,
+            sortOrder: true,
+          },
+        },
+        category: {
+          select: {
+            displayName: true,
+          },
+        },
       },
     });
 
     return NextResponse.json({
-      courses: courses.map((course) => ({
-        id: course.id,
-        slug: course.slug,
-        title: course.title,
-        category: course.category || 'General',
-        price: formatPrice(course.price),
-        priceValue: course.price,
-        duration: course.duration,
-        rating: 4.9,
-        description: course.description,
-        language: course.language || 'English / Bengali',
-        level: course.level || 'All Levels',
-        image: course.imageUrl,
-        status: course.status,
-        publishedAt: course.publishedAt,
-        mainInstructor: {
-          id: course.teacher?.id || `teacher-${course.id}`,
-          name: course.teacher?.fullName || course.instructor,
-          role: course.teacher?.designation || 'Course Instructor',
-          image: course.teacher?.profileImage || '/placeholder.svg',
-        },
-      })),
+      courses: courses.map((course) => {
+        const curriculum = parseCurriculumJson(course.curriculumJson);
+        const lessonCount = countLessons(curriculum);
+
+        return {
+          id: course.id,
+          slug: course.slug,
+          title: course.title,
+          category: course.category?.displayName || 'General',
+          price: formatPrice(course.price),
+          priceValue: course.price,
+          duration: course.duration,
+          lessonCount,
+          isFeatured: course.isFeatured,
+          description: course.overview || course.description,
+          overview: course.overview,
+          learningOutcomes: course.learningOutcomes,
+          language: course.language || 'English / Bengali',
+          image: course.imageUrl,
+          status: course.status,
+          publishedAt: course.publishedAt,
+          instructors: course.instructors,
+          mainInstructor: {
+            id: course.teacher?.id || `teacher-${course.id}`,
+            name: course.teacher?.fullName || course.instructor,
+            role: course.teacher?.designation || 'Course Instructor',
+            image: course.teacher?.profileImage || '/placeholder.svg',
+          },
+        };
+      }),
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+    console.error('[Courses Dynamic Error]', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack,
+    });
+    return NextResponse.json(
+      { error: 'Failed to load courses. Please try again.' },
+      { status: 500 }
+    );
   }
 }
+

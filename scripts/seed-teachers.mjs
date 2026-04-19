@@ -51,6 +51,7 @@ async function main() {
       update: {
         fullName: teacher.fullName,
         role: 'teacher',
+        emailVerified: true,
         bmdcNumber: teacher.bmdcNumber,
         designation: teacher.designation,
         institution: teacher.institution,
@@ -62,6 +63,7 @@ async function main() {
         fullName: teacher.fullName,
         email: teacher.email,
         role: 'teacher',
+        emailVerified: true,
         bmdcNumber: teacher.bmdcNumber,
         designation: teacher.designation,
         institution: teacher.institution,
