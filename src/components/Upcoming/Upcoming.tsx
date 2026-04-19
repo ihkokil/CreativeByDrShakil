@@ -2,10 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 import styles from "./Upcoming.module.css";
-import { Calendar, UserCheck } from "lucide-react";
+import { Calendar, UserCheck, PlayCircle } from "lucide-react";
 import { formatDisplayDate } from "@/lib/date-format";
+import { useAuth } from "@/context/AuthContext";
+import { CheckoutModal } from "../Checkout/CheckoutModal";
+import AuthModal from "../Auth/AuthModal";
 
 type FeaturedCourse = {
+    id: string;
+    slug: string;
     title: string;
     category: string;
     duration: string;
@@ -13,7 +18,11 @@ type FeaturedCourse = {
     courseStartDate?: string | null;
 };
 
+import { useRouter } from "next/navigation";
+
 export default function Upcoming() {
+    const router = useRouter();
+    const { user } = useAuth();
     const [timeLeft, setTimeLeft] = useState({
         days: 0,
         hours: 0,
@@ -21,11 +30,19 @@ export default function Upcoming() {
         seconds: 0,
     });
     const [featuredCourse, setFeaturedCourse] = useState<FeaturedCourse | null>(null);
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [userEnrolled, setUserEnrolled] = useState(false);
+    const [courseStarted, setCourseStarted] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     const calculateTimeLeft = useCallback((targetDate: string | null) => {
         if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
         
-        const difference = +new Date(targetDate) - +new Date();
+        const target = new Date(targetDate);
+        if (isNaN(target.getTime())) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+        const difference = +target - +new Date();
         let timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
 
         if (difference > 0) {
@@ -44,6 +61,7 @@ export default function Upcoming() {
         let cancelled = false;
 
         const loadFeaturedCourse = async () => {
+            setLoading(true);
             try {
                 const response = await fetch("/api/courses/featured");
                 const data = await response.json();
@@ -52,6 +70,8 @@ export default function Upcoming() {
                 }
             } catch {
                 // Fallback handled below
+            } finally {
+                if (!cancelled) setLoading(false);
             }
         };
 
@@ -61,6 +81,39 @@ export default function Upcoming() {
             cancelled = true;
         };
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        const checkEnrollment = async () => {
+            if (!user || !featuredCourse?.slug) {
+                setUserEnrolled(false);
+                return;
+            }
+            try {
+                const token = localStorage.getItem("auth_token");
+                const headers: Record<string, string> = {};
+                if (token) headers["Authorization"] = `Bearer ${token}`;
+
+                const dashRes = await fetch("/api/me/dashboard", { headers });
+                if (dashRes.ok) {
+                    const dashData = await dashRes.json();
+                    const enrolled = dashData.enrolledCourses?.some((c: any) => c.courseSlug === featuredCourse.slug);
+                    if (!cancelled) {
+                        setUserEnrolled(enrolled);
+                        if (enrolled) {
+                            const progRes = await fetch(`/api/study/courses/${featuredCourse.slug}/progress`, { headers });
+                            if (progRes.ok) {
+                                const progData = await progRes.json();
+                                setCourseStarted(Array.isArray(progData.progress?.completedLessonIds) && progData.progress.completedLessonIds.length > 0);
+                            }
+                        }
+                    }
+                }
+            } catch {}
+        };
+        checkEnrollment();
+        return () => { cancelled = true; };
+    }, [user, featuredCourse]);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -76,12 +129,23 @@ export default function Upcoming() {
         return () => clearInterval(timer);
     }, [featuredCourse, calculateTimeLeft]);
 
-    const course = featuredCourse || {
-        title: "Medical Excellence Program",
-        category: "General",
-        duration: "Self-paced",
-        price: "Free",
-        courseStartDate: null,
+    if (loading) return null; // Or a skeleton
+    if (!featuredCourse) return null;
+
+    const course = featuredCourse;
+
+    const handleEnroll = () => {
+        if (!user) {
+            setIsAuthOpen(true);
+        } else if (userEnrolled) {
+            router.push(`/study/${course.slug}`);
+        } else {
+            setIsCheckoutOpen(true);
+        }
+    };
+
+    const handleViewDetails = () => {
+        router.push(`/courses/${course.slug}`);
     };
 
     const commencesLabel = course.courseStartDate
@@ -139,12 +203,36 @@ export default function Upcoming() {
                         </div>
 
                         <div className={styles.actions}>
-                            <button className={styles.enrollBtn}>Register Now</button>
-                            <button className={styles.detailsBtn}>View Syllabus</button>
+                            <button className={styles.enrollBtn} onClick={handleEnroll}>
+                                {userEnrolled ? (
+                                    <><PlayCircle size={18} /> {courseStarted ? "Continue Learning" : "Start Learning"}</>
+                                ) : "Enroll Now"}
+                            </button>
+                            <button className={styles.detailsBtn} onClick={handleViewDetails}>View Details</button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <CheckoutModal
+                course={{
+                    id: course.id,
+                    title: course.title,
+                    price: course.price === "Free" ? 0 : Number(course.price.replace(/[^\d.]/g, ""))
+                }}
+                isOpen={isCheckoutOpen}
+                onClose={() => setIsCheckoutOpen(false)}
+            />
+
+            <AuthModal 
+                isOpen={isAuthOpen} 
+                onClose={() => setIsAuthOpen(false)} 
+                defaultMode="login"
+                onSuccess={() => {
+                    setIsAuthOpen(false);
+                    setIsCheckoutOpen(true);
+                }}
+            />
         </section>
     );
 }
