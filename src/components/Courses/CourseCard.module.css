@@ -189,4 +189,62 @@
         flex-direction: row !important;
         width: 100% !important;
     }
-}
+}
+
+/* Skeleton Animations */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.6; }
+}
+
+.skeleton {
+    animation: pulse 1.5s ease-in-out infinite;
+    background: var(--surface-strong);
+    border-radius: var(--radius-sm);
+}
+
+.skeletonCard {
+    pointer-events: none;
+    min-height: 420px;
+}
+
+.skeletonImage {
+    width: 100%;
+    height: 200px;
+}
+
+.skeletonTitle {
+    height: 24px;
+    width: 80%;
+    margin-bottom: 20px;
+}
+
+.skeletonText {
+    height: 14px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.skeletonBadge {
+    height: 24px;
+    width: 60px;
+    border-radius: var(--radius-full);
+}
+
+.skeletonAvatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+}
+
+.skeletonBtn {
+    height: 40px;
+    width: 120px;
+    border-radius: var(--radius-full);
+}
+
+.skeletonPrice {
+    height: 28px;
+    width: 80px;
+}

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { PrismaClient } from '@prisma/client';
 import { COURSES, INSTRUCTORS } from '../src/constants/courses';
 
@@ -14,7 +13,7 @@ async function main() {
   console.log('🚀 Starting course migration...');
 
   // 1. Map Teachers
-  const teacherMapping = {
+  const teacherMapping: Record<string, string> = {
     dr_shakil: 'cmnq6jcpm0000l705rxvhydbm', // Dr. Nahid Akhter Shakil (Prod email)
     dr_rahman: 'cmnq1kjvi0001gw08e3o4med2',
     dr_fatima: 'cmnq1kl260002gw08yh1vz5n5',
