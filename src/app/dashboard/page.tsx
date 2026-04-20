@@ -68,8 +68,6 @@ interface DashboardPayload {
         id: string;
         status: string;
         totalAmount: number;
-        discountAmount: number;
-        couponCode: string | null;
         createdAt: string;
         updatedAt: string;
         course: { id: string; title: string; slug: string | null };
@@ -426,8 +424,7 @@ function StudentDashboardContent() {
                       <div>
                         <h3>{order.course?.title || "Course"}</h3>
                         <p>
-                          Amount: ৳{Math.round(order.totalAmount)}{" "}
-                          {order.couponCode ? `· Coupon: ${order.couponCode}` : ""}
+                          Amount: ৳{Math.round(order.totalAmount)}
                         </p>
                       </div>
                       <span className={styles.enrolledAt}>Requested {formatDate(order.createdAt)}</span>

@@ -82,8 +82,7 @@
 }
 
 .summaryCard,
-.successCard,
-.couponSection {
+.successCard {
   border: 1px solid var(--glass-border);
   border-radius: 20px;
   background: var(--surface-soft);
@@ -115,9 +114,6 @@
   font-size: 1.04rem;
 }
 
-.discountText {
-  color: #22c55e !important;
-}
 
 .helpText {
   margin-top: 10px;
@@ -125,51 +121,6 @@
   line-height: 1.6;
 }
 
-.couponToggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  border: 1px dashed color-mix(in srgb, var(--primary) 40%, var(--glass-border));
-  background: transparent;
-  color: var(--foreground);
-  font-weight: 700;
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition), transform var(--transition);
-}
-
-.couponToggle:hover {
-  transform: translateY(-1px);
-  background: var(--surface-soft);
-  border-color: var(--primary);
-}
-
-.couponSection {
-  padding: 16px;
-}
-
-.appliedCouponBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--glass-border));
-  color: var(--foreground);
-}
-
-.appliedCouponBar button {
-  border: none;
-  background: transparent;
-  color: var(--primary);
-  font-weight: 700;
-  cursor: pointer;
-}
 
 .primaryBtn {
   width: 100%;
@@ -315,58 +266,6 @@
   background: var(--card-bg);
 }
 
-.couponInput {
-  display: flex;
-  gap: 12px;
-  margin: 0;
-}
-
-.couponInput input {
-  flex: 1;
-  padding: 14px 16px;
-  border: 1px solid var(--glass-border);
-  border-radius: 14px;
-  background: var(--card-bg);
-  color: var(--foreground);
-  font-size: 0.95rem;
-}
-
-.couponInput button {
-  padding: 0.5rem 1rem;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 14px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.couponInput button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.couponApplied {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin: 1rem 0 0;
-  padding: 1rem;
-  background: rgba(34, 197, 94, 0.12);
-  border-radius: 14px;
-  border: 1px solid rgba(34, 197, 94, 0.18);
-}
-
-.couponApplied button {
-  background: transparent;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.5rem 0.85rem;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
 
 .paymentForm {
   display: flex;
@@ -474,9 +373,6 @@
     font-size: 1.5rem;
   }
 
-  .couponInput {
-    flex-direction: column;
-  }
 
   .formGrid,
   .numberRow,
@@ -490,8 +386,4 @@
     width: 100%;
   }
 
-  .appliedCouponBar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
 }
