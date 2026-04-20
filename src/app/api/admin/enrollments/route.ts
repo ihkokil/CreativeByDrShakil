@@ -174,7 +174,6 @@ export async function POST(request: NextRequest) {
           data: { 
             status: 'approved',
             totalAmount: 0,
-            discountAmount: 0,
           },
           include: { course: true, user: true },
         });
@@ -185,7 +184,6 @@ export async function POST(request: NextRequest) {
             courseId,
             status: 'approved',
             totalAmount: 0,
-            discountAmount: 0,
           },
           include: { course: true, user: true },
         });

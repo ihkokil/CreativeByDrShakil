@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const { courseId, couponCode } = await request.json()
+    const { courseId } = await request.json()
     const course = await prisma.course.findUnique({ where: { id: String(courseId) } })
 
     if (!course) {
@@ -26,28 +26,19 @@ export async function POST(request: NextRequest) {
     if (existingOrder?.status === 'approved' && existingOrder.updatedAt >= oneYearAgo) {
       return NextResponse.json({ error: 'You already own this course' }, { status: 400 })
     }
-    let discountAmount = 0
-    if (couponCode) {
-      const coupon = await prisma.coupon.findUnique({ where: { code: couponCode } })
-      if (!coupon?.isActive || (coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses)) {
-        return NextResponse.json({ error: 'Invalid coupon' }, { status: 400 })
-      }
-      discountAmount = coupon.discountAmount
-    }
-    const totalAmount = course.price - discountAmount
+
+    const totalAmount = course.price
     const order = existingOrder
       ? await prisma.order.update({
           where: { id: existingOrder.id },
           data: {
             status: 'pending',
-            couponCode,
             totalAmount,
-            discountAmount,
           },
           include: { course: true },
         })
       : await prisma.order.create({
-          data: { userId: session.user.id, courseId: resolvedCourseId, couponCode, totalAmount, discountAmount },
+          data: { userId: session.user.id, courseId: resolvedCourseId, totalAmount },
           include: { course: true }
         })
     return NextResponse.json({ order })

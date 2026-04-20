@@ -141,8 +141,6 @@ model Order {
   courseId       String
   status         String   @default("pending")
   totalAmount    Float
-  couponCode     String?
-  discountAmount Float    @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   course         Course   @relation(fields: [courseId], references: [id])
@@ -166,16 +164,6 @@ model Payment {
   order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
-model Coupon {
-  id             String   @id @default(cuid())
-  code           String   @unique
-  discountAmount Float
-  maxUses        Int      @default(-1)
-  usedCount      Int      @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
 
 model PaymentConfig {
   id              String   @id @default("default")

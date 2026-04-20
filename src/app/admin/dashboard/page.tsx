@@ -7,7 +7,6 @@ import {
     LayoutDashboard,
     Users,
     Settings,
-    TicketPercent,
     UserPlus,
     BookOpen,
     GraduationCap,
@@ -31,7 +30,6 @@ import AddTeacherModal from "@/components/Admin/AddTeacherModal";
 import EditTeacherModal from "@/components/Admin/EditTeacherModal";
 import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
 import AddStudentToCourseModal from "@/components/Admin/AddStudentToCourseModal";
-import CouponManager from "@/components/Admin/CouponManager";
 import Image from "next/image";
 import SessionsManager from "@/components/Admin/SessionsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
@@ -72,7 +70,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "coupons" | "sessions" | "support" | "settings" | "security" | "profile") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "sessions" | "support" | "settings" | "security" | "profile") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -470,12 +468,6 @@ function AdminDashboardContent() {
                 <PaymentsManager />
             )}
 
-            {activeTab === "coupons" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Promotion & Coupons</h2>
-                    <CouponManager />
-                </section>
-            )}
 
             {activeTab === "sessions" && (
                 <section className={styles.panel}>

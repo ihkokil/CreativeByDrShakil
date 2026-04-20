@@ -182,8 +182,6 @@ export async function GET(request: NextRequest) {
       id: order.id,
       status: order.status,
       totalAmount: order.totalAmount,
-      discountAmount: order.discountAmount,
-      couponCode: order.couponCode,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       course: {
