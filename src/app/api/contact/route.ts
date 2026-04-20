@@ -89,14 +89,16 @@ export async function POST(request: NextRequest) {
         issueType,
         subject,
         message,
-        imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
+        imageUrls: (imageUrls.length > 0 ? JSON.stringify(imageUrls) : null) as any,
       },
     });
 
     let parsedImageUrls: string[] = [];
     try {
       if (submission.imageUrls) {
-        parsedImageUrls = JSON.parse(submission.imageUrls);
+        // Cast to any to handle Prisma v6 type inference quirks
+        const raw = submission.imageUrls as any;
+        parsedImageUrls = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
       }
     } catch {
       parsedImageUrls = [];
