@@ -177,25 +177,25 @@ export async function GET(request: NextRequest) {
     // Safely query LessonProgress if it exists
     if (userIds.length > 0) {
       try {
-        progressRows = await prisma.$queryRaw<ProgressRow[]>(Prisma.sql`
-          SELECT userId, lessonNodeId
-          FROM LessonProgress
-          WHERE courseId = ${selectedCourse.id} AND userId IN (${Prisma.join(userIds)})
-        `);
+        const lpResult = await prisma.lessonProgress.findMany({
+          where: { courseId: selectedCourse.id, userId: { in: userIds } },
+          select: { userId: true, lessonNodeId: true }
+        });
+        progressRows = lpResult;
       } catch (err) {
-        console.warn('LessonProgress table not found, skipping progress queries', err);
+        console.warn('LessonProgress query failed', err);
         progressRows = [];
       }
 
       // Safely query StudentModuleAvailability if it exists
       try {
-        overrideRows = await prisma.$queryRaw<OverrideRow[]>(Prisma.sql`
-          SELECT userId, lessonNodeId, availabilityMode, availableAt
-          FROM ${Prisma.raw(OVERRIDE_TABLE)}
-          WHERE courseId = ${selectedCourse.id} AND userId IN (${Prisma.join(userIds)})
-        `);
+        const smaResult = await prisma.studentModuleAvailability.findMany({
+          where: { courseId: selectedCourse.id, userId: { in: userIds } },
+          select: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
+        });
+        overrideRows = smaResult as OverrideRow[];
       } catch (err) {
-        console.warn('StudentModuleAvailability table not found, skipping override queries', err);
+        console.warn('StudentModuleAvailability query failed', err);
         overrideRows = [];
       }
     }
@@ -310,21 +310,32 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (availabilityMode === 'inherit') {
-      await prisma.$executeRaw(Prisma.sql`
-        DELETE FROM ${Prisma.raw(OVERRIDE_TABLE)}
-        WHERE courseId = ${courseId} AND userId = ${userId} AND lessonNodeId = ${lessonNodeId}
-      `);
+      await prisma.studentModuleAvailability.deleteMany({
+        where: { courseId, userId, lessonNodeId }
+      });
     } else {
       const nextAvailableAt = availableAt && !Number.isNaN(availableAt.getTime()) ? availableAt : null;
 
-      await prisma.$executeRaw(Prisma.sql`
-        INSERT INTO ${Prisma.raw(OVERRIDE_TABLE)} (id, courseId, userId, lessonNodeId, availabilityMode, availableAt, createdAt, updatedAt)
-        VALUES (${randomUUID()}, ${courseId}, ${userId}, ${lessonNodeId}, ${availabilityMode}, ${nextAvailableAt}, NOW(3), NOW(3))
-        ON DUPLICATE KEY UPDATE
-          availabilityMode = VALUES(availabilityMode),
-          availableAt = VALUES(availableAt),
-          updatedAt = NOW(3)
-      `);
+      await prisma.studentModuleAvailability.upsert({
+        where: {
+          courseId_userId_lessonNodeId: {
+            courseId,
+            userId,
+            lessonNodeId
+          }
+        },
+        update: {
+          availabilityMode,
+          availableAt: nextAvailableAt
+        },
+        create: {
+          courseId,
+          userId,
+          lessonNodeId,
+          availabilityMode,
+          availableAt: nextAvailableAt
+        }
+      });
     }
 
     return NextResponse.json({ success: true });
