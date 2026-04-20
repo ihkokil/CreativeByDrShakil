@@ -3,8 +3,8 @@
     top: 0;
     left: 0;
     height: 100vh;
-    background: #0a0a0a;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--background);
+    border-right: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
     z-index: 1000;
@@ -25,7 +25,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .logoWrapper {
@@ -162,10 +162,11 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-soft);
     padding: 12px;
     border-radius: 16px;
     position: relative;
+    border: 1px solid var(--glass-border);
 }
 
 .collapsed .profileBox {
