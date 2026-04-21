@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 
+export const dynamic = 'force-dynamic';
+
 const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 export async function GET(request: NextRequest) {

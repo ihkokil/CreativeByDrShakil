@@ -16,7 +16,18 @@ export async function getAuthPayload(request: NextRequest): Promise<AuthTokenPay
   }
 
   try {
-    return verifyAuthToken(token);
+    const payload = verifyAuthToken(token);
+    
+    // If the token has a sessionId, verify it is still valid in the database
+    if (payload.sessionId) {
+      const { isSessionValid } = await import('@/lib/session-manager');
+      const sessionValid = await isSessionValid(payload.sessionId);
+      if (!sessionValid) {
+        return null; // Session has been revoked or logged out
+      }
+    }
+    
+    return payload;
   } catch {
     return null;
   }
