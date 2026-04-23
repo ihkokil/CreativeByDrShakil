@@ -365,7 +365,7 @@ export function computeReleaseGroupDates(
         selectedDays = [0];
       }
     }
-    if (!Array.isArray(selectedDays)) {
+    if (!Array.isArray(selectedDays) || selectedDays.length === 0) {
       selectedDays = [0];
     }
 

@@ -59,6 +59,15 @@ export async function getSession() {
 
   try {
     const payload = verifyAuthToken(token);
+    
+    if (payload.sessionId) {
+      const { isSessionValid } = await import('@/lib/session-manager');
+      const sessionValid = await isSessionValid(payload.sessionId);
+      if (!sessionValid) {
+        return null; // Session has been revoked or logged out
+      }
+    }
+
     return {
       user: {
         id: payload.sub,
