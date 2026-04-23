@@ -43,8 +43,29 @@
 .lessonCard:hover {
   background: var(--surface-soft);
   border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
-  transform: translateX(4px); /* Changed from translateY to translateX for a "list" feel */
+  transform: translateX(4px);
   box-shadow: var(--shadow-soft);
+}
+
+.lessonCard.lockedCard {
+  opacity: 0.7;
+  filter: grayscale(0.2);
+}
+
+.lessonCard.lockedCard:hover {
+  transform: none;
+  background: var(--glass);
+  border-color: var(--glass-border);
+  box-shadow: none;
+}
+
+.lessonCard.lockedCard .playButton {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.lessonCard.lockedCard::before {
+  background: var(--text-muted);
 }
 
 .lessonCard:hover::before {

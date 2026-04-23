@@ -1,7 +1,7 @@
-import React from 'react';
-import { PlayCircle, Clock, Video, FileText } from 'lucide-react';
+import { PlayCircle, Clock, Video, FileText, Lock } from 'lucide-react';
 import styles from './CourseLessonList.module.css';
 import { CurriculumNode } from './CourseCurriculum';
+import { formatDisplayDate } from '@/lib/date-format';
 
 interface Props {
   curriculum: CurriculumNode[];
@@ -27,10 +27,20 @@ export default function CourseLessonList({ curriculum }: Props) {
     return <p className={styles.emptyState}>No lessons available yet.</p>;
   }
 
+  const getAvailabilityLabel = (lesson: CurriculumNode) => {
+    if (lesson.availableAt) {
+      return `Available: ${formatDisplayDate(lesson.availableAt)}`;
+    }
+    return lesson.type === 'document' ? 'Document' : 'Video Lesson';
+  };
+
   return (
     <div className={styles.container}>
       {lessons.map((lesson, index) => (
-        <div key={lesson.id || index} className={styles.lessonCard}>
+        <div 
+          key={lesson.id || index} 
+          className={`${styles.lessonCard} ${lesson.locked ? styles.lockedCard : ''}`}
+        >
           <div className={styles.indexColumn}>
             <span className={styles.indexNumber}>
               {String(index + 1).padStart(2, '0')}
@@ -40,17 +50,10 @@ export default function CourseLessonList({ curriculum }: Props) {
           <div className={styles.contentColumn}>
             <h4 className={styles.title}>{lesson.title}</h4>
             <div className={styles.metaRow}>
-              {lesson.type === 'document' ? (
-                <div className={styles.metaBadge}>
-                  <FileText size={14} />
-                  <span>Document</span>
-                </div>
-              ) : (
-                <div className={styles.metaBadge}>
-                  <Video size={14} />
-                  <span>Video Lesson</span>
-                </div>
-              )}
+              <div className={styles.metaBadge}>
+                {lesson.type === 'document' ? <FileText size={14} /> : <Video size={14} />}
+                <span>{getAvailabilityLabel(lesson)}</span>
+              </div>
             </div>
           </div>
           
@@ -64,8 +67,12 @@ export default function CourseLessonList({ curriculum }: Props) {
           )}
           
           <div className={styles.actionColumn}>
-            <button className={styles.playButton} aria-label="Preview Lesson">
-              <PlayCircle size={24} />
+            <button 
+              className={styles.playButton} 
+              aria-label={lesson.locked ? "Locked" : "Preview Lesson"}
+              disabled={lesson.locked}
+            >
+              {lesson.locked ? <Lock size={20} /> : <PlayCircle size={24} />}
             </button>
           </div>
         </div>

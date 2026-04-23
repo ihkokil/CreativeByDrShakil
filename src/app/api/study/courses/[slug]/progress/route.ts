@@ -167,6 +167,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: result.course!.id,
         title: result.course!.title,
       },
+      curriculum: curriculumWithAvailability,
       progress: {
         completedLessonIds,
         completedCount: completedLessonIds.length,
