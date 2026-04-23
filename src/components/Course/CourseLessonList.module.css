@@ -1,29 +1,29 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 8px; /* Reduced from 12px */
+  margin-top: 16px; /* Reduced from 24px */
 }
 
 .emptyState {
-  color: var(--text-secondary);
-  font-size: 0.95rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
   text-align: center;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  padding: 30px;
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--glass-border);
 }
 
 .lessonCard {
   display: flex;
   align-items: center;
-  background: rgba(20, 20, 25, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
-  padding: 16px 20px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md); /* Slightly more compact radius */
+  padding: 10px 16px; /* Reduced padding from 16px 20px */
+  transition: all 0.2s var(--ease-premium);
+  backdrop-filter: blur(8px);
   position: relative;
   overflow: hidden;
 }
@@ -35,16 +35,16 @@
   left: 0;
   width: 3px;
   height: 100%;
-  background: linear-gradient(to bottom, #8b5cf6, #3b82f6);
+  background: linear-gradient(to bottom, var(--primary), var(--accent));
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 .lessonCard:hover {
-  background: rgba(30, 30, 40, 0.6);
-  border-color: rgba(139, 92, 246, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  background: var(--surface-soft);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+  transform: translateX(4px); /* Changed from translateY to translateX for a "list" feel */
+  box-shadow: var(--shadow-soft);
 }
 
 .lessonCard:hover::before {
@@ -52,78 +52,74 @@
 }
 
 .indexColumn {
-  flex: 0 0 40px;
+  flex: 0 0 32px; /* Reduced from 40px */
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .indexNumber {
-  font-size: 1.25rem;
+  font-size: 1rem; /* Reduced from 1.25rem */
   font-weight: 700;
-  color: transparent;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.2));
-  background-clip: text;
-  -webkit-background-clip: text;
-  transition: all 0.3s ease;
+  color: var(--text-muted);
+  opacity: 0.5;
+  transition: all 0.2s ease;
 }
 
 .lessonCard:hover .indexNumber {
-  background: linear-gradient(135deg, #a78bfa, #60a5fa);
-  background-clip: text;
-  -webkit-background-clip: text;
+  color: var(--primary);
+  opacity: 1;
+  transform: scale(1.1);
 }
 
 .contentColumn {
   flex: 1 1 auto;
-  padding-left: 16px;
+  padding-left: 12px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row; /* Changed to row for compactness */
+  align-items: center;
+  gap: 12px;
 }
 
 .title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #f8fafc;
+  font-size: 0.95rem; /* Slightly smaller */
+  font-weight: 500;
+  color: var(--foreground);
   margin: 0;
   line-height: 1.4;
-  transition: color 0.3s ease;
-}
-
-.lessonCard:hover .title {
-  color: #fff;
+  flex: 1;
 }
 
 .metaRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .metaBadge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px 10px;
-  border-radius: 100px;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
   font-weight: 500;
+  border: 1px solid var(--glass-border);
 }
 
 .durationColumn {
   flex: 0 0 auto;
-  padding: 0 20px;
+  padding-left: 12px;
 }
 
 .durationBadge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  color: #cbd5e1;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -132,37 +128,45 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-left: 10px;
 }
 
 .playButton {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-muted);
+  opacity: 0.4;
   cursor: pointer;
-  padding: 8px;
+  padding: 4px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .lessonCard:hover .playButton {
-  color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.1);
+  color: var(--primary);
+  opacity: 1;
   transform: scale(1.1);
 }
 
 @media (max-width: 640px) {
   .lessonCard {
-    padding: 12px 16px;
+    padding: 8px 12px;
   }
   
+  .contentColumn {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
   .durationColumn {
     display: none;
   }
   
   .title {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 }
