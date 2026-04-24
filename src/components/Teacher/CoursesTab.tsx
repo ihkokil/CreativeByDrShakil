@@ -53,11 +53,10 @@ export default function CoursesTab() {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             const data = await response.json();
-            // Augment with some simulated stats for better UX
+            // Map dynamic counts from the API
             const enhanced = (data.courses || []).map((c: any) => ({
                 ...c,
-                enrolledCount: Math.floor(Math.random() * 500),
-                revenue: Math.floor(Math.random() * 50000)
+                enrolledCount: c._count?.orders || 0
             }));
             setCourses(enhanced);
         } catch (err) {
@@ -110,7 +109,6 @@ export default function CoursesTab() {
                             <th>Program Name</th>
                             <th>Status</th>
                             <th>Enrolled</th>
-                            <th>Total Revenue</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -147,15 +145,9 @@ export default function CoursesTab() {
                                         </div>
                                     </td>
                                     <td>
-                                        <div className={styles.statsCol}>
-                                            <span className={styles.mainStat}>৳{course.revenue?.toLocaleString()}</span>
-                                            <span className={styles.subStat}>Lifetime</span>
-                                        </div>
-                                    </td>
-                                    <td>
                                         <div className={styles.rowActions}>
-                                            <button className={styles.iconAction} onClick={() => router.push(`/courses/${course.slug}`)} title="Preview">
-                                                <Eye size={18} />
+                                            <button className={styles.iconAction} onClick={() => window.open(`/courses/${course.slug}`, '_blank')} title="View on Student Site">
+                                                <ExternalLink size={18} />
                                             </button>
                                             <button className={styles.iconAction} onClick={() => router.push(`/teacher/dashboard/courses/create?courseId=${course.id}`)} title="Edit">
                                                 <Edit2 size={18} />
