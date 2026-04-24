@@ -261,7 +261,7 @@ function StudentDashboardContent() {
         <section className={styles.panel}>
           <div className={styles.panelHeader}>
             <div>
-                <h2>Academic Programs</h2>
+                <h2>My Courses</h2>
                 <p className={styles.subtitle}>{data.enrolledCourses.length} active enrollments</p>
             </div>
           </div>
@@ -391,7 +391,7 @@ function StudentDashboardContent() {
         <div className={profileStyles.wrapper}>
           <header className={profileStyles.header}>
             <div className={profileStyles.headerTitle}>
-              <h2>Academic Profile</h2>
+              <h2>Profile Settings</h2>
               <p>Manage your medical credentials and personal identity</p>
             </div>
             <button 
@@ -534,7 +534,7 @@ function StudentDashboardContent() {
                         />
                       </div>
                       <div className={`${profileStyles.formGroup} ${profileStyles.fullWidth}`}>
-                        <label>Academic Degrees</label>
+                        <label>Degrees</label>
                         <input
                           className={profileStyles.input}
                           value={profileForm.degrees}

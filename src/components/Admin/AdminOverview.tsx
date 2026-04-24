@@ -73,7 +73,7 @@ export default function AdminOverview({
                         <span className={styles.label}>Platform Command Center</span>
                         <div className={styles.revenueDisplay}>
                             <span className={styles.amount}>{studentCount + teacherCount}</span>
-                            <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Active Scholars</span>
+                            <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Active Students</span>
                         </div>
                         <p style={{ color: 'var(--text-muted)', marginTop: '-8px' }}>
                             Real-time participation and growth metrics across the platform.
@@ -98,7 +98,7 @@ export default function AdminOverview({
                 </div>
                 <div className={styles.metricBody}>
                     <h4>{teacherCount}</h4>
-                    <p>Academic Faculty</p>
+                    <p>Instructors</p>
                 </div>
             </motion.div>
 
@@ -159,7 +159,7 @@ export default function AdminOverview({
                 </div>
                 <div className={styles.metricBody}>
                     <h4>{courseCount}</h4>
-                    <p>Academic Programs</p>
+                    <p>Published Courses</p>
                 </div>
             </motion.div>
 

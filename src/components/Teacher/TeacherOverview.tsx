@@ -114,16 +114,16 @@ export default function TeacherOverview({
                 <div className={styles.actionGrid}>
                     <button onClick={() => onTabChange("library")} className={styles.actionBtn}>
                         <div className={styles.actionIcon}><Video size={18} /></div>
-                        <div>
+                        <div className={styles.actionInfo}>
                             <strong>Media Vault</strong>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Manage video lectures</span>
+                            <span>Manage video lectures</span>
                         </div>
                     </button>
                     <button onClick={() => onTabChange("courses")} className={styles.actionBtn}>
                         <div className={styles.actionIcon}><BookOpen size={18} /></div>
-                        <div>
+                        <div className={styles.actionInfo}>
                             <strong>Course Manager</strong>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Curriculum & pricing</span>
+                            <span>Curriculum & pricing</span>
                         </div>
                     </button>
                 </div>
