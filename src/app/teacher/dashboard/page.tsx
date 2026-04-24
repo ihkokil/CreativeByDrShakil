@@ -12,6 +12,7 @@ import PasswordManager from "@/components/Shared/PasswordManager";
 
 interface TeacherStats {
     totalCourses: number;
+    totalStudents: number;
     totalEnrollments: number;
     totalLessonsCompleted: number;
     courseProgress: any[];
@@ -79,6 +80,7 @@ function TeacherDashboardContent() {
                     ) : (
                         <TeacherOverview 
                             totalCourses={stats?.totalCourses || 0}
+                            totalStudents={stats?.totalStudents || 0}
                             totalEnrollments={stats?.totalEnrollments || 0}
                             totalLessonsCompleted={stats?.totalLessonsCompleted || 0}
                             courseProgress={stats?.courseProgress || []}
