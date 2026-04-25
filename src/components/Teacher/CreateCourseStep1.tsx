@@ -206,7 +206,7 @@ function CreateCourseStep1Content() {
         </div>
 
         <div className={styles.formSection}>
-          <h2 className={styles.sectionTitle}>Course Thumbnail</h2>
+          <h2 className={styles.sectionTitle}>Course Thumbnail (Optional)</h2>
           <p className={styles.sectionDesc}>Upload a cover image for your course</p>
 
           <div className={styles.uploadArea}>
@@ -307,11 +307,29 @@ function CreateCourseStep1Content() {
               <div className={styles.dateInputWrapper}>
                 <Calendar size={20} />
                 <input
-                  type="text"
-                  value={courseStartDate}
-                  onChange={(e) => setCourseStartDate(e.target.value)}
-                  placeholder="dd/mm/yyyy"
-                  inputMode="numeric"
+                  type="date"
+                  value={(() => {
+                    if (!courseStartDate) return "";
+                    // Convert DD/MM/YYYY to YYYY-MM-DD for native picker
+                    const parts = courseStartDate.split("/");
+                    if (parts.length === 3) {
+                      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                    }
+                    return courseStartDate; // Already YYYY-MM-DD or other
+                  })()}
+                  onChange={(e) => {
+                    const val = e.target.value; // YYYY-MM-DD
+                    if (!val) {
+                      setCourseStartDate("");
+                      return;
+                    }
+                    const parts = val.split("-");
+                    if (parts.length === 3) {
+                      setCourseStartDate(`${parts[2]}/${parts[1]}/${parts[0]}`);
+                    } else {
+                      setCourseStartDate(val);
+                    }
+                  }}
                   className={styles.dateInput}
                 />
               </div>

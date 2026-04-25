@@ -714,15 +714,37 @@ function CreateCourseStep3Content() {
              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
                 <Calendar size={13} style={{ color: "var(--primary)" }} />
                 <input
-                  type="text"
-                  value={displayDate}
-                  onChange={(e) => setDateOverrides(prev => ({ ...prev, [item.id]: e.target.value }))}
+                  type="date"
+                  value={(() => {
+                    if (!displayDate) return "";
+                    const parts = displayDate.split("/");
+                    if (parts.length === 3) {
+                      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                    }
+                    return displayDate;
+                  })()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) {
+                      setDateOverrides(prev => {
+                        const next = { ...prev };
+                        delete next[item.id];
+                        return next;
+                      });
+                      return;
+                    }
+                    const parts = val.split("-");
+                    if (parts.length === 3) {
+                      setDateOverrides(prev => ({ ...prev, [item.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
+                    } else {
+                      setDateOverrides(prev => ({ ...prev, [item.id]: val }));
+                    }
+                  }}
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
                     fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
                   }}
-                  placeholder="dd/mm/yyyy"
                 />
              </div>
           )}
@@ -1154,13 +1176,36 @@ function CreateCourseStep3Content() {
                                 <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
                                   <Calendar size={14} style={{ color: "var(--primary)" }} />
                                   <input
-                                    type="text"
-                                    value={dateOverrides[subTopic.id] || calculatedDate}
-                                    onChange={(e) => setDateOverrides(prev => ({ ...prev, [subTopic.id]: e.target.value }))}
-                                    placeholder="dd/mm/yyyy"
+                                    type="date"
+                                    value={(() => {
+                                      const val = dateOverrides[subTopic.id] || calculatedDate;
+                                      if (!val) return "";
+                                      const parts = val.split("/");
+                                      if (parts.length === 3) {
+                                        return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                                      }
+                                      return val;
+                                    })()}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (!val) {
+                                        setDateOverrides(prev => {
+                                          const next = { ...prev };
+                                          delete next[subTopic.id];
+                                          return next;
+                                        });
+                                        return;
+                                      }
+                                      const parts = val.split("-");
+                                      if (parts.length === 3) {
+                                        setDateOverrides(prev => ({ ...prev, [subTopic.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
+                                      } else {
+                                        setDateOverrides(prev => ({ ...prev, [subTopic.id]: val }));
+                                      }
+                                    }}
                                     style={{
-                                      padding: "4px 8px", background: "var(--background)", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
-                                      fontSize: "0.85rem", fontWeight: "600", cursor: "pointer"
+                                      padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
+                                      fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
                                     }}
                                   />
                                 </div>
