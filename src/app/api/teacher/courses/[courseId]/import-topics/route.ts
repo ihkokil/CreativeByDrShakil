@@ -136,7 +136,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt,
+      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
       releaseGroupDates: compactReleaseGroupDates,
