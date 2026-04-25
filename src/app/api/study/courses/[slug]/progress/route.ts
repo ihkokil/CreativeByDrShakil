@@ -118,11 +118,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(result.course!.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
+    const dbReleaseStart = result.course?.releaseStartAt;
+    const dbCourseStart = result.course?.courseStartDate;
+    const dbEnrollment = result.studentEnrollmentDate;
+
+    // Robust fallback: Release setting > Course setting > Enrollment date
+    const finalStartAt = dbReleaseStart || dbCourseStart || dbEnrollment;
+
+    console.log('[DEBUG] Final Scheduling:', {
+      courseId: result.course?.id,
+      hasRelease: !!dbReleaseStart,
+      hasCourse: !!dbCourseStart,
+      hasEnroll: !!dbEnrollment,
+      chosen: finalStartAt === dbReleaseStart ? 'release' : (finalStartAt === dbCourseStart ? 'course' : 'enroll')
+    });
+
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: result.course!.releaseMode,
-      releaseStartAt: result.course!.releaseStartAt || result.course!.courseStartDate || result.studentEnrollmentDate,
-      releaseIntervalDays: result.course!.releaseIntervalDays,
-      releaseGroupsPerWeek: result.course!.releaseGroupsPerWeek,
+      releaseMode: result.course?.releaseMode,
+      releaseStartAt: finalStartAt,
+      releaseIntervalDays: result.course?.releaseIntervalDays,
+      releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
       releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
@@ -205,11 +220,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const curriculum = ensureGroupInheritance(parseCurriculumJson(result.course!.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
+    const dbReleaseStart = result.course?.releaseStartAt;
+    const dbCourseStart = result.course?.courseStartDate;
+    const dbEnrollment = result.studentEnrollmentDate;
+
+    // Robust fallback: Release setting > Course setting > Enrollment date
+    const finalStartAt = dbReleaseStart || dbCourseStart || dbEnrollment;
+
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: result.course!.releaseMode,
-      releaseStartAt: result.course!.releaseStartAt || result.course!.courseStartDate || result.studentEnrollmentDate,
-      releaseIntervalDays: result.course!.releaseIntervalDays,
-      releaseGroupsPerWeek: result.course!.releaseGroupsPerWeek,
+      releaseMode: result.course?.releaseMode,
+      releaseStartAt: finalStartAt,
+      releaseIntervalDays: result.course?.releaseIntervalDays,
+      releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
       releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
