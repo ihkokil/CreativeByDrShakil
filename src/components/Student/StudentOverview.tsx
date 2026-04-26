@@ -16,7 +16,6 @@ interface EnrolledCourse {
     courseId: string;
     courseSlug: string | null;
     courseTitle: string;
-    category: string;
     progress: {
         percentage: number;
     };
@@ -134,7 +133,6 @@ export default function StudentOverview({
                             <div key={course.courseId} className={styles.activityItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <strong style={{ fontSize: '0.9rem' }}>{course.courseTitle}</strong>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{course.category}</span>
                                 </div>
                                 <div className={styles.progressContainer} style={{ margin: '4px 0 0' }}>
                                     <div className={styles.progressLabel}>

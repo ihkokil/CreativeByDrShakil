@@ -23,7 +23,6 @@ type TeacherCourseSummary = {
   status: 'draft' | 'scheduled' | 'published' | 'archived';
   duration: string;
   imageUrl: string | null;
-  category: { displayName: string } | null;
   instructors: Array<{ id: string; name: string; designation?: string | null }>;
   _count: { orders: number };
 };
@@ -52,13 +51,10 @@ type ProgressRow = {
 };
 
 const getTeacherCourses = async (teacherId: string, role: string) => {
-  const where = role === 'admin' ? {} : { teacherId };
-
   return prisma.course.findMany({
-    where,
+    where: {},
     orderBy: { updatedAt: 'desc' },
     include: {
-      category: true,
       instructors: { orderBy: { sortOrder: 'asc' } },
       _count: {
         select: {
@@ -118,11 +114,10 @@ export async function GET(request: NextRequest) {
       releaseDaysOfWeek: any;
       releaseGroupDates: any;
       curriculumJson: any;
-      category: { displayName: string } | null;
     }
 
     const selectedCourse = await prisma.course.findFirst({
-      where: payload.role === 'admin' ? { id: selectedCourseId } : { id: selectedCourseId, teacherId: payload.sub },
+      where: { id: selectedCourseId },
       select: {
         id: true,
         title: true,
@@ -138,9 +133,6 @@ export async function GET(request: NextRequest) {
         releaseGroupDates: true,
         curriculumJson: true,
         courseStartDate: true,
-        category: {
-          select: { displayName: true },
-        },
       },
     }) as CourseResult | null;
 
@@ -308,7 +300,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const course = await prisma.course.findFirst({
-      where: payload.role === 'admin' ? { id: courseId } : { id: courseId, teacherId: payload.sub },
+      where: { id: courseId },
       select: { id: true },
     });
 
