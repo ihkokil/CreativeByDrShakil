@@ -7,25 +7,18 @@ import Footer from "@/components/Footer/Footer";
 import CourseCard from "@/components/Courses/CourseCard";
 import styles from "./CoursesPage.module.css";
 import { Course } from "@/constants/courses";
-import { Filter, Search, X, LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List } from "lucide-react";
 
-import { CategorySummary, fetchCategories } from "@/lib/categories";
 import CourseCardSkeleton from "@/components/Courses/CourseCardSkeleton";
 import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 
 function AllCoursesContent() {
-    const searchParams = useSearchParams();
-    const initialCategory = searchParams.get("category");
-    const [selectedCategories, setSelectedCategories] = useState<string[]>(() => (initialCategory ? [initialCategory] : []));
-    const [selectedInstructors, setSelectedInstructors] = useState<string[]>([]);
-    const [selectedDurations, setSelectedDurations] = useState<string[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
-    const [categoryList, setCategoryList] = useState<CategorySummary[]>([]);
     const [loading, setLoading] = useState(true);
+
     useEffect(() => {
         let cancelled = false;
 
@@ -53,46 +46,6 @@ function AllCoursesContent() {
     useEffect(() => {
         let cancelled = false;
 
-        const loadCategories = async () => {
-            try {
-                const list = await fetchCategories();
-                if (!cancelled) {
-                    setCategoryList(list);
-                }
-            } catch {
-                // Keep derived filters if category fetch fails.
-            }
-        };
-
-        loadCategories();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    const displayCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
-    const allCourses = displayCourses;
-
-    const categoryOptions = useMemo(
-        () => Array.from(new Set([
-            ...categoryList.map((category) => category.displayName),
-            ...allCourses.map((course) => course.category),
-        ])).sort(),
-        [allCourses, categoryList]
-    );
-    const instructors = useMemo(
-        () => Array.from(new Set(allCourses.map((course) => course.mainInstructor.name))).sort(),
-        [allCourses]
-    );
-    const durations = useMemo(
-        () => Array.from(new Set(allCourses.map((course) => course.duration))).sort(),
-        [allCourses]
-    );
-
-    useEffect(() => {
-        let cancelled = false;
-
         const loadTeachers = async () => {
             try {
                 const response = await fetch("/api/teachers", { cache: "no-store" });
@@ -112,19 +65,7 @@ function AllCoursesContent() {
         };
     }, []);
 
-    const toggleSelection = (value: string, setter: (updater: (prev: string[]) => string[]) => void) => {
-        setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
-    };
-
-    const filteredCourses = useMemo(() => {
-        return allCourses.filter(course => {
-            const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
-            const matchInstructor = selectedInstructors.length === 0 || selectedInstructors.includes(course.mainInstructor.name);
-            const matchDuration = selectedDurations.length === 0 || selectedDurations.includes(course.duration);
-            const matchSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchCategory && matchInstructor && matchDuration && matchSearch;
-        });
-    }, [allCourses, selectedCategories, selectedInstructors, selectedDurations, searchQuery]);
+    const allCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
 
     return (
         <main className={styles.main}>
@@ -140,95 +81,11 @@ function AllCoursesContent() {
             </header>
 
             <section className={styles.container}>
-                {/* Sidebar Filters */}
-                <aside className={styles.sidebar}>
-                    <div className={styles.filterSection}>
-                        <div className={styles.sidebarTitle}>
-                            <Filter size={18} /> Filters
-                        </div>
-
-                        <div className={styles.searchBox}>
-                            <Search size={18} className={styles.searchIcon} />
-                            <input
-                                type="text"
-                                placeholder="Search courses..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-
-                        <div className={styles.filterGroup}>
-                            <h4>Categories</h4>
-                            <div className={styles.checkboxList}>
-                                {categoryOptions.map((cat) => (
-                                    <label key={cat} className={styles.checkboxItem}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedCategories.includes(cat)}
-                                            onChange={() => toggleSelection(cat, setSelectedCategories)}
-                                        />
-                                        <span className={styles.checkmark}></span>
-                                        {cat}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className={styles.filterGroup}>
-                            <h4>Instructors</h4>
-                            <div className={styles.checkboxList}>
-                                {instructors.map((ins) => (
-                                    <label key={ins} className={styles.checkboxItem}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedInstructors.includes(ins)}
-                                            onChange={() => toggleSelection(ins, setSelectedInstructors)}
-                                        />
-                                        <span className={styles.checkmark}></span>
-                                        {ins}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className={styles.filterGroup}>
-                            <h4>Duration</h4>
-                            <div className={styles.checkboxList}>
-                                {durations.map((dur) => (
-                                    <label key={dur} className={styles.checkboxItem}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedDurations.includes(dur)}
-                                            onChange={() => toggleSelection(dur, setSelectedDurations)}
-                                        />
-                                        <span className={styles.checkmark}></span>
-                                        {dur}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        {(selectedCategories.length > 0 || selectedInstructors.length > 0 || selectedDurations.length > 0 || searchQuery) && (
-                            <button
-                                className={styles.clearBtn}
-                                onClick={() => {
-                                    setSelectedCategories([]);
-                                    setSelectedInstructors([]);
-                                    setSelectedDurations([]);
-                                    setSearchQuery("");
-                                }}
-                            >
-                                <X size={16} /> Clear All
-                            </button>
-                        )}
-                    </div>
-                </aside>
-
                 {/* Content Area */}
                 <div className={styles.content}>
                     <div className={styles.contentHeader}>
                         <div className={styles.resultsCount}>
-                            Showing <strong>{filteredCourses.length}</strong> courses
+                            Showing <strong>{allCourses.length}</strong> courses
                         </div>
                         <div className={styles.viewToggle}>
                             <button
@@ -256,7 +113,7 @@ function AllCoursesContent() {
                                 </div>
                             ))
                         ) : (
-                            filteredCourses.map(course => (
+                            allCourses.map(course => (
                                 <div key={course.id} className={styles.cardWrapper}>
                                     <CourseCard course={course} viewMode={viewMode} />
                                 </div>
@@ -264,10 +121,10 @@ function AllCoursesContent() {
                         )}
                     </div>
 
-                    {!loading && filteredCourses.length === 0 && (
+                    {!loading && allCourses.length === 0 && (
                         <div className={styles.noResults}>
                             <h3>No courses found</h3>
-                            <p>Try adjusting your filters or search query.</p>
+                            <p>Check back soon for new content.</p>
                         </div>
                     )}
                 </div>

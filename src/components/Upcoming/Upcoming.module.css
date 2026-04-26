@@ -97,15 +97,6 @@
     gap: 60px;
 }
 
-.category {
-    font-size: var(--text-small);
-    font-weight: var(--weight-extrabold);
-    color: var(--primary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 15px;
-    display: block;
-}
 
 .info h3 {
     font-size: var(--text-3xl);

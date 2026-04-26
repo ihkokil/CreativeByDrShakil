@@ -14,7 +14,6 @@ interface DynamicCoursePayload {
   id: string;
   slug: string;
   title: string;
-  category: string;
   price: string;
   salePrice?: string | null;
   rating?: number;
@@ -60,7 +59,6 @@ export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course 
     id: payload.id,
     slug: payload.slug,
     title: payload.title,
-    category: payload.category || 'General',
     price: payload.salePrice ? payload.salePrice : (payload.price || 'Free'),
     originalPrice: payload.salePrice ? payload.price : undefined,
     rating: payload.rating || 4.9,

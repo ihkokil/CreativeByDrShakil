@@ -27,9 +27,6 @@
     max-width: var(--layout-max-width);
     width: 100%;
     margin: 0 auto 100px;
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 40px;
     padding: 0 var(--layout-gutter-desktop);
 }
 
@@ -293,15 +290,6 @@
     }
 }
 
-@media (max-width: 1024px) {
-    .container {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-        position: static;
-    }
-}
 
 @media (max-width: 768px) {
     .title {
