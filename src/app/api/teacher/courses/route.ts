@@ -35,11 +35,9 @@ export async function GET(request: NextRequest) {
 
     const requestedTeacherId = request.nextUrl.searchParams.get('teacherId');
     const where =
-      payload.role === 'admin'
-        ? requestedTeacherId
-          ? { teacherId: requestedTeacherId }
-          : {}
-        : { teacherId: payload.sub };
+      payload.role === 'admin' && requestedTeacherId
+        ? { teacherId: requestedTeacherId }
+        : {};
 
     let courses;
     try {
