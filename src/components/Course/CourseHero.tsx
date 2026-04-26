@@ -13,7 +13,6 @@ export default function CourseHero({ course }: Props) {
     <section className={styles.hero}>
       <div className={styles.heroContent}>
         <div className={styles.info}>
-          <div className={styles.badge}>{course.category || "General"}</div>
           <h1 className={styles.title}>{course.title}</h1>
           
           <div className={styles.metadata}>

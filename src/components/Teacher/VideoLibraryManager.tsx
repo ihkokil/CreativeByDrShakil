@@ -475,19 +475,19 @@ export default function VideoLibraryManager() {
                 </div>
                 {!activeRootId && (
                     <button className={styles.primaryBtn} onClick={() => handleAddFolderClick()}>
-                        <Plus size={18} /> New Root Category
+                        <Plus size={18} /> New Root Folder
                     </button>
                 )}
             </div>
 
             {!activeRootId ? (
-                // Root Categories Card Grid View
+                // Root Folders Card Grid View
                 <>
                     {libraryData.length === 0 ? (
                         <div className={styles.emptyState}>
                             <FolderOpen size={48} className={styles.emptyIcon} />
                             <h3>Your Library is Empty</h3>
-                            <p>Create a root category to start organizing your videos.</p>
+                            <p>Create a root folder to start organizing your videos.</p>
                         </div>
                     ) : (
                         <div className={styles.libraryGrid}>
@@ -584,7 +584,7 @@ export default function VideoLibraryManager() {
                     {activeRootNode?.children?.length === 0 ? (
                         <div className={styles.emptyState}>
                             <FolderOpen size={48} className={styles.emptyIcon} />
-                            <h3>Category is Empty</h3>
+                            <h3>Folder is Empty</h3>
                             <p>Add subfolders or videos to construct this section.</p>
                         </div>
                     ) : (
@@ -616,7 +616,7 @@ export default function VideoLibraryManager() {
                             onClick={e => e.stopPropagation()}
                         >
                             <div className={styles.modalHeader}>
-                                <h3>Create New Category / Folder</h3>
+                                <h3>Create New Folder</h3>
                                 <button className={styles.closeBtn} onClick={() => setIsFolderModalOpen(false)}><X size={20} /></button>
                             </div>
                             <form onSubmit={submitFolder} className={styles.form}>

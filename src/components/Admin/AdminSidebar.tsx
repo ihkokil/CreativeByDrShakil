@@ -57,7 +57,6 @@ export default function AdminSidebar({
         { id: 'teachers', label: 'Teachers', icon: <Users size={20} /> },
         { id: 'courses', label: 'Enrollments', icon: <BookOpen size={20} /> },
         { id: 'payments', label: 'Payments', icon: <CreditCard size={20} /> },
-        { id: 'categories', label: 'Categories', icon: <LayoutGrid size={20} /> },
         { id: 'sessions', label: 'Sessions', icon: <Smartphone size={20} /> },
         { id: 'support', label: 'Contact Help', icon: <Inbox size={20} /> },
     ];
