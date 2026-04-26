@@ -15,7 +15,6 @@ export interface Course {
     id: number | string;
     slug: string;
     title: string;
-    category: string;
     price: string;
     originalPrice?: string;
     rating: number;
@@ -67,7 +66,6 @@ export const COURSES: Course[] = [
         id: 1,
         slug: "fcps-part-i-internal-medicine",
         title: "FCPS Part I: Internal Medicine",
-        category: "FCPS",
         price: "৳5,000",
         originalPrice: "৳8,000",
         rating: 4.8,
@@ -120,7 +118,6 @@ export const COURSES: Course[] = [
         id: 2,
         slug: "surgery-high-yield-mcqs",
         title: "Surgery High Yield MCQs",
-        category: "Exams",
         price: "৳4,500",
         rating: 4.9,
         duration: "3 Months",
@@ -131,7 +128,6 @@ export const COURSES: Course[] = [
         id: 3,
         slug: "pediatrics-residency-masterclass",
         title: "Pediatrics Residency Masterclass",
-        category: "Residency",
         price: "৳6,000",
         originalPrice: "৳10,000",
         rating: 4.7,
@@ -142,7 +138,6 @@ export const COURSES: Course[] = [
         id: 4,
         slug: "gynae-obs-part-ii-theory",
         title: "Gynae & Obs Part II Theory",
-        category: "Part II",
         price: "Free",
         rating: 4.9,
         duration: "4 Months",
@@ -152,7 +147,6 @@ export const COURSES: Course[] = [
         id: 5,
         slug: "radiology-image-based-quiz",
         title: "Radiology Image-based Quiz",
-        category: "Exams",
         price: "৳2,500",
         originalPrice: "৳4,000",
         rating: 5.0,
@@ -163,7 +157,6 @@ export const COURSES: Course[] = [
         id: 6,
         slug: "foundation-series-anatomy",
         title: "Foundation Series: Anatomy",
-        category: "FCPS",
         price: "Free",
         rating: 4.6,
         duration: "3 Months",
@@ -174,7 +167,6 @@ export const COURSES: Course[] = [
         id: 7,
         slug: "fcps-surgery-viva-secrets",
         title: "FCPS Surgery: Viva Secrets",
-        category: "Part II",
         price: "৳3,500",
         rating: 4.9,
         duration: "2 Months",
@@ -184,7 +176,6 @@ export const COURSES: Course[] = [
         id: 8,
         slug: "emergency-medicine-fast-track",
         title: "Emergency Medicine Fast-track",
-        category: "Residency",
         price: "৳4,000",
         rating: 4.7,
         duration: "3 Months",

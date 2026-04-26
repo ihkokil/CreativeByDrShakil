@@ -12,7 +12,6 @@ type FeaturedCourse = {
     id: string;
     slug: string;
     title: string;
-    category: string;
     duration: string;
     price: string;
     courseStartDate?: string | null;
@@ -186,7 +185,6 @@ export default function Upcoming() {
 
                     <div className={styles.content}>
                         <div className={styles.info}>
-                            <span className={styles.category}>{course.category}</span>
                             <h3>{course.title}</h3>
                             <p>A comprehensive {course.duration} program covering high-yield material designed specifically for postgraduate success.</p>
 
