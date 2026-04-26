@@ -23,7 +23,6 @@ type TeacherCourseSummary = {
   status: 'draft' | 'scheduled' | 'published' | 'archived';
   duration: string;
   imageUrl: string | null;
-  category: { displayName: string } | null;
   instructors: Array<{ id: string; name: string; designation?: string | null }>;
   _count: { orders: number };
 };
@@ -56,7 +55,6 @@ const getTeacherCourses = async (teacherId: string, role: string) => {
     where: {},
     orderBy: { updatedAt: 'desc' },
     include: {
-      category: true,
       instructors: { orderBy: { sortOrder: 'asc' } },
       _count: {
         select: {
@@ -116,7 +114,6 @@ export async function GET(request: NextRequest) {
       releaseDaysOfWeek: any;
       releaseGroupDates: any;
       curriculumJson: any;
-      category: { displayName: string } | null;
     }
 
     const selectedCourse = await prisma.course.findFirst({
@@ -136,9 +133,6 @@ export async function GET(request: NextRequest) {
         releaseGroupDates: true,
         curriculumJson: true,
         courseStartDate: true,
-        category: {
-          select: { displayName: true },
-        },
       },
     }) as CourseResult | null;
 

@@ -33,7 +33,6 @@ import AddStudentToCourseModal from "@/components/Admin/AddStudentToCourseModal"
 import Image from "next/image";
 import SessionsManager from "@/components/Admin/SessionsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
-import CategoryManager from "@/components/Admin/CategoryManager";
 import StudentsList from "@/components/Admin/StudentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
@@ -70,7 +69,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "categories" | "payments" | "sessions" | "support" | "settings" | "security" | "profile") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "payments" | "sessions" | "support" | "settings" | "security" | "profile") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -457,12 +456,6 @@ function AdminDashboardContent() {
                 </section>
             )}
 
-            {activeTab === "categories" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Course Categories</h2>
-                    <CategoryManager />
-                </section>
-            )}
 
             {activeTab === "payments" && (
                 <PaymentsManager />

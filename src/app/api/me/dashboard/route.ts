@@ -52,11 +52,6 @@ export async function GET(request: NextRequest) {
             duration: true,
             status: true,
             curriculumJson: true,
-            category: {
-              select: {
-                displayName: true,
-              },
-            },
           },
         },
         payment: {
@@ -78,9 +73,6 @@ export async function GET(request: NextRequest) {
     if (isAdmin) {
       const allPublishedCourses = await prisma.course.findMany({
         where: { status: 'published' },
-        include: {
-          category: { select: { displayName: true } }
-        }
       });
 
       enrolledCourses = allPublishedCourses.map((course: any) => {
@@ -93,7 +85,6 @@ export async function GET(request: NextRequest) {
           courseTitle: course.title,
           imageUrl: course.imageUrl,
           duration: course.duration,
-          category: course.category?.displayName || 'General',
           enrolledAt: course.createdAt,
           lessonNodes // Store for progress calculation
         };
@@ -113,7 +104,6 @@ export async function GET(request: NextRequest) {
           courseTitle: order.course.title,
           imageUrl: order.course.imageUrl,
           duration: order.course.duration,
-          category: order.course.category?.displayName || 'General',
           enrolledAt: order.updatedAt,
           lessonNodes
         };
@@ -155,7 +145,6 @@ export async function GET(request: NextRequest) {
         courseTitle: item.courseTitle,
         imageUrl: item.imageUrl,
         duration: item.duration,
-        category: item.category,
         enrolledAt: item.enrolledAt,
         progress: {
           completedCount,
