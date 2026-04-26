@@ -95,35 +95,39 @@
 
 .socialGrid {
     display: flex;
+    flex-direction: column;
     gap: 12px;
     margin-top: 10px;
-    flex-wrap: wrap;
 }
 
-.socialIcon {
-    width: 44px;
-    height: 44px;
+.socialButton {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
     border-radius: var(--radius-md);
     background: var(--surface-soft);
     border: 1px solid var(--glass-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
     color: var(--foreground);
+    text-decoration: none;
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-small);
     transition: all var(--duration-fast) var(--ease-premium);
+    width: fit-content;
+    min-width: 160px;
 }
 
-.socialIcon svg {
+.socialButton svg {
     width: 20px;
     height: 20px;
 }
 
-.socialIcon:hover {
-    background: var(--primary);
-    color: white;
+.socialButton:hover {
+    background: var(--surface);
     border-color: var(--primary);
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 10px 20px color-mix(in srgb, var(--primary) 30%, transparent);
+    transform: translateX(5px);
+    box-shadow: var(--shadow-sm);
+    color: var(--primary);
 }
 
 /* Bottom Bar */
