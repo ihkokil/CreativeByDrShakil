@@ -15,7 +15,6 @@ export default function CourseCardSkeleton({ viewMode = "grid" }: Props) {
             className={`${styles.card} ${styles.skeletonCard} ${viewMode === 'list' ? styles.listCard : ''} glass`}
         >
             <div className={`${styles.imageWrapper} ${styles.skeleton}`}>
-                <div className={`${styles.categoryBadge} ${styles.skeleton} ${styles.skeletonBadge}`} />
             </div>
 
             <div className={styles.cardInfo}>

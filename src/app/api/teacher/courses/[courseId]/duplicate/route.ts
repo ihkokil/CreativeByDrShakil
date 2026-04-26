@@ -52,7 +52,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         slug: newSlug,
         description: originalCourse.description,
         overview: originalCourse.overview,
-        categoryId: originalCourse.categoryId,
         price: originalCourse.price,
         salePrice: originalCourse.salePrice,
         instructor: originalCourse.instructor,
@@ -82,7 +81,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         },
       },
       include: {
-        category: true,
         instructors: { orderBy: { sortOrder: 'asc' } },
       },
     });

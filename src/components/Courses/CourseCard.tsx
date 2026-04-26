@@ -3,7 +3,7 @@
 import styles from "./CourseCard.module.css";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Clock, Star, Tag, User } from "lucide-react";
+import { BookOpen, Clock, Star, User } from "lucide-react";
 import { Course } from "@/constants/courses";
 
 
@@ -23,10 +23,6 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     style={{ objectFit: "cover" }}
                     unoptimized
                 />
-                <div className={styles.categoryBadge}>
-                    <Tag size={12} />
-                    {course.category}
-                </div>
             </Link>
 
             <div className={styles.cardInfo}>

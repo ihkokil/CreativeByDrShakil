@@ -27,7 +27,6 @@ export async function GET() {
             profileImage: true,
           },
         },
-        category: true,
       },
     });
 
@@ -40,7 +39,6 @@ export async function GET() {
         id: course.id,
         slug: course.slug,
         title: course.title,
-        category: course.category?.displayName || 'General',
         price: formatPrice(course.price),
         priceValue: course.price,
         duration: course.duration,

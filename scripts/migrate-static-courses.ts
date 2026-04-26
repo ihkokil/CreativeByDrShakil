@@ -24,17 +24,6 @@ async function main() {
   for (const sc of COURSES) {
     console.log(`\n📦 Processing: ${sc.title}`);
 
-    // Find or Create Category
-    const categoryName = sc.category.toLowerCase().replace(/\s+/g, '-');
-    const category = await prisma.category.upsert({
-      where: { name: categoryName },
-      update: {},
-      create: {
-        name: categoryName,
-        displayName: sc.category,
-      },
-    });
-
     // Parse Price
     let price = 0;
     if (typeof sc.price === 'string' && sc.price !== 'Free') {
@@ -70,7 +59,6 @@ async function main() {
     const courseData: any = {
       title: sc.title,
       slug: sc.slug,
-      categoryId: category.id,
       price: price,
       salePrice: salePrice,
       instructor: sc.mainInstructor.name,

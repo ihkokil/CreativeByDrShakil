@@ -39,7 +39,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const missingFields = [];
     if (!fullCourse.title) missingFields.push('title');
-    if (!fullCourse.categoryId) missingFields.push('category');
     if (fullCourse.price === undefined || fullCourse.price === null) missingFields.push('price');
     if (!fullCourse.duration) missingFields.push('duration');
     // imageUrl is now optional
@@ -65,7 +64,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       },
       include: {
         instructors: { orderBy: { sortOrder: 'asc' } },
-        category: true,
       },
     });
 

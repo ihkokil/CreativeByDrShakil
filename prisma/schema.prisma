@@ -8,15 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  displayName String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  courses     Course[]
-}
-
 model User {
   id                          String                      @id @default(cuid())
   email                       String                      @unique
@@ -52,7 +43,6 @@ model Course {
   title                       String
   description                 String                      @db.LongText
   overview                    String?                     @db.LongText
-  categoryId                  String?
   price                       Float
   salePrice                   Float?
   instructor                  String
@@ -75,7 +65,6 @@ model Course {
   updatedAt                   DateTime                    @updatedAt
   isFeatured                  Boolean                     @default(false)
   releaseDaysOfWeek           String?                     @db.LongText
-  category                    Category?                   @relation(fields: [categoryId], references: [id])
   teacher                     User?                       @relation("TeacherCourses", fields: [teacherId], references: [id])
   instructors                 CourseInstructor[]
   lessonProgress              LessonProgress[]
@@ -83,7 +72,6 @@ model Course {
   moduleAvailabilityOverrides StudentModuleAvailability[]
 
   @@index([teacherId])
-  @@index([categoryId])
   @@index([status])
 }
 

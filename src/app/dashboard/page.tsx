@@ -32,7 +32,6 @@ interface DashboardCourse {
     courseTitle: string;
     imageUrl?: string | null;
     duration: string;
-    category: string;
     enrolledAt: string;
     progress: {
         completedCount: number;
@@ -318,7 +317,6 @@ function StudentDashboardContent() {
                         />
                       ) : null}
                       <div className={styles.courseCardOverlay} />
-                      <span className={styles.courseCardCategory}>{course.category}</span>
                       {/* Circular Progress */}
                       <div className={styles.courseCardRing}>
                         <svg viewBox="0 0 64 64" className={styles.ringChart}>
