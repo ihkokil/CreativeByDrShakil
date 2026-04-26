@@ -46,11 +46,11 @@ export default function Footer() {
                     <div className={styles.linkColumn}>
                         <h4>Follow Us</h4>
                         <div className={styles.socialGrid}>
-                            <a href="https://www.facebook.com/groups/419870195107263" target="_blank" rel="noopener noreferrer" className={styles.socialButton}>
+                            <a href="https://www.facebook.com/groups/419870195107263" target="_blank" rel="noopener noreferrer" className={`${styles.socialButton} ${styles.facebookBtn}`}>
                                 <Facebook />
                                 <span>Facebook</span>
                             </a>
-                            <a href="https://www.youtube.com/@nahidshakil5927" target="_blank" rel="noopener noreferrer" className={styles.socialButton}>
+                            <a href="https://www.youtube.com/@nahidshakil5927" target="_blank" rel="noopener noreferrer" className={`${styles.socialButton} ${styles.youtubeBtn}`}>
                                 <Youtube />
                                 <span>YouTube</span>
                             </a>

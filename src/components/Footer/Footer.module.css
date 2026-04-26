@@ -96,38 +96,73 @@
 .socialGrid {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     margin-top: 10px;
 }
 
 .socialButton {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    border-radius: var(--radius-md);
+    gap: 16px;
+    padding: 14px 24px;
+    border-radius: var(--radius-lg);
     background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     color: var(--foreground);
     text-decoration: none;
-    font-weight: var(--weight-semibold);
+    font-weight: var(--weight-bold);
     font-size: var(--text-small);
-    transition: all var(--duration-fast) var(--ease-premium);
-    width: fit-content;
-    min-width: 160px;
+    transition: all var(--duration-base) var(--ease-premium);
+    width: 100%;
+    max-width: 240px;
+    position: relative;
+    overflow: hidden;
+}
+
+.socialButton span {
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
 }
 
 .socialButton svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
+    transition: transform var(--duration-fast);
 }
 
-.socialButton:hover {
-    background: var(--surface);
-    border-color: var(--primary);
-    transform: translateX(5px);
-    box-shadow: var(--shadow-sm);
-    color: var(--primary);
+/* Facebook Specific */
+.facebookBtn:hover {
+    background: #1877F2;
+    border-color: #1877F2;
+    color: white;
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(24, 119, 242, 0.3);
+}
+
+/* YouTube Specific */
+.youtubeBtn:hover {
+    background: #FF0000;
+    border-color: #FF0000;
+    color: white;
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(255, 0, 0, 0.3);
+}
+
+.socialButton:hover svg {
+    transform: scale(1.1);
+}
+
+.socialButton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity var(--duration-fast);
+}
+
+.socialButton:hover::after {
+    opacity: 1;
 }
 
 /* Bottom Bar */
