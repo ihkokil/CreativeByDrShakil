@@ -11,11 +11,7 @@ import {
 } from '@/lib/teacher-course-builder';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  if (role === 'admin') {
-    return prisma.course.findUnique({ where: { id: courseId } });
-  }
-
-  return prisma.course.findFirst({ where: { id: courseId, teacherId: userId } });
+  return prisma.course.findUnique({ where: { id: courseId } });
 };
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {

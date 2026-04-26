@@ -29,11 +29,7 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
 };
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  if (role === 'admin') {
-    return prisma.course.findUnique({ where: { id: courseId } });
-  }
-
-  return prisma.course.findFirst({ where: { id: courseId, teacherId: userId } });
+  return prisma.course.findUnique({ where: { id: courseId } });
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -56,10 +52,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    // Check authorization
-    if (payload.role !== 'admin' && course.teacherId !== payload.sub) {
-      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-    }
+    // Teachers and Admins can see/manage all courses
 
     const curriculum = parseCurriculumJson(course.curriculumJson);
     const groups = collectSecondChildGroups(curriculum);

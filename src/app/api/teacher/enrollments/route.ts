@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course ID is required.' }, { status: 400 });
     }
 
-    // Verify course exists and teacher owns it (if not admin)
+    // Verify course exists
     const course = await prisma.course.findFirst({
-      where: payload.role === 'admin' ? { id: courseId } : { id: courseId, teacherId: payload.sub },
+      where: { id: courseId },
     });
 
     if (!course) {
