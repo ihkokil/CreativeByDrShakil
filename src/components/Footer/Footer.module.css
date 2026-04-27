@@ -91,7 +91,7 @@
 }
 
 .linkColumn a:hover {
-    color: var(--primary);
+    color: #ffffff;
     transform: translateX(5px);
 }
 
