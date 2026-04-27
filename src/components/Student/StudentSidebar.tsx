@@ -11,7 +11,8 @@ import {
     LogOut,
     ChevronRight,
     ShieldCheck,
-    GraduationCap
+    GraduationCap,
+    Home
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { motion } from "framer-motion";
@@ -42,7 +43,7 @@ export default function StudentSidebar({
         { id: 'purchases', label: 'Payments', icon: <ReceiptText size={20} /> },
         { id: 'profile', label: 'Profile Settings', icon: <UserCog size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
-        { id: 'browse', label: 'All Courses', icon: <BookOpen size={20} />, isLink: '/courses' },
+        { id: 'home', label: 'Visit Website', icon: <Home size={20} />, isLink: '/' },
     ];
 
     const sysItems: any[] = [

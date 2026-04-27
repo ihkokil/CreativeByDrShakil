@@ -169,13 +169,13 @@ export default function StudentOverview({
                     <h3>Shortcuts</h3>
                 </div>
                 <div className={styles.actionGrid} style={{ gridTemplateColumns: '1fr' }}>
-                    <Link href="/courses" className={styles.actionBtn}>
+                    <button onClick={() => onTabChange("courses")} className={styles.actionBtn}>
                         <div className={styles.actionIcon}><BookOpen size={18} /></div>
                         <div className={styles.actionInfo}>
-                            <strong>Course Catalog</strong>
-                            <span>Explore specialized programs</span>
+                            <strong>My Enrollments</strong>
+                            <span>View your enrolled courses</span>
                         </div>
-                    </Link>
+                    </button>
                     <button onClick={() => onTabChange("profile")} className={styles.actionBtn}>
                         <div className={styles.actionIcon}><UserCog size={18} /></div>
                         <div className={styles.actionInfo}>
