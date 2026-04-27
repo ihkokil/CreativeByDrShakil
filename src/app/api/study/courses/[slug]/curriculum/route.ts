@@ -65,6 +65,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         ...({ releaseDaysOfWeek: true } as any),
         releaseGroupDates: true,
         curriculumJson: true,
+        courseStartDate: true,
       },
     }) as CourseResult | null;
 
@@ -115,7 +116,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,
-      releaseStartAt: course.releaseStartAt || studentEnrollmentDate,
+      releaseStartAt: course.releaseStartAt || course.courseStartDate || studentEnrollmentDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
       releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],
