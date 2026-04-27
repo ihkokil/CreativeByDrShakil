@@ -175,12 +175,13 @@
     background: transparent;
     border: 1px solid var(--glass-border);
     color: var(--error);
-    padding: 8px;
+    padding: 8px 12px;
     border-radius: var(--radius-md);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     transition: all var(--duration-fast);
 }
 
@@ -203,16 +204,40 @@
     }
 
     .rightActions {
-        gap: 10px;
+        gap: 8px;
+    }
+
+    .rightActions > button:first-child {
+        display: none; /* Hide ThemeToggle inside Navbar on mobile */
     }
 
     .accountBtn {
         padding: 8px 12px;
         font-size: var(--text-tiny);
+        gap: 6px;
     }
 
     .dashboardLink {
         padding: 8px 12px;
         font-size: var(--text-tiny);
+        gap: 6px;
     }
+
+    .navText {
+        display: none;
+    }
+
+    .mobileOnlyText {
+        display: block;
+        font-size: 10px;
+        font-weight: var(--weight-bold);
+    }
+
+    .userSection {
+        gap: 8px;
+    }
+}
+
+.mobileOnlyText {
+    display: none;
 }
