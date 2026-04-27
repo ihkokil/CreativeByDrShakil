@@ -81,11 +81,13 @@
 
 .linkColumn a {
     color: var(--text-muted);
-    text-decoration: none;
     font-weight: var(--weight-medium);
     transition: all var(--duration-fast) var(--ease-premium);
-    display: inline-block;
     font-size: var(--text-small);
+    text-decoration: none;
+    display: flex;
+    align-content: center;
+    justify-content: flex-start;
 }
 
 .linkColumn a:hover {
