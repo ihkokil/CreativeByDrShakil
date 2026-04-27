@@ -115,9 +115,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       studentEnrollmentDate = order?.updatedAt || null;
     }
 
+    const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
+    const effectiveStartAt = courseAnchor && studentEnrollmentDate
+      ? new Date(Math.max(courseAnchor.getTime(), studentEnrollmentDate.getTime()))
+      : courseAnchor || studentEnrollmentDate;
+
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,
-      releaseStartAt: course.releaseStartAt || course.courseStartDate || studentEnrollmentDate,
+      releaseStartAt: effectiveStartAt,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
       releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],

@@ -122,15 +122,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const dbCourseStart = result.course?.courseStartDate;
     const dbEnrollment = result.studentEnrollmentDate;
 
-    // Robust fallback: Release setting > Course setting > Enrollment date
-    const finalStartAt = dbReleaseStart || dbCourseStart || dbEnrollment;
+    const courseAnchor = dbReleaseStart || dbCourseStart || null;
+    const finalStartAt = courseAnchor && dbEnrollment
+      ? new Date(Math.max(courseAnchor.getTime(), dbEnrollment.getTime()))
+      : courseAnchor || dbEnrollment;
 
     console.log('[DEBUG] Final Scheduling:', {
       courseId: result.course?.id,
       hasRelease: !!dbReleaseStart,
       hasCourse: !!dbCourseStart,
       hasEnroll: !!dbEnrollment,
-      chosen: finalStartAt === dbReleaseStart ? 'release' : (finalStartAt === dbCourseStart ? 'course' : 'enroll')
+      chosen: finalStartAt === dbReleaseStart ? 'release' : (finalStartAt === dbCourseStart ? 'course' : 'enroll'),
+      isShifted: finalStartAt === dbEnrollment && (!!dbReleaseStart || !!dbCourseStart)
     });
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
@@ -224,8 +227,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const dbCourseStart = result.course?.courseStartDate;
     const dbEnrollment = result.studentEnrollmentDate;
 
-    // Robust fallback: Release setting > Course setting > Enrollment date
-    const finalStartAt = dbReleaseStart || dbCourseStart || dbEnrollment;
+    const courseAnchor = dbReleaseStart || dbCourseStart || null;
+    const finalStartAt = courseAnchor && dbEnrollment
+      ? new Date(Math.max(courseAnchor.getTime(), dbEnrollment.getTime()))
+      : courseAnchor || dbEnrollment;
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course?.releaseMode,
