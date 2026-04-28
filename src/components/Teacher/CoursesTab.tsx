@@ -21,6 +21,7 @@ import {
 import Image from "next/image";
 import styles from "./CoursesTab.module.css";
 import { motion, AnimatePresence } from "framer-motion";
+import CourseStudentsModal from "./CourseStudentsModal";
 
 interface Course {
     id: string;
@@ -42,6 +43,7 @@ export default function CoursesTab() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedCourseForStudents, setSelectedCourseForStudents] = useState<{id: string, title: string} | null>(null);
 
     useEffect(() => {
         fetchCourses();
@@ -226,6 +228,13 @@ export default function CoursesTab() {
                                     </td>
                                     <td>
                                         <div className={styles.rowActions}>
+                                            <button 
+                                                className={styles.iconAction} 
+                                                onClick={() => setSelectedCourseForStudents({ id: course.id, title: course.title })} 
+                                                title="Manage Students"
+                                            >
+                                                <Users size={18} />
+                                            </button>
                                             <button className={styles.iconAction} onClick={() => window.open(`/courses/${course.slug}`, '_blank')} title="View on Student Site">
                                                 <ExternalLink size={18} />
                                             </button>
@@ -275,6 +284,16 @@ export default function CoursesTab() {
                     <p>Try adjusting your search or create a new course.</p>
                 </div>
             )}
+
+            <AnimatePresence>
+                {selectedCourseForStudents && (
+                    <CourseStudentsModal 
+                        courseId={selectedCourseForStudents.id}
+                        courseTitle={selectedCourseForStudents.title}
+                        onClose={() => setSelectedCourseForStudents(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
