@@ -9,11 +9,13 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
-    ShieldCheck
+    ShieldCheck,
+    Users
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type TabType = 'overview' | 'courses' | 'library';
 
@@ -41,10 +43,12 @@ export default function TeacherSidebar({
     onToggleExpand
 }: TeacherSidebarProps) {
     const { signOut } = useAuth();
+    const pathname = usePathname();
 
     const menuItems = [
         { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
         { id: 'courses', label: 'Programs', icon: <BookOpen size={20} /> },
+        { id: 'students', label: 'Students', icon: <Users size={20} />, href: '/teacher/dashboard/students' },
         { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
     ];
@@ -72,17 +76,38 @@ export default function TeacherSidebar({
             <div className={styles.navContainer}>
                 <div className={styles.navSection}>
                     {isExpanded && <span className={styles.sectionLabel}>Management</span>}
-                    {menuItems.map(item => (
-                        <button
-                            key={item.id}
-                            className={`${styles.navItem} ${activeTab === item.id ? styles.active : ''}`}
-                            onClick={() => setActiveTab(item.id as TabType)}
-                        >
-                            <span className={styles.icon}>{item.icon}</span>
-                            {isExpanded && <span className={styles.label}>{item.label}</span>}
-                            {activeTab === item.id && <motion.div layoutId="activeNav" className={styles.activeIndicator} />}
-                        </button>
-                    ))}
+                    {menuItems.map(item => {
+                        const isRouteItem = !!(item as any).href;
+                        const isActive = isRouteItem
+                            ? pathname?.startsWith((item as any).href)
+                            : activeTab === item.id;
+
+                        if (isRouteItem) {
+                            return (
+                                <Link
+                                    key={item.id}
+                                    href={(item as any).href}
+                                    className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+                                >
+                                    <span className={styles.icon}>{item.icon}</span>
+                                    {isExpanded && <span className={styles.label}>{item.label}</span>}
+                                    {isActive && <motion.div layoutId="activeNav" className={styles.activeIndicator} />}
+                                </Link>
+                            );
+                        }
+
+                        return (
+                            <button
+                                key={item.id}
+                                className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+                                onClick={() => setActiveTab(item.id as TabType)}
+                            >
+                                <span className={styles.icon}>{item.icon}</span>
+                                {isExpanded && <span className={styles.label}>{item.label}</span>}
+                                {isActive && <motion.div layoutId="activeNav" className={styles.activeIndicator} />}
+                            </button>
+                        );
+                    })}
                 </div>
 
                 <div className={styles.navSection}>
