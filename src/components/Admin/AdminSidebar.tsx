@@ -128,17 +128,7 @@ export default function AdminSidebar({
             </div>
 
             <div className={styles.footer}>
-                <div className={styles.profileBox}>
-                    <div className={styles.avatar}>
-                        {adminName[0].toUpperCase()}
-                    </div>
-                    {isExpanded && (
-                        <div className={styles.profileMeta}>
-                            <span className={styles.name}>{adminName}</span>
-                            <span className={styles.email}>Security Master</span>
-                        </div>
-                    )}
-                </div>
+
                 <button className={styles.logoutButtonFull} onClick={handleLogout} title="Sign Out">
                     <LogOut size={18} />
                     {isExpanded && <span>Sign Out</span>}
