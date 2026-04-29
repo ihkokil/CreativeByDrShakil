@@ -59,6 +59,90 @@
     gap: 8px;
     cursor: pointer;
     font-weight: 600;
+    position: relative;
+}
+
+.filterBadge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    border: 2px solid #0a0a0a;
+}
+
+.filterWrapper {
+    position: relative;
+}
+
+.filterDropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 240px;
+    background: rgba(20, 20, 20, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+}
+
+.filterSection {
+    margin-bottom: 16px;
+}
+
+.filterSection:last-child {
+    margin-bottom: 0;
+}
+
+.filterLabel {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.filterOptions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filterChip {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filterChip:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.filterChip.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
 }
 
 .createBtn {

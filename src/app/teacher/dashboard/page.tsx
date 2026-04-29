@@ -16,6 +16,7 @@ interface TeacherStats {
     totalEnrollments: number;
     totalLessonsCompleted: number;
     courseProgress: any[];
+    aggregateProgress: number;
 }
 
 function TeacherDashboardContent() {
@@ -84,6 +85,7 @@ function TeacherDashboardContent() {
                             totalEnrollments={stats?.totalEnrollments || 0}
                             totalLessonsCompleted={stats?.totalLessonsCompleted || 0}
                             courseProgress={stats?.courseProgress || []}
+                            aggregateProgress={stats?.aggregateProgress || 0}
                             teacherName={user.user_metadata?.full_name || "Teacher"}
                             onTabChange={setActiveTab}
                         />
