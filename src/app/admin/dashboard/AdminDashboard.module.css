@@ -461,6 +461,18 @@
     background: color-mix(in srgb, var(--primary) 10%, transparent);
 }
 
+.success {
+    color: #10b981;
+    border-color: color-mix(in srgb, #10b981 40%, transparent);
+    background: color-mix(in srgb, #10b981 10%, transparent);
+}
+
+.success:hover {
+    color: #059669;
+    border-color: color-mix(in srgb, #10b981 60%, transparent);
+    background: color-mix(in srgb, #10b981 15%, transparent);
+}
+
 .danger:hover {
     color: var(--error);
     border-color: color-mix(in srgb, var(--error) 40%, transparent);
