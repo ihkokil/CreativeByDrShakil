@@ -12,6 +12,7 @@ interface AppUser {
         phone?: string | null;
         bmdc_number?: string | null;
         profile_image?: string | null;
+        canManagePayments?: boolean;
     };
 }
 
@@ -61,7 +62,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             a.user_metadata?.full_name === b.user_metadata?.full_name &&
             a.user_metadata?.phone === b.user_metadata?.phone &&
             a.user_metadata?.bmdc_number === b.user_metadata?.bmdc_number &&
-            a.user_metadata?.profile_image === b.user_metadata?.profile_image
+            a.user_metadata?.profile_image === b.user_metadata?.profile_image &&
+            a.user_metadata?.canManagePayments === b.user_metadata?.canManagePayments
         );
     };
 
