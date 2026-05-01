@@ -73,6 +73,29 @@ export async function POST(request: NextRequest) {
     } else if (action === 'week_days') {
       mode = 'days_of_week';
       computedDaysOfWeek = daysOfWeek;
+    } else if (action === 'make_all_available') {
+      // Clear all overrides and make top-level nodes available immediately
+      const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
+      const topLevelNodeIds = curriculum.map(node => node.id);
+      
+      const dataToInsert = topLevelNodeIds.map(nodeId => ({
+        courseId,
+        userId,
+        lessonNodeId: nodeId,
+        availabilityMode: 'available' as const,
+        availableAt: null
+      }));
+
+      await prisma.$transaction([
+        prisma.studentModuleAvailability.deleteMany({
+          where: { courseId, userId }
+        }),
+        prisma.studentModuleAvailability.createMany({
+          data: dataToInsert
+        })
+      ]);
+
+      return NextResponse.json({ success: true });
     } else {
       return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
     }
