@@ -95,12 +95,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    let student;
-    let isNewRegistration = false;
-
     const result = await prisma.$transaction(async (tx) => {
-      let finalStudent = student;
-      let isNewRegistration = false;
+      let finalStudent;
+      let isNewReg = false;
+      let setupToken = null;
 
       if (isNewStudent) {
         // Register new student
@@ -122,7 +120,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Create password reset token for the new student
-        const { token: setupToken, tokenHash } = createTokenPair();
+        const { token: setupTokenPair, tokenHash } = createTokenPair();
+        setupToken = setupTokenPair;
         const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
         // Create student with a temporary password hash
@@ -142,10 +141,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        isNewRegistration = true;
-        
-        // Return tokens for email sending after transaction
-        return { student: finalStudent, isNewRegistration, setupToken };
+        isNewReg = true;
       } else {
         // Use existing student
         if (!studentId) {
@@ -195,18 +191,18 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return { student: finalStudent, isNewRegistration, order: finalOrder };
+      return { student: finalStudent, isNewRegistration: isNewReg, order: finalOrder, setupToken };
     });
 
-    const { student: studentResult, isNewRegistration, order } = result as any;
+    const { student: studentResult, isNewRegistration: finalIsNewReg, order, setupToken } = result;
 
-    if (isNewRegistration && (result as any).setupToken) {
+    if (finalIsNewReg && setupToken) {
       // Send password setup email outside transaction
       try {
         await sendPasswordSetupEmail({
           email: studentResult.email,
           fullName: studentResult.fullName,
-          token: (result as any).setupToken,
+          token: setupToken,
         });
       } catch (emailError) {
         console.error('Failed to send password setup email:', emailError);
@@ -215,22 +211,22 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: isNewRegistration
-        ? `Student enrolled successfully. A password setup email has been sent to ${student.email}.`
+      message: finalIsNewReg
+        ? `Student enrolled successfully. A password setup email has been sent to ${studentResult.email}.`
         : 'Student enrolled successfully.',
       enrollment: {
         id: order.id,
         student: {
-          id: student.id,
-          fullName: student.fullName,
-          email: student.email,
-          phone: student.phone,
+          id: studentResult.id,
+          fullName: studentResult.fullName,
+          email: studentResult.email,
+          phone: studentResult.phone,
         },
         course: {
           id: course.id,
           title: course.title,
         },
-        isNewRegistration,
+        isNewRegistration: finalIsNewReg,
       },
     });
   } catch (error: any) {
