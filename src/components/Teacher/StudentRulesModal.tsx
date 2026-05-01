@@ -25,7 +25,7 @@ const DAYS = [
 ];
 
 export default function StudentRulesModal({ courseId, userId, studentName, onClose, onSuccess, onOpenAdvanced }: StudentRulesModalProps) {
-    const [action, setAction] = useState<"start_from_today" | "continue_with_batch" | "week_days" | "custom_interval">("start_from_today");
+    const [action, setAction] = useState<"start_from_today" | "continue_with_batch" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [intervalDays, setIntervalDays] = useState<number>(7);
     const [loading, setLoading] = useState(false);
@@ -99,6 +99,19 @@ export default function StudentRulesModal({ courseId, userId, studentName, onClo
                     {error && <div className={styles.errorBanner}>{error}</div>}
 
                     <div className={styles.optionsGroup}>
+                        <div 
+                            className={`${styles.optionCard} ${action === "unlock_all" ? styles.selected : ""}`}
+                            onClick={() => setAction("unlock_all")}
+                        >
+                            <div className={styles.optionHeader}>
+                                <div className={styles.radio}></div>
+                                <span className={styles.optionTitle}>Make all modules available</span>
+                            </div>
+                            <div className={styles.optionDesc}>
+                                This will instantly unlock every module in the course for this student.
+                            </div>
+                        </div>
+
                         <div 
                             className={`${styles.optionCard} ${action === "start_from_today" ? styles.selected : ""}`}
                             onClick={() => setAction("start_from_today")}

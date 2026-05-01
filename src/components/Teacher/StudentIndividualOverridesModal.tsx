@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X, FolderOpen, PlayCircle, Save, Zap } from "lucide-react";
+import { X, FolderOpen, PlayCircle, Save } from "lucide-react";
 import styles from "./StudentIndividualOverridesModal.module.css";
 import { motion } from "framer-motion";
 import { annotateCurriculumAvailability, BuilderNodeWithAvailability } from "@/lib/teacher-course-builder";
@@ -49,7 +49,6 @@ export default function StudentIndividualOverridesModal({
 }: StudentIndividualOverridesModalProps) {
     const [draftAvailability, setDraftAvailability] = useState<Record<string, DraftAvailability>>({});
     const [savingKey, setSavingKey] = useState<string | null>(null);
-    const [isBulkSaving, setIsBulkSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const studentCurriculum = useMemo(() => {
@@ -135,39 +134,6 @@ export default function StudentIndividualOverridesModal({
         }
     };
 
-    const handleMakeAllAvailable = async () => {
-        if (!window.confirm("Are you sure you want to make all modules available immediately for this student? This will clear any existing custom overrides.")) {
-            return;
-        }
-
-        try {
-            setIsBulkSaving(true);
-            setError(null);
-            const token = localStorage.getItem("auth_token");
-            const response = await fetch("/api/teacher/students/batch-override", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {})
-                },
-                body: JSON.stringify({
-                    courseId,
-                    userId,
-                    action: "make_all_available"
-                }),
-            });
-            const payload = await response.json();
-            if (!response.ok) {
-                throw new Error(payload.error || "Failed to update availability.");
-            }
-            onSuccess();
-        } catch (saveError: any) {
-            setError(saveError.message || "Failed to update availability.");
-        } finally {
-            setIsBulkSaving(false);
-        }
-    };
-
     const renderNode = (node: BuilderNodeWithAvailability, depth: number) => {
         const draft = draftAvailability[node.id] || {
             availabilityMode: node.availabilityMode || "inherit",
@@ -248,17 +214,6 @@ export default function StudentIndividualOverridesModal({
                 <div className={styles.body}>
                     {error && <div className={styles.errorBanner}>{error}</div>}
                     
-                    <div className={styles.bulkActions}>
-                        <button 
-                            className={styles.bulkBtn} 
-                            onClick={handleMakeAllAvailable}
-                            disabled={isBulkSaving}
-                        >
-                            <Zap size={18} />
-                            {isBulkSaving ? "Processing..." : "Make All Modules Available"}
-                        </button>
-                    </div>
-
                     <div className={styles.treeWrap}>
                         {studentCurriculum.map((node) => renderNode(node, 0))}
                         {studentCurriculum.length === 0 && (
