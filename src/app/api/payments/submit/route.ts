@@ -38,27 +38,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    const payment = await prisma.payment.upsert({
-      where: { orderId },
-      update: {
-        phoneNumber,
-        transactionId,
-        amount: paymentAmount,
-        status: 'pending',
-      },
-      create: {
-        orderId,
-        phoneNumber,
-        transactionId,
-        amount: paymentAmount,
-        status: 'pending',
-      },
-    })
-
-    await prisma.order.update({
-      where: { id: orderId },
-      data: { status: 'pending' },
-    })
+    const [payment] = await prisma.$transaction([
+      prisma.payment.upsert({
+        where: { orderId },
+        update: {
+          phoneNumber,
+          transactionId,
+          amount: paymentAmount,
+          status: 'pending',
+        },
+        create: {
+          orderId,
+          phoneNumber,
+          transactionId,
+          amount: paymentAmount,
+          status: 'pending',
+        },
+      }),
+      prisma.order.update({
+        where: { id: orderId },
+        data: { status: 'pending' },
+      }),
+    ])
 
     return NextResponse.json({ payment })
   } catch (error: any) {
