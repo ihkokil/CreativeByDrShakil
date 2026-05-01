@@ -32,7 +32,7 @@ function TeacherDashboardLayoutContent({
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
         params.set("tab", tab);
-        router.push(`?${params.toString()}`);
+        router.push(`/teacher/dashboard?${params.toString()}`);
     };
 
     const mobileNavItems = [
