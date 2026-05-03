@@ -12,7 +12,6 @@ import {
     SmartphoneIcon,
     LayoutGrid,
     Inbox,
-    TicketPercent,
     ShieldCheck,
     Briefcase,
     CreditCard
@@ -127,10 +126,6 @@ export default function AdminOverview({
                     <button className={styles.actionBtn} onClick={() => onTabChange('students')} style={{ padding: '12px' }}>
                         <div className={styles.actionIcon}><Users size={18} /></div>
                         <span style={{ fontSize: '0.85rem' }}>Students</span>
-                    </button>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('coupons')} style={{ padding: '12px' }}>
-                        <div className={styles.actionIcon}><TicketPercent size={18} /></div>
-                        <span style={{ fontSize: '0.85rem' }}>Coupons</span>
                     </button>
                     <button className={styles.actionBtn} onClick={() => onTabChange('sessions')} style={{ padding: '12px' }}>
                         <div className={styles.actionIcon}><MonitorIcon size={18} /></div>

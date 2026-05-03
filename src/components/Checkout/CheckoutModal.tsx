@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { BkashDisplay } from './BkashDisplay'
-import { CouponInput } from './CouponInput'
 import { PaymentForm } from './PaymentForm'
 import styles from './Checkout.module.css'
 
@@ -14,24 +13,19 @@ interface CheckoutModalProps {
 
 export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
   const [step, setStep] = useState(1)
-  const [showCoupon, setShowCoupon] = useState(false)
-  const [coupon, setCoupon] = useState<string | null>(null)
-  const [discount, setDiscount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [order, setOrder] = useState<any>(null)
   const [error, setError] = useState('')
 
   if (!isOpen) return null
 
-  const amount = course.price - discount
+  const amount = course.price
 
   const priceLabel = new Intl.NumberFormat('en-BD', {
     maximumFractionDigits: 0,
   }).format(course.price)
 
-  const totalLabel = new Intl.NumberFormat('en-BD', {
-    maximumFractionDigits: 0,
-  }).format(amount)
+  const totalLabel = priceLabel
 
   const handleInitiateOrder = async () => {
     setLoading(true)
@@ -42,7 +36,6 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           courseId: course.id,
-          couponCode: coupon,
         }),
       })
       const data = await res.json()
@@ -101,57 +94,11 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
                 <span>Course price</span>
                 <strong>{priceLabel} TK</strong>
               </div>
-              {discount > 0 && (
-                <div className={styles.summaryRow}>
-                  <span>Coupon discount</span>
-                  <strong className={styles.discountText}>- {discount} TK</strong>
-                </div>
-              )}
               <div className={`${styles.summaryRow} ${styles.totalRow}`}>
                  <span>Total payable</span>
                 <strong>{totalLabel} TK</strong>
               </div>
             </div>
-
-            {!coupon ? (
-              <button
-                type="button"
-                className={styles.couponToggle}
-                onClick={() => setShowCoupon((prev) => !prev)}
-              >
-                {showCoupon ? 'Hide coupon code' : 'Do you have a coupon?'}
-              </button>
-            ) : (
-              <div className={styles.appliedCouponBar}>
-                <span>Coupon applied: <strong>{coupon}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCoupon(null)
-                    setDiscount(0)
-                    setShowCoupon(false)
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-            )}
-
-            {showCoupon && !coupon && (
-              <div className={styles.couponSection}>
-                <CouponInput
-                  onApply={(code, disc) => {
-                    setCoupon(code)
-                    setDiscount(disc)
-                    setShowCoupon(false)
-                  }}
-                  onRemove={() => {
-                    setCoupon(null)
-                    setDiscount(0)
-                  }}
-                />
-              </div>
-            )}
 
             <button
               onClick={handleInitiateOrder}
