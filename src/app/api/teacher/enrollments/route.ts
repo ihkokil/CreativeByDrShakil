@@ -113,8 +113,7 @@ export async function POST(request: NextRequest) {
         where: { id: existingOrder.id },
         data: { 
           status: 'approved',
-          totalAmount: 0, 
-          discountAmount: 0,
+          totalAmount: 0,
         },
         include: { course: true, user: true },
       });
@@ -124,8 +123,7 @@ export async function POST(request: NextRequest) {
           userId: student.id,
           courseId,
           status: 'approved',
-          totalAmount: 0, 
-          discountAmount: 0,
+          totalAmount: 0,
         },
         include: { course: true, user: true },
       });
