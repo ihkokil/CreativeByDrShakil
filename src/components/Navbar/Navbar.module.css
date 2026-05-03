@@ -208,7 +208,7 @@
     text-overflow: ellipsis;
 }
 
-.userRole {
+.userHeader .userRole {
     font-size: 10px;
     color: var(--primary);
     text-transform: uppercase;
@@ -280,4 +280,8 @@
         width: 200px;
         right: -4px;
     }
+}
+
+.mobileOnlyText {
+    display: none;
 }
