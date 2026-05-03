@@ -81,49 +81,90 @@
 
 .linkColumn a {
     color: var(--text-muted);
-    text-decoration: none;
     font-weight: var(--weight-medium);
     transition: all var(--duration-fast) var(--ease-premium);
-    display: inline-block;
     font-size: var(--text-small);
+    text-decoration: none;
+    display: flex;
+    align-content: center;
+    justify-content: flex-start;
 }
 
 .linkColumn a:hover {
-    color: var(--primary);
+    color: #ffffff;
     transform: translateX(5px);
 }
 
 .socialGrid {
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    gap: 16px;
     margin-top: 10px;
-    flex-wrap: wrap;
 }
 
-.socialIcon {
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-md);
-    background: var(--surface-soft);
-    border: 1px solid var(--glass-border);
+.socialButton {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 16px;
+    padding: 14px 24px;
+    border-radius: var(--radius-lg);
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
     color: var(--foreground);
-    transition: all var(--duration-fast) var(--ease-premium);
+    text-decoration: none;
+    font-weight: var(--weight-bold);
+    font-size: var(--text-small);
+    transition: all var(--duration-base) var(--ease-premium);
+    width: 100%;
+    max-width: 240px;
+    position: relative;
+    overflow: hidden;
 }
 
-.socialIcon svg {
-    width: 20px;
-    height: 20px;
+.socialButton span {
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
 }
 
-.socialIcon:hover {
-    background: var(--primary);
+.socialButton svg {
+    width: 22px;
+    height: 22px;
+    transition: transform var(--duration-fast);
+}
+
+/* Facebook Specific */
+.facebookBtn:hover {
+    background: #1877F2;
+    border-color: #1877F2;
     color: white;
-    border-color: var(--primary);
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 10px 20px color-mix(in srgb, var(--primary) 30%, transparent);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(24, 119, 242, 0.3);
+}
+
+/* YouTube Specific */
+.youtubeBtn:hover {
+    background: #FF0000;
+    border-color: #FF0000;
+    color: white;
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(255, 0, 0, 0.3);
+}
+
+.socialButton:hover svg {
+    transform: scale(1.1);
+}
+
+.socialButton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity var(--duration-fast);
+}
+
+.socialButton:hover::after {
+    opacity: 1;
 }
 
 /* Bottom Bar */
