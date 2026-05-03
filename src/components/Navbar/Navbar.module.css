@@ -258,7 +258,7 @@
         gap: 8px;
     }
 
-    .rightActions > button:first-child {
+    .rightActions > button:nth-child(1) {
         display: none; /* Hide ThemeToggle inside Navbar on mobile */
     }
 
