@@ -92,7 +92,7 @@ export default function Navbar() {
                                     className={styles.userMenuBtn}
                                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                                 >
-                                    <User size={20} />
+                                    <User size={18} />
                                     <span className={styles.navText}>Account</span>
                                 </button>
 

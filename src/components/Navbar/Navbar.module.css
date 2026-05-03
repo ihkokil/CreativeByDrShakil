@@ -1,23 +1,25 @@
 .navbar {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    width: 100%;
-    padding: 8px var(--layout-gutter-tablet);
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100% - (var(--layout-gutter-desktop) * 2), var(--layout-max-width));
+    padding: 10px var(--layout-gutter-tablet);
     z-index: 1000;
     display: flex;
     align-items: center;
     background: var(--glass);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--glass-border);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-soft);
     transition: all var(--duration-base) var(--ease-premium);
 }
 
 .navbar.scrolled {
-    background: color-mix(in srgb, var(--background) 95%, transparent);
+    top: 8px;
+    background: color-mix(in srgb, var(--background) 85%, transparent);
     backdrop-filter: blur(24px);
     border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
     box-shadow: var(--shadow-premium);
@@ -157,7 +159,7 @@
     font-weight: var(--weight-bold);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
     transition: all var(--duration-fast);
 }
@@ -206,7 +208,7 @@
     text-overflow: ellipsis;
 }
 
-.userRole {
+.userHeader .userRole {
     font-size: 10px;
     color: var(--primary);
     text-transform: uppercase;
@@ -251,15 +253,13 @@
 
 @media (max-width: 768px) {
     .navbar {
-        padding: 8px var(--layout-gutter-mobile);
+        top: 12px;
+        width: min(100% - (var(--layout-gutter-mobile) * 2), var(--layout-max-width));
+        padding: 10px var(--layout-gutter-mobile);
     }
 
     .rightActions {
-        gap: 8px;
-    }
-
-    .rightActions > button:nth-child(1) {
-        display: none; /* Hide ThemeToggle inside Navbar on mobile */
+        gap: 6px;
     }
 
     .accountBtn {
@@ -274,10 +274,6 @@
 
     .navText {
         display: none;
-    }
-
-    .userWrapper {
-        gap: 8px;
     }
 
     .userDropdown {
