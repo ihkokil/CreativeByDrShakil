@@ -271,6 +271,11 @@
         gap: 6px;
     }
 
+    /* Hide theme toggle on mobile - it will be shown as floating button */
+    .rightActions > :first-child {
+        display: none;
+    }
+
     .accountBtn {
         padding: 8px 12px;
         font-size: var(--text-tiny);
