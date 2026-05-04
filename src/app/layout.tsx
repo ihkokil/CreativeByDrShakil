@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import SessionWarningToast from "@/components/SessionWarning/SessionWarning";
 import ContentProtection from "@/components/ContentProtection/ContentProtection";
+import FloatingThemeToggle from "@/components/ThemeToggle/FloatingThemeToggle";
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -27,6 +28,7 @@ export default function RootLayout({
                     <ContentProtection />
                     {children}
                     <SessionWarningToast />
+                    <FloatingThemeToggle />
                 </AuthProvider>
             </body>
         </html>
