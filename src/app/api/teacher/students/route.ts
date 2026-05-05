@@ -52,10 +52,8 @@ type ProgressRow = {
 };
 
 const getTeacherCourses = async (teacherId: string, role: string) => {
-  const where = role === 'admin' ? {} : { teacherId };
-
   return prisma.course.findMany({
-    where,
+    where: {},
     orderBy: { updatedAt: 'desc' },
     include: {
       category: true,
@@ -122,7 +120,7 @@ export async function GET(request: NextRequest) {
     }
 
     const selectedCourse = await prisma.course.findFirst({
-      where: payload.role === 'admin' ? { id: selectedCourseId } : { id: selectedCourseId, teacherId: payload.sub },
+      where: { id: selectedCourseId },
       select: {
         id: true,
         title: true,
@@ -308,7 +306,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const course = await prisma.course.findFirst({
-      where: payload.role === 'admin' ? { id: courseId } : { id: courseId, teacherId: payload.sub },
+      where: { id: courseId },
       select: { id: true },
     });
 

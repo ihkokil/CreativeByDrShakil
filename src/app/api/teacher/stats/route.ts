@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
 
     const teacherId = payload.sub;
 
-    // 1. Get all courses for this teacher
+    // 1. Get all courses in the system
     const courses = await prisma.course.findMany({
-      where: { teacherId },
+      where: {},
       select: {
         id: true,
         title: true,
