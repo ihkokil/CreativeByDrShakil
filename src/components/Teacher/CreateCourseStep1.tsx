@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Upload, Calendar } from "lucide-react";
 import Image from "next/image";
 import styles from "./CreateCourseStep1.module.css";
-import { fetchCategories, CategorySummary } from "@/lib/categories";
 import { formatDisplayDate, parseDisplayDateToIso } from "@/lib/date-format";
 
 function CreateCourseStep1Content() {
@@ -13,13 +12,11 @@ function CreateCourseStep1Content() {
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
 
-  const [categories, setCategories] = useState<CategorySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
-  const [categoryId, setCategoryId] = useState("");
   const [price, setPrice] = useState(0);
   const [salePrice, setSalePrice] = useState<number | null>(null);
   const [duration, setDuration] = useState("");
@@ -28,13 +25,10 @@ function CreateCourseStep1Content() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
 
-  // Fetch categories and course data
+  // Fetch course data if editing
   useEffect(() => {
     const init = async () => {
       try {
-        // Fetch categories
-        setCategories(await fetchCategories());
-
         // If editing, fetch existing course
         if (courseId) {
           const token = localStorage.getItem("auth_token");
@@ -46,7 +40,6 @@ function CreateCourseStep1Content() {
             const data = await courseResponse.json();
             const course = data.course;
             setTitle(course.title || "");
-            setCategoryId(course.categoryId || "");
             setPrice(course.price || 0);
             setSalePrice(course.salePrice || null);
             setDuration(course.duration || "");
@@ -82,8 +75,8 @@ function CreateCourseStep1Content() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !categoryId) {
-      setError("Title and category are required");
+    if (!title.trim()) {
+      setError("Title is required");
       return;
     }
 
@@ -114,7 +107,6 @@ function CreateCourseStep1Content() {
         method: courseId ? "PATCH" : "POST",
         body: JSON.stringify({
           title: title.trim(),
-          categoryId,
           price: parseFloat(price.toString()),
           salePrice: salePrice ? parseFloat(salePrice.toString()) : null,
           duration: duration.trim(),
@@ -183,25 +175,6 @@ function CreateCourseStep1Content() {
               className={styles.input}
               required
             />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              Category <span className={styles.required}>*</span>
-            </label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className={styles.select}
-              required
-            >
-              <option value="">Select a category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.displayName}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 

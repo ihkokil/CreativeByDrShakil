@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth-server'
 import prisma from '@/lib/prisma'
+import { sendPaymentVerificationEmail } from '@/lib/payment-emails'
+import { sendTelegramVerification } from '@/lib/telegram'
 
 const paymentSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
@@ -59,7 +61,52 @@ export async function POST(request: NextRequest) {
         where: { id: orderId },
         data: { status: 'pending' },
       }),
-    ])
+    ]);
+
+    // Trigger notifications in the background
+    (async () => {
+      try {
+        const fullOrder = await prisma.order.findUnique({
+          where: { id: orderId },
+          include: { 
+            user: { select: { fullName: true } },
+            course: { select: { title: true } }
+          }
+        });
+
+        if (fullOrder) {
+          const managers = await prisma.user.findMany({
+            where: { canManagePayments: true },
+            select: { email: true }
+          });
+
+          // Send emails
+          for (const manager of managers) {
+            await sendPaymentVerificationEmail({
+              to: manager.email,
+              studentName: fullOrder.user.fullName,
+              courseTitle: fullOrder.course.title,
+              amount: paymentAmount,
+              transactionId,
+              phoneNumber,
+              orderId
+            });
+          }
+
+          // Send Telegram notification
+          await sendTelegramVerification({
+            orderId,
+            studentName: fullOrder.user.fullName,
+            courseTitle: fullOrder.course.title,
+            amount: paymentAmount,
+            transactionId,
+            phoneNumber
+          });
+        }
+      } catch (err) {
+        console.error('Failed to send payment notifications:', err);
+      }
+    })();
 
     return NextResponse.json({ payment })
   } catch (error: any) {
