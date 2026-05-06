@@ -69,8 +69,6 @@ export default function Navbar() {
                     <div className={styles.centerLinks}>
                         <Link href="/courses" className={styles.link}>Courses</Link>
                         <Link href="/contact" className={styles.link}>Contact</Link>
-                        <Link href="/exams" className={styles.link}>Mock Exams</Link>
-                        <Link href="/resources" className={styles.link}>Resources</Link>
                     </div>
 
                     <div className={styles.rightActions}>
