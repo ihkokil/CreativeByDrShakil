@@ -208,7 +208,7 @@
     text-overflow: ellipsis;
 }
 
-.userHeader .userRole {
+.userRole {
     font-size: 10px;
     color: var(--primary);
     text-transform: uppercase;
@@ -245,6 +245,15 @@
     background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
+.mobileLinks {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 4px;
+}
+
 @media (max-width: 1024px) {
     .centerLinks {
         display: none;
@@ -279,6 +288,10 @@
     .userDropdown {
         width: 200px;
         right: -4px;
+    }
+
+    .mobileLinks {
+        display: flex;
     }
 }
 
