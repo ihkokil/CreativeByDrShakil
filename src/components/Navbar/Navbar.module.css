@@ -145,48 +145,104 @@
     box-shadow: 0 8px 20px color-mix(in srgb, var(--foreground) 20%, transparent);
 }
 
-.userSection {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+.userWrapper {
+    position: relative;
 }
 
-.dashboardLink {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.userMenuBtn {
     background: var(--surface-soft);
     border: 1px solid var(--glass-border);
+    color: var(--foreground);
     padding: 8px 16px;
     border-radius: var(--radius-md);
     font-size: var(--text-small);
     font-weight: var(--weight-bold);
-    transition: all var(--duration-fast) var(--ease-premium);
-}
-
-.dashboardLink:hover {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 25%, transparent);
-}
-
-.logoutBtn {
-    background: transparent;
-    border: 1px solid var(--glass-border);
-    color: var(--error);
-    padding: 8px;
-    border-radius: var(--radius-md);
-    cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
     transition: all var(--duration-fast);
 }
 
-.logoutBtn:hover {
-    background: color-mix(in srgb, var(--error) 12%, transparent);
-    border-color: var(--error);
+.userMenuBtn:hover {
+    background: var(--surface-strong);
+    border-color: var(--primary);
+}
+
+.userDropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 240px;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-premium);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 1001;
+    animation: dropdownSlide 0.2s var(--ease-premium);
+}
+
+@keyframes dropdownSlide {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.userHeader {
+    padding: 12px;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 4px;
+    display: flex;
+    flex-direction: column;
+}
+
+.userEmail {
+    font-size: var(--text-tiny);
+    color: var(--foreground);
+    font-weight: var(--weight-semibold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.userRole {
+    font-size: 10px;
+    color: var(--primary);
+    text-transform: uppercase;
+    font-weight: var(--weight-bold);
+    letter-spacing: 1px;
+}
+
+.dropdownLink, .dropdownLogout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-small);
+    font-weight: var(--weight-medium);
+    transition: background var(--duration-fast);
+    width: 100%;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--foreground);
+}
+
+.dropdownLink:hover {
+    background: var(--surface-soft);
+    color: var(--primary);
+}
+
+.dropdownLogout {
+    color: var(--error);
+}
+
+.dropdownLogout:hover {
+    background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
 @media (max-width: 1024px) {
@@ -203,16 +259,25 @@
     }
 
     .rightActions {
-        gap: 10px;
+        gap: 6px;
     }
 
     .accountBtn {
         padding: 8px 12px;
         font-size: var(--text-tiny);
+        gap: 6px;
     }
 
-    .dashboardLink {
-        padding: 8px 12px;
-        font-size: var(--text-tiny);
+    .userMenuBtn {
+        padding: 8px 10px;
+    }
+
+    .navText {
+        display: none;
+    }
+
+    .userDropdown {
+        width: 200px;
+        right: -4px;
     }
 }
