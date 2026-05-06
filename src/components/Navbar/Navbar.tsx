@@ -77,10 +77,12 @@ export default function Navbar() {
                         {user ? (
                             <div className={styles.userSection}>
                                 <Link href={dashboardHref} className={styles.dashboardLink}>
-                                    <Layout size={18} /> Dashboard
+                                    <Layout size={18} />
+                                    <span className={styles.navText}>Dashboard</span>
                                 </Link>
                                 <button className={styles.logoutBtn} onClick={() => signOut()}>
                                     <LogOut size={18} />
+                                    <span className={styles.mobileOnlyText}>Sign Out</span>
                                 </button>
                             </div>
                         ) : (
@@ -92,7 +94,7 @@ export default function Navbar() {
                                 }}
                             >
                                 <User size={18} />
-                                Login
+                                <span className={styles.navText}>Login</span>
                             </button>
                         )}
                     </div>
