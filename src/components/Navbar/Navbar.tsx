@@ -17,6 +17,8 @@ export default function Navbar() {
     const { user, role, signOut } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const userMenuRef = useRef<HTMLDivElement>(null);
 
     const dashboardHref = role === "admin"
         ? "/admin/dashboard"
@@ -30,6 +32,16 @@ export default function Navbar() {
         };
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+                setIsUserMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     useEffect(() => {
@@ -75,13 +87,39 @@ export default function Navbar() {
                         <ThemeToggle />
 
                         {user ? (
-                            <div className={styles.userSection}>
-                                <Link href={dashboardHref} className={styles.dashboardLink}>
-                                    <Layout size={18} /> Dashboard
-                                </Link>
-                                <button className={styles.logoutBtn} onClick={() => signOut()}>
-                                    <LogOut size={18} />
+                            <div className={styles.userWrapper} ref={userMenuRef}>
+                                <button
+                                    className={styles.userMenuBtn}
+                                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                >
+                                    <User size={20} />
+                                    <span className={styles.navText}>Account</span>
                                 </button>
+
+                                {isUserMenuOpen && (
+                                    <div className={styles.userDropdown}>
+                                        <div className={styles.userHeader}>
+                                            <span className={styles.userEmail}>{user.email}</span>
+                                            <span className={styles.userRole}>{role}</span>
+                                        </div>
+                                        <Link
+                                            href={dashboardHref}
+                                            className={styles.dropdownLink}
+                                            onClick={() => setIsUserMenuOpen(false)}
+                                        >
+                                            <Layout size={18} /> Dashboard
+                                        </Link>
+                                        <button
+                                            className={styles.dropdownLogout}
+                                            onClick={() => {
+                                                signOut();
+                                                setIsUserMenuOpen(false);
+                                            }}
+                                        >
+                                            <LogOut size={18} /> Sign Out
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <button
@@ -92,7 +130,7 @@ export default function Navbar() {
                                 }}
                             >
                                 <User size={18} />
-                                Login
+                                <span className={styles.navText}>Login</span>
                             </button>
                         )}
                     </div>
