@@ -37,11 +37,6 @@ export async function GET(
             sortOrder: true,
           },
         },
-        category: {
-          select: {
-            displayName: true,
-          },
-        },
         _count: {
           select: {
             orders: {
@@ -63,7 +58,6 @@ export async function GET(
         id: course.id,
         slug: course.slug,
         title: course.title,
-        category: course.category?.displayName || 'General',
         price: formatPrice(course.price),
         salePrice: course.salePrice ? formatPrice(course.salePrice) : null,
         priceValue: course.price,

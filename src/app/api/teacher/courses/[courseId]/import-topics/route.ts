@@ -14,11 +14,7 @@ import {
 import { buildCurriculumFromStarter, getStarterCatalogFromDB } from '@/lib/starter-catalog';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  if (role === 'admin') {
-    return prisma.course.findUnique({ where: { id: courseId } });
-  }
-
-  return prisma.course.findFirst({ where: { id: courseId, teacherId: userId } });
+  return prisma.course.findUnique({ where: { id: courseId } });
 };
 
 const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {

@@ -9,14 +9,11 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-directory";
 import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
-import { CategorySummary, fetchCategories } from "@/lib/categories";
 import CourseCardSkeleton from "./CourseCardSkeleton";
 
 export default function Courses() {
-    const [filter, setFilter] = useState("All");
     const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
     const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
-    const [categories, setCategories] = useState<CategorySummary[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -65,41 +62,8 @@ export default function Courses() {
         };
     }, []);
 
-    useEffect(() => {
-        let cancelled = false;
-
-        const loadCategories = async () => {
-            try {
-                const list = await fetchCategories();
-                if (!cancelled) {
-                    setCategories(list);
-                }
-            } catch {
-                // Keep the course-derived filters if category fetch fails.
-            }
-        };
-
-        loadCategories();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
     const displayCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
-    const allCourses = displayCourses;
-
-    const filtered = filter === "All"
-        ? allCourses.slice(0, 3)
-        : allCourses.filter(c => c.category === filter).slice(0, 3);
-
-    const categoryTabs = [
-        "All",
-        ...new Set([
-            ...categories.map((category) => category.displayName),
-            ...allCourses.map((course) => course.category),
-        ]),
-    ];
+    const filtered = displayCourses.slice(0, 3);
 
     return (
         <section className="section-padding">
@@ -108,19 +72,6 @@ export default function Courses() {
                     <div className={styles.titles}>
                         <h2 className={styles.sectionTitle}>Featured Courses</h2>
                         <p className={styles.subtitle}>Hand-picked professional training by senior consultants.</p>
-                    </div>
-                    <div className={styles.tabsSection}>
-                        <div className={styles.tabs}>
-                            {categoryTabs.map(cat => (
-                                <button
-                                    key={cat}
-                                    className={`${styles.tab} ${filter === cat ? styles.activeTab : ""}`}
-                                    onClick={() => setFilter(cat)}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
-                        </div>
                     </div>
                 </div>
 
