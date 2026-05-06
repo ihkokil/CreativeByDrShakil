@@ -144,18 +144,6 @@
   padding: 12px;
 }
 
-.category {
-  display: inline-flex;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 14%, transparent);
-  margin-bottom: 8px;
-}
 
 .courseBody h3 {
   margin: 0 0 10px;
@@ -780,23 +768,6 @@
   z-index: 1;
 }
 
-.courseCardCategory {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
-  padding: 5px 10px;
-  border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
 
 /* -- Circular Progress Ring -- */
 .courseCardRing {

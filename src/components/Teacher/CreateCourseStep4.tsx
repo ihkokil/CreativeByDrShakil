@@ -11,7 +11,6 @@ interface CourseData {
   id: string;
   title: string;
   imageUrl?: string;
-  category: { displayName: string };
   price: number;
   salePrice?: number;
   duration: string;
@@ -153,7 +152,6 @@ function CreateCourseStep4Content() {
 
             <div className={styles.overviewInfo}>
               <h3 className={styles.courseTitle}>{course.title}</h3>
-              <p className={styles.courseCategory}>{course.category?.displayName || "General"}</p>
               {course.isFeatured && <p className={styles.courseCategory}>Featured course</p>}
 
               <div className={styles.courseMeta}>

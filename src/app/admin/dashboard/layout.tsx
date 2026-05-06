@@ -49,7 +49,6 @@ function AdminDashboardLayoutContent({
         { id: 'students', label: 'Students', icon: GraduationCap },
         { id: 'teachers', label: 'Teachers', icon: Users },
         { id: 'payments', label: 'Payments', icon: CreditCard },
-        { id: 'categories', label: 'Categories', icon: LayoutGrid },
         { id: 'support', label: 'Inbox', icon: Inbox },
     ];
 

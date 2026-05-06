@@ -19,23 +19,6 @@
     background: var(--surface-soft);
 }
 
-.categoryBadge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: color-mix(in srgb, var(--background) 80%, transparent);
-    backdrop-filter: blur(8px);
-    color: var(--foreground);
-    padding: 6px 14px;
-    border-radius: var(--radius-full);
-    font-size: var(--text-tiny);
-    font-weight: var(--weight-extrabold);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    z-index: 2;
-    border: 1px solid var(--glass-border);
-}
 
 .cardInfo {
     padding: 24px;
@@ -226,11 +209,6 @@
     margin-bottom: 10px;
 }
 
-.skeletonBadge {
-    height: 24px;
-    width: 60px;
-    border-radius: var(--radius-full);
-}
 
 .skeletonAvatar {
     width: 28px;

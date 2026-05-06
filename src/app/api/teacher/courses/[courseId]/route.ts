@@ -43,7 +43,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
-        category: true,
         instructors: { orderBy: { sortOrder: 'asc' } },
       },
     });
@@ -105,11 +104,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body.overview === 'string') updateData.overview = body.overview.trim() || null;
     if (typeof body.learningOutcomes === 'string') updateData.learningOutcomes = body.learningOutcomes.trim() || null;
 
-    if (typeof body.categoryId === 'string') {
-      updateData.categoryId = body.categoryId.trim() || null;
-    } else if (typeof body.category === 'string') {
-      updateData.categoryId = body.category.trim() || null;
-    }
     if (typeof body.duration === 'string') updateData.duration = body.duration.trim() || existingCourse.duration;
     if (typeof body.language === 'string') updateData.language = body.language.trim() || null;
     if (typeof body.imageUrl === 'string') updateData.imageUrl = body.imageUrl.trim() || null;
