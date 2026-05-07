@@ -19,6 +19,8 @@ export default function Navbar() {
     const pathname = usePathname();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
+    const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+    const navMenuRef = useRef<HTMLDivElement>(null);
 
     const dashboardHref = role === "admin"
         ? "/admin/dashboard"
@@ -38,6 +40,9 @@ export default function Navbar() {
         const handleClickOutside = (event: MouseEvent) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
                 setIsUserMenuOpen(false);
+            }
+            if (navMenuRef.current && !navMenuRef.current.contains(event.target as Node)) {
+                setIsNavMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -74,6 +79,28 @@ export default function Navbar() {
         <>
             <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ""}`}>
                 <div className={styles.container}>
+                        {/* Mobile Navigation Menu Button */}
+                        <div className={styles.navMenuWrapper} ref={navMenuRef}>
+                            <button
+                                className={styles.navMenuBtn}
+                                onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+                                aria-label="Navigation Menu"
+                            >
+                                <Menu size={20} />
+                            </button>
+
+                            {isNavMenuOpen && (
+                                <div className={styles.navDropdown}>
+                                    <Link href="/courses" className={styles.navDropdownLink} onClick={() => setIsNavMenuOpen(false)}>
+                                        <BookOpen size={18} /> Courses
+                                    </Link>
+                                    <Link href="/contact" className={styles.navDropdownLink} onClick={() => setIsNavMenuOpen(false)}>
+                                        <Mail size={18} /> Contact
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+
                     <Link href="/" className={styles.logo}>
                         <Image src="/logo.png" alt="Creative By Dr. Shakil" width={160} height={45} priority className={styles.logoImg} />
                     </Link>
@@ -100,8 +127,8 @@ export default function Navbar() {
                                     }
                                 }}
                             >
-                                {user ? <User size={18} /> : <Menu size={18} />}
-                                <span className={styles.navText}>{user ? "Account" : "Menu"}</span>
+                                  {user ? <User size={18} /> : <User size={18} />}
+                                  <span className={styles.navText}>{user ? "Account" : "Login"}</span>
                             </button>
 
                             {isUserMenuOpen && (

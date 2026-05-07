@@ -301,5 +301,73 @@
 }
 
 .mobileOnlyText {
+
+    .navMenuWrapper {
+        position: relative;
+        display: none;
+    }
+
+    .navMenuBtn {
+        background: var(--surface-soft);
+        border: 1px solid var(--glass-border);
+        color: var(--foreground);
+        width: 40px;
+        height: 40px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--duration-fast);
+    }
+
+    .navMenuBtn:hover {
+        background: var(--surface-strong);
+        border-color: var(--primary);
+    }
+
+    .navDropdown {
+        position: absolute;
+        top: calc(100% + 12px);
+        left: 0;
+        width: 180px;
+        background: var(--card-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-premium);
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        z-index: 1001;
+        animation: dropdownSlide 0.2s var(--ease-premium);
+    }
+
+    .navDropdownLink {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: var(--radius-sm);
+        font-size: var(--text-small);
+        font-weight: var(--weight-medium);
+        transition: background var(--duration-fast);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: var(--foreground);
+        text-decoration: none;
+    }
+
+    .navDropdownLink:hover {
+        background: var(--surface-soft);
+        color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+        .navMenuWrapper {
+            display: block;
+        }
+    }
     display: none;
 }
