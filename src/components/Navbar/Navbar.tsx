@@ -120,10 +120,9 @@ export default function Navbar() {
                                     if (user) {
                                         setIsUserMenuOpen(!isUserMenuOpen);
                                     } else {
-                                        // On mobile, show a menu instead of direct login if they click the button
-                                        // or just open the login modal? 
-                                        // The user said "No Navbar links", so they need a menu.
-                                        setIsUserMenuOpen(!isUserMenuOpen);
+                                        setAuthMode("login");
+                                        setIsAuthOpen(true);
+                                        setIsUserMenuOpen(false);
                                     }
                                 }}
                             >
@@ -131,52 +130,30 @@ export default function Navbar() {
                                   <span className={styles.navText}>{user ? "Account" : "Login"}</span>
                             </button>
 
-                            {isUserMenuOpen && (
+                            {user && isUserMenuOpen && (
                                 <div className={styles.userDropdown}>
-                                    <div className={styles.mobileLinks}>
-                                        <Link href="/courses" className={styles.dropdownLink} onClick={() => setIsUserMenuOpen(false)}>
-                                            <BookOpen size={18} /> Courses
-                                        </Link>
-                                        <Link href="/contact" className={styles.dropdownLink} onClick={() => setIsUserMenuOpen(false)}>
-                                            <Mail size={18} /> Contact
-                                        </Link>
-                                    </div>
-
-                                    {user ? (
-                                        <>
-                                            <div className={styles.userHeader}>
-                                                <span className={styles.userEmail}>{user.email}</span>
-                                                <span className={styles.userRole}>{role}</span>
-                                            </div>
-                                            <Link
-                                                href={dashboardHref}
-                                                className={styles.dropdownLink}
-                                                onClick={() => setIsUserMenuOpen(false)}
-                                            >
-                                                <Layout size={18} /> Dashboard
-                                            </Link>
-                                            <button
-                                                className={styles.dropdownLogout}
-                                                onClick={() => {
-                                                    signOut();
-                                                    setIsUserMenuOpen(false);
-                                                }}
-                                            >
-                                                <LogOut size={18} /> Sign Out
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
+                                    <>
+                                        <div className={styles.userHeader}>
+                                            <span className={styles.userEmail}>{user.email}</span>
+                                            <span className={styles.userRole}>{role}</span>
+                                        </div>
+                                        <Link
+                                            href={dashboardHref}
                                             className={styles.dropdownLink}
+                                            onClick={() => setIsUserMenuOpen(false)}
+                                        >
+                                            <Layout size={18} /> Dashboard
+                                        </Link>
+                                        <button
+                                            className={styles.dropdownLogout}
                                             onClick={() => {
-                                                setAuthMode("login");
-                                                setIsAuthOpen(true);
+                                                signOut();
                                                 setIsUserMenuOpen(false);
                                             }}
                                         >
-                                            <User size={18} /> Login / Register
+                                            <LogOut size={18} /> Sign Out
                                         </button>
-                                    )}
+                                    </>
                                 </div>
                             )}
                         </div>
