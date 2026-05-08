@@ -286,24 +286,7 @@
     border-color: var(--primary);
 }
 
-.navDropdown {
-    position: absolute;
-    top: calc(100% + 12px);
-    left: 0;
-    width: 180px;
-    background: var(--card-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-premium);
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    z-index: 1001;
-    animation: dropdownSlide 0.2s var(--ease-premium);
-}
-
-.navDropdownLink {
+.navPanelLink {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -319,9 +302,73 @@
     text-decoration: none;
 }
 
-.navDropdownLink:hover {
+.navPanelLink:hover {
     background: var(--surface-soft);
     color: var(--primary);
+}
+
+.navBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    border: none;
+    z-index: 1098;
+    cursor: pointer;
+}
+
+.navSidePanel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: min(82vw, 300px);
+    background: var(--card-bg);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-premium);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1099;
+    animation: navPanelSlideIn 0.22s var(--ease-premium);
+}
+
+.navPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 8px;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 4px;
+}
+
+.navPanelTitle {
+    font-size: var(--text-small);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+}
+
+.navPanelCloseBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+    background: var(--surface-soft);
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+@keyframes navPanelSlideIn {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
 }
 
 @media (max-width: 1024px) {
@@ -370,6 +417,13 @@
 
     .navMenuWrapper {
         display: block;
+    }
+}
+
+@media (min-width: 769px) {
+    .navBackdrop,
+    .navSidePanel {
+        display: none;
     }
 }
 
