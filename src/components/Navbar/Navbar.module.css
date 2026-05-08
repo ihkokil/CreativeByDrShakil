@@ -2,19 +2,15 @@
     position: fixed;
     top: 15px;
     left: 50%;
-    transform: translateX(-50%);
-    width: min(100% - (var(--layout-gutter-desktop) * 2), var(--layout-max-width));
-    padding: 10px var(--layout-gutter-tablet);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    background: var(--glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-soft);
-    transition: all var(--duration-base) var(--ease-premium);
+        transform: none;
+        width: 100%;
+        z-index: 50;
+        justify-content: center; /* center the inner container */
+        background: rgba(255,255,255,0.8);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-bottom: 1px solid rgba(230,231,235,0.8);
+        transition: background var(--duration-fast), box-shadow var(--duration-fast);
 }
 
 .navbar.scrolled {
@@ -23,19 +19,25 @@
     backdrop-filter: blur(24px);
     border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
     box-shadow: var(--shadow-premium);
-}
+    } 
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 6px 20px rgba(16,24,40,0.06);
 
 .container {
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
+    }
+    width: min(100% - (var(--layout-gutter-desktop) * 2), var(--layout-max-width));
+    padding: 10px var(--layout-gutter-tablet);
+    gap: 12px;
 
 .logo {
     display: flex;
     align-items: center;
-}
+    }
+    order: 2;
 
 .logoImg {
     object-fit: contain;
@@ -50,7 +52,11 @@
     display: flex;
     gap: 32px;
     align-items: center;
-}
+    }
+    gap: 20px;
+    justify-content: center;
+    flex: 1;
+    order: 3;
 
 .link {
     font-size: var(--text-small);
@@ -122,7 +128,9 @@
     display: flex;
     align-items: center;
     gap: 20px;
-}
+    }
+    gap: 12px;
+    order: 4;
 
 .accountBtn {
     background: var(--foreground);
@@ -137,7 +145,15 @@
     gap: 10px;
     cursor: pointer;
     transition: transform var(--duration-fast), opacity var(--duration-fast);
-}
+    }
+    background: #fff;
+    color: var(--foreground);
+    border: 1px solid rgba(226,232,240,0.7);
+    padding: 8px 14px;
+    border-radius: 9999px; /* pill */
+    font-weight: var(--weight-semibold);
+    font-size: var(--text-small);
+    gap: 8px;
 
 .accountBtn:hover {
     transform: translateY(-2px);
@@ -265,6 +281,7 @@
 .navMenuWrapper {
     position: relative;
     display: none;
+    order: 1;
 }
 
 .navMenuBtn {
@@ -399,10 +416,7 @@
     }
 
     .userMenuBtn {
-        padding: 8px 10px;
-    }
-
-    .navText {
+        /* keep full width sticky header on mobile */
         display: none;
     }
 
