@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
-import { User, LogOut, Layout, BookOpen, Mail, Menu } from "lucide-react";
+import { User, LogOut, Layout, BookOpen, Mail, Menu, X } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -90,14 +90,34 @@ export default function Navbar() {
                             </button>
 
                             {isNavMenuOpen && (
-                                <div className={styles.navDropdown}>
-                                    <Link href="/courses" className={styles.navDropdownLink} onClick={() => setIsNavMenuOpen(false)}>
-                                        <BookOpen size={18} /> Courses
-                                    </Link>
-                                    <Link href="/contact" className={styles.navDropdownLink} onClick={() => setIsNavMenuOpen(false)}>
-                                        <Mail size={18} /> Contact
-                                    </Link>
-                                </div>
+                                <>
+                                    <button
+                                        type="button"
+                                        className={styles.navBackdrop}
+                                        aria-label="Close navigation menu"
+                                        onClick={() => setIsNavMenuOpen(false)}
+                                    />
+                                    <div className={styles.navSidePanel}>
+                                        <div className={styles.navPanelHeader}>
+                                            <span className={styles.navPanelTitle}>Menu</span>
+                                            <button
+                                                type="button"
+                                                className={styles.navPanelCloseBtn}
+                                                aria-label="Close navigation menu"
+                                                onClick={() => setIsNavMenuOpen(false)}
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+
+                                        <Link href="/courses" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <BookOpen size={18} /> Courses
+                                        </Link>
+                                        <Link href="/contact" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <Mail size={18} /> Contact
+                                        </Link>
+                                    </div>
+                                </>
                             )}
                         </div>
 
