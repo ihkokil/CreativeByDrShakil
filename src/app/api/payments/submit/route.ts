@@ -63,50 +63,60 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
-    // Trigger notifications in the background
-    (async () => {
-      try {
-        const fullOrder = await prisma.order.findUnique({
-          where: { id: orderId },
-          include: { 
-            user: { select: { fullName: true } },
-            course: { select: { title: true } }
-          }
-        });
+    const fullOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: { select: { fullName: true } },
+        course: {
+          select: {
+            title: true,
+            teacher: {
+              select: {
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-        if (fullOrder) {
-          const managers = await prisma.user.findMany({
-            where: { canManagePayments: true },
-            select: { email: true }
-          });
+    if (fullOrder) {
+      const managers = await prisma.user.findMany({
+        where: { canManagePayments: true },
+        select: { email: true },
+      });
 
-          // Send emails
-          for (const manager of managers) {
-            await sendPaymentVerificationEmail({
-              to: manager.email,
-              studentName: fullOrder.user.fullName,
-              courseTitle: fullOrder.course.title,
-              amount: paymentAmount,
-              transactionId,
-              phoneNumber,
-              orderId
-            });
-          }
+      const recipientEmails = new Set<string>();
+      for (const manager of managers) {
+        if (manager.email) recipientEmails.add(manager.email);
+      }
+      if (fullOrder.course.teacher?.email) {
+        recipientEmails.add(fullOrder.course.teacher.email);
+      }
 
-          // Send Telegram notification
-          await sendTelegramVerification({
-            orderId,
+      await Promise.allSettled(
+        Array.from(recipientEmails).map((email) =>
+          sendPaymentVerificationEmail({
+            to: email,
             studentName: fullOrder.user.fullName,
             courseTitle: fullOrder.course.title,
             amount: paymentAmount,
             transactionId,
-            phoneNumber
-          });
-        }
-      } catch (err) {
-        console.error('Failed to send payment notifications:', err);
-      }
-    })();
+            phoneNumber,
+            orderId,
+          })
+        )
+      );
+
+      await sendTelegramVerification({
+        orderId,
+        studentName: fullOrder.user.fullName,
+        courseTitle: fullOrder.course.title,
+        amount: paymentAmount,
+        transactionId,
+        phoneNumber,
+      });
+    }
 
     return NextResponse.json({ payment })
   } catch (error: any) {
