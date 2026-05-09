@@ -442,8 +442,8 @@
 }
 
 .actionBtn {
-    width: 34px;
-    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
     border-radius: 10px;
     border: 1px solid var(--glass-border);
     background: color-mix(in srgb, var(--card-bg) 86%, transparent);
@@ -453,6 +453,18 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s;
+}
+
+.actionBtnWide {
+    min-width: 108px;
+    padding: 0 14px;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.actionBtnWide span {
+    line-height: 1;
 }
 
 .actionBtn:hover {
@@ -713,6 +725,16 @@
     display: flex;
     gap: 10px;
     justify-content: flex-end;
+}
+
+.confirmCancelBtnWide,
+.confirmPrimaryBtnWide {
+    min-width: 120px;
+    padding-inline: 16px;
+    gap: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .confirmCancelBtn {
