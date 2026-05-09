@@ -31,6 +31,10 @@
     justify-content: space-between;
     align-items: center;
 }
+/* allow absolute-centering of middle links/logo when needed */
+.container {
+    position: relative;
+}
 
 .logo {
     display: flex;
@@ -50,6 +54,9 @@
     display: flex;
     gap: 32px;
     align-items: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .link {
@@ -187,8 +194,15 @@
 }
 
 @keyframes dropdownSlide {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .userHeader {
@@ -216,7 +230,8 @@
     letter-spacing: 1px;
 }
 
-.dropdownLink, .dropdownLogout {
+.dropdownLink,
+.dropdownLogout {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -254,6 +269,116 @@
     margin-bottom: 4px;
 }
 
+.navMenuWrapper {
+    position: relative;
+    display: none;
+    order: 1;
+}
+
+.navMenuBtn {
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    color: var(--foreground);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--duration-fast);
+}
+
+.navMenuBtn:hover {
+    background: var(--surface-strong);
+    border-color: var(--primary);
+}
+
+.navPanelLink {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-small);
+    font-weight: var(--weight-medium);
+    transition: background var(--duration-fast);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--foreground);
+    text-decoration: none;
+}
+
+.navPanelLink:hover {
+    background: var(--surface-soft);
+    color: var(--primary);
+}
+
+.navBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    border: none;
+    z-index: 1098;
+    cursor: pointer;
+}
+
+.navSidePanel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    width: min(82vw, 300px);
+    background: var(--card-bg);
+    border-right: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-premium);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1099;
+    animation: navPanelSlideIn 0.22s var(--ease-premium);
+}
+
+.navPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 4px 8px;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 4px;
+}
+
+.navPanelTitle {
+    font-size: var(--text-small);
+    font-weight: var(--weight-bold);
+    color: var(--foreground);
+}
+
+.navPanelCloseBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+    background: var(--surface-soft);
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+@keyframes navPanelSlideIn {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
 @media (max-width: 1024px) {
     .centerLinks {
         display: none;
@@ -267,8 +392,25 @@
         padding: 10px var(--layout-gutter-mobile);
     }
 
+    .navMenuWrapper {
+        display: flex;
+        order: 1;
+    }
+
+    .logo {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        order: 2;
+    }
+
     .rightActions {
         gap: 6px;
+        order: 3;
+    }
+
+    .rightActions > :first-child {
+        display: none;
     }
 
     .accountBtn {
@@ -278,10 +420,7 @@
     }
 
     .userMenuBtn {
-        padding: 8px 10px;
-    }
-
-    .navText {
+        /* keep full width sticky header on mobile */
         display: none;
     }
 
@@ -292,6 +431,17 @@
 
     .mobileLinks {
         display: flex;
+    }
+
+    .navMenuWrapper {
+        display: block;
+    }
+}
+
+@media (min-width: 769px) {
+    .navBackdrop,
+    .navSidePanel {
+        display: none;
     }
 }
 
