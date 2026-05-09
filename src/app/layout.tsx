@@ -5,6 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import SessionWarningToast from "@/components/SessionWarning/SessionWarning";
 import ContentProtection from "@/components/ContentProtection/ContentProtection";
 import FloatingThemeToggle from "@/components/ThemeToggle/FloatingThemeToggle";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -29,6 +30,7 @@ export default function RootLayout({
                     {children}
                     <SessionWarningToast />
                     <FloatingThemeToggle />
+                    <SpeedInsights />
                 </AuthProvider>
             </body>
         </html>
