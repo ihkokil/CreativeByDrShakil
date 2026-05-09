@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
-import { User, LogOut, Layout, BookOpen, Mail, Menu } from "lucide-react";
+import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -19,6 +19,8 @@ export default function Navbar() {
     const pathname = usePathname();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const userMenuRef = useRef<HTMLDivElement>(null);
+    const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+    const navMenuRef = useRef<HTMLDivElement>(null);
 
     const dashboardHref = role === "admin"
         ? "/admin/dashboard"
@@ -38,6 +40,9 @@ export default function Navbar() {
         const handleClickOutside = (event: MouseEvent) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
                 setIsUserMenuOpen(false);
+            }
+            if (navMenuRef.current && !navMenuRef.current.contains(event.target as Node)) {
+                setIsNavMenuOpen(false);
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
@@ -74,13 +79,65 @@ export default function Navbar() {
         <>
             <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ""}`}>
                 <div className={styles.container}>
+                        {/* Mobile Navigation Menu Button */}
+                        <div className={styles.navMenuWrapper} ref={navMenuRef}>
+                            <button
+                                className={styles.navMenuBtn}
+                                onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+                                aria-label="Navigation Menu"
+                            >
+                                <Menu size={20} />
+                            </button>
+
+                            {isNavMenuOpen && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className={styles.navBackdrop}
+                                        aria-label="Close navigation menu"
+                                        onClick={() => setIsNavMenuOpen(false)}
+                                    />
+                                    <div className={styles.navSidePanel}>
+                                        <div className={styles.navPanelHeader}>
+                                            <span className={styles.navPanelTitle}>Menu</span>
+                                            <button
+                                                type="button"
+                                                className={styles.navPanelCloseBtn}
+                                                aria-label="Close navigation menu"
+                                                onClick={() => setIsNavMenuOpen(false)}
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+
+                                        <Link href="/" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <Home size={18} /> Home
+                                        </Link>
+                                        <Link href="/courses" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <BookOpen size={18} /> Courses
+                                        </Link>
+                                        <Link href="/contact" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <Mail size={18} /> Contact
+                                        </Link>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
                     <Link href="/" className={styles.logo}>
                         <Image src="/logo.png" alt="Creative By Dr. Shakil" width={160} height={45} priority className={styles.logoImg} />
                     </Link>
 
                     <div className={styles.centerLinks}>
-                        <Link href="/courses" className={styles.link}>Courses</Link>
-                        <Link href="/contact" className={styles.link}>Contact</Link>
+                        <Link href="/" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}} aria-label="Home">
+                            <Home size={16} /> Home
+                        </Link>
+                        <Link href="/courses" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+                            <BookOpen size={16} /> Courses
+                        </Link>
+                        <Link href="/contact" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+                            <Mail size={16} /> Contact
+                        </Link>
                     </div>
 
                     <div className={styles.rightActions}>
@@ -93,63 +150,40 @@ export default function Navbar() {
                                     if (user) {
                                         setIsUserMenuOpen(!isUserMenuOpen);
                                     } else {
-                                        // On mobile, show a menu instead of direct login if they click the button
-                                        // or just open the login modal? 
-                                        // The user said "No Navbar links", so they need a menu.
-                                        setIsUserMenuOpen(!isUserMenuOpen);
+                                        setAuthMode("login");
+                                        setIsAuthOpen(true);
+                                        setIsUserMenuOpen(false);
                                     }
                                 }}
                             >
-                                {user ? <User size={18} /> : <Menu size={18} />}
-                                <span className={styles.navText}>{user ? "Account" : "Menu"}</span>
+                                  {user ? <User size={18} /> : <User size={18} />}
+                                  <span className={styles.navText}>{user ? "Account" : "Login"}</span>
                             </button>
 
-                            {isUserMenuOpen && (
+                            {user && isUserMenuOpen && (
                                 <div className={styles.userDropdown}>
-                                    <div className={styles.mobileLinks}>
-                                        <Link href="/courses" className={styles.dropdownLink} onClick={() => setIsUserMenuOpen(false)}>
-                                            <BookOpen size={18} /> Courses
-                                        </Link>
-                                        <Link href="/contact" className={styles.dropdownLink} onClick={() => setIsUserMenuOpen(false)}>
-                                            <Mail size={18} /> Contact
-                                        </Link>
-                                    </div>
-
-                                    {user ? (
-                                        <>
-                                            <div className={styles.userHeader}>
-                                                <span className={styles.userEmail}>{user.email}</span>
-                                                <span className={styles.userRole}>{role}</span>
-                                            </div>
-                                            <Link
-                                                href={dashboardHref}
-                                                className={styles.dropdownLink}
-                                                onClick={() => setIsUserMenuOpen(false)}
-                                            >
-                                                <Layout size={18} /> Dashboard
-                                            </Link>
-                                            <button
-                                                className={styles.dropdownLogout}
-                                                onClick={() => {
-                                                    signOut();
-                                                    setIsUserMenuOpen(false);
-                                                }}
-                                            >
-                                                <LogOut size={18} /> Sign Out
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
+                                    <>
+                                        <div className={styles.userHeader}>
+                                            <span className={styles.userEmail}>{user.email}</span>
+                                            <span className={styles.userRole}>{role}</span>
+                                        </div>
+                                        <Link
+                                            href={dashboardHref}
                                             className={styles.dropdownLink}
+                                            onClick={() => setIsUserMenuOpen(false)}
+                                        >
+                                            <Layout size={18} /> Dashboard
+                                        </Link>
+                                        <button
+                                            className={styles.dropdownLogout}
                                             onClick={() => {
-                                                setAuthMode("login");
-                                                setIsAuthOpen(true);
+                                                signOut();
                                                 setIsUserMenuOpen(false);
                                             }}
                                         >
-                                            <User size={18} /> Login / Register
+                                            <LogOut size={18} /> Sign Out
                                         </button>
-                                    )}
+                                    </>
                                 </div>
                             )}
                         </div>
