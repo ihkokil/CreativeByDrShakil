@@ -185,20 +185,22 @@ export default function PaymentsManager() {
                   <div className={styles.cardFooter}>
                     <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
                       <button
-                        className={styles.actionBtn}
+                        className={`${styles.actionBtn} ${styles.actionBtnWide}`}
                         disabled={actingOn === o.id}
                         onClick={() => decide(o.id, "approve")}
                         title="Approve"
                       >
                         <CheckCircle2 size={16} />
+                        <span>Approve</span>
                       </button>
                       <button
-                        className={`${styles.actionBtn} ${styles.danger}`}
+                        className={`${styles.actionBtn} ${styles.actionBtnWide} ${styles.danger}`}
                         disabled={actingOn === o.id}
                         onClick={() => decide(o.id, "reject")}
                         title="Reject"
                       >
                         <XCircle size={16} />
+                        <span>Reject</span>
                       </button>
                     </div>
                   </div>
@@ -273,17 +275,19 @@ export default function PaymentsManager() {
               {String(selected.status).toLowerCase() === "pending" ? (
                 <>
                   <button
-                    className={styles.confirmCancelBtn}
+                    className={`${styles.confirmCancelBtn} ${styles.confirmCancelBtnWide}`}
                     onClick={() => decide(selected.id, "reject")}
                     disabled={actingOn === selected.id}
                   >
+                    <XCircle size={16} />
                     Reject
                   </button>
                   <button
-                    className={styles.confirmPrimaryBtn}
+                    className={`${styles.confirmPrimaryBtn} ${styles.confirmPrimaryBtnWide}`}
                     onClick={() => decide(selected.id, "approve")}
                     disabled={actingOn === selected.id}
                   >
+                    <CheckCircle2 size={16} />
                     {actingOn === selected.id ? "Saving..." : "Approve"}
                   </button>
                 </>
