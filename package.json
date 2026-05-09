@@ -28,6 +28,7 @@
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "@tinymce/tinymce-react": "^6.3.0",
+    "@vercel/speed-insights": "^2.0.0",
     "@vidstack/react": "^1.12.11",
     "bcryptjs": "^2.4.3",
     "framer-motion": "^12.34.3",
