@@ -1,9 +1,64 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, XCircle, Info, ArrowLeft, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  CheckCircle2,
+  ClipboardList,
+  CreditCard,
+  Info,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import styles from "./page.module.css";
+
+function getStatusCopy(status: string | null, action: string | null, message: string | null) {
+  if (status === "success") {
+    return {
+      tone: "success",
+      icon: CheckCircle2,
+      eyebrow: "Verification complete",
+      title: action === "approve" ? "Payment approved" : "Payment rejected",
+      body:
+        action === "approve"
+          ? "The purchase is now marked as approved and the student can continue into the course flow."
+          : "The purchase has been rejected and the student should be notified with the reason if needed.",
+    };
+  }
+
+  if (status === "error") {
+    return {
+      tone: "error",
+      icon: XCircle,
+      eyebrow: "Verification failed",
+      title: "We could not complete the request",
+      body: message || "The payment verification request could not be processed. Please try again or review the admin record.",
+    };
+  }
+
+  if (status === "info") {
+    return {
+      tone: "info",
+      icon: Info,
+      eyebrow: "Information",
+      title: "Verification update received",
+      body: message || "A verification update is being processed.",
+    };
+  }
+
+  return {
+    tone: "loading",
+    icon: Loader2,
+    eyebrow: "Preparing",
+    title: "Checking verification details",
+    body: "Please wait while we load the payment verification summary.",
+  };
+}
 
 function VerifyPaymentContent() {
   const searchParams = useSearchParams();
@@ -12,101 +67,137 @@ function VerifyPaymentContent() {
   const action = searchParams.get("action");
   const student = searchParams.get("student");
   const course = searchParams.get("course");
-
-  const isSuccess = status === "success";
-  const isError = status === "error";
-  const isInfo = status === "info";
+  const copy = getStatusCopy(status, action, message);
+  const StatusIcon = copy.icon;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
-        <div className="p-8 text-center">
-          {isSuccess && (
-            <div className="mb-6 flex justify-center">
-              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
-              </div>
-            </div>
-          )}
+    <main className={styles.pageShell}>
+      <div className={styles.orbTop} />
+      <div className={styles.orbBottom} />
 
-          {isError && (
-            <div className="mb-6 flex justify-center">
-              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center">
-                <XCircle className="w-10 h-10 text-red-500" />
-              </div>
-            </div>
-          )}
-
-          {isInfo && (
-            <div className="mb-6 flex justify-center">
-              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center">
-                <Info className="w-10 h-10 text-blue-500" />
-              </div>
-            </div>
-          )}
-
-          {!status && (
-            <div className="mb-6 flex justify-center">
-              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center">
-                <Loader2 className="w-10 h-10 text-slate-400 animate-spin" />
-              </div>
-            </div>
-          )}
-
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">
-            {isSuccess ? "Action Successful" : isError ? "Action Failed" : "Verification Status"}
-          </h1>
-
-          <div className="text-slate-600 mb-8">
-            {isSuccess ? (
-              <div className="space-y-2">
-                <p>
-                  You have successfully <strong>{action === 'approve' ? 'approved' : 'rejected'}</strong> the enrollment for:
-                </p>
-                <div className="bg-slate-50 p-4 rounded-xl text-sm text-left mt-4 border border-slate-100">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-slate-400">Student:</span>
-                    <span className="font-semibold text-slate-700">{student}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Course:</span>
-                    <span className="font-semibold text-slate-700">{course}</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p>{message || "Processing your request..."}</p>
-            )}
+      <section className={styles.heroCard}>
+        <div className={styles.heroCopy}>
+          <div className={styles.badgeRow}>
+            <span className={`${styles.statusBadge} ${styles[copy.tone]}`}>
+              <StatusIcon className={`${styles.statusIcon} ${copy.tone === "loading" ? styles.spinIcon : ""}`} />
+              {copy.eyebrow}
+            </span>
+            <span className={styles.subBadge}>
+              <ShieldCheck className={styles.smallIcon} />
+              Secure verification
+            </span>
           </div>
 
-          <div className="flex flex-col gap-3">
-            <Link
-              href="/"
-              className="w-full bg-slate-900 text-white py-4 rounded-2xl font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Go to Homepage
-            </Link>
-            
-            <p className="text-xs text-slate-400 mt-4">
-              Creative By Dr. Shakil &bull; Secure Verification System
-            </p>
+          <h1>{copy.title}</h1>
+          <p className={styles.lead}>{copy.body}</p>
+
+          <div className={styles.metaGrid}>
+            <div className={styles.metaCard}>
+              <Sparkles className={styles.metaIcon} />
+              <div>
+                <strong>Action</strong>
+                <span>{action || "pending"}</span>
+              </div>
+            </div>
+            <div className={styles.metaCard}>
+              <CreditCard className={styles.metaIcon} />
+              <div>
+                <strong>Payment status</strong>
+                <span>{status || "loading"}</span>
+              </div>
+            </div>
+            <div className={styles.metaCard}>
+              <BadgeCheck className={styles.metaIcon} />
+              <div>
+                <strong>Platform</strong>
+                <span>Creative By Dr. Shakil</span>
+              </div>
+            </div>
           </div>
         </div>
+
+        <div className={styles.heroVisual}>
+          <div className={styles.visualTopLine}>
+            <ClipboardList className={styles.visualIcon} />
+            <span>Verification summary</span>
+          </div>
+
+          <div className={styles.summaryCard}>
+            <div className={styles.summaryHeader}>
+              <div>
+                <p>Student</p>
+                <h2>{student || "Not provided"}</h2>
+              </div>
+              <div className={`${styles.miniState} ${styles[copy.tone]}`}>
+                {status || "loading"}
+              </div>
+            </div>
+
+            <div className={styles.summaryRows}>
+              <div>
+                <span>Course</span>
+                <strong>{course || "Not provided"}</strong>
+              </div>
+              <div>
+                <span>Verification note</span>
+                <strong>{message || "Waiting for a confirmation payload"}</strong>
+              </div>
+            </div>
+
+            <div className={styles.summaryFooter}>
+              <div className={styles.footerPill}>
+                <ShieldCheck className={styles.smallIcon} />
+                Telegram verified
+              </div>
+              <div className={styles.footerPill}>
+                <CheckCircle2 className={styles.smallIcon} />
+                Admin audit ready
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.detailGrid}>
+        <article className={styles.detailCard}>
+          <p className={styles.cardLabel}>What happened</p>
+          <h3>{status === "success" ? "Verified successfully" : status === "error" ? "Manual follow-up needed" : "Awaiting final status"}</h3>
+          <p>
+            {status === "success"
+              ? `The purchase for ${course || "this course"} was ${action === "approve" ? "approved" : "rejected"} by the reviewer.`
+              : message || "This page will reflect the state returned from the verification link."}
+          </p>
+        </article>
+
+        <article className={styles.detailCard}>
+          <p className={styles.cardLabel}>Next step</p>
+          <h3>Keep the admin flow moving</h3>
+          <p>
+            Review the order in your dashboard, notify the student if needed, and continue the access flow once the payment decision is final.
+          </p>
+        </article>
+      </section>
+
+      <div className={styles.actionsRow}>
+        <Link href="/" className={styles.primaryButton}>
+          <ArrowLeft className={styles.buttonIcon} />
+          Back to homepage
+        </Link>
+        <span className={styles.helperText}>Secure verification for student payments and approvals.</span>
       </div>
-    </div>
+    </main>
   );
 }
 
 export default function VerifyPaymentPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 text-center border border-slate-100">
-          <Loader2 className="w-10 h-10 text-slate-400 animate-spin mx-auto mb-4" />
-          <p className="text-slate-500">Loading verification details...</p>
+      <main className={styles.pageShell}>
+        <div className={styles.loadingCard}>
+          <Loader2 className={styles.loadingIcon} />
+          <p>Loading verification details...</p>
         </div>
-      </div>
+      </main>
     }>
       <VerifyPaymentContent />
     </Suspense>
