@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
           : `This payment was already ${order?.status}.`;
 
         // Answer callback query to stop loading spinner on Telegram
-        const answerUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
+        const botToken = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+        const answerUrl = `https://api.telegram.org/bot${botToken}/answerCallbackQuery`;
         await fetch(answerUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

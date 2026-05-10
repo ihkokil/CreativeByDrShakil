@@ -5,7 +5,7 @@ function getSmtpConfig() {
   const port = Number(process.env.SMTP_PORT || "465");
   const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : true;
   const user = process.env.SMTP_USER || "no-reply@creativebydrshakil.com";
-  const pass = process.env.SMTP_PASS;
+  const pass = process.env.SMTP_PASS?.replace(/"/g, '');
 
   if (!pass) {
     throw new Error("Missing SMTP_PASS environment variable.");
@@ -67,5 +67,6 @@ export async function sendMail({
 }
 
 export function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
+  const url = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
+  return url.replace(/"/g, '');
 }

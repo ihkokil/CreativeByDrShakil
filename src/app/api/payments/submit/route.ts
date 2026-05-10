@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
             teacher: {
               select: {
                 email: true,
+                telegramChatId: true,
               },
             },
           },
@@ -83,17 +84,25 @@ export async function POST(request: NextRequest) {
     if (fullOrder) {
       const managers = await prisma.user.findMany({
         where: { canManagePayments: true },
-        select: { email: true },
+        select: { email: true, telegramChatId: true },
       });
 
       const recipientEmails = new Set<string>();
+      const additionalChatIds = new Set<string>();
+
       for (const manager of managers) {
         if (manager.email) recipientEmails.add(manager.email);
+        if (manager.telegramChatId) additionalChatIds.add(manager.telegramChatId);
       }
+
       if (fullOrder.course.teacher?.email) {
         recipientEmails.add(fullOrder.course.teacher.email);
       }
+      if (fullOrder.course.teacher?.telegramChatId) {
+        additionalChatIds.add(fullOrder.course.teacher.telegramChatId);
+      }
 
+      // 1. Send Emails
       await Promise.allSettled(
         Array.from(recipientEmails).map((email) =>
           sendPaymentVerificationEmail({
@@ -108,6 +117,7 @@ export async function POST(request: NextRequest) {
         )
       );
 
+      // 2. Send Telegram Notifications
       await sendTelegramVerification({
         orderId,
         studentName: fullOrder.user.fullName,
@@ -115,6 +125,7 @@ export async function POST(request: NextRequest) {
         amount: paymentAmount,
         transactionId,
         phoneNumber,
+        additionalChatIds: Array.from(additionalChatIds),
       });
     }
 
