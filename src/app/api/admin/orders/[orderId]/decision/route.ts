@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requirePaymentManager } from '@/lib/admin-auth';
+import { ensureCourseEnrollment } from '@/lib/enrollment';
 
 type Decision = 'approve' | 'reject';
 
@@ -49,44 +50,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         });
       }
 
-      // If approved and the course is one of the special bundles, grant Basic for free
+      // If approved, handle enrollment (including Basics bundle)
       if (decision === 'approve' && order.course) {
-        const bundledTitles = [
-          'Medicine and Allied',
-          'Surgery and Allied',
-          'Gyane & Obsetrics',
-          'Radiology',
-          'Dermatology',
-        ];
-
-        if (bundledTitles.includes(order.course.title)) {
-          const basicCourse = await tx.course.findFirst({
-            where: {
-              OR: [{ slug: 'basic' }, { title: 'Basic' }],
-            },
-          });
-
-          if (basicCourse) {
-            await tx.order.upsert({
-              where: {
-                userId_courseId: {
-                  userId: order.userId,
-                  courseId: basicCourse.id,
-                },
-              },
-              update: {
-                status: 'approved',
-                totalAmount: 0,
-              },
-              create: {
-                userId: order.userId,
-                courseId: basicCourse.id,
-                status: 'approved',
-                totalAmount: 0,
-              },
-            });
-          }
-        }
+        await ensureCourseEnrollment(
+          tx,
+          order.userId,
+          order.course.id,
+          order.course.title,
+          order.course.slug
+        );
       }
 
       return updatedOrder;

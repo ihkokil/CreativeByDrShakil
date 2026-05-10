@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { extractBearerToken, extractCookieToken, verifyAuthToken, hashPassword } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
+import { ensureCourseEnrollment } from '@/lib/enrollment';
 
 // GET - List all enrollments with student and course info
 export async function GET(request: NextRequest) {
@@ -166,28 +167,22 @@ export async function POST(request: NextRequest) {
         throw new Error('Student is already enrolled in this course.');
       }
 
-      // Create or update order with approved status
-      let finalOrder;
-      if (existingOrder) {
-        finalOrder = await tx.order.update({
-          where: { id: existingOrder.id },
-          data: { 
-            status: 'approved',
-            totalAmount: 0,
-          },
-          include: { course: true, user: true },
-        });
-      } else {
-        finalOrder = await tx.order.create({
-          data: {
-            userId: finalStudent.id,
-            courseId,
-            status: 'approved',
-            totalAmount: 0,
-          },
-          include: { course: true, user: true },
-        });
-      }
+      // Enroll the student using the helper (handles Basics bundle)
+      await ensureCourseEnrollment(
+        tx,
+        finalStudent.id,
+        course.id,
+        course.title,
+        course.slug
+      );
+
+      // Fetch the order created/updated by the helper to return it
+      const finalOrder = await tx.order.findUnique({
+        where: { userId_courseId: { userId: finalStudent.id, courseId: course.id } },
+        include: { course: true, user: true },
+      });
+
+      if (!finalOrder) throw new Error('Failed to create enrollment.');
 
       return { student: finalStudent, isNewRegistration: isNewReg, order: finalOrder, setupToken };
     });

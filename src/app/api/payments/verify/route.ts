@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyVerificationToken } from '@/lib/token-utils';
+import { ensureCourseEnrollment } from '@/lib/enrollment';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -47,6 +48,17 @@ export async function GET(request: NextRequest) {
             approvedAt: action === 'approve' ? new Date() : null,
           },
         });
+      }
+
+      // If approved, handle enrollment (including Basics bundle)
+      if (action === 'approve') {
+        await ensureCourseEnrollment(
+          tx,
+          order.userId,
+          order.course.id,
+          order.course.title,
+          order.course.slug
+        );
       }
     });
 
