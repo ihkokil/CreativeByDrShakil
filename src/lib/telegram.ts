@@ -2,6 +2,14 @@
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
+function escapeTelegramHtml(value: string) {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
 function getTelegramChatIds() {
   if (!TELEGRAM_CHAT_ID) return [];
   return TELEGRAM_CHAT_ID.split(',').map(id => id.trim()).filter(Boolean);
@@ -49,20 +57,20 @@ function buildPurchaseMessage({
   adminOrderUrl?: string;
 }) {
   const lines = [
-    '🛒 *New Course Purchase*',
+    '<b>🛒 New Course Purchase</b>',
     '',
-    `👤 *Student:* ${studentName}`,
-    `📧 *Email:* ${studentEmail}`,
-    `📚 *Course:* ${courseTitle}`,
-    `💰 *Amount:* ৳${amount}`,
-    `🆔 *Order:* \`${orderId}\``,
+    `👤 <b>Student:</b> ${escapeTelegramHtml(studentName)}`,
+    `📧 <b>Email:</b> ${escapeTelegramHtml(studentEmail)}`,
+    `📚 <b>Course:</b> ${escapeTelegramHtml(courseTitle)}`,
+    `💰 <b>Amount:</b> ৳${escapeTelegramHtml(String(amount))}`,
+    `🆔 <b>Order:</b> <code>${escapeTelegramHtml(orderId)}</code>`,
   ];
 
-  if (phoneNumber) lines.push(`📱 *Phone:* ${phoneNumber}`);
-  if (purchasedAt) lines.push(`🕒 *Purchased:* ${purchasedAt}`);
-  if (adminOrderUrl) lines.push(`🔎 *Admin:* ${adminOrderUrl}`);
+  if (phoneNumber) lines.push(`📱 <b>Phone:</b> ${escapeTelegramHtml(phoneNumber)}`);
+  if (purchasedAt) lines.push(`🕒 <b>Purchased:</b> ${escapeTelegramHtml(purchasedAt)}`);
+  if (adminOrderUrl) lines.push(`🔎 <b>Admin:</b> ${escapeTelegramHtml(adminOrderUrl)}`);
 
-  lines.push('', '_Use the buttons below to approve or reject this purchase._');
+  lines.push('', '<i>Use the buttons below to approve or reject this purchase.</i>');
 
   return lines.join('\n');
 }
@@ -90,7 +98,7 @@ async function sendTelegramMessage({
         body: JSON.stringify({
           chat_id: chatId,
           text,
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           reply_markup: replyMarkup,
           disable_web_page_preview: true,
         }),
@@ -131,13 +139,13 @@ export async function sendTelegramVerification({
   }
 
   const message = `
-🔔 *New Payment Submission*
+🔔 <b>New Payment Submission</b>
 
-👤 *Student:* ${studentName}
-📚 *Course:* ${courseTitle}
-💰 *Amount:* ৳${amount}
-📱 *Phone:* ${phoneNumber}
-🆔 *TXID:* \`${transactionId}\`
+👤 <b>Student:</b> ${escapeTelegramHtml(studentName)}
+📚 <b>Course:</b> ${escapeTelegramHtml(courseTitle)}
+💰 <b>Amount:</b> ৳${escapeTelegramHtml(String(amount))}
+📱 <b>Phone:</b> ${escapeTelegramHtml(phoneNumber)}
+🆔 <b>TXID:</b> <code>${escapeTelegramHtml(transactionId)}</code>
 
 Please verify this payment.
 `;
@@ -213,7 +221,8 @@ export async function updateTelegramVerificationMessage({
       body: JSON.stringify({
         chat_id: chatId,
         message_id: messageId,
-        text: `Decision: ${status} by ${adminName}`,
+        text: `Decision: ${escapeTelegramHtml(status)} by ${escapeTelegramHtml(adminName)}`,
+        parse_mode: 'HTML',
       }),
     });
     if (!response.ok) {
