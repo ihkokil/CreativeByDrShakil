@@ -1,3 +1,5 @@
+import { signVerificationToken } from './token-utils';
+import { getAppUrl } from './email';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '');
@@ -21,16 +23,20 @@ function getTelegramApiUrl(method: string) {
 }
 
 function buildApproveRejectKeyboard(orderId: string) {
+  const appUrl = getAppUrl();
+  const approveToken = signVerificationToken({ orderId, action: 'approve' });
+  const rejectToken = signVerificationToken({ orderId, action: 'reject' });
+
   return {
     inline_keyboard: [
       [
         {
           text: '✅ Approve',
-          callback_data: `payment_verify:${orderId}:approve`,
+          url: `${appUrl}/api/payments/verify?token=${approveToken}`,
         },
         {
           text: '❌ Reject',
-          callback_data: `payment_verify:${orderId}:reject`,
+          url: `${appUrl}/api/payments/verify?token=${rejectToken}`,
         },
       ],
     ],
