@@ -1,6 +1,6 @@
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '');
 
 function escapeTelegramHtml(value: string) {
   return value
@@ -124,6 +124,7 @@ export async function sendTelegramVerification({
   amount,
   transactionId,
   phoneNumber,
+  additionalChatIds = [],
 }: {
   orderId: string;
   studentName: string;
@@ -131,10 +132,13 @@ export async function sendTelegramVerification({
   amount: number;
   transactionId: string;
   phoneNumber: string;
+  additionalChatIds?: string[];
 }) {
-  const chatIds = getTelegramChatIds();
-  if (!chatIds.length) {
-    console.warn('Telegram bot token or chat ID is missing. Skipping Telegram notification.');
+  const envChatIds = getTelegramChatIds();
+  const allChatIds = Array.from(new Set([...envChatIds, ...additionalChatIds]));
+
+  if (!allChatIds.length) {
+    console.warn('No Telegram chat IDs found. Skipping notification.');
     return;
   }
 
@@ -150,7 +154,7 @@ export async function sendTelegramVerification({
 Please verify this payment.
 `;
 
-  await sendTelegramMessage({ chatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
+  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
 }
 
 /**
@@ -165,6 +169,7 @@ export async function sendTelegramPurchaseNotification({
   phoneNumber,
   purchasedAt,
   adminOrderUrl,
+  additionalChatIds = [],
 }: {
   orderId: string;
   studentName: string;
@@ -174,10 +179,13 @@ export async function sendTelegramPurchaseNotification({
   phoneNumber?: string;
   purchasedAt?: string;
   adminOrderUrl?: string;
+  additionalChatIds?: string[];
 }) {
-  const chatIds = getTelegramChatIds();
-  if (!chatIds.length) {
-    console.warn('Telegram bot token or chat ID is missing. Skipping Telegram notification.');
+  const envChatIds = getTelegramChatIds();
+  const allChatIds = Array.from(new Set([...envChatIds, ...additionalChatIds]));
+
+  if (!allChatIds.length) {
+    console.warn('No Telegram chat IDs found. Skipping notification.');
     return;
   }
 
@@ -192,7 +200,7 @@ export async function sendTelegramPurchaseNotification({
     adminOrderUrl,
   });
 
-  await sendTelegramMessage({ chatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
+  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
 }
 
 /**

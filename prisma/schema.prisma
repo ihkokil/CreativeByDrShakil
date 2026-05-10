@@ -27,14 +27,15 @@ model User {
   passwordResetExpires        DateTime?
   createdAt                   DateTime                    @default(now())
   updatedAt                   DateTime                    @updatedAt
+  canManagePayments           Boolean                     @default(false)
   contactReplies              ContactSubmission[]         @relation("ContactSubmissionReplies")
   teacherCourses              Course[]                    @relation("TeacherCourses")
   deviceSessions              DeviceSession[]
   lessonProgress              LessonProgress[]
   orders                      Order[]
   sessionSettings             SessionLockSettings?
-  canManagePayments           Boolean                     @default(false)
   moduleAvailabilityOverrides StudentModuleAvailability[]
+  telegramChatId              String?
 }
 
 model Course {
@@ -43,6 +44,7 @@ model Course {
   title                       String
   description                 String                      @db.LongText
   overview                    String?                     @db.LongText
+  categoryId                  String?
   price                       Float
   salePrice                   Float?
   instructor                  String
@@ -65,6 +67,7 @@ model Course {
   updatedAt                   DateTime                    @updatedAt
   isFeatured                  Boolean                     @default(false)
   releaseDaysOfWeek           String?                     @db.LongText
+  Category                    Category?                   @relation(fields: [categoryId], references: [id])
   teacher                     User?                       @relation("TeacherCourses", fields: [teacherId], references: [id])
   instructors                 CourseInstructor[]
   lessonProgress              LessonProgress[]
@@ -73,6 +76,7 @@ model Course {
 
   @@index([teacherId])
   @@index([status])
+  @@index([categoryId])
 }
 
 model LessonProgress {
@@ -124,16 +128,16 @@ model CourseInstructor {
 }
 
 model Order {
-  id             String   @id @default(cuid())
-  userId         String
-  courseId       String
-  status         String   @default("pending")
-  totalAmount    Float
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  course         Course   @relation(fields: [courseId], references: [id])
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payment        Payment?
+  id          String   @id @default(cuid())
+  userId      String
+  courseId    String
+  status      String   @default("pending")
+  totalAmount Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment     Payment?
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -151,7 +155,6 @@ model Payment {
   approvedAt    DateTime?
   order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
-
 
 model PaymentConfig {
   id              String   @id @default("default")
@@ -233,6 +236,15 @@ model VideoLibraryNode {
   children  VideoLibraryNode[] @relation("NodeTree")
 
   @@index([parentId])
+}
+
+model Category {
+  id          String   @id
+  name        String   @unique
+  displayName String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  Course      Course[]
 }
 
 enum UserRole {
