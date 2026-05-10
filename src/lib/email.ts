@@ -44,13 +44,26 @@ export async function sendMail({
 }) {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@creativebydrshakil.com";
 
-  await getTransporter().sendMail({
-    from,
-    to,
-    subject,
-    html,
-    text,
-  });
+  try {
+    await getTransporter().sendMail({
+      from,
+      to,
+      subject,
+      html,
+      text,
+    });
+  } catch (error) {
+    console.error("Failed to send email", {
+      from,
+      to,
+      subject,
+      smtpHost: process.env.SMTP_HOST || "smtp.hostinger.com",
+      smtpPort: process.env.SMTP_PORT || "465",
+      smtpSecure: process.env.SMTP_SECURE || "true",
+      error,
+    });
+    throw error;
+  }
 }
 
 export function getAppUrl() {
