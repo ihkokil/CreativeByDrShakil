@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
-import { User, LogOut, Layout, BookOpen, Mail, Menu, X } from "lucide-react";
+import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home } from "lucide-react";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -110,6 +110,9 @@ export default function Navbar() {
                                             </button>
                                         </div>
 
+                                        <Link href="/" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <Home size={18} /> Home
+                                        </Link>
                                         <Link href="/courses" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
                                             <BookOpen size={18} /> Courses
                                         </Link>
@@ -126,8 +129,15 @@ export default function Navbar() {
                     </Link>
 
                     <div className={styles.centerLinks}>
-                        <Link href="/courses" className={styles.link}>Courses</Link>
-                        <Link href="/contact" className={styles.link}>Contact</Link>
+                        <Link href="/" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}} aria-label="Home">
+                            <Home size={16} /> Home
+                        </Link>
+                        <Link href="/courses" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+                            <BookOpen size={16} /> Courses
+                        </Link>
+                        <Link href="/contact" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+                            <Mail size={16} /> Contact
+                        </Link>
                     </div>
 
                     <div className={styles.rightActions}>
