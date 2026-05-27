@@ -27,6 +27,8 @@
   "homepage": "https://github.com/ihkokil/CreativeByDrShakil#readme",
   "dependencies": {
     "@prisma/client": "^6.5.0",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.1",
     "@tinymce/tinymce-react": "^6.3.0",
     "@vercel/speed-insights": "^2.0.0",
     "@vidstack/react": "^1.12.11",

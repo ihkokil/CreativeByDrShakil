@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider  = "mysql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("SUPABASE_DATABASE_URL")
+  directUrl = env("SUPABASE_DIRECT_URL")
 }
 
 model User {
@@ -19,11 +19,11 @@ model User {
   designation                 String?
   institution                 String?
   degrees                     String?
-  profileImage                String?                     @db.LongText
+  profileImage                String?
   emailVerified               Boolean                     @default(true)
-  emailVerificationTokenHash  String?                     @db.VarChar(255)
+  emailVerificationTokenHash  String?
   emailVerificationExpires    DateTime?
-  passwordResetTokenHash      String?                     @db.VarChar(255)
+  passwordResetTokenHash      String?
   passwordResetExpires        DateTime?
   createdAt                   DateTime                    @default(now())
   updatedAt                   DateTime                    @updatedAt
@@ -42,17 +42,17 @@ model Course {
   id                          String                      @id @default(cuid())
   slug                        String?                     @unique
   title                       String
-  description                 String                      @db.LongText
-  overview                    String?                     @db.LongText
+  description                 String
+  overview                    String?
   categoryId                  String?
   price                       Float
   salePrice                   Float?
   instructor                  String
   language                    String?
-  imageUrl                    String?                     @db.LongText
+  imageUrl                    String?
   duration                    String
   courseStartDate             DateTime?
-  learningOutcomes            String?                     @db.LongText
+  learningOutcomes            String?
   teacherId                   String?
   status                      CoursePublishStatus         @default(draft)
   timezone                    String                      @default("Asia/Dhaka")
@@ -60,13 +60,13 @@ model Course {
   releaseStartAt              DateTime?
   releaseIntervalDays         Int?
   releaseGroupsPerWeek        Int?
-  releaseGroupDates           String?                     @db.LongText
-  curriculumJson              String?                     @db.LongText
+  releaseGroupDates           String?
+  curriculumJson              String?
   publishedAt                 DateTime?
   createdAt                   DateTime                    @default(now())
   updatedAt                   DateTime                    @updatedAt
   isFeatured                  Boolean                     @default(false)
-  releaseDaysOfWeek           String?                     @db.LongText
+  releaseDaysOfWeek           String?
   Category                    Category?                   @relation(fields: [categoryId], references: [id])
   teacher                     User?                       @relation("TeacherCourses", fields: [teacherId], references: [id])
   instructors                 CourseInstructor[]
@@ -110,7 +110,7 @@ model StudentModuleAvailability {
   @@unique([courseId, userId, lessonNodeId])
   @@index([courseId, userId])
   @@index([courseId, lessonNodeId])
-  @@index([userId], map: "StudentModuleAvailability_userId_fkey")
+  @@index([userId])
 }
 
 model CourseInstructor {
@@ -121,7 +121,7 @@ model CourseInstructor {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  imageUrl    String?  @db.LongText
+  imageUrl    String?
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([courseId])
@@ -172,10 +172,10 @@ model ContactSubmission {
   phone            String
   issueType        ContactIssueType
   subject          String
-  message          String                  @db.LongText
-  imageUrls        String?                 @db.LongText
+  message          String
+  imageUrls        String?
   status           ContactSubmissionStatus @default(open)
-  adminReply       String?                 @db.LongText
+  adminReply       String?
   adminReplySentAt DateTime?
   repliedByAdminId String?
   createdAt        DateTime                @default(now())
@@ -186,7 +186,7 @@ model ContactSubmission {
   @@index([issueType])
   @@index([createdAt])
   @@index([email])
-  @@index([repliedByAdminId], map: "ContactSubmission_repliedByAdminId_fkey")
+  @@index([repliedByAdminId])
 }
 
 model DeviceSession {
@@ -194,7 +194,7 @@ model DeviceSession {
   userId         String
   deviceType     DeviceType
   browserName    String
-  userAgent      String     @db.LongText
+  userAgent      String
   ipAddress      String
   isLocked       Boolean    @default(false)
   loggedOutAt    DateTime?
@@ -226,7 +226,7 @@ model VideoLibraryNode {
   id        String             @id @default(cuid())
   title     String
   type      String
-  url       String?            @db.Text
+  url       String?
   duration  String?
   parentId  String?
   sortOrder Int                @default(0)
