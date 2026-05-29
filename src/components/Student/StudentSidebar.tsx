@@ -12,7 +12,6 @@ import {
     ChevronRight,
     ShieldCheck,
     GraduationCap,
-    Home
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { motion } from "framer-motion";
@@ -44,9 +43,6 @@ export default function StudentSidebar({
         { id: 'profile', label: 'Profile Settings', icon: <UserCog size={20} /> },
         { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
         { id: 'browse', label: 'All Courses', icon: <BookOpen size={20} />, isLink: '/courses' },
-    ];
-
-    const sysItems: any[] = [
     ];
 
     const handleLogout = async () => {
@@ -98,22 +94,6 @@ export default function StudentSidebar({
                     ))}
                 </div>
 
-                <div className={styles.navSection}>
-                    {isExpanded && <span className={styles.sectionLabel}>System</span>}
-                    {sysItems.map((item) => (
-                        <button
-                            key={item.id}
-                            className={`${styles.navItem} ${activeTab === item.id ? styles.active : ""}`}
-                            onClick={() => handleAction(item)}
-                        >
-                            <span className={styles.icon}>{item.icon}</span>
-                            {isExpanded && <span className={styles.label}>{item.label}</span>}
-                            {activeTab === item.id && (
-                                <motion.div layoutId="activeIndicatorStudent" className={styles.activeIndicator} />
-                            )}
-                        </button>
-                    ))}
-                </div>
             </div>
 
             <div className={styles.footer}>

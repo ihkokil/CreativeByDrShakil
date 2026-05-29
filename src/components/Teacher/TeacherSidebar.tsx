@@ -59,10 +59,6 @@ export default function TeacherSidebar({
         menuItems.splice(3, 0, { id: 'payments', label: 'Payments', icon: <Users size={20} /> });
     }
 
-    const sysItems: any[] = [
-        // Settings removed as no teacher settings page exists yet
-    ];
-
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     };
