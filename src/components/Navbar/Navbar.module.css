@@ -229,6 +229,7 @@
     text-transform: uppercase;
     font-weight: var(--weight-bold);
     letter-spacing: 1px;
+    margin-top: 6px;
 }
 
 .dropdownLink,
