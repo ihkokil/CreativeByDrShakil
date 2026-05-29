@@ -13,6 +13,14 @@ const ALLOWED_VIDEO_TYPES = new Set([
   'video/x-matroska',
 ]);
 
+const ALLOWED_DOCUMENT_TYPES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+]);
+
 const sanitizeFileName = (fileName: string) =>
   fileName
     .trim()
@@ -34,22 +42,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing file upload.' }, { status: 400 });
     }
 
-    if (!ALLOWED_VIDEO_TYPES.has(uploaded.type)) {
-      return NextResponse.json({ error: 'Unsupported video format.' }, { status: 400 });
+    if (!ALLOWED_VIDEO_TYPES.has(uploaded.type) && !ALLOWED_DOCUMENT_TYPES.has(uploaded.type)) {
+      return NextResponse.json({ error: 'Unsupported file format.' }, { status: 400 });
     }
 
     if (uploaded.size > MAX_FILE_SIZE_BYTES) {
       return NextResponse.json({ error: 'File is too large. Max size is 1GB.' }, { status: 400 });
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'teacher-videos', payload.sub);
+    // Store teacher uploads (videos & documents) under a shared library folder
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'teacher-library', payload.sub);
     await fs.mkdir(uploadDir, { recursive: true });
 
     const safeName = sanitizeFileName(uploaded.name || 'upload.mp4');
     const ext = path.extname(safeName) || '.mp4';
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
     const absolutePath = path.join(uploadDir, fileName);
-    const relativePath = path.posix.join('uploads', 'teacher-videos', payload.sub, fileName);
+    const relativePath = path.posix.join('uploads', 'teacher-library', payload.sub, fileName);
 
     const arrayBuffer = await uploaded.arrayBuffer();
     await fs.writeFile(absolutePath, Buffer.from(arrayBuffer));
