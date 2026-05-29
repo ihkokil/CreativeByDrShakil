@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useCallback, useState, Suspense } from "react";
 import TeacherOverview from "@/components/Teacher/TeacherOverview";
-import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
+import ModuleLibraryManager from "@/components/Teacher/ModuleLibraryManager";
 import CoursesTab from "@/components/Teacher/CoursesTab";
 import ProfileTab from "@/components/Shared/ProfileTab";
 import styles from "./TeacherDashboard.module.css";
@@ -101,7 +101,7 @@ function TeacherDashboardContent() {
 
             {activeTab === "library" && (
                 <section className={styles.panelNoPad}>
-                    <VideoLibraryManager />
+                    <ModuleLibraryManager />
                 </section>
             )}
 
