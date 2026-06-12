@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: (parsed.error as any).errors[0].message }, { status: 400 });
+      const errorMessage = parsed.error?.issues?.[0]?.message || parsed.error?.message || 'Invalid input.';
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
     const { email, password, fullName, phone, bmdc, role } = parsed.data;
@@ -70,7 +71,8 @@ export async function POST(request: NextRequest) {
         fullName: user.fullName,
         token,
       });
-    } catch {
+    } catch (emailError: any) {
+      console.error('[Register] Verification email failed:', emailError?.message || emailError);
       verificationMailSent = false;
     }
 
@@ -94,6 +96,19 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+    // Handle Prisma unique constraint violation
+    if (error?.code === 'P2002') {
+      const target = error.meta?.target;
+      if (target?.includes('email')) {
+        return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
+      }
+      if (target?.includes('phone')) {
+        return NextResponse.json({ error: 'An account with this phone number already exists.' }, { status: 409 });
+      }
+      return NextResponse.json({ error: 'An account with these details already exists.' }, { status: 409 });
+    }
+    console.error('[Register Error]', error?.message || error);
+    console.error('[Register Stack]', error?.stack);
+    return NextResponse.json({ error: 'Something went wrong. Please try again later.' }, { status: 500 });
   }
 }
