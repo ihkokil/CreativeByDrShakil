@@ -42,7 +42,9 @@ export async function sendMail({
   html: string;
   text: string;
 }) {
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@creativebydrshakil.com";
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@creativebydrshakil.com";
+  const fromName = process.env.SMTP_FROM_NAME || "Creative by Dr. Shakil";
+  const from = `"${fromName}" <${fromAddress}>`;
 
   try {
     await getTransporter().sendMail({
