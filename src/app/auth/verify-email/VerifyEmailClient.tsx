@@ -8,7 +8,7 @@ export default function VerifyEmailClient({ token }: { token: string }) {
     const router = useRouter();
     const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
     const [errorMessage, setErrorMessage] = useState("");
-    const [countdown, setCountdown] = useState(5);
+    const [countdown, setCountdown] = useState(15);
     const hasVerified = useRef(false);
 
     useEffect(() => {
@@ -138,7 +138,7 @@ export default function VerifyEmailClient({ token }: { token: string }) {
                             <div className={styles.progressTrack}>
                                 <div
                                     className={styles.progressFill}
-                                    style={{ width: `${((5 - countdown) / 5) * 100}%` }}
+                                    style={{ width: `${((15 - countdown) / 15) * 100}%` }}
                                 />
                             </div>
                             <p className={styles.redirectText}>
