@@ -154,7 +154,7 @@ export default function TeacherCourseBuilder() {
 
     const [newCourseTitle, setNewCourseTitle] = useState("");
     const [newCoursePrice, setNewCoursePrice] = useState("0");
-    const [newCourseDuration, setNewCourseDuration] = useState("3 Months");
+    const [newCourseDuration, setNewCourseDuration] = useState("1y");
     const [newCourseDescription, setNewCourseDescription] = useState("");
 
     const [targetParentId, setTargetParentId] = useState("root");
@@ -434,7 +434,7 @@ export default function TeacherCourseBuilder() {
                         </div>
                         <div className={styles.formGroup}>
                             <label>Duration</label>
-                            <input type="text" placeholder="e.g. 3 Months, 6 Months" value={newCourseDuration} onChange={(e) => setNewCourseDuration(e.target.value)} required />
+                            <input type="text" placeholder="e.g. 1y" value={newCourseDuration} onChange={(e) => setNewCourseDuration(e.target.value)} required />
                         </div>
                         <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                             <label>Description</label>
