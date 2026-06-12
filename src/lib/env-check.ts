@@ -18,6 +18,19 @@ export function checkEnvVariables() {
       console.warn('\x1b[31m%s\x1b[0m', '==================================================');
     }
   }
+
+  if (process.env.NODE_ENV === 'production') {
+    const databaseUrl = process.env.DATABASE_URL || '';
+    const directUrl = process.env.DIRECT_URL || '';
+
+    if (!databaseUrl.startsWith('mysql://')) {
+      throw new Error('DATABASE_URL must use a MySQL connection string in production.');
+    }
+
+    if (!directUrl.startsWith('mysql://')) {
+      throw new Error('DIRECT_URL must use a MySQL connection string in production.');
+    }
+  }
 }
 
 // Run immediately on import
