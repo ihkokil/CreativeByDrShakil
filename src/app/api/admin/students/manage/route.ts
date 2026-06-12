@@ -99,19 +99,29 @@ export async function PUT(request: NextRequest) {
         if (payload.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     
         const body = await request.json();
-        const { id, fullName, phone, bmdcNumber, profileImage } = body;
+            const { id, fullName, phone, bmdcNumber, profileImage, emailVerified } = body;
     
         if (!id) return NextResponse.json({ error: 'Missing student ID' }, { status: 400 });
     
-        const updated = await prisma.user.update({
-            where: { id },
-            data: { 
-                fullName, 
+            const data: Record<string, unknown> = {
+                fullName,
                 phone: phone || null,
                 bmdcNumber: bmdcNumber || null,
-                profileImage: profileImage || null
+                profileImage: profileImage || null,
+            };
+
+            if (typeof emailVerified === 'boolean') {
+                data.emailVerified = emailVerified;
+                if (emailVerified) {
+                    data.emailVerificationTokenHash = null;
+                    data.emailVerificationExpires = null;
+                }
             }
-        });
+
+            const updated = await prisma.user.update({
+                where: { id },
+                data,
+            });
     
         return NextResponse.json({ message: 'Student updated successfully.', student: updated });
     } catch (err: any) {
