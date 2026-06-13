@@ -17,7 +17,7 @@ export default function CourseInstructors({ instructorList }: Props) {
       {instructorList.map((instructor, idx) => (
         <div key={idx} className={styles.instructorCard}>
           <Image 
-            src={instructor.image || "/placeholder.svg"} 
+            src={instructor.image || "/placeholder-square.svg"} 
             alt={instructor.name}
             width={80}
             height={80}

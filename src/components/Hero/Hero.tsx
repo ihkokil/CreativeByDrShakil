@@ -97,7 +97,7 @@ export default function Hero() {
                             <div className={styles.avatars}>
                                 {[1, 2, 3, 4].map((i) => (
                                     <div key={i} className={styles.avatar}>
-                                        <Image src="/placeholder.svg" alt="Student" fill />
+                                        <Image src="/placeholder-square.svg" alt="Student" fill />
                                     </div>
                                 ))}
                                 <div className={styles.avatarPlus}>+2k</div>

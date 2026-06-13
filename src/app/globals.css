@@ -2,17 +2,17 @@
   /* Dark Mode (Default) — Premium OLED Palette */
   --background: #050505;
   --bg-gradient:
-    radial-gradient(circle at 8% 10%, rgba(59, 130, 246, 0.16), transparent 34%),
-    radial-gradient(circle at 88% 14%, rgba(139, 92, 246, 0.12), transparent 32%),
-    radial-gradient(circle at 52% 96%, rgba(16, 185, 129, 0.08), transparent 38%);
+    radial-gradient(circle at 8% 10%, rgba(237, 28, 40, 0.16), transparent 34%),
+    radial-gradient(circle at 88% 14%, rgba(220, 38, 38, 0.12), transparent 32%),
+    radial-gradient(circle at 52% 96%, rgba(248, 113, 113, 0.08), transparent 38%);
   --foreground: #ffffff;
   
   /* Brand Colors */
-  --primary: #3b82f6;
-  --primary-rgb: 59, 130, 246;
-  --secondary: #6366f1;
-  --accent: #8b5cf6;
-  --accent-rgb: 139, 92, 246;
+  --primary: #ed1c28;
+  --primary-rgb: 237, 28, 40;
+  --secondary: #dc2626;
+  --accent: #f87171;
+  --accent-rgb: 248, 113, 113;
   
   /* Semantic Colors */
   --success: #10b981;
@@ -29,8 +29,8 @@
   --surface-strong: rgba(255, 255, 255, 0.08);
   
   /* Typography Scale */
-  --text-tiny: 0.75rem;
-  --text-small: 0.875rem;
+  --text-tiny: 0.8125rem;
+  --text-small: 0.9375rem;
   --text-base: 1rem;
   --text-large: 1.125rem;
   --text-xl: 1.25rem;
@@ -89,13 +89,13 @@
 [data-theme='light'] {
   --background: #f8fafc;
   --bg-gradient:
-    radial-gradient(circle at 9% 11%, rgba(37, 99, 235, 0.14), transparent 36%),
-    radial-gradient(circle at 90% 13%, rgba(79, 70, 229, 0.1), transparent 34%),
-    radial-gradient(circle at 50% 98%, rgba(14, 165, 233, 0.08), transparent 42%);
+    radial-gradient(circle at 9% 11%, rgba(237, 28, 40, 0.12), transparent 36%),
+    radial-gradient(circle at 90% 13%, rgba(220, 38, 38, 0.08), transparent 34%),
+    radial-gradient(circle at 50% 98%, rgba(248, 113, 113, 0.06), transparent 42%);
   --foreground: #0f172a;
-  --primary: #2563eb;
-  --secondary: #4f46e5;
-  --accent: #7c3aed;
+  --primary: #ed1c28;
+  --secondary: #dc2626;
+  --accent: #b91c1c;
   --glass: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(0, 0, 0, 0.1);
   --glass-highlight: rgba(0, 0, 0, 0.02);
