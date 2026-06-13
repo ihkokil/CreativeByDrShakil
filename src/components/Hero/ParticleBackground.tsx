@@ -84,12 +84,12 @@ export default function ParticleBackground() {
         // Theme colors
         const getParticleColor = () => {
             const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-            return isDark ? "rgba(59, 130, 246, 0.2)" : "rgba(29, 78, 216, 0.1)";
+            return isDark ? "rgba(237, 28, 40, 0.22)" : "rgba(237, 28, 40, 0.12)";
         };
 
         const getLineColor = () => {
             const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-            return isDark ? "rgba(59, 130, 246, 0.08)" : "rgba(29, 78, 216, 0.04)";
+            return isDark ? "rgba(237, 28, 40, 0.08)" : "rgba(237, 28, 40, 0.04)";
         };
 
         let particleColor = getParticleColor();
@@ -139,7 +139,7 @@ export default function ParticleBackground() {
                         ctx.moveTo(p1.x, p1.y);
                         ctx.lineTo(mouse.x, mouse.y);
                         const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-                        ctx.strokeStyle = isDark ? "rgba(59, 130, 246, 0.15)" : "rgba(29, 78, 216, 0.06)";
+                        ctx.strokeStyle = isDark ? "rgba(237, 28, 40, 0.16)" : "rgba(237, 28, 40, 0.07)";
                         ctx.lineWidth = (1 - dist / 180) * 1.2;
                         ctx.stroke();
                     }
