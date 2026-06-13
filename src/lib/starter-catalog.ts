@@ -161,17 +161,18 @@ export function buildCurriculumFromStarter(
       children: [],
     };
 
-    const children: BuilderCurriculumNode[] = mainTopic.subTopics.map((subTopic) => {
+    const children: BuilderCurriculumNode[] = mainTopic.subTopics.flatMap((subTopic) => {
       const groupId = `group_${slugify(mainTopic.title)}_${slugify(subTopic.title)}_${createNodeId('grp').slice(-6)}`;
-      const shouldFlatten = !subTopic.forceFolder && subTopic.videos.length === 1;
+      const shouldFlatten = !subTopic.forceFolder;
 
       if (shouldFlatten) {
-        const onlyVideo = subTopic.videos[0];
-        const videoNode: BuilderCurriculumNode = {
-          ...createVideoNode(onlyVideo),
-          title: subTopic.title,
-        };
-        return applyGroupToSubtree(videoNode, groupId);
+        return subTopic.videos.map((video) => {
+          const videoNode: BuilderCurriculumNode = {
+            ...createVideoNode(video),
+            title: video.title || subTopic.title,
+          };
+          return applyGroupToSubtree(videoNode, groupId);
+        });
       }
 
       const folderNode: BuilderCurriculumNode = {
@@ -183,7 +184,7 @@ export function buildCurriculumFromStarter(
         children: subTopic.videos.map((video) => createVideoNode(video)),
       };
 
-      return applyGroupToSubtree(folderNode, groupId);
+      return [applyGroupToSubtree(folderNode, groupId)];
     });
 
     return {

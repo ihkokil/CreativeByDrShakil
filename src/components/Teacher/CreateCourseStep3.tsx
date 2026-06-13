@@ -378,17 +378,31 @@ function CreateCourseStep3Content() {
           const topics = Array.isArray(topicData.topics) ? topicData.topics : [];
           topics.forEach((t: any) => {
             if (!seenIds.has(t.id)) {
-              const mappedSubTopics: StarterItem[] = (t.subTopics || []).map((st: any) => ({
-                id: st.id,
-                type: "folder",
-                title: st.title,
-                items: (st.videos || []).map((v: any, vIdx: number) => ({
-                  id: `${st.id}_video_${vIdx}`,
-                  type: "youtube",
-                  title: v.title,
-                  url: v.url
-                }))
-              }));
+              const mappedSubTopics: StarterItem[] = (t.subTopics || []).flatMap((st: any) => {
+                const videos = Array.isArray(st.videos) ? st.videos : [];
+                const shouldBeFolder = Boolean(st.forceFolder);
+
+                if (!shouldBeFolder) {
+                  return videos.map((v: any, vIdx: number) => ({
+                    id: `${st.id}_video_${vIdx}`,
+                    type: v.type || "youtube",
+                    title: v.title || st.title,
+                    url: v.url,
+                  }));
+                }
+
+                return [{
+                  id: st.id,
+                  type: "folder",
+                  title: st.title,
+                  items: videos.map((v: any, vIdx: number) => ({
+                    id: `${st.id}_video_${vIdx}`,
+                    type: v.type || "youtube",
+                    title: v.title,
+                    url: v.url,
+                  })),
+                }];
+              });
 
               allTopics.push({ ...t, subTopics: mappedSubTopics, source: "starter" });
               seenIds.add(t.id);
@@ -507,21 +521,18 @@ function CreateCourseStep3Content() {
   const handleCreateCustomTopic = () => {
     if (!newTopicTitle.trim()) return;
     
+    const mainTopicId = `custom_${Date.now()}`;
+    const customItemIds = newTopicItems.map((item) => item.id);
+
     const customTopic: StarterMainTopic = {
-      id: `custom_${Date.now()}`,
+      id: mainTopicId,
       title: newTopicTitle,
-      subTopics: [
-        {
-          id: `custom_sub_${Date.now()}`,
-          title: newTopicTitle,
-          type: "folder",
-          items: newTopicItems,
-        }
-      ],
+      subTopics: [...newTopicItems],
       source: "custom",
     };
     
     setTopicOptions(prev => [...prev, customTopic]);
+    setSelectedTopicIds(prev => Array.from(new Set([...prev, mainTopicId, ...customItemIds])));
     setNewTopicTitle("");
     setNewTopicItems([]);
     setShowCreateTopic(false);
@@ -555,7 +566,7 @@ function CreateCourseStep3Content() {
           const releaseAt = overrideDate ? parseDisplayDateToIso(overrideDate) || overrideDate : null;
 
           if (item.type !== "folder") {
-            return [{ id: item.id, type: item.type, title: item.title, url: item.url, releaseAt }];
+            return [{ id: item.id, type: item.type, title: item.title, url: item.url, ...(releaseAt ? { releaseAt } : {}) }];
           }
 
           return [
@@ -564,7 +575,7 @@ function CreateCourseStep3Content() {
               type: "folder",
               title: item.title,
               url: item.url,
-              releaseAt,
+              ...(releaseAt ? { releaseAt } : {}),
               items: serializeItems(item.items || [], true),
             },
           ];
@@ -588,7 +599,7 @@ function CreateCourseStep3Content() {
             title: topic.title,
             subTopics,
             source: topic.source,
-            releaseAt,
+            ...(releaseAt ? { releaseAt } : {}),
           };
         })
         .filter(Boolean);
@@ -1106,14 +1117,21 @@ function CreateCourseStep3Content() {
             {topicOptions.map((mainTopic) => {
               const isExpanded = expandedTopics.includes(mainTopic.id);
               const allSubSelected = mainTopic.subTopics.every(st => selectedTopicIds.includes(st.id));
-              // Date running index relies on first-level topics
-              const topicIndex = topicOptions.findIndex(t => t.id === mainTopic.id);
+              const anySubSelected = mainTopic.subTopics.some(st => selectedTopicIds.includes(st.id));
+              const hasFolderChildren = mainTopic.subTopics.some(st => st.type === "folder");
+              
+              // Date index counts selected mainTopics (folder-level scheduling)
+              let mainTopicDateIndex = 0;
+              for (const t of topicOptions) {
+                if (t.id === mainTopic.id) break;
+                const tSelected = t.subTopics.some(st => selectedTopicIds.includes(st.id));
+                if (tSelected) mainTopicDateIndex++;
+              }
+              const mainTopicComputedDate = anySubSelected ? formatDisplayDate(calculatePublishDate(mainTopicDateIndex)) : "";
+              const mainTopicDisplayDate = dateOverrides[mainTopic.id] || mainTopicComputedDate;
+              
+              // For hierarchical folders, keep per-sub-folder counting (No longer needed, but keeping for reference)
               let itemCountBeforeTopic = 0;
-              topicOptions.slice(0, topicIndex).forEach(t => {
-                if (selectedTopicIds.includes(t.id)) {
-                  itemCountBeforeTopic += t.subTopics.filter(st => selectedTopicIds.includes(st.id)).length;
-                }
-              });
 
               return (
                 <div key={mainTopic.id} style={{ border: "1px solid var(--glass-border)", borderRadius: "12px", overflow: "hidden" }}>
@@ -1139,6 +1157,46 @@ function CreateCourseStep3Content() {
                     </span>
                   </button>
 
+                  {anySubSelected && publishFreqMode !== "instant" && (
+                    <div style={{ padding: "0 14px 12px", display: "flex", alignItems: "center", gap: "8px", justifyContent: "flex-end" }}>
+                      <Calendar size={14} style={{ color: "var(--primary)" }} />
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Folder release date</span>
+                      <input
+                        type="date"
+                        value={(() => {
+                          const val = mainTopicDisplayDate;
+                          if (!val) return "";
+                          const parts = val.split("/");
+                          if (parts.length === 3) {
+                            return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                          }
+                          return val;
+                        })()}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) {
+                            setDateOverrides(prev => {
+                              const next = { ...prev };
+                              delete next[mainTopic.id];
+                              return next;
+                            });
+                            return;
+                          }
+                          const parts = val.split("-");
+                          if (parts.length === 3) {
+                            setDateOverrides(prev => ({ ...prev, [mainTopic.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
+                          } else {
+                            setDateOverrides(prev => ({ ...prev, [mainTopic.id]: val }));
+                          }
+                        }}
+                        style={{
+                          padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
+                          fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {isExpanded && (
                     <div style={{ paddingLeft: "14px", paddingRight: "14px", paddingBottom: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
                       {mainTopic.subTopics.map((subTopic, subIdx) => {
@@ -1146,8 +1204,8 @@ function CreateCourseStep3Content() {
                         let calculatedDate = "";
                         
                         if (isSelected) {
-                          const itemIndex = itemCountBeforeTopic + mainTopic.subTopics.slice(0, subIdx).filter(st => selectedTopicIds.includes(st.id)).length;
-                          calculatedDate = formatDisplayDate(calculatePublishDate(itemIndex));
+                          // All children inherit the mainTopic's date under the new top-level interval logic
+                          calculatedDate = mainTopicDisplayDate;
                         }
                         
                         // Pass inheritedDate inside recursive renderer
@@ -1180,42 +1238,52 @@ function CreateCourseStep3Content() {
                                   </span>
                                 )} 
                               </div>
-                              {isSelected && calculatedDate && (
+                              {isSelected && calculatedDate && publishFreqMode !== "instant" && (
                                 <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
-                                  <Calendar size={14} style={{ color: "var(--primary)" }} />
-                                  <input
-                                    type="date"
-                                    value={(() => {
-                                      const val = dateOverrides[subTopic.id] || calculatedDate;
-                                      if (!val) return "";
-                                      const parts = val.split("/");
-                                      if (parts.length === 3) {
-                                        return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-                                      }
-                                      return val;
-                                    })()}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (!val) {
-                                        setDateOverrides(prev => {
-                                          const next = { ...prev };
-                                          delete next[subTopic.id];
-                                          return next;
-                                        });
-                                        return;
-                                      }
-                                      const parts = val.split("-");
-                                      if (parts.length === 3) {
-                                        setDateOverrides(prev => ({ ...prev, [subTopic.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
-                                      } else {
-                                        setDateOverrides(prev => ({ ...prev, [subTopic.id]: val }));
-                                      }
-                                    }}
-                                    style={{
-                                      padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
-                                      fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
-                                    }}
-                                  />
+                                  <Calendar size={14} style={{ color: subTopic.type === "folder" ? "var(--primary)" : "var(--text-muted)" }} />
+                                  {subTopic.type === "folder" ? (
+                                    <input
+                                      type="date"
+                                      value={(() => {
+                                        const val = dateOverrides[subTopic.id] || calculatedDate;
+                                        if (!val) return "";
+                                        const parts = val.split("/");
+                                        if (parts.length === 3) {
+                                          return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+                                        }
+                                        return val;
+                                      })()}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (!val) {
+                                          setDateOverrides(prev => {
+                                            const next = { ...prev };
+                                            delete next[subTopic.id];
+                                            return next;
+                                          });
+                                          return;
+                                        }
+                                        const parts = val.split("-");
+                                        if (parts.length === 3) {
+                                          setDateOverrides(prev => ({ ...prev, [subTopic.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
+                                        } else {
+                                          setDateOverrides(prev => ({ ...prev, [subTopic.id]: val }));
+                                        }
+                                      }}
+                                      style={{
+                                        padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
+                                        fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
+                                      }}
+                                    />
+                                  ) : (
+                                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "500" }}>
+                                      {(() => {
+                                        const val = dateOverrides[subTopic.id] || calculatedDate;
+                                        if (!val) return "";
+                                        return val;
+                                      })()}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                               <div style={{ display: "flex", gap: "2px", opacity: 0.6, flexShrink: 0, marginLeft: "4px" }}>

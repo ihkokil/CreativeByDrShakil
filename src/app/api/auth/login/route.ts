@@ -40,20 +40,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 
-    const isValid = await comparePassword(password, user.passwordHash);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
-    }
-
+    // Check email verification BEFORE password so unverified users
+    // always see the verification message instead of "Invalid credentials"
     if (!user.emailVerified) {
       return NextResponse.json(
         {
-          error: 'Please verify your email before logging in.',
+          error: 'Your email has not been verified yet. Please check your inbox and verify your email before logging in.',
           code: 'email_not_verified',
           email: user.email,
         },
         { status: 403 }
       );
+    }
+
+    const isValid = await comparePassword(password, user.passwordHash);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 
     // Device detection

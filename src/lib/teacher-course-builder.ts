@@ -145,14 +145,15 @@ const setReleaseGroupToSubtree = (node: BuilderCurriculumNode, releaseGroupId: s
 
 export function ensureGroupInheritance(nodes: BuilderCurriculumNode[]): BuilderCurriculumNode[] {
   return nodes.map((mainTopic) => {
-    const children = (mainTopic.children || []).map((secondChild) => {
-      const groupId = secondChild.releaseGroupId || `group_${slugify(mainTopic.title)}_${slugify(secondChild.title)}_${secondChild.id.slice(-6)}`;
-      return setReleaseGroupToSubtree(secondChild, groupId);
-    });
+    // The top-level topic gets the group.
+    const groupId = mainTopic.releaseGroupId || `group_${slugify(mainTopic.title)}_${mainTopic.id.slice(-6)}`;
+    
+    // All children inherit this group, overriding their own.
+    const children = (mainTopic.children || []).map((child) => setReleaseGroupToSubtree(child, groupId));
 
     return {
       ...mainTopic,
-      releaseGroupId: null,
+      releaseGroupId: groupId,
       children,
     };
   });
@@ -163,17 +164,15 @@ export function collectSecondChildGroups(nodes: BuilderCurriculumNode[]): Releas
   let index = 0;
 
   nodes.forEach((mainTopic) => {
-    (mainTopic.children || []).forEach((secondChild) => {
-      const id = secondChild.releaseGroupId || `group_${slugify(mainTopic.title)}_${slugify(secondChild.title)}_${secondChild.id.slice(-6)}`;
-      groups.push({
-        id,
-        title: secondChild.title,
-        mainTopicTitle: mainTopic.title,
-        nodeId: secondChild.id,
-        index,
-      });
-      index += 1;
+    const id = mainTopic.releaseGroupId || `group_${slugify(mainTopic.title)}_${mainTopic.id.slice(-6)}`;
+    groups.push({
+      id,
+      title: mainTopic.title,
+      mainTopicTitle: mainTopic.title,
+      nodeId: mainTopic.id,
+      index,
     });
+    index += 1;
   });
 
   return groups;
