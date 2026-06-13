@@ -1,151 +1,185 @@
+/* ══════════════════════════════════════════════════
+   CourseCard — Mobile-first
+   ══════════════════════════════════════════════════ */
+
 .card {
-    padding: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: transform var(--duration-fast) var(--ease-premium), 
-                box-shadow var(--duration-fast) var(--ease-premium);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-top: 3px solid var(--primary);
+  transition: transform var(--duration-fast) var(--ease-premium),
+              box-shadow var(--duration-fast) var(--ease-premium);
 }
 
 .card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-premium);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px -12px color-mix(in srgb, var(--primary) 20%, rgba(0,0,0,0.3));
 }
 
 .imageWrapper {
-    position: relative;
-    height: 200px;
-    width: 100%;
-    background: var(--surface-soft);
+  position: relative;
+  height: 200px;
+  width: 100%;
+  background: var(--surface-soft);
 }
 
-
 .cardInfo {
-    padding: 24px;
-    flex: 1;
+  padding: 20px;
+  flex: 1;
 }
 
 .instructorSection {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .instructorAvatar {
-    position: relative;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid var(--primary);
-    background: var(--surface-soft);
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--primary);
+  background: var(--surface-soft);
+  flex-shrink: 0;
 }
 
 .instructorName {
-    font-size: var(--text-tiny);
-    font-weight: var(--weight-bold);
-    color: var(--primary);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-bold);
+  color: var(--primary);
 }
 
 .courseTitle {
-    font-size: var(--text-xl);
-    font-weight: var(--weight-extrabold);
-    margin-bottom: 20px;
-    line-height: 1.3;
-    min-height: 3.5rem;
-    color: var(--foreground);
+  font-size: var(--text-large);
+  font-weight: var(--weight-extrabold);
+  margin-bottom: 16px;
+  line-height: 1.3;
+  min-height: 3rem;
+  color: var(--foreground);
 }
 
 .meta {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    font-size: var(--text-tiny);
-    color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: var(--text-tiny);
+  color: var(--text-muted);
 }
 
 .metaItem {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .rating {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--warning);
-    font-weight: var(--weight-bold);
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warning);
+  font-weight: var(--weight-bold);
 }
 
 .cardFooter {
-    padding: 20px 24px;
-    border-top: 1px solid var(--glass-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: color-mix(in srgb, var(--foreground) 2%, transparent);
+  padding: 16px 20px;
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: color-mix(in srgb, var(--foreground) 2%, transparent);
 }
 
 .priceContainer {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .originalPrice {
-    font-size: var(--text-tiny);
-    color: var(--text-muted);
-    text-decoration: line-through;
-    opacity: 0.6;
-    margin-bottom: -2px;
+  font-size: var(--text-tiny);
+  color: var(--text-muted);
+  text-decoration: line-through;
+  opacity: 0.6;
+  margin-bottom: -2px;
 }
 
 .price {
-    font-size: var(--text-large);
-    font-weight: var(--weight-bold);
-    color: var(--foreground);
+  font-size: var(--text-large);
+  font-weight: var(--weight-bold);
+  color: var(--foreground);
 }
 
 .enrollBtn {
-    background: var(--foreground);
-    color: var(--background);
-    border: none;
-    padding: 10px 24px;
-    border-radius: var(--radius-full);
-    font-size: var(--text-small);
-    font-weight: var(--weight-extrabold);
-    cursor: pointer;
-    transition: all var(--duration-fast);
+  background: var(--foreground);
+  color: var(--background);
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-small);
+  font-weight: var(--weight-extrabold);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .enrollBtn:hover {
-    opacity: 0.95;
-    transform: scale(1.05);
-    box-shadow: 0 4px 15px color-mix(in srgb, var(--foreground) 20%, transparent);
+  opacity: 0.95;
+  transform: scale(1.04);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--foreground) 20%, transparent);
 }
 
-/* List Mode Styles */
+/* ── Tablet: 769px+ ── */
+@media (min-width: 769px) {
+  .cardInfo {
+    padding: 24px;
+  }
+
+  .cardFooter {
+    padding: 20px 24px;
+  }
+
+  .courseTitle {
+    font-size: var(--text-xl);
+    min-height: 3.5rem;
+  }
+
+  .enrollBtn {
+    padding: 10px 24px;
+  }
+}
+
+/* ── List mode styles ── */
 .listCard {
+  flex-direction: column;
+}
+
+@media (min-width: 769px) {
+  .listCard {
     flex-direction: row !important;
     height: 240px !important;
     align-items: stretch !important;
-}
+  }
 
-.listCard .imageWrapper {
+  .listCard .imageWrapper {
     width: 320px !important;
     height: 100% !important;
     flex-shrink: 0 !important;
-}
+  }
 
-.listCard .cardInfo {
+  .listCard .cardInfo {
     display: flex !important;
     flex-direction: column !important;
     justify-content: center !important;
-}
+  }
 
-.listCard .cardFooter {
+  .listCard .cardFooter {
     border-top: none !important;
     border-left: 1px solid var(--glass-border) !important;
     flex-direction: column !important;
@@ -153,76 +187,57 @@
     gap: 15px !important;
     width: 200px !important;
     padding: 24px !important;
+  }
 }
 
-@media (max-width: 768px) {
-    .listCard {
-        flex-direction: column !important;
-        height: auto !important;
-    }
-
-    .listCard .imageWrapper {
-        width: 100% !important;
-        height: 200px !important;
-    }
-
-    .listCard .cardFooter {
-        border-left: none !important;
-        border-top: 1px solid var(--glass-border) !important;
-        flex-direction: row !important;
-        width: 100% !important;
-    }
-}
-
-/* Skeleton Animations */
+/* ── Skeleton animations ── */
 @keyframes pulse {
-    0% { opacity: 0.6; }
-    50% { opacity: 0.3; }
-    100% { opacity: 0.6; }
+  0%   { opacity: 0.6; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 0.6; }
 }
 
 .skeleton {
-    animation: pulse 1.5s ease-in-out infinite;
-    background: var(--surface-strong);
-    border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
+  background: var(--surface-strong);
+  border-radius: var(--radius-sm);
 }
 
 .skeletonCard {
-    pointer-events: none;
-    min-height: 420px;
+  pointer-events: none;
+  min-height: 380px;
 }
 
 .skeletonImage {
-    width: 100%;
-    height: 200px;
+  width: 100%;
+  height: 200px;
 }
 
 .skeletonTitle {
-    height: 24px;
-    width: 80%;
-    margin-bottom: 20px;
+  height: 24px;
+  width: 80%;
+  margin-bottom: 20px;
 }
 
 .skeletonText {
-    height: 14px;
-    width: 100%;
-    margin-bottom: 10px;
+  height: 14px;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
-
 .skeletonAvatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
 }
 
 .skeletonBtn {
-    height: 40px;
-    width: 120px;
-    border-radius: var(--radius-full);
+  height: 44px;
+  width: 120px;
+  border-radius: var(--radius-full);
 }
 
 .skeletonPrice {
-    height: 28px;
-    width: 80px;
+  height: 28px;
+  width: 80px;
 }

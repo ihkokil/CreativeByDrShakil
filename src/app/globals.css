@@ -71,8 +71,8 @@
   --layout-gutter-desktop: 32px;
   --layout-gutter-tablet: 24px;
   --layout-gutter-mobile: 16px;
-  --layout-page-top: 140px;
-  --layout-page-bottom: 100px;
+  --layout-page-top: 80px;
+  --layout-page-bottom: 80px;
   --text-muted: #a0a0a0;
 
   /* Dropdown Specifics (Merged from Development) */
@@ -174,18 +174,35 @@ a {
   text-decoration: none;
 }
 
+/* ── Layout Containers (mobile-first) ── */
 .layout-container {
   width: min(100%, var(--layout-max-width));
   margin-inline: auto;
-  padding-inline: var(--layout-gutter-desktop);
+  padding-inline: var(--layout-gutter-mobile);
 }
 
 .page-container {
   width: min(100%, var(--layout-max-width));
   margin-inline: auto;
-  padding: var(--layout-page-top) var(--layout-gutter-desktop) var(--layout-page-bottom);
+  padding: var(--layout-page-top) var(--layout-gutter-mobile) var(--layout-page-bottom);
 }
 
+.section-padding {
+  padding: 60px var(--layout-gutter-mobile);
+}
+
+@media (min-width: 769px) {
+  .layout-container,
+  .page-container {
+    padding-inline: var(--layout-gutter-desktop);
+  }
+
+  .section-padding {
+    padding: 100px var(--layout-gutter-desktop);
+  }
+}
+
+/* ── Glassmorphism ── */
 .glass {
   background: var(--glass);
   backdrop-filter: blur(16px);
@@ -204,6 +221,7 @@ a {
   pointer-events: none;
 }
 
+/* ── Utilities ── */
 .gradient-text {
   background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
   -webkit-background-clip: text;
@@ -212,28 +230,8 @@ a {
   font-weight: var(--weight-black);
 }
 
-.section-padding {
-  padding: 100px var(--layout-gutter-desktop);
-}
-
 .alt-bg {
   background-color: var(--surface-soft);
-}
-
-@media (max-width: 768px) {
-  .layout-container,
-  .page-container {
-    padding-inline: var(--layout-gutter-mobile);
-  }
-
-  .page-container {
-    padding-top: 120px;
-    padding-bottom: 80px;
-  }
-
-  .section-padding {
-    padding: 60px var(--layout-gutter-mobile);
-  }
 }
 
 .subtle-border {
