@@ -187,3 +187,31 @@ export async function sendPasswordSetupEmail({
     html,
   });
 }
+
+export async function sendOtpEmail({
+  email,
+  otp,
+}: {
+  email: string;
+  otp: string;
+}) {
+  const safeOtp = escapeHtml(otp);
+
+  const html = createEmailTemplate({
+    preheader: "Your OTP verification code for CreativeByDrShakil.",
+    heading: "Verification Code",
+    greeting: "Hello,",
+    lead: "Use the verification code below to verify your email address. This code will expire in 30 minutes:",
+    actionLabel: safeOtp,
+    actionUrl: "#",
+    expiryText: "This verification code will expire in 30 minutes.",
+    warningText: "If you did not request this code, you can safely ignore this email.",
+  });
+
+  await sendMail({
+    to: email,
+    subject: `Your Verification Code: ${otp}`,
+    text: `Hello,\n\nYour verification code is: ${otp}\n\nThis code will expire in 30 minutes.\n\nIf you did not request this, you can safely ignore this email.`,
+    html,
+  });
+}
