@@ -131,6 +131,7 @@
   cursor: pointer;
   transition: all var(--duration-fast);
   min-height: 44px;
+  text-decoration: none;
 }
 
 .userMenuBtn:hover {

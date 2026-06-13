@@ -17,8 +17,6 @@ export default function Navbar() {
     const { user, role, signOut } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const userMenuRef = useRef<HTMLDivElement>(null);
     const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
     const navMenuRef = useRef<HTMLDivElement>(null);
 
@@ -38,9 +36,6 @@ export default function Navbar() {
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-                setIsUserMenuOpen(false);
-            }
             if (navMenuRef.current && !navMenuRef.current.contains(event.target as Node)) {
                 setIsNavMenuOpen(false);
             }
@@ -169,48 +164,26 @@ export default function Navbar() {
                     <div className={styles.rightActions}>
                         <ThemeToggle />
 
-                        <div className={styles.userWrapper} ref={userMenuRef}>
-                            <button
-                                className={user ? styles.userMenuBtn : styles.accountBtn}
-                                onClick={() => {
-                                    if (user) {
-                                        setIsUserMenuOpen(!isUserMenuOpen);
-                                    } else {
+                        <div className={styles.userWrapper}>
+                            {user ? (
+                                <Link
+                                    href={dashboardHref}
+                                    className={styles.userMenuBtn}
+                                >
+                                    <User size={18} />
+                                    <span className={styles.navText}>Account</span>
+                                </Link>
+                            ) : (
+                                <button
+                                    className={styles.accountBtn}
+                                    onClick={() => {
                                         setAuthMode("login");
                                         setIsAuthOpen(true);
-                                        setIsUserMenuOpen(false);
-                                    }
-                                }}
-                            >
-                                <User size={18} />
-                                <span className={styles.navText}>{user ? "Account" : "Login"}</span>
-                            </button>
-
-                            {user && isUserMenuOpen && (
-                                <div className={styles.userDropdown}>
-                                    <>
-                                        <div className={styles.userHeader}>
-                                            <span className={styles.userEmail}>{user.email}</span>
-                                            <span className={styles.userRole}>{role}</span>
-                                        </div>
-                                        <Link
-                                            href={dashboardHref}
-                                            className={styles.dropdownLink}
-                                            onClick={() => setIsUserMenuOpen(false)}
-                                        >
-                                            <Layout size={18} /> Dashboard
-                                        </Link>
-                                        <button
-                                            className={styles.dropdownLogout}
-                                            onClick={() => {
-                                                signOut();
-                                                setIsUserMenuOpen(false);
-                                            }}
-                                        >
-                                            <LogOut size={18} /> Sign Out
-                                        </button>
-                                    </>
-                                </div>
+                                    }}
+                                >
+                                    <User size={18} />
+                                    <span className={styles.navText}>Login</span>
+                                </button>
                             )}
                         </div>
                     </div>
