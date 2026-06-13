@@ -11,16 +11,6 @@ export default function FloatingThemeToggle() {
     const [theme, setTheme] = useState<"light" | "dark">("dark");
     const [mounted, setMounted] = useState(false);
 
-    const isDashboardPage = 
-        pathname?.startsWith("/dashboard") ||
-        pathname?.startsWith("/teacher") ||
-        pathname?.startsWith("/admin") ||
-        pathname?.startsWith("/study");
-
-    if (isDashboardPage) {
-        return null;
-    }
-
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMounted(true);
@@ -42,7 +32,13 @@ export default function FloatingThemeToggle() {
         setTheme(newTheme);
     };
 
-    if (!mounted) {
+    const isDashboardPage = 
+        pathname?.startsWith("/dashboard") ||
+        pathname?.startsWith("/teacher") ||
+        pathname?.startsWith("/admin") ||
+        pathname?.startsWith("/study");
+
+    if (isDashboardPage || !mounted) {
         return null;
     }
 
