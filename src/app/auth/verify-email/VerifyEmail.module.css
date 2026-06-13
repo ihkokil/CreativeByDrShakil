@@ -1,0 +1,312 @@
+.page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--background);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative orbs */
+.bgOrb1,
+.bgOrb2 {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.bgOrb1 {
+    width: 500px;
+    height: 500px;
+    background: var(--primary);
+    top: -150px;
+    right: -100px;
+    animation: float 8s ease-in-out infinite;
+}
+
+.bgOrb2 {
+    width: 400px;
+    height: 400px;
+    background: var(--accent, #8b5cf6);
+    bottom: -120px;
+    left: -80px;
+    animation: float 10s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, -20px); }
+}
+
+/* Main card */
+.card {
+    position: relative;
+    z-index: 1;
+    width: min(560px, 100%);
+    border-radius: var(--radius-xl, 16px);
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.1));
+    background: var(--glass, rgba(255,255,255,0.05));
+    padding: 48px 40px;
+    box-shadow: var(--shadow-premium, 0 20px 60px rgba(0,0,0,0.15));
+    backdrop-filter: blur(20px);
+    animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+}
+
+/* Spinner */
+.spinnerWrap {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--glass-border, rgba(255,255,255,0.1));
+    border-top-color: var(--primary, #2563eb);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Icon containers */
+.iconWrap {
+    animation: iconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes iconPop {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.successIcon,
+.errorIcon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+}
+
+.successIcon {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    box-shadow: 0 8px 32px rgba(34, 197, 94, 0.35);
+}
+
+.errorIcon {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.35);
+}
+
+/* Checkmark animation */
+.checkmark {
+    stroke-dasharray: 30;
+    stroke-dashoffset: 30;
+    animation: drawCheck 0.5s ease 0.5s forwards;
+}
+
+@keyframes drawCheck {
+    to { stroke-dashoffset: 0; }
+}
+
+/* Title & subtitle */
+.title {
+    font-size: var(--text-2xl, 2rem);
+    font-weight: var(--weight-extrabold, 800);
+    color: var(--foreground, #fff);
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.subtitle {
+    color: var(--text-muted, #94a3b8);
+    font-size: var(--text-lg, 1.1rem);
+    font-weight: var(--weight-medium, 500);
+    line-height: 1.6;
+    margin: 0;
+    max-width: 420px;
+}
+
+/* Info card — device policy */
+.infoCard {
+    width: 100%;
+    border-radius: var(--radius-lg, 12px);
+    border: 1px solid color-mix(in srgb, #f59e0b 25%, transparent);
+    background: color-mix(in srgb, #f59e0b 6%, transparent);
+    overflow: hidden;
+    text-align: left;
+    animation: fadeSlide 0.4s ease 0.6s both;
+}
+
+@keyframes fadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.infoHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: color-mix(in srgb, #f59e0b 12%, transparent);
+    color: #f59e0b;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.infoBody {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ruleRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.ruleIcon {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--primary, #2563eb) 12%, transparent);
+    color: var(--primary, #2563eb);
+    display: grid;
+    place-items: center;
+}
+
+.ruleRow p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--text-muted, #94a3b8);
+    padding-top: 5px;
+}
+
+.ruleRow p strong {
+    color: var(--foreground, #e2e8f0);
+}
+
+/* Redirect bar */
+.redirectBar {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: fadeSlide 0.4s ease 0.8s both;
+}
+
+.progressTrack {
+    width: 100%;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--glass-border, rgba(255,255,255,0.1));
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary, #2563eb), #60a5fa);
+    border-radius: 4px;
+    transition: width 1s linear;
+}
+
+.redirectText {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.redirectText strong {
+    color: var(--primary, #2563eb);
+}
+
+/* Home button */
+.homeBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    border-radius: var(--radius-md, 10px);
+    background: var(--primary, #2563eb);
+    color: white;
+    font-weight: 700;
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    animation: fadeSlide 0.4s ease 1s both;
+}
+
+.homeBtn:hover {
+    background: color-mix(in srgb, var(--primary, #2563eb) 85%, white);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--primary, #2563eb) 30%, transparent);
+}
+
+/* Mobile */
+@media (max-width: 520px) {
+    .card {
+        padding: 32px 20px;
+    }
+
+    .title {
+        font-size: 1.4rem;
+    }
+
+    .successIcon,
+    .errorIcon {
+        width: 64px;
+        height: 64px;
+    }
+
+    .successIcon svg,
+    .errorIcon svg {
+        width: 32px;
+        height: 32px;
+    }
+}

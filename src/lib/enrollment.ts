@@ -6,7 +6,7 @@ import { Prisma } from "@prisma/client";
 export const CLINICAL_COURSE_TITLES = [
   'Medicine and Allied',
   'Surgery and Allied',
-  'Gynae and Obsetrics',
+  'Gynae& Obstetrics',
   'Radiology',
   'Dermatology',
 ];

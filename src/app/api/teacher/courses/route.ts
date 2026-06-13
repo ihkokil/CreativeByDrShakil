@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         salePrice: numericSalePrice,
         instructor: teacher.fullName,
         imageUrl,
-        duration: duration || 'Self paced',
+        duration: duration || '1y',
         courseStartDate: courseStartDate ? new Date(courseStartDate) : null,
         isFeatured,
         teacherId: payload.sub,
