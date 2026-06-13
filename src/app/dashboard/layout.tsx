@@ -18,6 +18,12 @@ function StudentDashboardLayoutContent({
     const searchParams = useSearchParams();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.innerWidth <= 768) {
+            setIsSidebarExpanded(false);
+        }
+    }, []);
+
     const activeTab = (searchParams.get("tab") as any) || "overview";
 
     useEffect(() => {
@@ -58,11 +64,18 @@ function StudentDashboardLayoutContent({
                 isExpanded={isSidebarExpanded}
                 onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
             />
+            {isSidebarExpanded && (
+                <div 
+                    className={styles.sidebarBackdrop} 
+                    onClick={() => setIsSidebarExpanded(false)} 
+                />
+            )}
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
                 <StudentHeader 
                     title="Learning Center"
                     user={user}
+                    onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
                 />
                 <div className={styles.pageContent}>
                     {children}
