@@ -5,6 +5,7 @@ import styles from "./Hero.module.css";
 import { ArrowRight, MessageCircle, GraduationCap, BookOpen, Award, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ParticleBackground from "./ParticleBackground";
 
 interface HeroCourse {
     id: string;
@@ -44,6 +45,7 @@ export default function Hero() {
     return (
         <section className={styles.hero}>
             {/* Decorative elements */}
+            <ParticleBackground />
             <div className={styles.accentBar} />
             <div className={styles.gridPattern} />
 
