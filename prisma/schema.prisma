@@ -287,3 +287,14 @@ enum DeviceType {
   desktop
   mobile
 }
+
+model EmailOtp {
+  id        String   @id @default(cuid())
+  email     String
+  otpHash   String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
