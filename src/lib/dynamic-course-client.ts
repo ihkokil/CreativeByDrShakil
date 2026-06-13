@@ -44,7 +44,7 @@ export const mapDynamicCourseToCourse = (payload: DynamicCoursePayload): Course 
       id: instructor.id,
       name: instructor.name,
       role: instructor.designation || instructor.role || 'Course Instructor',
-      image: instructor.imageUrl || instructor.image || '/placeholder.svg',
+      image: instructor.imageUrl || instructor.image || '/placeholder-square.svg',
     }))
     .filter((instructor) => instructor.name && instructor.name !== mainInstructor.name);
 

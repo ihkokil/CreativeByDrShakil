@@ -422,8 +422,9 @@
     }
 
     .userMenuBtn {
-        /* keep full width sticky header on mobile */
-        display: none;
+        padding: 8px 12px;
+        font-size: var(--text-tiny);
+        gap: 6px;
     }
 
     .userDropdown {

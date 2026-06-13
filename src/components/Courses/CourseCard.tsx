@@ -28,7 +28,7 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
             <div className={styles.cardInfo}>
                 <div className={styles.instructorSection}>
                     <div className={styles.instructorAvatar}>
-                        <Image src={course.mainInstructor.image || "/placeholder.svg"} alt={course.mainInstructor.name} fill unoptimized />
+                        <Image src={course.mainInstructor.image || "/placeholder-square.svg"} alt={course.mainInstructor.name} fill unoptimized />
                     </div>
                     <span className={styles.instructorName}>{course.mainInstructor.name}</span>
                 </div>
