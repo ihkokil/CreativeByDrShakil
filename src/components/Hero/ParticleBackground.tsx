@@ -38,7 +38,7 @@ export default function ParticleBackground() {
                 this.y = Math.random() * height;
                 this.vx = (Math.random() - 0.5) * 0.4;
                 this.vy = (Math.random() - 0.5) * 0.4;
-                this.radius = Math.random() * 2 + 1;
+                this.radius = Math.random() * 3 + 1.5;
             }
 
             update() {
@@ -84,12 +84,12 @@ export default function ParticleBackground() {
         // Theme colors
         const getParticleColor = () => {
             const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-            return isDark ? "rgba(237, 28, 40, 0.22)" : "rgba(237, 28, 40, 0.12)";
+            return isDark ? "rgba(237, 28, 40, 0.55)" : "rgba(237, 28, 40, 0.35)";
         };
 
         const getLineColor = () => {
             const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-            return isDark ? "rgba(237, 28, 40, 0.08)" : "rgba(237, 28, 40, 0.04)";
+            return isDark ? "rgba(237, 28, 40, 0.25)" : "rgba(237, 28, 40, 0.15)";
         };
 
         let particleColor = getParticleColor();
@@ -124,7 +124,7 @@ export default function ParticleBackground() {
                         ctx.moveTo(p1.x, p1.y);
                         ctx.lineTo(p2.x, p2.y);
                         ctx.strokeStyle = lineColor;
-                        ctx.lineWidth = (1 - dist / 120) * 0.8;
+                        ctx.lineWidth = (1 - dist / 120) * 1.5;
                         ctx.stroke();
                     }
                 }
@@ -139,8 +139,8 @@ export default function ParticleBackground() {
                         ctx.moveTo(p1.x, p1.y);
                         ctx.lineTo(mouse.x, mouse.y);
                         const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-                        ctx.strokeStyle = isDark ? "rgba(237, 28, 40, 0.16)" : "rgba(237, 28, 40, 0.07)";
-                        ctx.lineWidth = (1 - dist / 180) * 1.2;
+                        ctx.strokeStyle = isDark ? "rgba(237, 28, 40, 0.45)" : "rgba(237, 28, 40, 0.25)";
+                        ctx.lineWidth = (1 - dist / 180) * 2;
                         ctx.stroke();
                     }
                 }
