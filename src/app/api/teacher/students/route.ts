@@ -218,9 +218,7 @@ export async function GET(request: NextRequest) {
       const studentOverrides = overridesByUser.get(enrollment.user.id) || [];
       
       const courseAnchor = selectedCourse.releaseStartAt || selectedCourse.courseStartDate || null;
-      const studentReleaseStartAt = courseAnchor && enrollment.updatedAt
-        ? new Date(Math.max(courseAnchor.getTime(), enrollment.updatedAt.getTime()))
-        : courseAnchor || enrollment.updatedAt;
+      const studentReleaseStartAt = courseAnchor || enrollment.updatedAt;
 
       const studentComputedDates = computeReleaseGroupDates(groups, {
         releaseMode: selectedCourse.releaseMode as any,
