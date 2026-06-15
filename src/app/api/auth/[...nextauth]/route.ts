@@ -5,12 +5,28 @@ import prisma from "@/lib/prisma";
 import { signAuthToken, AUTH_COOKIE_NAME } from "@/lib/auth-server";
 import { cookies } from "next/headers";
 
+const baseAdapter = PrismaAdapter(prisma);
+const customAdapter = {
+  ...baseAdapter,
+  createUser: async (data: any) => {
+    // NextAuth provides 'name', but your database requires 'fullName'
+    return await prisma.user.create({
+      data: {
+        ...data,
+        fullName: data.name || "Google User",
+        emailVerified: true, // Google emails are already verified
+      },
+    });
+  },
+};
+
 const handler = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: customAdapter as any,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: {
