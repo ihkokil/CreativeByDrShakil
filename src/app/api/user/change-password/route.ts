@@ -38,6 +38,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
+    if (!user.passwordHash) {
+      return NextResponse.json(
+        { error: 'This account is linked to Google. Please use Google Sign-in instead of a password.' },
+        { status: 400 }
+      );
+    }
+
     const isCurrentValid = await comparePassword(currentPassword, user.passwordHash);
     if (!isCurrentValid) {
       return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 });
