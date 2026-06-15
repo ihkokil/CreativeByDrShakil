@@ -11,6 +11,7 @@ import styles from "./TeacherDashboard.module.css";
 import { Loader2 } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
 import PaymentsManager from "@/components/Admin/PaymentsManager";
+import Loader from "@/components/UI/Loader";
 
 interface TeacherStats {
     totalCourses: number;
@@ -124,7 +125,7 @@ function TeacherDashboardContent() {
 
 export default function TeacherDashboard() {
     return (
-        <Suspense fallback={<div className={styles.loader}>Loading Teacher Dashboard...</div>}>
+        <Suspense fallback={<Loader text="Loading Teacher Dashboard..." />}>
             <TeacherDashboardContent />
         </Suspense>
     );

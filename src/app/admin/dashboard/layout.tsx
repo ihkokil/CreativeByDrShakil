@@ -19,6 +19,7 @@ import {
     TicketPercent,
     Users,
 } from "lucide-react";
+import Loader from "@/components/UI/Loader";
 
 function AdminDashboardLayoutContent({
     children,
@@ -121,12 +122,7 @@ export default function AdminDashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <Suspense fallback={
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Loading Admin Portal...</span>
-            </div>
-        }>
+        <Suspense fallback={<Loader text="Loading Admin Portal..." />}>
             <AdminDashboardLayoutContent>
                 {children}
             </AdminDashboardLayoutContent>

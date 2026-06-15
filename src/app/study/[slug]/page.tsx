@@ -16,6 +16,7 @@ import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurr
 import { useParams } from "next/navigation";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import LessonPlayer from "@/components/Study/LessonPlayer";
+import Loader from "@/components/UI/Loader";
 
 const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
     for (const node of nodes) {
@@ -208,7 +209,7 @@ export default function StudyCoursePage() {
 
 
     if (loading) {
-        return <div className={styles.layout}>Loading study workspace...</div>;
+        return <Loader text="Loading study workspace..." />;
     }
 
     if (error) {

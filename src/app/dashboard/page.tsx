@@ -24,6 +24,7 @@ import StudentOverview from "@/components/Student/StudentOverview";
 import profileStyles from "./ProfileTab.module.css";
 import { Camera, Mail, Stethoscope, Save, Trash2, KeyRound, Lock, ShieldCheck, Clock } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
+import Loader from "@/components/UI/Loader";
 
 interface DashboardCourse {
     orderId: string;
@@ -662,7 +663,7 @@ function StudentDashboardContent() {
 
 export default function StudentDashboard() {
   return (
-    <Suspense fallback={<div className={styles.loader}>Loading student portal...</div>}>
+    <Suspense fallback={<Loader text="Loading student portal..." />}>
       <StudentDashboardContent />
     </Suspense>
   );
