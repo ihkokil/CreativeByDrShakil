@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     title: "Creative By Dr. Shakil | Medical Education Simplified",
     description: "Creative By Dr. Shakil (creativebydrshakil.com) — a premium learning platform for doctors.",
     icons: {
-        icon: "/favicon.png",
+        icon: "/favicon.ico",
     },
 };
 
@@ -23,8 +23,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
-            <body className={outfit.className}>
+        <html lang="en" suppressHydrationWarning>
+            <body className={outfit.className} suppressHydrationWarning>
                 <AuthProvider>
                     <ContentProtection />
                     {children}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import path from 'path';
-import { promises as fs } from 'fs';
+import { uploadFileToStorage } from '@/utils/storage';
 
 export const runtime = 'nodejs';
 
@@ -61,22 +61,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'bkash-qr');
-    await fs.mkdir(uploadDir, { recursive: true });
-
     const safeName = sanitizeFileName(file.name || 'qr.png');
     const ext = path.extname(safeName) || '.png';
     const fileName = `bkash-qr${ext}`;
-    const absolutePath = path.join(uploadDir, fileName);
-    const relativePath = path.posix.join('uploads', 'bkash-qr', fileName);
+    const folderPath = `uploads/bkash-qr`;
 
     const arrayBuffer = await file.arrayBuffer();
-    await fs.writeFile(absolutePath, Buffer.from(arrayBuffer));
+    const buffer = Buffer.from(arrayBuffer);
+
+    const publicUrl = await uploadFileToStorage(buffer, fileName, file.type, folderPath);
 
     return NextResponse.json(
       {
         success: true,
-        url: `/${relativePath}`,
+        url: publicUrl,
       },
       { status: 201 }
     );

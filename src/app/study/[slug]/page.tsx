@@ -8,12 +8,15 @@ import {
     Video,
     ArrowLeft,
     Lock,
+    Menu,
+    X,
 } from "lucide-react";
 import Link from "next/link";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { useParams } from "next/navigation";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import LessonPlayer from "@/components/Study/LessonPlayer";
+import Loader from "@/components/UI/Loader";
 
 const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
     for (const node of nodes) {
@@ -59,6 +62,7 @@ export default function StudyCoursePage() {
     const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
     const [markingComplete, setMarkingComplete] = useState(false);
     const [progressError, setProgressError] = useState<string | null>(null);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -129,6 +133,7 @@ export default function StudyCoursePage() {
         if (node.locked) return;
         setActiveLesson(node);
         setProgressError(null);
+        setSidebarOpen(false);
     };
 
     const lessonNodes = useMemo(() => collectLessonNodes(curriculum), [curriculum]);
@@ -204,7 +209,7 @@ export default function StudyCoursePage() {
 
 
     if (loading) {
-        return <div className={styles.layout}>Loading study workspace...</div>;
+        return <Loader text="Loading study workspace..." />;
     }
 
     if (error) {
@@ -225,11 +230,26 @@ export default function StudyCoursePage() {
 
     return (
         <div className={styles.layout}>
-            <aside className={styles.sidebar}>
+            {sidebarOpen && (
+                <div 
+                    className={styles.sidebarOverlay} 
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+            <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarActive : ""}`}>
                 <div className={styles.sidebarHeader}>
-                    <Link href="/dashboard" className={styles.backBtn}>
-                        <ArrowLeft size={18} /> Exit Study
-                    </Link>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
+                        <Link href="/dashboard" className={styles.backBtn} style={{ marginBottom: 0 }}>
+                            <ArrowLeft size={18} /> Exit Study
+                        </Link>
+                        <button 
+                            className={styles.sidebarCloseBtn}
+                            onClick={() => setSidebarOpen(false)}
+                            aria-label="Close menu"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
                     <div className={styles.courseTitle}>
                         <h3>{courseTitle}</h3>
                         <div className={styles.progressSection}>
@@ -252,8 +272,17 @@ export default function StudyCoursePage() {
 
             <main className={styles.main}>
                 <header className={styles.header}>
-                    <div className={styles.breadcrumbs}>
-                        <span>{courseTitle}</span> <ChevronRight size={14} /> <span>{breadcrumbs}</span>
+                    <div className={styles.headerLeft}>
+                        <button 
+                            className={styles.menuToggleBtn} 
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            aria-label="Toggle curriculum menu"
+                        >
+                            <Menu size={20} />
+                        </button>
+                        <div className={styles.breadcrumbs}>
+                            <span>{courseTitle}</span> <ChevronRight size={14} /> <span>{breadcrumbs}</span>
+                        </div>
                     </div>
                     {activeLesson && !activeLesson.locked && activeLesson.type !== "folder" && (
                         <button

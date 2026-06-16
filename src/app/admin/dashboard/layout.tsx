@@ -19,6 +19,7 @@ import {
     TicketPercent,
     Users,
 } from "lucide-react";
+import Loader from "@/components/UI/Loader";
 
 function AdminDashboardLayoutContent({
     children,
@@ -29,6 +30,12 @@ function AdminDashboardLayoutContent({
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.innerWidth <= 768) {
+            setIsSidebarExpanded(false);
+        }
+    }, []);
 
     const activeTab = (searchParams.get("tab") as any) || "overview";
 
@@ -70,11 +77,18 @@ function AdminDashboardLayoutContent({
                 isExpanded={isSidebarExpanded}
                 onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
             />
+            {isSidebarExpanded && (
+                <div 
+                    className={styles.sidebarBackdrop} 
+                    onClick={() => setIsSidebarExpanded(false)} 
+                />
+            )}
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
                 <AdminHeader 
                     title="Control Center"
                     user={user}
+                    onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
                 />
                 <div className={styles.pageContent}>
                     {children}
@@ -108,12 +122,7 @@ export default function AdminDashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <Suspense fallback={
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Loading Admin Portal...</span>
-            </div>
-        }>
+        <Suspense fallback={<Loader text="Loading Admin Portal..." />}>
             <AdminDashboardLayoutContent>
                 {children}
             </AdminDashboardLayoutContent>

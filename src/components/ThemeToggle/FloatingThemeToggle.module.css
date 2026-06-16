@@ -1,9 +1,9 @@
 .floatingToggle {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 56px;
-    height: 56px;
+    bottom: 16px;
+    right: 16px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
     background: var(--glass);
     border: 1px solid var(--glass-border);
@@ -12,13 +12,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     z-index: 999;
     transition: all var(--duration-fast) var(--ease-premium);
 }
 
 .floatingToggle:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    border-color: var(--primary);
+    box-shadow: 0 0 12px rgba(237, 28, 40, 0.25);
 }
 
 .iconContainer {
@@ -33,8 +34,8 @@
 }
 
 .moonIcon {
-    color: #6366f1;
-    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.4));
+    color: var(--primary);
+    filter: drop-shadow(0 0 8px rgba(237, 28, 40, 0.4));
 }
 
 /* Hide on desktop and tablet, only show on mobile */

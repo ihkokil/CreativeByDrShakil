@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthPayload } from '@/lib/route-auth';
 import path from 'path';
-import { promises as fs } from 'fs';
+import { uploadFileToStorage } from '@/utils/storage';
 
 export const runtime = 'nodejs';
 
@@ -49,23 +49,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'course-thumbnails', payload.sub);
-    await fs.mkdir(uploadDir, { recursive: true });
-
     const safeName = sanitizeFileName(file.name || 'thumbnail.jpg');
     const ext = path.extname(safeName) || '.jpg';
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-    const absolutePath = path.join(uploadDir, fileName);
-    const relativePath = path.posix.join('uploads', 'course-thumbnails', payload.sub, fileName);
+    const folderPath = `uploads/course-thumbnails/${payload.sub}`;
 
     const arrayBuffer = await file.arrayBuffer();
-    await fs.writeFile(absolutePath, Buffer.from(arrayBuffer));
+    const buffer = Buffer.from(arrayBuffer);
+
+    const publicUrl = await uploadFileToStorage(buffer, fileName, file.type, folderPath);
 
     return NextResponse.json(
       {
         success: true,
-        url: `/${relativePath}`,
-        storagePath: relativePath,
+        url: publicUrl,
+        storagePath: `${folderPath}/${fileName}`,
         filename: file.name,
         bytes: file.size,
       },

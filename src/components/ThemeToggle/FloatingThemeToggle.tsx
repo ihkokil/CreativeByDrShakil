@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import styles from "./FloatingThemeToggle.module.css";
 import { Sun, Moon } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 export default function FloatingThemeToggle() {
+    const pathname = usePathname();
     const [theme, setTheme] = useState<"light" | "dark">("dark");
     const [mounted, setMounted] = useState(false);
 
@@ -30,7 +32,13 @@ export default function FloatingThemeToggle() {
         setTheme(newTheme);
     };
 
-    if (!mounted) {
+    const isDashboardPage = 
+        pathname?.startsWith("/dashboard") ||
+        pathname?.startsWith("/teacher") ||
+        pathname?.startsWith("/admin") ||
+        pathname?.startsWith("/study");
+
+    if (isDashboardPage || !mounted) {
         return null;
     }
 

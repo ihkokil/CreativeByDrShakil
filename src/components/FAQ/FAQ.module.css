@@ -1,116 +1,134 @@
-.container {
-    max-width: var(--layout-max-width);
-    margin: 0 auto;
-    width: 100%;
-}
+/* ══════════════════════════════════════════════════
+   FAQ — Mobile-first
+   ══════════════════════════════════════════════════ */
 
-.list {
-    max-width: 980px;
-    margin: 0 auto;
+.container {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  width: 100%;
 }
 
 .header {
-    text-align: center;
-    margin-bottom: 60px;
+  text-align: center;
+  margin-bottom: 40px;
 }
 
 .title {
-    font-size: var(--text-4xl);
-    font-weight: var(--weight-extrabold);
-    margin-bottom: 15px;
-    letter-spacing: -2px;
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-extrabold);
+  margin-bottom: 12px;
+  letter-spacing: -1px;
 }
 
 .subtitle {
-    color: var(--text-muted);
-    font-size: var(--text-large);
+  color: var(--text-muted);
+  font-size: var(--text-base);
 }
 
 .list {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .item {
-    background: var(--glass);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    transition: all var(--duration-base) var(--ease-premium);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: all var(--duration-base) var(--ease-premium);
 }
 
 .activeItem {
-    background: color-mix(in srgb, var(--primary) 5%, transparent);
-    border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
-    box-shadow: var(--shadow-soft);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+  box-shadow: var(--shadow-soft);
 }
 
 .question {
-    width: 100%;
-    padding: 28px 40px;
-    background: transparent;
-    border: none;
-    color: var(--foreground);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    text-align: left;
+  width: 100%;
+  padding: 20px;
+  background: transparent;
+  border: none;
+  color: var(--foreground);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  text-align: left;
+  gap: 16px;
+  min-height: 56px;
 }
 
 .questionText {
-    font-size: var(--text-large);
-    font-weight: var(--weight-bold);
-    transition: color var(--duration-fast);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  transition: color var(--duration-fast);
 }
 
 .activeItem .questionText {
-    color: var(--primary);
+  color: var(--primary);
 }
 
 .iconWrapper {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.6;
-    transition: transform var(--duration-fast), opacity var(--duration-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  flex-shrink: 0;
+  transition: transform var(--duration-fast), opacity var(--duration-fast);
 }
 
 .activeItem .iconWrapper {
-    opacity: 1;
-    color: var(--primary);
+  opacity: 1;
+  color: var(--primary);
 }
 
 .answerWrapper {
-    overflow: hidden;
+  overflow: hidden;
 }
 
 .answer {
-    padding: 0 40px 32px;
+  padding: 0 20px 20px;
 }
 
 .answer p {
-    color: var(--text-muted);
-    line-height: 1.8;
-    font-size: var(--text-small);
-    font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  line-height: 1.8;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
 }
 
-@media (max-width: 768px) {
-    .title {
-        font-size: var(--text-3xl);
-    }
+/* ── Tablet: 769px+ ── */
+@media (min-width: 769px) {
+  .header {
+    margin-bottom: 60px;
+  }
 
-    .question {
-        padding: 20px;
-    }
+  .title {
+    font-size: var(--text-4xl);
+    letter-spacing: -2px;
+  }
 
-    .answer {
-        padding: 0 20px 20px;
-    }
+  .subtitle {
+    font-size: var(--text-large);
+  }
 
-    .questionText {
-        font-size: var(--text-base);
-    }
-}
+  .list {
+    gap: 16px;
+  }
+
+  .question {
+    padding: 28px 40px;
+  }
+
+  .answer {
+    padding: 0 40px 32px;
+  }
+
+  .questionText {
+    font-size: var(--text-large);
+  }
+}

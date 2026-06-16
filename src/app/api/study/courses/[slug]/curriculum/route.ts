@@ -116,9 +116,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
-    const effectiveStartAt = courseAnchor && studentEnrollmentDate
-      ? new Date(Math.max(courseAnchor.getTime(), studentEnrollmentDate.getTime()))
-      : courseAnchor || studentEnrollmentDate;
+    const effectiveStartAt = courseAnchor || studentEnrollmentDate;
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,

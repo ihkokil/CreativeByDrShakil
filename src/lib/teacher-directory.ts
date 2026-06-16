@@ -8,7 +8,7 @@ export interface PublicTeacher {
   institution?: string | null;
 }
 
-const DEFAULT_INSTRUCTOR_IMAGE = '/placeholder.svg';
+const DEFAULT_INSTRUCTOR_IMAGE = '/placeholder-square.svg';
 
 const normalizeName = (value: string) =>
   value

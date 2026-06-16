@@ -20,6 +20,12 @@ function TeacherDashboardLayoutContent({
     const searchParams = useSearchParams();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.innerWidth <= 768) {
+            setIsSidebarExpanded(false);
+        }
+    }, []);
+
     const activeTab = (searchParams.get("tab") as any) || "overview";
     const pathname = usePathname();
 
@@ -62,11 +68,18 @@ function TeacherDashboardLayoutContent({
                 activeStudents={0} // Logic handled internally or removed
                 totalCourses={0}
             />
+            {isSidebarExpanded && (
+                <div 
+                    className={styles.sidebarBackdrop} 
+                    onClick={() => setIsSidebarExpanded(false)} 
+                />
+            )}
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
                 <TeacherHeader 
                     title="Instructor Hub"
                     user={user}
+                    onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
                 />
                 <div className={styles.pageContent}>
                     {children}

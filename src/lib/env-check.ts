@@ -20,15 +20,15 @@ export function checkEnvVariables() {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    const databaseUrl = process.env.DATABASE_URL || '';
-    const directUrl = process.env.DIRECT_URL || '';
+    const databaseUrl = process.env.SUPABASE_DATABASE_URL || '';
+    const directUrl = process.env.SUPABASE_DIRECT_URL || '';
 
-    if (!databaseUrl.startsWith('mysql://')) {
-      throw new Error('DATABASE_URL must use a MySQL connection string in production.');
+    if (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://')) {
+      throw new Error('SUPABASE_DATABASE_URL must use a PostgreSQL connection string in production.');
     }
 
-    if (!directUrl.startsWith('mysql://')) {
-      throw new Error('DIRECT_URL must use a MySQL connection string in production.');
+    if (!directUrl.startsWith('postgresql://') && !directUrl.startsWith('postgres://')) {
+      throw new Error('SUPABASE_DIRECT_URL must use a PostgreSQL connection string in production.');
     }
   }
 }

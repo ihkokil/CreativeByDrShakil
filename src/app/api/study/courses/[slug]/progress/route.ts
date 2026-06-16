@@ -123,9 +123,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const dbEnrollment = result.studentEnrollmentDate;
 
     const courseAnchor = dbReleaseStart || dbCourseStart || null;
-    const finalStartAt = courseAnchor && dbEnrollment
-      ? new Date(Math.max(courseAnchor.getTime(), dbEnrollment.getTime()))
-      : courseAnchor || dbEnrollment;
+    const finalStartAt = courseAnchor || dbEnrollment;
 
     console.log('[DEBUG] Final Scheduling:', {
       courseId: result.course?.id,
@@ -228,9 +226,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const dbEnrollment = result.studentEnrollmentDate;
 
     const courseAnchor = dbReleaseStart || dbCourseStart || null;
-    const finalStartAt = courseAnchor && dbEnrollment
-      ? new Date(Math.max(courseAnchor.getTime(), dbEnrollment.getTime()))
-      : courseAnchor || dbEnrollment;
+    const finalStartAt = courseAnchor || dbEnrollment;
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course?.releaseMode,
