@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
  * Global Middleware for CreativeByDrShakil
  * Handles central route protection and authentication redirects.
  */
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     
     // 1. Specify protected routes
