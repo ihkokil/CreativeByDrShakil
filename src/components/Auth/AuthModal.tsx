@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Lock, ArrowRight, Github, Chrome, User, Phone, FileText, Eye, EyeOff } from "lucide-react";
+import { X, Mail, Lock, ArrowRight, ArrowLeft, User, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { signIn } from "next-auth/react";
 
 interface Props {
     isOpen: boolean;
@@ -13,9 +14,11 @@ interface Props {
     defaultMode?: "login" | "register" | "forgot";
 }
 
+type AuthStep = "email" | "password" | "otp" | "register" | "forgot";
+
 export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: Props) {
     const { refreshSession } = useAuth();
-    const [view, setView] = useState<"login" | "register" | "forgot">(defaultMode);
+    const [step, setStep] = useState<AuthStep>("email");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -25,42 +28,46 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
     const [bmdc, setBmdc] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
+    // OTP verification fields
+    const [otpValues, setOtpValues] = useState<string[]>(Array(6).fill(""));
+    const [resendTimer, setResendTimer] = useState(0);
+    const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
     // UI states
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-    const [pendingVerificationEmail, setPendingVerificationEmail] = useState("");
 
+    // Sync step with defaultMode when modal opens
     useEffect(() => {
         if (isOpen) {
-            setView(defaultMode);
+            if (defaultMode === "forgot") {
+                setStep("forgot");
+            } else {
+                setStep("email");
+            }
+            setMessage(null);
+            setEmail("");
+            setPassword("");
+            setFullName("");
+            setPhone("");
+            setBmdc("");
+            setConfirmPassword("");
+            setOtpValues(Array(6).fill(""));
+            setResendTimer(0);
         }
     }, [defaultMode, isOpen]);
 
-    const resetRegistrationForm = () => {
-        setEmail("");
-        setPassword("");
-        setFullName("");
-        setPhone("");
-        setBmdc("");
-        setConfirmPassword("");
-        setShowPassword(false);
-        setShowConfirmPassword(false);
-        setPendingVerificationEmail("");
-    };
-
-    const resetLoginForm = () => {
-        setEmail("");
-        setPassword("");
-        setShowPassword(false);
-        setPendingVerificationEmail("");
-    };
-
-    const isLogin = view === "login";
-    const isRegister = view === "register";
-    const isForgot = view === "forgot";
+    // Resend countdown timer
+    useEffect(() => {
+        if (resendTimer > 0) {
+            const interval = setInterval(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [resendTimer]);
 
     const getPasswordStrength = (pass: string) => {
         let score = 0;
@@ -78,149 +85,292 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
     const strength = getPasswordStrength(password);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Form handlers
+    const handleEmailSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email) return;
+
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/auth/check-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Failed to check email.' });
+                setLoading(false);
+                return;
+            }
+
+            if (data.exists) {
+                setStep("password");
+            } else {
+                // Send OTP email
+                const sendResponse = await fetch('/api/auth/send-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email }),
+                });
+                const sendData = await sendResponse.json();
+
+                if (!sendResponse.ok) {
+                    setMessage({ type: 'error', text: sendData.error || 'Failed to send verification code.' });
+                } else {
+                    setMessage({ type: 'success', text: 'We sent a 6-digit verification code to ' + email });
+                    setStep("otp");
+                    setOtpValues(Array(6).fill(""));
+                    setResendTimer(60);
+                    // Focus first OTP field after transition
+                    setTimeout(() => {
+                        otpInputsRef.current[0]?.focus();
+                    }, 100);
+                }
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier: email, password }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Invalid credentials.' });
+            } else {
+                if (data.token) {
+                    localStorage.setItem('auth_token', data.token);
+                }
+                await refreshSession();
+                setMessage({ type: 'success', text: 'Successfully logged in!' });
+                
+                if (onSuccess) onSuccess();
+                setTimeout(onClose, 1000);
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleOtpSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const otpCode = otpValues.join("");
+        if (otpCode.length !== 6) {
+            setMessage({ type: 'error', text: 'Please enter all 6 digits of the verification code.' });
+            return;
+        }
+
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp: otpCode }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Verification failed.' });
+            } else {
+                setMessage({ type: 'success', text: 'Email verified! Please complete registration.' });
+                setStep("register");
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        if (resendTimer > 0) return;
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Failed to send verification code.' });
+            } else {
+                setMessage({ type: 'success', text: 'A new verification code has been sent to ' + email });
+                setOtpValues(Array(6).fill(""));
+                setResendTimer(60);
+                setTimeout(() => {
+                    otpInputsRef.current[0]?.focus();
+                }, 100);
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRegisterSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (view === "forgot") {
-            setLoading(true);
-            setMessage(null);
+        const bdPhoneRegex = /^01[3-9]\d{8}$/;
+        if (!bdPhoneRegex.test(phone)) {
+            setMessage({ type: 'error', text: 'Please enter a valid BD phone number (e.g., 017XXXXXXXX).' });
+            return;
+        }
+        if (password !== confirmPassword) {
+            setMessage({ type: 'error', text: 'Passwords do not match.' });
+            return;
+        }
+        if (strength.score < 50) {
+            setMessage({ type: 'error', text: 'Please use a stronger password.' });
+            return;
+        }
 
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    fullName,
+                    phone,
+                    bmdc,
+                    otpVerified: true,
+                }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Registration failed.' });
+            } else {
+                if (data.token) {
+                    localStorage.setItem('auth_token', data.token);
+                }
+                await refreshSession();
+                setMessage({ type: 'success', text: 'Account created and logged in!' });
+
+                if (onSuccess) onSuccess();
+                setTimeout(onClose, 1000);
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgotSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setMessage(null);
+
+        try {
             const response = await fetch('/api/auth/forgot-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),
             });
-
             const data = await response.json();
-            if (response.ok) {
-                setMessage({
-                    type: 'success',
-                    text: data.message || 'Check your email for reset instructions.',
-                });
-            } else {
-                setMessage({
-                    type: 'error',
-                    text: data.error || 'Unable to process request.',
-                });
-            }
 
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Failed to send reset instructions.' });
+            } else {
+                setMessage({ type: 'success', text: data.message || 'Check your email for reset instructions.' });
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
             setLoading(false);
-            return;
         }
+    };
 
-        if (isRegister) {
-            const bdPhoneRegex = /^01[3-9]\d{8}$/;
-            if (!bdPhoneRegex.test(phone)) {
-                setMessage({ type: 'error', text: 'Please enter a valid BD phone number (e.g., 017XXXXXXXX).' });
-                return;
-            }
-            if (password !== confirmPassword) {
-                setMessage({ type: 'error', text: 'Passwords do not match.' });
-                return;
-            }
-            if (strength.score < 50) {
-                setMessage({ type: 'error', text: 'Please use a stronger password.' });
-                return;
-            }
-        }
-
-        setLoading(true);
+    const handleBack = () => {
         setMessage(null);
-        setPendingVerificationEmail("");
-
-        const response = await fetch(isLogin ? '/api/auth/login' : '/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(
-                isLogin
-                    ? { identifier: email, password }
-                    : { email, password, fullName, phone, bmdc }
-            ),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            setMessage({ type: 'error', text: data.error || 'Authentication failed.' });
-            if (data.code === 'email_not_verified' && data.email) {
-                setPendingVerificationEmail(data.email);
-            }
-        } else {
-            if (data.token) {
-                localStorage.setItem('auth_token', data.token);
-            }
-            if (isLogin) {
-                await refreshSession();
-                setMessage({
-                    type: 'success',
-                    text: 'Successfully logged in!',
-                });
-                resetLoginForm();
-                if (onSuccess) {
-                    onSuccess();
-                }
-                setTimeout(onClose, 1200);
-            } else {
-                setMessage({
-                    type: 'success',
-                    text: data.message || 'Account created. Please verify your email before logging in.',
-                });
-                resetRegistrationForm();
-                setView('login');
-            }
-        }
-        setLoading(false);
-    };
-
-    const handleResendVerification = async () => {
-        if (!pendingVerificationEmail) {
-            return;
-        }
-
-        setLoading(true);
-        const response = await fetch('/api/auth/resend-verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: pendingVerificationEmail }),
-        });
-
-        const data = await response.json();
-        if (response.ok) {
-            setMessage({ type: 'success', text: data.message || 'Verification email sent.' });
-        } else {
-            setMessage({ type: 'error', text: data.error || 'Could not resend verification email.' });
-        }
-        setLoading(false);
-    };
-
-    const handleSwitchView = (nextView: "login" | "register" | "forgot") => {
-        setView(nextView);
-        setMessage(null);
-        setPendingVerificationEmail("");
-
-        if (nextView === "login") {
-            setFullName("");
-            setPhone("");
-            setBmdc("");
-            setConfirmPassword("");
-            setShowConfirmPassword(false);
-        }
-
-        if (nextView === "register") {
-            setPassword("");
-            setShowPassword(false);
-        }
-
-        if (nextView === "forgot") {
-            setPassword("");
-            setConfirmPassword("");
-            setShowPassword(false);
-            setShowConfirmPassword(false);
-            setFullName("");
-            setPhone("");
-            setBmdc("");
+        if (step === "password" || step === "otp") {
+            setStep("email");
+        } else if (step === "register") {
+            setStep("otp");
+            setOtpValues(Array(6).fill(""));
+        } else if (step === "forgot") {
+            setStep("email");
         }
     };
+
+    // OTP inputs helpers
+    const handleOtpChange = (val: string, index: number) => {
+        const cleanVal = val.replace(/[^0-9]/g, "");
+        if (!cleanVal) return;
+
+        const newOtp = [...otpValues];
+        newOtp[index] = cleanVal.slice(-1);
+        setOtpValues(newOtp);
+
+        // Advance focus
+        if (index < 5) {
+            otpInputsRef.current[index + 1]?.focus();
+        }
+    };
+
+    const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+        if (e.key === "Backspace") {
+            const newOtp = [...otpValues];
+            if (newOtp[index] !== "") {
+                newOtp[index] = "";
+                setOtpValues(newOtp);
+            } else if (index > 0) {
+                newOtp[index - 1] = "";
+                setOtpValues(newOtp);
+                otpInputsRef.current[index - 1]?.focus();
+            }
+        }
+    };
+
+    const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData("text").replace(/[^0-9]/g, "").slice(0, 6);
+        if (pastedData.length === 6) {
+            const newOtp = pastedData.split("");
+            setOtpValues(newOtp);
+            otpInputsRef.current[5]?.focus();
+        }
+    };
+
+    // Step indicators data
+    const getStepsInfo = () => {
+        if (step === "forgot") return null;
+        if (step === "password") return { current: 1, total: 2 };
+        if (step === "otp") return { current: 1, total: 3 };
+        if (step === "register") return { current: 2, total: 3 };
+        return { current: 0, total: 3 };
+    };
+    const stepsInfo = getStepsInfo();
 
     return (
         <AnimatePresence>
@@ -233,93 +383,107 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <button className={styles.closeBtn} onClick={onClose}>
+                        <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
                             <X size={20} />
                         </button>
 
+                        {step !== "email" && (
+                            <button className={styles.backBtn} onClick={handleBack} type="button" aria-label="Go back">
+                                <ArrowLeft size={20} />
+                            </button>
+                        )}
+
                         <div className={styles.header}>
+                            {stepsInfo && (
+                                <div className={styles.progressTracker}>
+                                    {Array.from({ length: stepsInfo.total }).map((_, idx) => (
+                                        <div
+                                            key={idx}
+                                            className={`${styles.progressDot} ${
+                                                idx <= stepsInfo.current ? styles.activeDot : ""
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
                             <h2 className={styles.title}>
-                                {isForgot ? "Reset " : isLogin ? "Welcome " : "Create "}
-                                <span className="gradient-text">{isLogin ? "User!" : isForgot ? "Password" : "Account"}</span>
+                                {step === "forgot" && "Reset "}
+                                {step === "email" && "Welcome "}
+                                {step === "password" && "Enter "}
+                                {step === "otp" && "Verify "}
+                                {step === "register" && "Complete "}
+                                <span className="gradient-text">
+                                    {step === "forgot" && "Password"}
+                                    {step === "email" && "Guest!"}
+                                    {step === "password" && "Password"}
+                                    {step === "otp" && "Code"}
+                                    {step === "register" && "Profile"}
+                                </span>
                             </h2>
                             <p className={styles.subtitle}>
-                                {isForgot
-                                    ? "Enter your email to receive a password reset link."
-                                    : isLogin
-                                        ? "Access your courses and progress."
-                                        : "Start your medical journey today."}
+                                {step === "forgot" && "Enter your email to receive a password reset link."}
+                                {step === "email" && "Enter your email to sign in or get started."}
+                                {step === "password" && "Access your courses and progress."}
+                                {step === "otp" && "We sent a 6-digit verification code to your email."}
+                                {step === "register" && "Set up your credentials to create your account."}
                             </p>
                         </div>
 
-                        <form className={styles.form} onSubmit={handleSubmit}>
-                            {isRegister && (
-                                <div className={styles.inputGroup}>
-                                    <User className={styles.inputIcon} size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Full Name"
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            )}
-
-                            {isForgot ? (
-                                <div className={styles.inputGroup}>
-                                    <Mail className={styles.inputIcon} size={18} />
-                                    <input
-                                        type="email"
-                                        placeholder="Email Address"
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            ) : (
-                                <div className={styles.inputGroup}>
-                                    {isLogin && !email.includes('@') && email.length > 0 ? (
-                                        <Phone className={styles.inputIcon} size={18} />
-                                    ) : (
+                        {/* Step 1: Email Input */}
+                        {step === "email" && (
+                            <>
+                                <form className={styles.form} onSubmit={handleEmailSubmit}>
+                                    <div className={styles.inputGroup}>
                                         <Mail className={styles.inputIcon} size={18} />
+                                        <input
+                                            type="email"
+                                            placeholder="Email Address"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    {message && (
+                                        <div className={`${styles.message} ${styles[message.type]}`}>
+                                            {message.text}
+                                        </div>
                                     )}
-                                    <input
-                                        type={isLogin ? "text" : "email"}
-                                        placeholder={isLogin ? "Email or Phone Number" : "Email Address"}
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            )}
+                                    <button className={styles.submitBtn} disabled={loading}>
+                                        {loading ? "Checking email..." : "Continue"}
+                                        {!loading && <ArrowRight size={18} />}
+                                    </button>
+                                </form>
 
-                            {isRegister && (
-                                <div className={styles.row}>
-                                    <div className={`${styles.inputGroup} ${styles.halfWidth}`}>
-                                        <Phone className={styles.inputIcon} size={18} />
-                                        <input
-                                            type="tel"
-                                            placeholder="Phone Number"
-                                            value={phone}
-                                            onChange={(e) => setPhone(e.target.value)}
-                                            required
-                                        />
-                                    </div>
-                                    <div className={`${styles.inputGroup} ${styles.halfWidth}`}>
-                                        <FileText className={styles.inputIcon} size={18} />
-                                        <input
-                                            type="text"
-                                            placeholder="BM&DC Number"
-                                            value={bmdc}
-                                            onChange={(e) => setBmdc(e.target.value)}
-                                            required
-                                        />
-                                    </div>
+                                <div className={styles.divider}>
+                                    <span>OR</span>
                                 </div>
-                            )}
 
-                            {!isForgot && (
-                                <div>
+                                <div className={styles.socialBar}>
+                                    <button 
+                                        type="button" 
+                                        className={styles.socialBtn} 
+                                        onClick={() => signIn("google")}
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ marginRight: '10px' }}>
+                                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                        </svg>
+                                        Continue with Google
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Step 2a: Password Input (Existing User) */}
+                        {step === "password" && (
+                            <form className={styles.form} onSubmit={handlePasswordSubmit}>
+                                <div className={styles.emailDisplay}>
+                                    <Mail size={16} />
+                                    <span>{email}</span>
+                                </div>
                                 <div className={styles.inputGroup}>
                                     <Lock className={styles.inputIcon} size={18} />
                                     <input
@@ -338,7 +502,140 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
-                                {isRegister && password && (
+
+                                <div className={styles.forgotWrap}>
+                                    <button type="button" className={styles.forgotLink} onClick={() => setStep("forgot")}>
+                                        Forgot password?
+                                    </button>
+                                </div>
+
+                                {message && (
+                                    <div className={`${styles.message} ${styles[message.type]}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+                                <button className={styles.submitBtn} disabled={loading}>
+                                    {loading ? "Logging in..." : "Login Now"}
+                                    {!loading && <ArrowRight size={18} />}
+                                </button>
+                            </form>
+                        )}
+
+                        {/* Step 2b: OTP Verification (New User) */}
+                        {step === "otp" && (
+                            <form className={styles.form} onSubmit={handleOtpSubmit}>
+                                <div className={styles.emailDisplay}>
+                                    <Mail size={16} />
+                                    <span>{email}</span>
+                                </div>
+
+                                <div className={styles.otpContainer}>
+                                    {otpValues.map((val, idx) => (
+                                        <input
+                                            key={idx}
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={1}
+                                            value={val}
+                                            ref={(el) => { otpInputsRef.current[idx] = el; }}
+                                            onChange={(e) => handleOtpChange(e.target.value, idx)}
+                                            onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                                            onPaste={handleOtpPaste}
+                                            className={styles.otpInput}
+                                            autoFocus={idx === 0}
+                                        />
+                                    ))}
+                                </div>
+
+                                <div className={styles.resendContainer}>
+                                    {resendTimer > 0 ? (
+                                        <span>Resend code in <strong>{resendTimer}s</strong></span>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className={styles.resendBtn}
+                                            onClick={handleResendOtp}
+                                            disabled={loading}
+                                        >
+                                            Resend Code
+                                        </button>
+                                    )}
+                                </div>
+
+                                {message && (
+                                    <div className={`${styles.message} ${styles[message.type]}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+                                <button className={styles.submitBtn} disabled={loading}>
+                                    {loading ? "Verifying..." : "Verify Code"}
+                                    {!loading && <ArrowRight size={18} />}
+                                </button>
+                            </form>
+                        )}
+
+                        {/* Step 3: Registration Profile (New User Verified) */}
+                        {step === "register" && (
+                            <form className={styles.form} onSubmit={handleRegisterSubmit}>
+                                <div className={styles.emailDisplay}>
+                                    <Mail size={16} />
+                                    <span>{email}</span>
+                                </div>
+
+                                <div className={styles.inputGroup}>
+                                    <User className={styles.inputIcon} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Full Name"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className={styles.row}>
+                                    <div className={`${styles.inputGroup} ${styles.halfWidth}`}>
+                                        <Phone className={styles.inputIcon} size={18} />
+                                        <input
+                                            type="tel"
+                                            placeholder="Phone (e.g., 017XXXXXXXX)"
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className={`${styles.inputGroup} ${styles.halfWidth}`}>
+                                        <FileText className={styles.inputIcon} size={18} />
+                                        <input
+                                            type="text"
+                                            placeholder="BM&DC Number"
+                                            value={bmdc}
+                                            onChange={(e) => setBmdc(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className={styles.inputGroup}>
+                                    <Lock className={styles.inputIcon} size={18} />
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.eyeBtn}
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+
+                                {password && (
                                     <div className={styles.strengthContainer}>
                                         <div className={styles.strengthMeter}>
                                             <div
@@ -352,17 +649,6 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                     </div>
                                 )}
 
-                                {isLogin && (
-                                    <div className={styles.forgotWrap}>
-                                        <button type="button" className={styles.forgotLink} onClick={() => handleSwitchView("forgot")}>
-                                            Forgot password?
-                                        </button>
-                                    </div>
-                                )}
-                                </div>
-                            )}
-
-                            {isRegister && (
                                 <div className={styles.inputGroup}>
                                     <Lock className={styles.inputIcon} size={18} />
                                     <input
@@ -381,74 +667,55 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                         {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                     </button>
                                 </div>
-                            )}
 
-                            {message && (
-                                <div className={`${styles.message} ${styles[message.type]}`}>
-                                    {message.text}
-                                </div>
-                            )}
-
-                            {pendingVerificationEmail && isLogin && (
-                                <button type="button" className={styles.secondaryBtn} onClick={handleResendVerification}>
-                                    Resend verification email
+                                {message && (
+                                    <div className={`${styles.message} ${styles[message.type]}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+                                <button className={styles.submitBtn} disabled={loading}>
+                                    {loading ? "Creating account..." : "Complete Setup"}
+                                    {!loading && <ArrowRight size={18} />}
                                 </button>
-                            )}
+                            </form>
+                        )}
 
-                            <button className={styles.submitBtn} disabled={loading}>
-                                {loading ? "Processing..." : (isForgot ? "Send Reset Link" : isLogin ? "Login Now" : "Sign Up")}
-                                {!loading && <ArrowRight size={18} />}
-                            </button>
-                        </form>
-
-                        {/* Hiding social login buttons for now as they are non-functional */}
-                        {/* {!isForgot && (
-                            <>
-                                <div className={styles.divider}>
-                                    <span>Or continue with</span>
+                        {/* Step: Forgot Password */}
+                        {step === "forgot" && (
+                            <form className={styles.form} onSubmit={handleForgotSubmit}>
+                                <div className={styles.inputGroup}>
+                                    <Mail className={styles.inputIcon} size={18} />
+                                    <input
+                                        type="email"
+                                        placeholder="Email Address"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
                                 </div>
-
-                                <div className={styles.socialBar}>
-                                    <button className={styles.socialBtn}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48">
-                                            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
-                                            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z" />
-                                            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" />
-                                            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" />
-                                        </svg>
-                                        <span style={{ marginLeft: "8px" }}>Google</span>
-                                    </button>
-                                    <button className={styles.socialBtn}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
-                                            <path fill="#1877F2" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                        </svg>
-                                        <span style={{ marginLeft: "8px" }}>Facebook</span>
-                                    </button>
-                                </div>
-                            </>
-                        )} */}
+                                {message && (
+                                    <div className={`${styles.message} ${styles[message.type]}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+                                <button className={styles.submitBtn} disabled={loading}>
+                                    {loading ? "Processing..." : "Send Reset Link"}
+                                    {!loading && <ArrowRight size={18} />}
+                                </button>
+                            </form>
+                        )}
 
                         <p className={styles.toggleText}>
-                            {isForgot ? (
+                            {step === "forgot" ? (
                                 <>
                                     Remembered your password?{" "}
-                                    <button type="button" onClick={() => handleSwitchView("login")}>
+                                    <button type="button" onClick={() => setStep("email")}>
                                         Back to sign in
-                                    </button>
-                                </>
-                            ) : isLogin ? (
-                                <>
-                                    Don't have an account?{" "}
-                                    <button type="button" onClick={() => handleSwitchView("register")}>
-                                        Create one
                                     </button>
                                 </>
                             ) : (
                                 <>
-                                    Already have an account?{" "}
-                                    <button type="button" onClick={() => handleSwitchView("login")}>
-                                        Login here
-                                    </button>
+                                    By continuing, you agree to our Terms and Privacy Policy.
                                 </>
                             )}
                         </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, Menu } from "lucide-react";
 import styles from "@/components/Teacher/TeacherHeader.module.css";
 import Image from "next/image";
 import { useState } from "react";
@@ -12,9 +12,10 @@ import ThemeToggle from "@/components/ThemeToggle/ThemeToggle";
 interface AdminHeaderProps {
     title: string;
     user: any;
+    onToggleSidebar?: () => void;
 }
 
-export default function AdminHeader({ title, user }: AdminHeaderProps) {
+export default function AdminHeader({ title, user, onToggleSidebar }: AdminHeaderProps) {
     const { signOut } = useAuth();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
@@ -26,6 +27,11 @@ export default function AdminHeader({ title, user }: AdminHeaderProps) {
     return (
         <header className={styles.header}>
             <div className={styles.left}>
+                {onToggleSidebar && (
+                    <button className={styles.menuBtn} onClick={onToggleSidebar} aria-label="Toggle Sidebar">
+                        <Menu size={20} />
+                    </button>
+                )}
                 <h1 className={styles.title}>{title}</h1>
             </div>
             <div className={styles.right}>

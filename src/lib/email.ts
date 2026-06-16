@@ -1,5 +1,8 @@
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 function getSmtpConfig() {
   const host = process.env.SMTP_HOST || "smtp.hostinger.com";
   const port = Number(process.env.SMTP_PORT || "465");
@@ -47,13 +50,30 @@ export async function sendMail({
   const from = `"${fromName}" <${fromAddress}>`;
 
   try {
-    await getTransporter().sendMail({
-      from,
-      to,
-      subject,
-      html,
-      text,
-    });
+    if (resend) {
+      // Send via Resend API
+      const resendFrom = process.env.RESEND_FROM_EMAIL || "Creative by Dr. Shakil <no-reply@creativebydrshakil.com>";
+      const result = await resend.emails.send({
+        from: resendFrom,
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html,
+        text,
+      });
+      
+      if (result.error) {
+        throw new Error(`Resend API Error: ${result.error.message}`);
+      }
+    } else {
+      // Fallback to legacy Nodemailer SMTP
+      await getTransporter().sendMail({
+        from,
+        to,
+        subject,
+        html,
+        text,
+      });
+    }
   } catch (error) {
     console.error("Failed to send email", {
       from,
@@ -62,6 +82,7 @@ export async function sendMail({
       smtpHost: process.env.SMTP_HOST || "smtp.hostinger.com",
       smtpPort: process.env.SMTP_PORT || "465",
       smtpSecure: process.env.SMTP_SECURE || "true",
+      usingResend: !!resend,
       error,
     });
     throw error;

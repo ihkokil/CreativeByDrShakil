@@ -49,7 +49,7 @@ export async function GET() {
           id: course.teacher?.id || `teacher-${course.id}`,
           name: course.teacher?.fullName || course.instructor,
           role: course.teacher?.designation || 'Course Instructor',
-          image: course.teacher?.profileImage || '/placeholder.svg',
+          image: course.teacher?.profileImage || '/placeholder-square.svg',
         },
       },
     });

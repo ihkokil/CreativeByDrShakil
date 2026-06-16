@@ -4,13 +4,14 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useCallback, useState, Suspense } from "react";
 import TeacherOverview from "@/components/Teacher/TeacherOverview";
-import VideoLibraryManager from "@/components/Teacher/VideoLibraryManager";
+import ModuleLibraryManager from "@/components/Teacher/ModuleLibraryManager";
 import CoursesTab from "@/components/Teacher/CoursesTab";
 import ProfileTab from "@/components/Shared/ProfileTab";
 import styles from "./TeacherDashboard.module.css";
 import { Loader2 } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
 import PaymentsManager from "@/components/Admin/PaymentsManager";
+import Loader from "@/components/UI/Loader";
 
 interface TeacherStats {
     totalCourses: number;
@@ -101,7 +102,7 @@ function TeacherDashboardContent() {
 
             {activeTab === "library" && (
                 <section className={styles.panelNoPad}>
-                    <VideoLibraryManager />
+                    <ModuleLibraryManager />
                 </section>
             )}
 
@@ -124,7 +125,7 @@ function TeacherDashboardContent() {
 
 export default function TeacherDashboard() {
     return (
-        <Suspense fallback={<div className={styles.loader}>Loading Teacher Dashboard...</div>}>
+        <Suspense fallback={<Loader text="Loading Teacher Dashboard..." />}>
             <TeacherDashboardContent />
         </Suspense>
     );

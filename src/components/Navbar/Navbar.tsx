@@ -17,8 +17,6 @@ export default function Navbar() {
     const { user, role, signOut } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const userMenuRef = useRef<HTMLDivElement>(null);
     const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
     const navMenuRef = useRef<HTMLDivElement>(null);
 
@@ -38,9 +36,6 @@ export default function Navbar() {
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-                setIsUserMenuOpen(false);
-            }
             if (navMenuRef.current && !navMenuRef.current.contains(event.target as Node)) {
                 setIsNavMenuOpen(false);
             }
@@ -79,63 +74,89 @@ export default function Navbar() {
         <>
             <nav className={`${styles.navbar} ${scrolled ? styles.scrolled : ""}`}>
                 <div className={styles.container}>
-                        {/* Mobile Navigation Menu Button */}
-                        <div className={styles.navMenuWrapper} ref={navMenuRef}>
-                            <button
-                                className={styles.navMenuBtn}
-                                onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-                                aria-label="Navigation Menu"
-                            >
-                                <Menu size={20} />
-                            </button>
+                    {/* Mobile Navigation Menu Button */}
+                    <div className={styles.navMenuWrapper} ref={navMenuRef}>
+                        <button
+                            className={styles.navMenuBtn}
+                            onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+                            aria-label="Navigation Menu"
+                        >
+                            <Menu size={20} />
+                        </button>
 
-                            {isNavMenuOpen && (
-                                <>
-                                    <button
-                                        type="button"
-                                        className={styles.navBackdrop}
-                                        aria-label="Close navigation menu"
-                                        onClick={() => setIsNavMenuOpen(false)}
-                                    />
-                                    <div className={styles.navSidePanel}>
-                                        <div className={styles.navPanelHeader}>
-                                            <span className={styles.navPanelTitle}>Menu</span>
-                                            <button
-                                                type="button"
-                                                className={styles.navPanelCloseBtn}
-                                                aria-label="Close navigation menu"
+                        {isNavMenuOpen && (
+                            <>
+                                <button
+                                    type="button"
+                                    className={styles.navBackdrop}
+                                    aria-label="Close navigation menu"
+                                    onClick={() => setIsNavMenuOpen(false)}
+                                />
+                                <div className={styles.navSidePanel}>
+                                    <div className={styles.navPanelHeader}>
+                                        <span className={styles.navPanelTitle}>Menu</span>
+                                        <button
+                                            type="button"
+                                            className={styles.navPanelCloseBtn}
+                                            aria-label="Close navigation menu"
+                                            onClick={() => setIsNavMenuOpen(false)}
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+
+                                    <Link href="/" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                        <Home size={18} /> Home
+                                    </Link>
+                                    <Link href="/courses" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                        <BookOpen size={18} /> Courses
+                                    </Link>
+                                    <Link href="/contact" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                        <Mail size={18} /> Contact
+                                    </Link>
+
+                                    {/* Logged-in user section in side panel */}
+                                    {user && (
+                                        <div className={styles.navPanelUserSection}>
+                                            <div className={styles.navPanelUserInfo}>
+                                                <span className={styles.navPanelUserEmail}>{user.email}</span>
+                                                <span className={styles.navPanelUserRole}>{role}</span>
+                                            </div>
+                                            <Link
+                                                href={dashboardHref}
+                                                className={styles.navPanelLink}
                                                 onClick={() => setIsNavMenuOpen(false)}
                                             >
-                                                <X size={18} />
+                                                <Layout size={18} /> Dashboard
+                                            </Link>
+                                            <button
+                                                className={styles.navPanelLogout}
+                                                onClick={() => {
+                                                    signOut();
+                                                    setIsNavMenuOpen(false);
+                                                }}
+                                            >
+                                                <LogOut size={18} /> Sign Out
                                             </button>
                                         </div>
-
-                                        <Link href="/" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
-                                            <Home size={18} /> Home
-                                        </Link>
-                                        <Link href="/courses" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
-                                            <BookOpen size={18} /> Courses
-                                        </Link>
-                                        <Link href="/contact" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
-                                            <Mail size={18} /> Contact
-                                        </Link>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
 
                     <Link href="/" className={styles.logo}>
-                        <Image src="/logo.png" alt="Creative By Dr. Shakil" width={160} height={45} priority className={styles.logoImg} />
+                        <Image src="/logo.png" alt="Creative By Dr. Shakil" width={140} height={40} priority className={styles.logoImg} />
                     </Link>
 
                     <div className={styles.centerLinks}>
-                        <Link href="/" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}} aria-label="Home">
+                        <Link href="/" className={styles.link} aria-label="Home">
                             <Home size={16} /> Home
                         </Link>
-                        <Link href="/courses" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+                        <Link href="/courses" className={styles.link}>
                             <BookOpen size={16} /> Courses
                         </Link>
-                        <Link href="/contact" className={styles.link} style={{display: 'inline-flex', alignItems: 'center', gap: 8}}>
+                        <Link href="/contact" className={styles.link}>
                             <Mail size={16} /> Contact
                         </Link>
                     </div>
@@ -143,48 +164,26 @@ export default function Navbar() {
                     <div className={styles.rightActions}>
                         <ThemeToggle />
 
-                        <div className={styles.userWrapper} ref={userMenuRef}>
-                            <button
-                                className={user ? styles.userMenuBtn : styles.accountBtn}
-                                onClick={() => {
-                                    if (user) {
-                                        setIsUserMenuOpen(!isUserMenuOpen);
-                                    } else {
+                        <div className={styles.userWrapper}>
+                            {user ? (
+                                <Link
+                                    href={dashboardHref}
+                                    className={styles.userMenuBtn}
+                                >
+                                    <User size={18} />
+                                    <span className={styles.navText}>Account</span>
+                                </Link>
+                            ) : (
+                                <button
+                                    className={styles.accountBtn}
+                                    onClick={() => {
                                         setAuthMode("login");
                                         setIsAuthOpen(true);
-                                        setIsUserMenuOpen(false);
-                                    }
-                                }}
-                            >
-                                  {user ? <User size={18} /> : <User size={18} />}
-                                  <span className={styles.navText}>{user ? "Account" : "Login"}</span>
-                            </button>
-
-                            {user && isUserMenuOpen && (
-                                <div className={styles.userDropdown}>
-                                    <>
-                                        <div className={styles.userHeader}>
-                                            <span className={styles.userEmail}>{user.email}</span>
-                                            <span className={styles.userRole}>{role}</span>
-                                        </div>
-                                        <Link
-                                            href={dashboardHref}
-                                            className={styles.dropdownLink}
-                                            onClick={() => setIsUserMenuOpen(false)}
-                                        >
-                                            <Layout size={18} /> Dashboard
-                                        </Link>
-                                        <button
-                                            className={styles.dropdownLogout}
-                                            onClick={() => {
-                                                signOut();
-                                                setIsUserMenuOpen(false);
-                                            }}
-                                        >
-                                            <LogOut size={18} /> Sign Out
-                                        </button>
-                                    </>
-                                </div>
+                                    }}
+                                >
+                                    <User size={18} />
+                                    <span className={styles.navText}>Login</span>
+                                </button>
                             )}
                         </div>
                     </div>

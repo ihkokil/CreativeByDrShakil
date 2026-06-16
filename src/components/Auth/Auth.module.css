@@ -39,6 +39,44 @@
     color: var(--foreground);
 }
 
+.backBtn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.backBtn:hover {
+    color: var(--foreground);
+}
+
+.progressTracker {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.progressDot {
+    width: 24px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface-soft);
+    transition: background 0.3s, transform 0.3s;
+}
+
+.activeDot {
+    background: var(--primary);
+    transform: scaleX(1.1);
+}
+
 .header {
     text-align: center;
     margin-bottom: 35px;
@@ -101,6 +139,79 @@
     outline: none;
     border-color: var(--primary);
     background: var(--surface-strong);
+}
+
+.emailDisplay {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.emailDisplay span {
+    font-weight: 600;
+    color: var(--foreground);
+    word-break: break-all;
+}
+
+.otpContainer {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.otpInput {
+    width: 50px;
+    height: 54px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-align: center;
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--foreground);
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.otpInput:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--surface-strong);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+.resendContainer {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.resendBtn {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+}
+
+.resendBtn:hover {
+    text-decoration: underline;
+}
+
+.resendBtn:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    text-decoration: none;
 }
 
 .eyeBtn {
@@ -246,10 +357,12 @@
 .divider span {
     position: relative;
     z-index: 2;
-    background: var(--background);
-    padding: 0 15px;
-    color: var(--text-muted);
-    font-size: 0.85rem;
+    background: #ef4444; /* red background */
+    padding: 4px 12px;
+    border-radius: 20px; /* rounded corners */
+    color: #ffffff; /* white text for contrast */
+    font-size: 0.8rem;
+    font-weight: 700;
 }
 
 .socialBar {
