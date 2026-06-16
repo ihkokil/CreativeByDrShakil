@@ -41,3 +41,7 @@ brain/
 scratch/
 credentials.json
 token.json
+
+# OpenNext
+.open-next/
+
