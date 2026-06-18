@@ -11,13 +11,21 @@ function getPrismaClient() {
     throw new Error('SUPABASE_DATABASE_URL environment variable is not defined.');
   }
 
-  // Use the connection pooler for pg.Pool
+  // In local development, bypass the pg adapter to let Prisma manage its own connection pool.
+  // This prevents connection pool leaks during Turbopack hot reloads.
+  if (process.env.NODE_ENV === 'development') {
+    return new PrismaClient({
+      log: ['error', 'warn'],
+    });
+  }
+
+  // Use the connection pooler for pg.Pool in production
   const pool = new pg.Pool({ connectionString });
   const adapter = new PrismaPg(pool);
 
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    log: ['error'],
   });
 }
 
