@@ -6,6 +6,7 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    plugins: nextVitals[0].plugins,
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "react-hooks/set-state-in-effect": "warn",
@@ -18,6 +19,8 @@ export default defineConfig([
     "out/**",
     "build/**",
     "dist/**",
-    "next-env.d.ts"
+    "next-env.d.ts",
+    "scratch_db.cjs",
+    "*.cjs"
   ])
 ]);
