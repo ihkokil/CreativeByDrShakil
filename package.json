@@ -9,7 +9,7 @@
     "dev:turbo": "next dev --turbo",
     "dev:webpack": "next dev --webpack",
     "build": "npm run clean && prisma generate && next build",
-    "build:worker": "npx prisma generate && npx opennextjs-cloudflare build",
+    "build:worker": "npx prisma generate && npx opennextjs-cloudflare build && node scripts/patch-handler.js",
     "deploy": "npm run build:worker && wrangler deploy",
     "preview": "npx opennextjs-cloudflare preview",
     "start": "next start",
