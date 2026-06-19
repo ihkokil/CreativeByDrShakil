@@ -41,6 +41,15 @@ brain/
 scratch/
 credentials.json
 token.json
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+directives/
+execution/
+
+# Legacy / scratch files
+app.js
+scratch_db.cjs
 
 # OpenNext
 .open-next/
