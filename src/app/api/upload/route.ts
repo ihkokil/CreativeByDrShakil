@@ -3,7 +3,7 @@ import { getAuthPayload } from '@/lib/route-auth';
 import path from 'path';
 import { uploadFileToStorage } from '@/utils/storage';
 
-export const runtime = 'nodejs';
+
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);

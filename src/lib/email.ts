@@ -1,8 +1,12 @@
-import nodemailer from "nodemailer";
 import { Resend } from "resend";
+
+// Nodemailer is imported lazily only for local development.
+// It uses TCP sockets (SMTP) which are NOT supported on Cloudflare Workers.
+let nodemailer: typeof import("nodemailer") | null = null;
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
 function getSmtpConfig() {
   const host = process.env.SMTP_HOST || "smtp.hostinger.com";
   const port = Number(process.env.SMTP_PORT || "465");
@@ -25,15 +29,6 @@ function getSmtpConfig() {
   };
 }
 
-let transporter: nodemailer.Transporter | null = null;
-
-function getTransporter() {
-  if (!transporter) {
-    transporter = nodemailer.createTransport(getSmtpConfig());
-  }
-  return transporter;
-}
-
 export async function sendMail({
   to,
   subject,
@@ -51,7 +46,7 @@ export async function sendMail({
 
   try {
     if (resend) {
-      // Send via Resend API
+      // Primary: Send via Resend API (works everywhere including Cloudflare Workers)
       const resendFrom = process.env.RESEND_FROM_EMAIL || "Creative by Dr. Shakil <no-reply@creativebydrshakil.com>";
       const result = await resend.emails.send({
         from: resendFrom,
@@ -65,8 +60,19 @@ export async function sendMail({
         throw new Error(`Resend API Error: ${result.error.message}`);
       }
     } else {
-      // Fallback to legacy Nodemailer SMTP
-      await getTransporter().sendMail({
+      // Nodemailer SMTP fallback — only works in local Node.js (not Cloudflare Workers)
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          'RESEND_API_KEY is required in production. Nodemailer (SMTP) is not supported on Cloudflare Workers.'
+        );
+      }
+
+      // Lazy-import nodemailer for local dev only
+      if (!nodemailer) {
+        nodemailer = await import("nodemailer");
+      }
+      const transporter = nodemailer.createTransport(getSmtpConfig());
+      await transporter.sendMail({
         from,
         to,
         subject,
@@ -79,9 +85,6 @@ export async function sendMail({
       from,
       to,
       subject,
-      smtpHost: process.env.SMTP_HOST || "smtp.hostinger.com",
-      smtpPort: process.env.SMTP_PORT || "465",
-      smtpSecure: process.env.SMTP_SECURE || "true",
       usingResend: !!resend,
       error,
     });
@@ -93,3 +96,4 @@ export function getAppUrl() {
   const url = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || "http://localhost:3000";
   return url.replace(/"/g, '');
 }
+
