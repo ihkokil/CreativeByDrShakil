@@ -6,6 +6,12 @@ import { checkEnvVariables } from './env-check';
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function getPrismaClient() {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return new PrismaClient({
+      log: ['error'],
+    });
+  }
+
   // Run env checks lazily (process.env is only populated per-request in Workers)
   checkEnvVariables();
 
