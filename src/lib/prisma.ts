@@ -1,15 +1,38 @@
-import { PrismaClient } from '@prisma/client';
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 import { checkEnvVariables } from './env-check';
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClientType | undefined };
 
-function getPrismaClient() {
+// We dynamically load the correct PrismaClient class depending on the environment.
+// In production (Cloudflare Workers), we load the WASM client ('@prisma/client/wasm')
+// to avoid filesystem scanning checks (fs.readdir) that throw in the edge environment.
+let CachedPrismaClientClass: any = null;
+
+function getPrismaClientClass() {
+  if (CachedPrismaClientClass) {
+    return CachedPrismaClientClass;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    const { PrismaClient } = require('@prisma/client');
+    CachedPrismaClientClass = PrismaClient;
+  } else {
+    const { PrismaClient } = require('@prisma/client/wasm');
+    CachedPrismaClientClass = PrismaClient;
+  }
+
+  return CachedPrismaClientClass;
+}
+
+function getPrismaClient(): PrismaClientType {
+  const PrismaClient = getPrismaClientClass();
+
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     return new PrismaClient({
       log: ['error'],
-    });
+    }) as PrismaClientType;
   }
 
   // Run env checks lazily (process.env is only populated per-request in Workers)
@@ -25,7 +48,7 @@ function getPrismaClient() {
   if (process.env.NODE_ENV === 'development') {
     return new PrismaClient({
       log: ['error', 'warn'],
-    });
+    }) as PrismaClientType;
   }
 
   // Use the connection pooler for pg.Pool in production
@@ -35,7 +58,7 @@ function getPrismaClient() {
   return new PrismaClient({
     adapter,
     log: ['error'],
-  });
+  }) as PrismaClientType;
 }
 
 export const prisma = globalForPrisma.prisma ?? getPrismaClient();
