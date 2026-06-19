@@ -48,3 +48,7 @@ token.json
 # Wrangler
 .wrangler/
 
+# Agent and Scratch files
+.agents/
+skills-lock.json
+
