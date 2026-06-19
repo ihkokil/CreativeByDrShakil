@@ -29,7 +29,10 @@ export default function CourseLessonList({ curriculum }: Props) {
 
   const getAvailabilityLabel = (lesson: CurriculumNode) => {
     if (lesson.availableAt) {
-      return `Available: ${formatDisplayDate(lesson.availableAt)}`;
+      if (!lesson.locked) {
+        return 'Available';
+      }
+      return `Available: ${formatDisplayDate(lesson.availableAt)}, 10:00 PM`;
     }
     return lesson.type === 'document' ? 'Document' : 'Video Lesson';
   };
@@ -50,7 +53,7 @@ export default function CourseLessonList({ curriculum }: Props) {
           <div className={styles.contentColumn}>
             <h4 className={styles.title}>{lesson.title}</h4>
             <div className={styles.metaRow}>
-              <div className={styles.metaBadge}>
+              <div className={`${styles.metaBadge} ${lesson.availableAt && !lesson.locked ? styles.availableBadge : ''}`}>
                 {lesson.type === 'document' ? <FileText size={14} /> : <Video size={14} />}
                 <span>{getAvailabilityLabel(lesson)}</span>
               </div>
