@@ -59,7 +59,7 @@
 }
 
 /* Customize Vidstack default layout theme to match glassmorphism */
-:global(.vds-video-layout) {
+.vidstackPlayer :global(.vds-video-layout) {
     --video-bg: rgba(0, 0, 0, 0.5) !important;
     backdrop-filter: blur(8px);
 }
