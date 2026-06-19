@@ -325,6 +325,25 @@ const normalizeDate = (value: string | Date | null | undefined): Date | null => 
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+/**
+ * Pin a date to 10:00 PM GMT+6 (Bangladesh Standard Time) on the same calendar day.
+ * 10:00 PM GMT+6 = 16:00 UTC.
+ * We use the UTC date components so the calendar day stays consistent
+ * regardless of the server's local timezone.
+ */
+const pinTo10pmBST = (date: Date): Date => {
+  const pinned = new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    16, // 16:00 UTC = 22:00 GMT+6
+    0,
+    0,
+    0
+  ));
+  return pinned;
+};
+
 export function computeReleaseGroupDates(
   groups: ReleaseGroupSummary[],
   config: CourseScheduleConfig
@@ -405,6 +424,15 @@ export function computeReleaseGroupDates(
   // For non-explicit modes, do NOT apply the stored releaseGroupDates map on top of
   // the computed schedule — doing so would overwrite correct interval/week/day-of-week
   // dates with stale admin-preview dates, making all modules appear unlocked.
+
+  // Pin all computed dates to 10:00 PM GMT+6 (16:00 UTC) on their calendar day.
+  // Modules become available at night (10 PM Bangladesh time) on the scheduled date.
+  for (const groupId of Object.keys(dates)) {
+    const raw = normalizeDate(dates[groupId]);
+    if (raw) {
+      dates[groupId] = pinTo10pmBST(raw).toISOString();
+    }
+  }
 
   return dates;
 }
