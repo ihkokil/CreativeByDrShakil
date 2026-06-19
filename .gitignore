@@ -45,3 +45,6 @@ token.json
 # OpenNext
 .open-next/
 
+# Wrangler
+.wrangler/
+
