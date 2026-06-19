@@ -27,7 +27,7 @@ interface NodeProps {
 
 const formatAvailability = (dateValue?: string | null) => {
     if (!dateValue) return "";
-    return `Available on ${formatDisplayDate(dateValue)}`;
+    return `Available: ${formatDisplayDate(dateValue)}, 10:00 PM`;
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
@@ -68,7 +68,9 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                             {node.locked && <Lock size={14} className={styles.lockIcon} />}
                             {node.duration && <span className={styles.duration}>{node.duration}</span>}
                             {node.availableAt && (
-                                <span className={styles.availableAt}>{formatAvailability(node.availableAt)}</span>
+                                <span className={node.locked ? styles.availableAt : styles.availableNow}>
+                                    {node.locked ? formatAvailability(node.availableAt) : "Available"}
+                                </span>
                             )}
                         </>
                     )}

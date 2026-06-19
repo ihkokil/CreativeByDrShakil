@@ -130,6 +130,12 @@
   border: 1px solid var(--glass-border);
 }
 
+.availableBadge {
+  color: #22c55e !important;
+  border-color: color-mix(in srgb, #22c55e 30%, transparent) !important;
+  background: color-mix(in srgb, #22c55e 10%, transparent) !important;
+}
+
 .durationColumn {
   flex: 0 0 auto;
   padding-left: 12px;
