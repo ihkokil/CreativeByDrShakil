@@ -33,5 +33,7 @@ export function checkEnvVariables() {
   }
 }
 
-// Run immediately on import
-checkEnvVariables();
+// NOTE: Do NOT auto-run on import.
+// In Cloudflare Workers, process.env is populated per-request (not at module init).
+// Call checkEnvVariables() lazily from prisma.ts when the DB connection is first used.
+

@@ -1,11 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
-import './env-check';
+import { checkEnvVariables } from './env-check';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function getPrismaClient() {
+  // Run env checks lazily (process.env is only populated per-request in Workers)
+  checkEnvVariables();
+
   const connectionString = process.env.SUPABASE_DATABASE_URL;
   if (!connectionString) {
     throw new Error('SUPABASE_DATABASE_URL environment variable is not defined.');
