@@ -1,4 +1,5 @@
 const config = {
+    minify: true,
     default: {
         override: {
             wrapper: "cloudflare-node",
