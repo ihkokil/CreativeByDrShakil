@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import { checkEnvVariables } from './env-check';
 
@@ -86,20 +87,27 @@ function getPrismaClient(): PrismaClientType {
 
   return new PrismaClient({
     adapter,
-    datasourceUrl: connectionString,
     log: ['error'],
   }) as PrismaClientType;
 }
 
 // Helper to retrieve the actual client instance lazily.
+// In development, cache on globalThis to prevent connection leaks from HMR.
+// In production (Cloudflare Workers), cache on a request-scoped basis using React's cache()
+// to prevent "Cannot perform I/O on behalf of a different request" error across isolates.
+const getRequestScopedPrismaClient = cache(() => {
+  return getPrismaClient();
+});
+
 function getPrismaInstance(): PrismaClientType {
-  if (globalForPrisma.prisma) {
+  if (process.env.NODE_ENV === 'development') {
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = getPrismaClient();
+    }
     return globalForPrisma.prisma;
   }
 
-  const client = getPrismaClient();
-  globalForPrisma.prisma = client;
-  return client;
+  return getRequestScopedPrismaClient();
 }
 
 // Export a Proxy wrapper that delegates property access to the lazily initialized client.
