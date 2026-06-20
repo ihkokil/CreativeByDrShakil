@@ -182,14 +182,14 @@ export default function Navbar() {
                                     }}
                                 >
                                     <User size={18} />
-                                    <span className={styles.navText}>Login</span>
+                                    <span className={styles.navText}>Account</span>
                                 </button>
                             )}
                         </div>
                     </div>
                 </div>
             </nav>
-
+            
             <AuthModal isOpen={isAuthOpen} onClose={handleCloseAuth} defaultMode={authMode} />
         </>
     );

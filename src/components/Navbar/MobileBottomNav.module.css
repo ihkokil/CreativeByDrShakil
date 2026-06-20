@@ -1,0 +1,70 @@
+/* ══════════════════════════════════════════════════
+   Mobile Bottom Navigation — App-style (Amazon/Alibaba)
+   Clean, flat, full-width tabs with icon + label
+   ══════════════════════════════════════════════════ */
+
+.bottomNav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: var(--background);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.navItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 0 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.65rem;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.01em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s ease;
+}
+
+.navItem:active {
+  opacity: 0.7;
+}
+
+.navItem.active {
+  color: var(--primary);
+}
+
+.label {
+  line-height: 1;
+}
+
+/* ── Dark mode ── */
+[data-theme='dark'] .bottomNav {
+  background: var(--card-bg);
+  border-top-color: var(--glass-border);
+}
+
+[data-theme='dark'] .navItem {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme='dark'] .navItem.active {
+  color: var(--primary);
+}
+
+/* ── Hide on tablet/desktop ── */
+@media (min-width: 768px) {
+  .bottomNav {
+    display: none;
+  }
+}

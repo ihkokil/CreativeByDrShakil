@@ -173,7 +173,8 @@ export async function POST(request: NextRequest) {
         finalStudent.id,
         course.id,
         course.title,
-        course.slug
+        course.slug,
+        true
       );
 
       // Fetch the order created/updated by the helper to return it

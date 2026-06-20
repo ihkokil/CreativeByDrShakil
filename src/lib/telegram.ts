@@ -247,3 +247,64 @@ export async function updateTelegramVerificationMessage({
     console.error('Error updating Telegram notification:', error.message);
   }
 }
+
+/**
+ * Sends a notification when a new user registers on the site.
+ */
+export async function sendTelegramRegistrationNotification({
+  userName,
+  userEmail,
+  phoneNumber,
+}: {
+  userName: string;
+  userEmail: string;
+  phoneNumber?: string;
+}) {
+  const envChatIds = getTelegramChatIds();
+  if (!envChatIds.length) return;
+
+  const lines = [
+    '🎉 <b>New User Registration</b>',
+    '',
+    `👤 <b>Name:</b> ${escapeTelegramHtml(userName)}`,
+    `📧 <b>Email:</b> ${escapeTelegramHtml(userEmail)}`,
+  ];
+
+  if (phoneNumber) lines.push(`📱 <b>Phone:</b> ${escapeTelegramHtml(phoneNumber)}`);
+
+  await sendTelegramMessage({ chatIds: envChatIds, text: lines.join('\n') });
+}
+
+/**
+ * Sends a notification when a user is successfully enrolled/added into a course.
+ */
+export async function sendTelegramEnrollmentNotification({
+  studentName,
+  studentEmail,
+  courseTitle,
+  enrolledByAdmin,
+}: {
+  studentName: string;
+  studentEmail: string;
+  courseTitle: string;
+  enrolledByAdmin?: boolean;
+}) {
+  const envChatIds = getTelegramChatIds();
+  if (!envChatIds.length) return;
+
+  const lines = [
+    '✅ <b>Course Enrollment Successful</b>',
+    '',
+    `👤 <b>Student:</b> ${escapeTelegramHtml(studentName)}`,
+    `📧 <b>Email:</b> ${escapeTelegramHtml(studentEmail)}`,
+    `📚 <b>Course:</b> ${escapeTelegramHtml(courseTitle)}`,
+  ];
+
+  if (enrolledByAdmin) {
+    lines.push('', '<i>Manually enrolled by Admin.</i>');
+  } else {
+    lines.push('', '<i>Automatically enrolled.</i>');
+  }
+
+  await sendTelegramMessage({ chatIds: envChatIds, text: lines.join('\n') });
+}
