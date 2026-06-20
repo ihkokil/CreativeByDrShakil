@@ -55,14 +55,12 @@ function buildTree(flatNodes: FlatNode[]): CurriculumNode[] {
 interface NodeProps {
     node: CurriculumNode;
     depth: number;
-    onAddFolder: (parentId: string) => void;
-    onAddVideo: (parentId: string) => void;
     onDelete: (id: string) => void;
     onEdit: (node: CurriculumNode) => void;
     onMove: (id: string, direction: 'up' | 'down') => void;
 }
 
-const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onEdit, onMove }: NodeProps) => {
+const LibraryItem = ({ node, depth, onDelete, onEdit, onMove }: NodeProps) => {
     const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
 
@@ -131,8 +129,6 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onEdit, o
                                 key={child.id}
                                 node={child}
                                 depth={depth + 1}
-                                onAddFolder={onAddFolder}
-                                onAddVideo={onAddVideo}
                                 onDelete={onDelete}
                                 onEdit={onEdit}
                                 onMove={onMove}
@@ -480,7 +476,7 @@ export default function ModuleLibraryManager() {
                         </div>
                     ) : (
                         activeRootNode?.children?.map(node => (
-                            <LibraryItem key={node.id} node={node} depth={0} onAddFolder={handleAddFolderClick} onAddVideo={handleAddVideoClick} onDelete={handleDeleteClick} onEdit={handleEditClick} onMove={handleMoveItem} />
+                            <LibraryItem key={node.id} node={node} depth={0} onDelete={handleDeleteClick} onEdit={handleEditClick} onMove={handleMoveItem} />
                         ))
                     )}
                 </motion.div>
