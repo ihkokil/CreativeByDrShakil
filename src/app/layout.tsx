@@ -4,7 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import SessionWarningToast from "@/components/SessionWarning/SessionWarning";
 import ContentProtection from "@/components/ContentProtection/ContentProtection";
-import FloatingThemeToggle from "@/components/ThemeToggle/FloatingThemeToggle";
+
+import MobileBottomNavWrapper from "@/components/Navbar/MobileBottomNavWrapper";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const outfit = Outfit({ subsets: ["latin"] });
@@ -29,7 +30,8 @@ export default function RootLayout({
                     <ContentProtection />
                     {children}
                     <SessionWarningToast />
-                    <FloatingThemeToggle />
+
+                    <MobileBottomNavWrapper />
                     <SpeedInsights />
                 </AuthProvider>
             </body>
