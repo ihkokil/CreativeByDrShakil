@@ -532,6 +532,50 @@
     min-height: 400px;
 }
 
+.breadcrumbBar {
+    display: flex;
+    align-items: center;
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.01);
+    border-bottom: 1px solid var(--glass-border);
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.breadcrumbBar span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.breadcrumbLink {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.breadcrumbLink:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+}
+
+.breadcrumbLink.active {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+    cursor: default;
+}
+
+.breadcrumbSep {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
 .activeViewHeader {
     display: flex;
     align-items: center;

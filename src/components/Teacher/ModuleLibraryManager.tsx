@@ -150,12 +150,10 @@ export default function ModuleLibraryManager() {
 
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+    const [isDocModalOpen, setIsDocModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingNode, setEditingNode] = useState<CurriculumNode | null>(null);
     const [activeParentId, setActiveParentId] = useState<string | null>(null);
-
-    const [isVideoDropdownOpen, setIsVideoDropdownOpen] = useState(false);
-    const [isDocDropdownOpen, setIsDocDropdownOpen] = useState(false);
 
     const [folderTitle, setFolderTitle] = useState("");
     const [videoTitle, setVideoTitle] = useState("");
@@ -192,12 +190,17 @@ export default function ModuleLibraryManager() {
     useEffect(() => { fetchLibrary(); }, [fetchLibrary]);
 
     const handleAddFolderClick = (parentId?: string) => { setActiveParentId(parentId || null); setIsFolderModalOpen(true); };
-    const handleAddVideoClick = (parentId: string, defaultType: ContentType) => { 
+    const handleAddVideoClick = (parentId: string) => { 
         setActiveParentId(parentId); 
-        setVideoType(defaultType);
+        setVideoType('youtube');
+        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null);
         setIsVideoModalOpen(true); 
-        setIsVideoDropdownOpen(false);
-        setIsDocDropdownOpen(false);
+    };
+    const handleAddDocClick = (parentId: string) => { 
+        setActiveParentId(parentId); 
+        setVideoType('document');
+        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null);
+        setIsDocModalOpen(true); 
     };
 
     const formatDuration = (seconds: number) => {
@@ -291,7 +294,7 @@ export default function ModuleLibraryManager() {
             const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: videoTitle.trim(), type: videoType, url: resolvedVideoUrl, duration: videoDuration.trim() || null, parentId: activeParentId }) });
             if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to add module.'); }
 
-            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setIsVideoModalOpen(false); await fetchLibrary();
+            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setIsVideoModalOpen(false); setIsDocModalOpen(false); await fetchLibrary();
         } catch (err: any) { alert(err.message || 'Failed to add module.'); } finally { setUploadingVideo(false); setIsSubmitting(false); }
     };
 
@@ -441,30 +444,13 @@ export default function ModuleLibraryManager() {
                                 <Folder size={16} /> Folder
                             </button>
 
-                            <div className={styles.dropdownWrap}>
-                                <button className={styles.toolbarBtn} onClick={() => { setIsVideoDropdownOpen(!isVideoDropdownOpen); setIsDocDropdownOpen(false); }} title="Add Video">
-                                    <Video size={16} /> Video <ChevronDown size={14} />
-                                </button>
-                                {isVideoDropdownOpen && (
-                                    <div className={styles.dropdownMenu}>
-                                        <button onClick={() => handleAddVideoClick(activeRootId, 'youtube')}><Video size={14}/> YouTube Video</button>
-                                        <button onClick={() => handleAddVideoClick(activeRootId, 'vimeo')}><Video size={14}/> Vimeo Video</button>
-                                        <button onClick={() => handleAddVideoClick(activeRootId, 'self-hosted')}><Video size={14}/> Self Hosted Video</button>
-                                    </div>
-                                )}
-                            </div>
+                            <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Video">
+                                <Video size={16} /> Video
+                            </button>
 
-                            <div className={styles.dropdownWrap}>
-                                <button className={styles.toolbarBtn} onClick={() => { setIsDocDropdownOpen(!isDocDropdownOpen); setIsVideoDropdownOpen(false); }} title="Add Document">
-                                    <FileText size={16} /> Document <ChevronDown size={14} />
-                                </button>
-                                {isDocDropdownOpen && (
-                                    <div className={styles.dropdownMenu}>
-                                        <button onClick={() => handleAddVideoClick(activeRootId, 'document')}><Upload size={14}/> Upload Document</button>
-                                        <button onClick={() => handleAddVideoClick(activeRootId, 'document')}><LinkIcon size={14}/> Drive URL</button>
-                                    </div>
-                                )}
-                            </div>
+                            <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId)} title="Add Document">
+                                <FileText size={16} /> Document
+                            </button>
                         </div>
                     </div>
 
@@ -517,16 +503,15 @@ export default function ModuleLibraryManager() {
                                 </div>
                                 <div className={styles.row}>
                                     <div className={styles.formGroup}>
-                                        <label>Module Type</label>
+                                        <label>Video Type</label>
                                         <select value={videoType} onChange={e => { const nextType = e.target.value as ContentType; setVideoType(nextType); setVideoFile(null); setVideoUrl(''); }}>
                                             <option value="youtube">YouTube Embed</option>
                                             <option value="vimeo">Vimeo Embed</option>
                                             <option value="self-hosted">Self-Hosted Video</option>
-                                            <option value="document">Document (PDF/PPT/DOC)</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
-                                        <label>Duration (Auto-fetched for Videos)</label>
+                                        <label>Duration (Auto-fetched)</label>
                                         <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="e.g. 45:00" />
                                     </div>
                                 </div>
@@ -544,14 +529,6 @@ export default function ModuleLibraryManager() {
                                                     </MediaPlayer>
                                                 </div>
                                             )}
-                                        </>
-                                    ) : videoType === 'document' ? (
-                                        <>
-                                            <label>Upload Document</label>
-                                            <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
-                                            <small className={styles.fieldHint}>Supported: .pdf, .doc, .docx, .ppt, .pptx ΓÇö or provide an external URL below.</small>
-                                            <label style={{ marginTop: '8px' }}>Or Document URL (Drive, CDN)</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/... or https://..." />
                                         </>
                                     ) : (
                                         <>
@@ -575,7 +552,35 @@ export default function ModuleLibraryManager() {
                                         </>
                                     )}
                                 </div>
-                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Add Module'}</button>
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Add Video'}</button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {isDocModalOpen && (
+                    <div className={styles.modalOverlay} onClick={() => setIsDocModalOpen(false)}>
+                        <motion.div className={styles.modal} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} onClick={e => e.stopPropagation()}>
+                            <div className={styles.modalHeader}>
+                                <h3>Add Document</h3>
+                                <button className={styles.closeBtn} onClick={() => setIsDocModalOpen(false)}><X size={20} /></button>
+                            </div>
+                            <form onSubmit={submitVideo} className={styles.form}>
+                                <div className={styles.formGroup}>
+                                    <label>Document Title</label>
+                                    <input type="text" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} placeholder="e.g. Chapter 1 Notes" required autoFocus />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Upload Document File</label>
+                                    <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
+                                    <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX</small>
+                                    
+                                    <label style={{ marginTop: '12px' }}>Or External Document URL (Drive, CDN)</label>
+                                    <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                                </div>
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Add Document'}</button>
                             </form>
                         </motion.div>
                     </div>
