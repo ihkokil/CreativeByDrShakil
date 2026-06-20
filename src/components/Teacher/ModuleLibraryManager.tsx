@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, Upload, Link as LinkIcon } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MediaPlayer, MediaProvider } from '@vidstack/react';
 
@@ -162,6 +162,8 @@ export default function ModuleLibraryManager() {
     const [videoDuration, setVideoDuration] = useState("");
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isDragging, setIsDragging] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const getAuthHeaders = useCallback((): HeadersInit => {
@@ -193,13 +195,13 @@ export default function ModuleLibraryManager() {
     const handleAddVideoClick = (parentId: string) => { 
         setActiveParentId(parentId); 
         setVideoType('youtube');
-        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null);
+        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null); setUploadProgress(0);
         setIsVideoModalOpen(true); 
     };
     const handleAddDocClick = (parentId: string) => { 
         setActiveParentId(parentId); 
         setVideoType('document');
-        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null);
+        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null); setUploadProgress(0);
         setIsDocModalOpen(true); 
     };
 
@@ -208,6 +210,35 @@ export default function ModuleLibraryManager() {
         const m = Math.floor(seconds / 60);
         const s = Math.floor(seconds % 60);
         return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const uploadFileWithProgress = (file: File, token: string | null): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/teacher/uploads');
+            if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    setUploadProgress(percent);
+                }
+            };
+            
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error('Invalid response')); }
+                } else {
+                    try { const res = JSON.parse(xhr.responseText); resolve(res); } catch { reject(new Error('Upload failed')); }
+                }
+            };
+            
+            xhr.onerror = () => reject(new Error('Network error during upload'));
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            xhr.send(formData);
+        });
     };
 
     const handleDeleteClick = async (id: string, e?: React.MouseEvent) => {
@@ -240,6 +271,8 @@ export default function ModuleLibraryManager() {
         setVideoUrl(node.url || "");
         setVideoDuration(node.duration || "");
         setVideoType(node.type === 'folder' ? 'youtube' : node.type as ContentType);
+        setVideoFile(null);
+        setUploadProgress(0);
         setIsEditModalOpen(true);
     };
 
@@ -276,18 +309,10 @@ export default function ModuleLibraryManager() {
 
             if ((videoType === 'self-hosted' || videoType === 'document') && videoFile) {
                 setUploadingVideo(true);
-                const formData = new FormData();
-                formData.append('file', videoFile);
-                const uploadHeaders: HeadersInit = {};
+                setUploadProgress(0);
                 const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-                if (token) uploadHeaders.Authorization = `Bearer ${token}`;
-
-                const uploadRes = await fetch('/api/teacher/uploads', { method: 'POST', headers: uploadHeaders, body: formData });
-                if (!uploadRes.ok) {
-                    const uploadData = await uploadRes.json().catch(() => ({ error: 'Upload failed.' }));
-                    throw new Error(uploadData.error || 'Upload failed.');
-                }
-                const uploadData = await uploadRes.json();
+                const uploadData = await uploadFileWithProgress(videoFile, token);
+                if (uploadData.error) throw new Error(uploadData.error);
                 resolvedVideoUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
             }
 
@@ -309,14 +334,37 @@ export default function ModuleLibraryManager() {
 
         setIsSubmitting(true);
         try {
+            let finalUrl = videoUrl.trim() || null;
+            if (!isFolder && videoFile) {
+                setUploadingVideo(true);
+                setUploadProgress(0);
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                const uploadData = await uploadFileWithProgress(videoFile, token);
+                if (uploadData.error) throw new Error(uploadData.error);
+                finalUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
+            }
+
             const body: any = { title: title.trim() };
-            if (!isFolder) { body.url = videoUrl.trim() || null; body.duration = videoDuration.trim() || null; body.type = videoType; }
+            if (!isFolder) { body.url = finalUrl; body.duration = videoDuration.trim() || null; body.type = videoType; }
 
             const res = await fetch(`/api/teacher/video-library/${editingNode.id}`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body) });
             if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to update.'); }
 
             setIsEditModalOpen(false); setEditingNode(null); await fetchLibrary();
-        } catch (err: any) { alert(err.message || 'Failed to update item.'); } finally { setIsSubmitting(false); }
+        } catch (err: any) { alert(err.message || 'Failed to update item.'); } finally { setUploadingVideo(false); setIsSubmitting(false); }
+    };
+
+    const handleFileSelect = (file: File | null) => {
+        setVideoFile(file);
+        if (file && file.type.startsWith('video/')) {
+            const objectUrl = URL.createObjectURL(file);
+            const video = document.createElement('video');
+            video.src = objectUrl;
+            video.onloadedmetadata = () => {
+                setVideoDuration(formatDuration(video.duration));
+                URL.revokeObjectURL(objectUrl);
+            };
+        }
     };
 
     const activeRootNode = libraryData.find(root => root.id === activeRootId);
@@ -533,21 +581,32 @@ export default function ModuleLibraryManager() {
                                     ) : (
                                         <>
                                             <label>Upload Video File</label>
-                                            <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" onChange={e => {
-                                                const file = e.target.files?.[0] || null;
-                                                setVideoFile(file);
-                                                if (file) {
-                                                    const objectUrl = URL.createObjectURL(file);
-                                                    const video = document.createElement('video');
-                                                    video.src = objectUrl;
-                                                    video.onloadedmetadata = () => {
-                                                        setVideoDuration(formatDuration(video.duration));
-                                                        URL.revokeObjectURL(objectUrl);
-                                                    };
-                                                }
-                                            }} />
-                                            <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
-                                            <label style={{ marginTop: '8px' }}>Or Direct Video URL (Optional)</label>
+                                            <div 
+                                                className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
+                                                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                                onDragLeave={() => setIsDragging(false)}
+                                                onDrop={e => {
+                                                    e.preventDefault();
+                                                    setIsDragging(false);
+                                                    const file = e.dataTransfer.files?.[0];
+                                                    if (file) handleFileSelect(file);
+                                                }}
+                                                onClick={() => document.getElementById('videoFileInput')?.click()}
+                                            >
+                                                <input id="videoFileInput" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                                <UploadCloud size={32} className={styles.dropIcon} />
+                                                <p>{videoFile ? videoFile.name : "Drag & Drop video file here, or click to select"}</p>
+                                                <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
+                                            </div>
+                                            
+                                            {uploadingVideo && uploadProgress > 0 && (
+                                                <div className={styles.progressContainer}>
+                                                    <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
+                                                    <span className={styles.progressText}>{uploadProgress}%</span>
+                                                </div>
+                                            )}
+
+                                            <label style={{ marginTop: '12px' }}>Or Direct Video URL (Optional)</label>
                                             <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." />
                                         </>
                                     )}
@@ -574,8 +633,30 @@ export default function ModuleLibraryManager() {
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Upload Document File</label>
-                                    <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
-                                    <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX</small>
+                                    <div 
+                                        className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
+                                        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                        onDragLeave={() => setIsDragging(false)}
+                                        onDrop={e => {
+                                            e.preventDefault();
+                                            setIsDragging(false);
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file) handleFileSelect(file);
+                                        }}
+                                        onClick={() => document.getElementById('docFileInput')?.click()}
+                                    >
+                                        <input id="docFileInput" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                        <UploadCloud size={32} className={styles.dropIcon} />
+                                        <p>{videoFile ? videoFile.name : "Drag & Drop document here, or click to select"}</p>
+                                        <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX</small>
+                                    </div>
+
+                                    {uploadingVideo && uploadProgress > 0 && (
+                                        <div className={styles.progressContainer}>
+                                            <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
+                                            <span className={styles.progressText}>{uploadProgress}%</span>
+                                        </div>
+                                    )}
                                     
                                     <label style={{ marginTop: '12px' }}>Or External Document URL (Drive, CDN)</label>
                                     <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." />
@@ -629,8 +710,30 @@ export default function ModuleLibraryManager() {
                                         {(videoType === 'self-hosted' || videoType === 'document') && (
                                             <div className={styles.formGroup}>
                                                 <label>Replace File (Optional)</label>
-                                                <input type="file" accept={videoType === 'self-hosted' ? "video/*" : ".pdf,.doc,.docx,.ppt,.pptx"} onChange={e => setVideoFile(e.target.files?.[0] || null)} />
-                                                <small className={styles.fieldHint}>Leave empty to keep existing file. Uploading a new file will overwrite the Resource URL.</small>
+                                                <div 
+                                                    className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
+                                                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                                    onDragLeave={() => setIsDragging(false)}
+                                                    onDrop={e => {
+                                                        e.preventDefault();
+                                                        setIsDragging(false);
+                                                        const file = e.dataTransfer.files?.[0];
+                                                        if (file) handleFileSelect(file);
+                                                    }}
+                                                    onClick={() => document.getElementById('editFileInput')?.click()}
+                                                >
+                                                    <input id="editFileInput" type="file" accept={videoType === 'self-hosted' ? "video/*" : ".pdf,.doc,.docx,.ppt,.pptx"} style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                                    <UploadCloud size={32} className={styles.dropIcon} />
+                                                    <p>{videoFile ? videoFile.name : "Drag & Drop new file here to replace, or click"}</p>
+                                                    <small className={styles.fieldHint}>Leave empty to keep existing file. Uploading a new file will overwrite the Resource URL.</small>
+                                                </div>
+
+                                                {uploadingVideo && uploadProgress > 0 && (
+                                                    <div className={styles.progressContainer}>
+                                                        <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
+                                                        <span className={styles.progressText}>{uploadProgress}%</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </>
