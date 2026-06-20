@@ -14,7 +14,7 @@ export async function uploadFileToStorage(
   const cleanFolder = folderPath.replace(/^\/+|\/+$/g, '');
   
   // Create a Blob from the Buffer since fetch expects Blob/File for FormData
-  const blob = new Blob([fileBuffer], { type: contentType });
+  const blob = new Blob([new Uint8Array(fileBuffer)], { type: contentType });
 
   const formData = new FormData();
   formData.append('file', blob, fileName);
