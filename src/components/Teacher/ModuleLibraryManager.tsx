@@ -744,6 +744,21 @@ export default function ModuleLibraryManager() {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Hidden Player for URL duration fetching */}
+            {(videoType === 'youtube' || videoType === 'vimeo') && videoUrl && (
+                <MediaPlayer 
+                    src={videoUrl}
+                    style={{ display: 'none' }}
+                    onDurationChange={(duration) => {
+                        if (duration && duration > 0 && !videoDuration) {
+                            setVideoDuration(formatDuration(duration));
+                        }
+                    }}
+                >
+                    <MediaProvider />
+                </MediaPlayer>
+            )}
         </div>
     );
 }
