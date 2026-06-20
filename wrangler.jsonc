@@ -14,5 +14,11 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "rules": [
+    {
+      "type": "CompiledWasm",
+      "globs": ["**/*.wasm"]
+    }
+  ]
 }
