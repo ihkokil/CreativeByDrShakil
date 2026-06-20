@@ -1,25 +1,19 @@
 import fs from 'fs';
 import path from 'path';
 
-const handlerPath = path.resolve('.open-next/server-functions/default/handler.mjs');
+const basePath = path.resolve('.open-next/server-functions/default');
+const handlerPath = path.join(basePath, 'handler.mjs');
 
 if (fs.existsSync(handlerPath)) {
   let content = fs.readFileSync(handlerPath, 'utf8');
   
-  // Find the pattern: default\node_modules
-  // Since it might be escaped as \\node_modules or literal \node_modules, let's match both
   const searchPattern = /default\\+node_modules/g;
-  
   if (content.match(searchPattern) || content.includes('default\\node_modules') || content.includes('default\node_modules')) {
     console.log('Found Windows path separators in handler.mjs, replacing with forward slashes...');
-    
-    // Replace all default\node_modules or default\\node_modules with default/node_modules
     content = content.replace(/default\\+node_modules/g, 'default/node_modules');
-    // Also handle if it is a literal unescaped backslash in the JS string
     content = content.replace(/default\\node_modules/g, 'default/node_modules');
-    content = content.replace(/default\x00ode_modules/g, 'default/node_modules'); // in case \n was parsed as a newline or null char
+    content = content.replace(/default\x00ode_modules/g, 'default/node_modules'); 
     content = content.replace(/default\node_modules/g, 'default/node_modules');
-    
     fs.writeFileSync(handlerPath, content, 'utf8');
     console.log('Successfully patched handler.mjs!');
   } else {
@@ -28,3 +22,18 @@ if (fs.existsSync(handlerPath)) {
 } else {
   console.error('handler.mjs not found at:', handlerPath);
 }
+
+// Aggressively clean up heavy Next.js internal files that we don't need in Cloudflare Workers
+const pathsToRemove = [
+  'node_modules/next/dist/server/capsize-font-metrics.json',
+  'node_modules/next/dist/compiled/@next/font/dist/fontkit',
+  'node_modules/next/dist/compiled/next-devtools'
+];
+
+pathsToRemove.forEach(relPath => {
+  const fullPath = path.join(basePath, relPath);
+  if (fs.existsSync(fullPath)) {
+    fs.rmSync(fullPath, { recursive: true, force: true });
+    console.log(`Deleted ${relPath} to drastically reduce Cloudflare bundle size.`);
+  }
+});

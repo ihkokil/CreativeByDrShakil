@@ -7,7 +7,7 @@ import ContentProtection from "@/components/ContentProtection/ContentProtection"
 import FloatingThemeToggle from "@/components/ThemeToggle/FloatingThemeToggle";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const outfit = Outfit({ subsets: ["latin"] });
+const outfit = Outfit({ subsets: ["latin"], display: 'swap', adjustFontFallback: false });
 
 export const metadata: Metadata = {
     title: "Creative By Dr. Shakil | Medical Education Simplified",
