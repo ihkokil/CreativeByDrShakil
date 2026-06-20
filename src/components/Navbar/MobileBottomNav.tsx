@@ -28,6 +28,7 @@ export default function MobileBottomNav() {
         <span className={styles.label}>Courses</span>
       </Link>
 
+      {/* Coming Soon — uncomment when ready
       <Link
         href="#"
         className={styles.navItem}
@@ -45,6 +46,7 @@ export default function MobileBottomNav() {
         <Pen size={22} strokeWidth={1.8} />
         <span className={styles.label}>Exams</span>
       </Link>
+      */}
     </nav>
   );
 }
