@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import styles from "./ModuleLibraryManager.module.css";
 import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MediaPlayer, MediaProvider } from '@vidstack/react';
 
 export type ContentType = 'youtube' | 'vimeo' | 'self-hosted' | 'document';
 
@@ -163,6 +162,7 @@ export default function ModuleLibraryManager() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -190,6 +190,32 @@ export default function ModuleLibraryManager() {
     }, [getAuthHeaders]);
 
     useEffect(() => { fetchLibrary(); }, [fetchLibrary]);
+
+    useEffect(() => {
+        if (!videoUrl) return;
+        if (videoType !== 'youtube' && videoType !== 'vimeo') return;
+
+        // Auto-fetch metadata from backend when a valid URL is pasted
+        const fetchMetadata = async () => {
+            try {
+                setIsFetchingMetadata(true);
+                const res = await fetch(`/api/teacher/video-info?url=${encodeURIComponent(videoUrl)}`, { headers: getAuthHeaders() });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.duration > 0) setVideoDuration(formatDuration(data.duration));
+                    if (data.title && !videoTitle) setVideoTitle(data.title);
+                }
+            } catch (err) {
+                console.error("Failed to fetch video metadata:", err);
+            } finally {
+                setIsFetchingMetadata(false);
+            }
+        };
+
+        // Debounce slightly to wait for the user to finish pasting
+        const timeout = setTimeout(fetchMetadata, 600);
+        return () => clearTimeout(timeout);
+    }, [videoUrl, videoType, getAuthHeaders]);
 
     const handleAddFolderClick = (parentId?: string) => { setActiveParentId(parentId || null); setIsFolderModalOpen(true); };
     const handleAddVideoClick = (parentId: string) => { 
@@ -560,7 +586,7 @@ export default function ModuleLibraryManager() {
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label>Duration (Auto-fetched)</label>
-                                        <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="e.g. 45:00" />
+                                        <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder={isFetchingMetadata ? "Fetching..." : "e.g. 45:00"} />
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
@@ -699,8 +725,8 @@ export default function ModuleLibraryManager() {
                                                 </select>
                                             </div>
                                             <div className={styles.formGroup}>
-                                                <label>Duration</label>
-                                                <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} />
+                                                <label>Duration (Auto-fetched)</label>
+                                                <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder={isFetchingMetadata ? "Fetching..." : "e.g. 45:00"} />
                                             </div>
                                         </div>
                                         <div className={styles.formGroup}>
@@ -744,21 +770,6 @@ export default function ModuleLibraryManager() {
                     </div>
                 )}
             </AnimatePresence>
-
-            {/* Hidden Player for URL duration fetching */}
-            {(videoType === 'youtube' || videoType === 'vimeo') && videoUrl && (
-                <MediaPlayer 
-                    src={videoUrl}
-                    style={{ display: 'none' }}
-                    onDurationChange={(duration) => {
-                        if (duration && duration > 0 && !videoDuration) {
-                            setVideoDuration(formatDuration(duration));
-                        }
-                    }}
-                >
-                    <MediaProvider />
-                </MediaPlayer>
-            )}
         </div>
     );
 }

@@ -27,6 +27,7 @@
   "homepage": "https://github.com/ihkokil/CreativeByDrShakil#readme",
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
+    "@distube/ytdl-core": "^4.16.12",
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^6.5.0",
@@ -50,6 +51,7 @@
     "resend": "^6.12.4",
     "vidstack": "^1.12.11",
     "ws": "^8.21.0",
+    "youtubei.js": "^17.0.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
