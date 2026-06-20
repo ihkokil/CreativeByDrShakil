@@ -1,6 +1,4 @@
 import type { PrismaClient as PrismaClientType } from '@prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import pg from 'pg';
 import { checkEnvVariables } from './env-check';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClientType | undefined };
@@ -10,16 +8,24 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClientType | un
 // to avoid filesystem scanning checks (fs.readdir) that throw in the edge environment.
 let CachedPrismaClientClass: any = null;
 
+// Check if we are running in a Cloudflare Workers / Edge environment.
+// We check for Cloudflare Workers-specific globals (like WebSocketPair or navigator.userAgent)
+// or the Next.js edge runtime environment variable.
+const isEdgeOrCloudflare =
+  typeof (globalThis as any).WebSocketPair !== 'undefined' ||
+  (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers') ||
+  process.env.NEXT_RUNTIME === 'edge';
+
 function getPrismaClientClass() {
   if (CachedPrismaClientClass) {
     return CachedPrismaClientClass;
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    const { PrismaClient } = require('@prisma/client');
+  if (isEdgeOrCloudflare) {
+    const { PrismaClient } = require('@prisma/client/wasm');
     CachedPrismaClientClass = PrismaClient;
   } else {
-    const { PrismaClient } = require('@prisma/client/wasm');
+    const { PrismaClient } = require('@prisma/client');
     CachedPrismaClientClass = PrismaClient;
   }
 
@@ -52,19 +58,30 @@ function getPrismaClient(): PrismaClientType {
     }) as PrismaClientType;
   }
 
-  // Use the connection pooler for pg.Pool in production
-  const pool = new pg.Pool({ connectionString });
-  const adapter = new PrismaPg(pool);
+  // Cloudflare Workers / Edge environment: use Neon serverless driver over WebSockets
+  if (isEdgeOrCloudflare) {
+    const { Pool } = require('@neondatabase/serverless');
+    const { PrismaNeon } = require('@prisma/adapter-neon');
 
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaNeon(pool);
+
+    return new PrismaClient({
+      adapter,
+      log: ['error'],
+    }) as PrismaClientType;
+  }
+
+  // Standard Node.js production environment (e.g. Vercel Serverless / Hostinger):
+  // Let Prisma use its native Rust/binary query engine (more performant on Node.js)
   return new PrismaClient({
-    adapter,
     log: ['error'],
   }) as PrismaClientType;
 }
 
 export const prisma = globalForPrisma.prisma ?? getPrismaClient();
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' || isEdgeOrCloudflare) {
   globalForPrisma.prisma = prisma;
 }
 
