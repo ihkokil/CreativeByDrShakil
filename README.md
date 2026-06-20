@@ -51,7 +51,7 @@ scripts/
 
 - Node.js 20+
 - npm 10+
-- Supabase PostgreSQL / Neon Database
+- Neon Database (PostgreSQL)
 
 ## Environment Variables
 
