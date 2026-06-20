@@ -41,7 +41,7 @@ function formatIssueLabel(issueType: ContactIssueType) {
 
 function getAdminRecipients() {
   const configuredRecipients =
-    process.env.CONTACT_ADMIN_EMAILS || process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'contact@drshakil.com';
+    process.env.CONTACT_ADMIN_EMAILS || process.env.ADMIN_EMAIL || 'contact@drshakil.com';
 
   return configuredRecipients
     .split(',')
