@@ -594,15 +594,6 @@ export default function ModuleLibraryManager() {
                                         <>
                                             <label>{videoType === 'youtube' ? 'YouTube' : 'Vimeo'} URL</label>
                                             <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." required />
-                                            
-                                            {/* Hidden player to fetch duration automatically */}
-                                            {videoUrl && (
-                                                <div style={{ display: 'none' }}>
-                                                    <MediaPlayer src={videoUrl} onDurationChange={(duration) => setVideoDuration(formatDuration(duration))}>
-                                                        <MediaProvider />
-                                                    </MediaPlayer>
-                                                </div>
-                                            )}
                                         </>
                                     ) : (
                                         <>
