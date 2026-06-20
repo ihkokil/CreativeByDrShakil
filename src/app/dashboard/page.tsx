@@ -25,6 +25,7 @@ import profileStyles from "./ProfileTab.module.css";
 import { Camera, Mail, Stethoscope, Save, Trash2, KeyRound, Lock, ShieldCheck, Clock } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
 import Loader from "@/components/UI/Loader";
+import ImageCropper from "@/components/Shared/ImageCropper";
 
 interface DashboardCourse {
     orderId: string;
@@ -148,6 +149,8 @@ function StudentDashboardContent() {
     fetchDashboard();
   }, [user]);
 
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+
   const handleProfileImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -157,14 +160,25 @@ function StudentDashboardContent() {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setProfileMessage({ type: "error", text: "Image must be 2MB or smaller." });
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileMessage({ type: "error", text: "Original image must be 5MB or smaller." });
       return;
     }
 
-    setProfileMessage({ type: "success", text: "Uploading profile image..." });
+    // Instead of uploading right away, we load it into the cropper
+    const reader = new FileReader();
+    reader.onload = () => {
+        setCropImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setCropImageSrc(null);
+    setProfileMessage({ type: "success", text: "Optimizing and uploading profile image..." });
     const formData = new FormData();
-    formData.append("file", file);
+    // Pass the cropped blob as a webp file
+    formData.append("file", croppedBlob, "profile.webp");
     formData.append("folder", "profiles");
 
     try {
@@ -177,7 +191,7 @@ function StudentDashboardContent() {
       const data = await res.json();
       if (res.ok) {
         setProfileForm((prev) => ({ ...prev, profileImage: data.url }));
-        setProfileMessage({ type: "success", text: "Image uploaded! Remember to click Save." });
+        setProfileMessage({ type: "success", text: "Image optimized and uploaded! Remember to click Save." });
       } else {
         setProfileMessage({ type: "error", text: data.error || "Failed to upload image." });
       }
@@ -672,6 +686,14 @@ function StudentDashboardContent() {
 
       {activeTab === "security" && (
         <PasswordManager />
+      )}
+
+      {cropImageSrc && (
+        <ImageCropper
+            imageSrc={cropImageSrc}
+            onClose={() => setCropImageSrc(null)}
+            onCropComplete={handleCropComplete}
+        />
       )}
     </>
   );

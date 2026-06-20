@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Upload, Trash2, Phone, User as UserIcon, IdCard, CheckCircle2, AlertCircle } from "lucide-react";
 import styles from "./ProfileTab.module.css";
+import ImageCropper from "./ImageCropper";
 
 export default function ProfileTab() {
     const { user, refreshSession, role } = useAuth();
@@ -32,6 +33,8 @@ export default function ProfileTab() {
         .slice(0, 2)
         .toUpperCase();
 
+    const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+
     const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) {
@@ -43,14 +46,23 @@ export default function ProfileTab() {
             return;
         }
 
-        if (file.size > 2 * 1024 * 1024) {
-            setMessage({ type: "error", text: "Image must be 2MB or smaller." });
+        if (file.size > 5 * 1024 * 1024) {
+            setMessage({ type: "error", text: "Original image must be 5MB or smaller." });
             return;
         }
 
-        setMessage({ type: "success", text: "Uploading profile image..." });
+        const reader = new FileReader();
+        reader.onload = () => {
+            setCropImageSrc(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        setCropImageSrc(null);
+        setMessage({ type: "success", text: "Optimizing and uploading profile image..." });
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", croppedBlob, "profile.webp");
         formData.append("folder", "profiles");
 
         try {
@@ -63,7 +75,7 @@ export default function ProfileTab() {
             const data = await res.json();
             if (res.ok) {
                 setProfileImage(data.url);
-                setMessage({ type: "success", text: "Image uploaded! Remember to click Secure Save." });
+                setMessage({ type: "success", text: "Image optimized and uploaded! Remember to click Secure Save." });
             } else {
                 setMessage({ type: "error", text: data.error || "Failed to upload image." });
             }
@@ -194,6 +206,14 @@ export default function ProfileTab() {
                     </div>
                 </form>
             </section>
+
+            {cropImageSrc && (
+                <ImageCropper
+                    imageSrc={cropImageSrc}
+                    onClose={() => setCropImageSrc(null)}
+                    onCropComplete={handleCropComplete}
+                />
+            )}
         </div>
     );
 }
