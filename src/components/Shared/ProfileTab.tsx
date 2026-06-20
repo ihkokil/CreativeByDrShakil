@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Upload, Trash2, Phone, User as UserIcon, IdCard, CheckCircle2, AlertCircle } from "lucide-react";
 import styles from "./ProfileTab.module.css";
+import ImageCropper from "./ImageCropper";
 
 export default function ProfileTab() {
     const { user, refreshSession, role } = useAuth();
@@ -32,7 +33,9 @@ export default function ProfileTab() {
         .slice(0, 2)
         .toUpperCase();
 
-    const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+
+    const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) {
             return;
@@ -43,19 +46,42 @@ export default function ProfileTab() {
             return;
         }
 
-        if (file.size > 2 * 1024 * 1024) {
-            setMessage({ type: "error", text: "Image must be 2MB or smaller." });
+        if (file.size > 5 * 1024 * 1024) {
+            setMessage({ type: "error", text: "Original image must be 5MB or smaller." });
             return;
         }
 
         const reader = new FileReader();
         reader.onload = () => {
-            if (typeof reader.result === "string") {
-                setProfileImage(reader.result);
-                setMessage(null);
-            }
+            setCropImageSrc(reader.result as string);
         };
         reader.readAsDataURL(file);
+    };
+
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        setCropImageSrc(null);
+        setMessage({ type: "success", text: "Optimizing and uploading profile image..." });
+        const formData = new FormData();
+        formData.append("file", croppedBlob, "profile.webp");
+        formData.append("folder", "profiles");
+
+        try {
+            const token = localStorage.getItem("auth_token");
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                body: formData,
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setProfileImage(data.url);
+                setMessage({ type: "success", text: "Image optimized and uploaded! Remember to click Secure Save." });
+            } else {
+                setMessage({ type: "error", text: data.error || "Failed to upload image." });
+            }
+        } catch (err) {
+            setMessage({ type: "error", text: "Failed to upload image." });
+        }
     };
 
     const handleSave = async (event: React.FormEvent) => {
@@ -180,6 +206,14 @@ export default function ProfileTab() {
                     </div>
                 </form>
             </section>
+
+            {cropImageSrc && (
+                <ImageCropper
+                    imageSrc={cropImageSrc}
+                    onClose={() => setCropImageSrc(null)}
+                    onCropComplete={handleCropComplete}
+                />
+            )}
         </div>
     );
 }

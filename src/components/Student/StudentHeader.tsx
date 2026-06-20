@@ -77,7 +77,7 @@ export default function StudentHeader({ title, user, onToggleSidebar }: StudentH
                                         className={styles.dropdownItem} 
                                         onClick={() => {
                                             setIsOpen(false);
-                                            router.push("/student/dashboard?tab=profile");
+                                            router.push("/dashboard?tab=profile");
                                         }}
                                     >
                                         <User size={18} />
@@ -87,7 +87,7 @@ export default function StudentHeader({ title, user, onToggleSidebar }: StudentH
                                         className={styles.dropdownItem} 
                                         onClick={() => {
                                             setIsOpen(false);
-                                            router.push("/student/dashboard?tab=security");
+                                            router.push("/dashboard?tab=security");
                                         }}
                                     >
                                         <Settings size={18} />
