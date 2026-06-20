@@ -1,11 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    serverExternalPackages: ['@prisma/client', '.prisma/client'],
+    experimental: {
+        optimizePackageImports: ['lucide-react', 'framer-motion', '@vidstack/react', 'vidstack', 'zod', 'bcryptjs'],
+    },
     images: {
         remotePatterns: [
             {
                 protocol: 'https',
                 hostname: 'files.creativebydrshakil.com',
                 pathname: '/**',
+            },
+            {
+                protocol: 'https',
+                hostname: 'lh3.googleusercontent.com',
             },
         ],
     },

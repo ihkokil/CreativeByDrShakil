@@ -3,7 +3,7 @@ import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/a
 import path from 'path';
 import { uploadFileToStorage } from '@/utils/storage';
 
-export const runtime = 'nodejs';
+
 
 async function requireAdmin(request: NextRequest) {
   const bearerToken = extractBearerToken(request)

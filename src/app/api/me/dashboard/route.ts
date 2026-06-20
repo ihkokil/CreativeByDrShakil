@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const isAdmin = user.role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    let orders = await prisma.order.findMany({
+    const orders = await prisma.order.findMany({
       where: {
         userId: user.id,
       },
