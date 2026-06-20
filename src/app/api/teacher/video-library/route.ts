@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
         }
 
-        if (!['folder', 'youtube', 'self-hosted', 'document'].includes(type)) {
+        if (!['folder', 'youtube', 'vimeo', 'self-hosted', 'document'].includes(type)) {
             return NextResponse.json({ error: 'Invalid type.' }, { status: 400 });
         }
 
