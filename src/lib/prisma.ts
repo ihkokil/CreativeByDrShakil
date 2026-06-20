@@ -30,9 +30,10 @@ function getPrismaClientClass() {
     CachedPrismaClientClass = PrismaClient;
   } else {
     // Production (Cloudflare Workers): use the WASM-based client.
-    // The generated .prisma/client/wasm.js resolves the WASM engine via the
-    // #wasm-engine-loader import map (workerd → wasm-worker-loader.mjs).
-    const { PrismaClient } = require('.prisma/client/wasm');
+    // We import from @prisma/client/wasm (which is in serverExternalPackages,
+    // so webpack leaves it alone). At runtime it re-exports from
+    // .prisma/client/wasm which loads the WASM query engine.
+    const { PrismaClient } = require('@prisma/client/wasm');
     CachedPrismaClientClass = PrismaClient;
   }
 
