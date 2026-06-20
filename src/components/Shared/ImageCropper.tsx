@@ -50,11 +50,11 @@ export default function ImageCropper({ imageSrc, onClose, onCropComplete }: Imag
                 throw new Error("No 2d context");
             }
 
-            // We want exactly a 300x300 output
-            canvas.width = 300;
-            canvas.height = 300;
+            // We want exactly a 150x150 output
+            canvas.width = 150;
+            canvas.height = 150;
 
-            // Draw the cropped area from the original image onto the 300x300 canvas
+            // Draw the cropped area from the original image onto the 150x150 canvas
             ctx.drawImage(
                 image,
                 croppedAreaPixels.x,
@@ -63,8 +63,8 @@ export default function ImageCropper({ imageSrc, onClose, onCropComplete }: Imag
                 croppedAreaPixels.height,
                 0,
                 0,
-                300,
-                300
+                150,
+                150
             );
 
             // Convert to a File/Blob (Canvas output inherently strips all EXIF metadata!)
