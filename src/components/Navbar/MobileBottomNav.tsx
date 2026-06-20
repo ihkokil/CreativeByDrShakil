@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, BookOpen, Play, TestTube } from "lucide-react";
+import { Home, BookOpen, Play, Pen } from "lucide-react";
 import styles from "./MobileBottomNav.module.css";
 
 export default function MobileBottomNav() {
@@ -18,7 +18,7 @@ export default function MobileBottomNav() {
         <span className={styles.label}>Live</span>
       </Link>
       <Link href="#" className={styles.navItem} aria-label="Exams">
-        <TestTube size={20} />
+        <Pen size={20} />
         <span className={styles.label}>Exams</span>
       </Link>
     </nav>
