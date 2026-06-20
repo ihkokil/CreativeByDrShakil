@@ -148,7 +148,7 @@ function StudentDashboardContent() {
     fetchDashboard();
   }, [user]);
 
-  const handleProfileImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -162,12 +162,28 @@ function StudentDashboardContent() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfileForm((prev) => ({ ...prev, profileImage: reader.result as string }));
-      setProfileMessage(null);
-    };
-    reader.readAsDataURL(file);
+    setProfileMessage({ type: "success", text: "Uploading profile image..." });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "profiles");
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProfileForm((prev) => ({ ...prev, profileImage: data.url }));
+        setProfileMessage({ type: "success", text: "Image uploaded! Remember to click Save." });
+      } else {
+        setProfileMessage({ type: "error", text: data.error || "Failed to upload image." });
+      }
+    } catch (err) {
+      setProfileMessage({ type: "error", text: "Failed to upload image." });
+    }
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
