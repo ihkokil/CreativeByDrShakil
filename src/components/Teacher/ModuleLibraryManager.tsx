@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export type ContentType = 'youtube' | 'self-hosted' | 'document';
+export type ContentType = 'youtube' | 'vimeo' | 'self-hosted' | 'document';
 
 export interface CurriculumNode {
     id: string;
@@ -54,14 +54,12 @@ function buildTree(flatNodes: FlatNode[]): CurriculumNode[] {
 interface NodeProps {
     node: CurriculumNode;
     depth: number;
-    onAddFolder: (parentId: string) => void;
-    onAddVideo: (parentId: string) => void;
     onDelete: (id: string) => void;
     onEdit: (node: CurriculumNode) => void;
     onMove: (id: string, direction: 'up' | 'down') => void;
 }
 
-const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onEdit, onMove }: NodeProps) => {
+const LibraryItem = ({ node, depth, onDelete, onEdit, onMove }: NodeProps) => {
     const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
 
@@ -102,16 +100,6 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onEdit, o
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
                     <button className={styles.actionBtn} onClick={() => onMove(node.id, 'up')} title="Move Up"><ArrowUp size={14} /></button>
                     <button className={styles.actionBtn} onClick={() => onMove(node.id, 'down')} title="Move Down"><ArrowDown size={14} /></button>
-                    {isFolder && (
-                        <>
-                            <button className={styles.actionBtn} onClick={() => onAddFolder(node.id)} title="Add Subfolder">
-                                <Folder size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
-                            </button>
-                            <button className={styles.actionBtn} onClick={() => onAddVideo(node.id)} title="Add Module">
-                                <Video size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
-                            </button>
-                        </>
-                    )}
                     <button className={styles.actionBtn} title="Edit" onClick={() => onEdit(node)}>
                         <Edit2 size={14} />
                     </button>
@@ -140,8 +128,6 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onEdit, o
                                 key={child.id}
                                 node={child}
                                 depth={depth + 1}
-                                onAddFolder={onAddFolder}
-                                onAddVideo={onAddVideo}
                                 onDelete={onDelete}
                                 onEdit={onEdit}
                                 onMove={onMove}
@@ -163,6 +149,7 @@ export default function ModuleLibraryManager() {
 
     const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+    const [isDocModalOpen, setIsDocModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingNode, setEditingNode] = useState<CurriculumNode | null>(null);
     const [activeParentId, setActiveParentId] = useState<string | null>(null);
@@ -174,6 +161,9 @@ export default function ModuleLibraryManager() {
     const [videoDuration, setVideoDuration] = useState("");
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const getAuthHeaders = useCallback((): HeadersInit => {
@@ -201,8 +191,81 @@ export default function ModuleLibraryManager() {
 
     useEffect(() => { fetchLibrary(); }, [fetchLibrary]);
 
+    useEffect(() => {
+        if (!videoUrl) return;
+        if (videoType !== 'youtube' && videoType !== 'vimeo') return;
+
+        // Auto-fetch metadata from backend when a valid URL is pasted
+        const fetchMetadata = async () => {
+            try {
+                setIsFetchingMetadata(true);
+                const res = await fetch(`/api/teacher/video-info?url=${encodeURIComponent(videoUrl)}`, { headers: getAuthHeaders() });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.duration > 0) setVideoDuration(formatDuration(data.duration));
+                    if (data.title && !videoTitle) setVideoTitle(data.title);
+                }
+            } catch (err) {
+                console.error("Failed to fetch video metadata:", err);
+            } finally {
+                setIsFetchingMetadata(false);
+            }
+        };
+
+        // Debounce slightly to wait for the user to finish pasting
+        const timeout = setTimeout(fetchMetadata, 600);
+        return () => clearTimeout(timeout);
+    }, [videoUrl, videoType, getAuthHeaders]);
+
     const handleAddFolderClick = (parentId?: string) => { setActiveParentId(parentId || null); setIsFolderModalOpen(true); };
-    const handleAddVideoClick = (parentId: string) => { setActiveParentId(parentId); setIsVideoModalOpen(true); };
+    const handleAddVideoClick = (parentId: string) => { 
+        setActiveParentId(parentId); 
+        setVideoType('youtube');
+        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null); setUploadProgress(0);
+        setIsVideoModalOpen(true); 
+    };
+    const handleAddDocClick = (parentId: string) => { 
+        setActiveParentId(parentId); 
+        setVideoType('document');
+        setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null); setUploadProgress(0);
+        setIsDocModalOpen(true); 
+    };
+
+    const formatDuration = (seconds: number) => {
+        if (!seconds || isNaN(seconds)) return "";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const uploadFileWithProgress = (file: File, token: string | null): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/teacher/uploads');
+            if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    setUploadProgress(percent);
+                }
+            };
+            
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error('Invalid response')); }
+                } else {
+                    try { const res = JSON.parse(xhr.responseText); resolve(res); } catch { reject(new Error('Upload failed')); }
+                }
+            };
+            
+            xhr.onerror = () => reject(new Error('Network error during upload'));
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            xhr.send(formData);
+        });
+    };
 
     const handleDeleteClick = async (id: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -234,6 +297,8 @@ export default function ModuleLibraryManager() {
         setVideoUrl(node.url || "");
         setVideoDuration(node.duration || "");
         setVideoType(node.type === 'folder' ? 'youtube' : node.type as ContentType);
+        setVideoFile(null);
+        setUploadProgress(0);
         setIsEditModalOpen(true);
     };
 
@@ -270,25 +335,17 @@ export default function ModuleLibraryManager() {
 
             if ((videoType === 'self-hosted' || videoType === 'document') && videoFile) {
                 setUploadingVideo(true);
-                const formData = new FormData();
-                formData.append('file', videoFile);
-                const uploadHeaders: HeadersInit = {};
+                setUploadProgress(0);
                 const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-                if (token) uploadHeaders.Authorization = `Bearer ${token}`;
-
-                const uploadRes = await fetch('/api/teacher/uploads', { method: 'POST', headers: uploadHeaders, body: formData });
-                if (!uploadRes.ok) {
-                    const uploadData = await uploadRes.json().catch(() => ({ error: 'Upload failed.' }));
-                    throw new Error(uploadData.error || 'Upload failed.');
-                }
-                const uploadData = await uploadRes.json();
+                const uploadData = await uploadFileWithProgress(videoFile, token);
+                if (uploadData.error) throw new Error(uploadData.error);
                 resolvedVideoUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
             }
 
             const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: videoTitle.trim(), type: videoType, url: resolvedVideoUrl, duration: videoDuration.trim() || null, parentId: activeParentId }) });
             if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to add module.'); }
 
-            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setIsVideoModalOpen(false); await fetchLibrary();
+            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setIsVideoModalOpen(false); setIsDocModalOpen(false); await fetchLibrary();
         } catch (err: any) { alert(err.message || 'Failed to add module.'); } finally { setUploadingVideo(false); setIsSubmitting(false); }
     };
 
@@ -303,14 +360,37 @@ export default function ModuleLibraryManager() {
 
         setIsSubmitting(true);
         try {
+            let finalUrl = videoUrl.trim() || null;
+            if (!isFolder && videoFile) {
+                setUploadingVideo(true);
+                setUploadProgress(0);
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                const uploadData = await uploadFileWithProgress(videoFile, token);
+                if (uploadData.error) throw new Error(uploadData.error);
+                finalUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
+            }
+
             const body: any = { title: title.trim() };
-            if (!isFolder) { body.url = videoUrl.trim() || null; body.duration = videoDuration.trim() || null; body.type = videoType; }
+            if (!isFolder) { body.url = finalUrl; body.duration = videoDuration.trim() || null; body.type = videoType; }
 
             const res = await fetch(`/api/teacher/video-library/${editingNode.id}`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body) });
             if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to update.'); }
 
             setIsEditModalOpen(false); setEditingNode(null); await fetchLibrary();
-        } catch (err: any) { alert(err.message || 'Failed to update item.'); } finally { setIsSubmitting(false); }
+        } catch (err: any) { alert(err.message || 'Failed to update item.'); } finally { setUploadingVideo(false); setIsSubmitting(false); }
+    };
+
+    const handleFileSelect = (file: File | null) => {
+        setVideoFile(file);
+        if (file && file.type.startsWith('video/')) {
+            const objectUrl = URL.createObjectURL(file);
+            const video = document.createElement('video');
+            video.src = objectUrl;
+            video.onloadedmetadata = () => {
+                setVideoDuration(formatDuration(video.duration));
+                URL.revokeObjectURL(objectUrl);
+            };
+        }
     };
 
     const activeRootNode = libraryData.find(root => root.id === activeRootId);
@@ -432,12 +512,18 @@ export default function ModuleLibraryManager() {
                             <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Root Folders
                         </button>
                         <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
-                        <div className={styles.actions}>
-                            <button className={styles.actionBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Add Subfolder">
-                                <Folder size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
+                        
+                        <div className={styles.toolbar}>
+                            <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Create Folder">
+                                <Folder size={16} /> Folder
                             </button>
-                            <button className={styles.actionBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Module">
-                                <Video size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
+
+                            <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Video">
+                                <Video size={16} /> Video
+                            </button>
+
+                            <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId)} title="Add Document">
+                                <FileText size={16} /> Document
                             </button>
                         </div>
                     </div>
@@ -450,7 +536,7 @@ export default function ModuleLibraryManager() {
                         </div>
                     ) : (
                         activeRootNode?.children?.map(node => (
-                            <LibraryItem key={node.id} node={node} depth={0} onAddFolder={handleAddFolderClick} onAddVideo={handleAddVideoClick} onDelete={handleDeleteClick} onEdit={handleEditClick} onMove={handleMoveItem} />
+                            <LibraryItem key={node.id} node={node} depth={0} onDelete={handleDeleteClick} onEdit={handleEditClick} onMove={handleMoveItem} />
                         ))
                     )}
                 </motion.div>
@@ -491,43 +577,108 @@ export default function ModuleLibraryManager() {
                                 </div>
                                 <div className={styles.row}>
                                     <div className={styles.formGroup}>
-                                        <label>Module Type</label>
+                                        <label>Video Type</label>
                                         <select value={videoType} onChange={e => { const nextType = e.target.value as ContentType; setVideoType(nextType); setVideoFile(null); setVideoUrl(''); }}>
                                             <option value="youtube">YouTube Embed</option>
+                                            <option value="vimeo">Vimeo Embed</option>
                                             <option value="self-hosted">Self-Hosted Video</option>
-                                            <option value="document">Document (PDF/PPT/DOC)</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
-                                        <label>Duration (Optional)</label>
-                                        <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="e.g. 45:00" />
+                                        <label>Duration (Auto-fetched)</label>
+                                        <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder={isFetchingMetadata ? "Fetching..." : "e.g. 45:00"} />
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    {videoType === 'youtube' ? (
+                                    {videoType === 'youtube' || videoType === 'vimeo' ? (
                                         <>
-                                            <label>YouTube URL</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." required />
-                                        </>
-                                    ) : videoType === 'document' ? (
-                                        <>
-                                            <label>Upload Document</label>
-                                            <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
-                                            <small className={styles.fieldHint}>Supported: .pdf, .doc, .docx, .ppt, .pptx ΓÇö or provide an external URL below.</small>
-                                            <label style={{ marginTop: '8px' }}>Or Document URL (Drive, CDN)</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/... or https://..." />
+                                            <label>{videoType === 'youtube' ? 'YouTube' : 'Vimeo'} URL</label>
+                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." required />
                                         </>
                                     ) : (
                                         <>
                                             <label>Upload Video File</label>
-                                            <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
-                                            <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
-                                            <label style={{ marginTop: '8px' }}>Or Direct Video URL (Optional)</label>
+                                            <div 
+                                                className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
+                                                onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                                onDragLeave={() => setIsDragging(false)}
+                                                onDrop={e => {
+                                                    e.preventDefault();
+                                                    setIsDragging(false);
+                                                    const file = e.dataTransfer.files?.[0];
+                                                    if (file) handleFileSelect(file);
+                                                }}
+                                                onClick={() => document.getElementById('videoFileInput')?.click()}
+                                            >
+                                                <input id="videoFileInput" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                                <UploadCloud size={32} className={styles.dropIcon} />
+                                                <p>{videoFile ? videoFile.name : "Drag & Drop video file here, or click to select"}</p>
+                                                <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
+                                            </div>
+                                            
+                                            {uploadingVideo && uploadProgress > 0 && (
+                                                <div className={styles.progressContainer}>
+                                                    <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
+                                                    <span className={styles.progressText}>{uploadProgress}%</span>
+                                                </div>
+                                            )}
+
+                                            <label style={{ marginTop: '12px' }}>Or Direct Video URL (Optional)</label>
                                             <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." />
                                         </>
                                     )}
                                 </div>
-                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Add Module'}</button>
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Add Video'}</button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {isDocModalOpen && (
+                    <div className={styles.modalOverlay} onClick={() => setIsDocModalOpen(false)}>
+                        <motion.div className={styles.modal} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} onClick={e => e.stopPropagation()}>
+                            <div className={styles.modalHeader}>
+                                <h3>Add Document</h3>
+                                <button className={styles.closeBtn} onClick={() => setIsDocModalOpen(false)}><X size={20} /></button>
+                            </div>
+                            <form onSubmit={submitVideo} className={styles.form}>
+                                <div className={styles.formGroup}>
+                                    <label>Document Title</label>
+                                    <input type="text" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} placeholder="e.g. Chapter 1 Notes" required autoFocus />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Upload Document File</label>
+                                    <div 
+                                        className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
+                                        onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                        onDragLeave={() => setIsDragging(false)}
+                                        onDrop={e => {
+                                            e.preventDefault();
+                                            setIsDragging(false);
+                                            const file = e.dataTransfer.files?.[0];
+                                            if (file) handleFileSelect(file);
+                                        }}
+                                        onClick={() => document.getElementById('docFileInput')?.click()}
+                                    >
+                                        <input id="docFileInput" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                        <UploadCloud size={32} className={styles.dropIcon} />
+                                        <p>{videoFile ? videoFile.name : "Drag & Drop document here, or click to select"}</p>
+                                        <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX</small>
+                                    </div>
+
+                                    {uploadingVideo && uploadProgress > 0 && (
+                                        <div className={styles.progressContainer}>
+                                            <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
+                                            <span className={styles.progressText}>{uploadProgress}%</span>
+                                        </div>
+                                    )}
+                                    
+                                    <label style={{ marginTop: '12px' }}>Or External Document URL (Drive, CDN)</label>
+                                    <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." />
+                                </div>
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Add Document'}</button>
                             </form>
                         </motion.div>
                     </div>
@@ -559,19 +710,49 @@ export default function ModuleLibraryManager() {
                                                 <label>Module Type</label>
                                                 <select value={videoType} onChange={e => setVideoType(e.target.value as ContentType)}>
                                                     <option value="youtube">YouTube Embed</option>
+                                                    <option value="vimeo">Vimeo Embed</option>
                                                     <option value="self-hosted">Self-Hosted Video</option>
                                                     <option value="document">Document</option>
                                                 </select>
                                             </div>
                                             <div className={styles.formGroup}>
-                                                <label>Duration</label>
-                                                <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} />
+                                                <label>Duration (Auto-fetched)</label>
+                                                <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder={isFetchingMetadata ? "Fetching..." : "e.g. 45:00"} />
                                             </div>
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Resource URL</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} required />
+                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} required={!videoFile} />
                                         </div>
+                                        {(videoType === 'self-hosted' || videoType === 'document') && (
+                                            <div className={styles.formGroup}>
+                                                <label>Replace File (Optional)</label>
+                                                <div 
+                                                    className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
+                                                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                                    onDragLeave={() => setIsDragging(false)}
+                                                    onDrop={e => {
+                                                        e.preventDefault();
+                                                        setIsDragging(false);
+                                                        const file = e.dataTransfer.files?.[0];
+                                                        if (file) handleFileSelect(file);
+                                                    }}
+                                                    onClick={() => document.getElementById('editFileInput')?.click()}
+                                                >
+                                                    <input id="editFileInput" type="file" accept={videoType === 'self-hosted' ? "video/*" : ".pdf,.doc,.docx,.ppt,.pptx"} style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                                    <UploadCloud size={32} className={styles.dropIcon} />
+                                                    <p>{videoFile ? videoFile.name : "Drag & Drop new file here to replace, or click"}</p>
+                                                    <small className={styles.fieldHint}>Leave empty to keep existing file. Uploading a new file will overwrite the Resource URL.</small>
+                                                </div>
+
+                                                {uploadingVideo && uploadProgress > 0 && (
+                                                    <div className={styles.progressContainer}>
+                                                        <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
+                                                        <span className={styles.progressText}>{uploadProgress}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </>
                                 )}
                                 <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Save Changes'}</button>

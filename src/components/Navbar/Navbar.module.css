@@ -85,10 +85,7 @@
   order: 3;
 }
 
-/* Hide theme toggle on very small screens */
-.rightActions > :first-child {
-  display: none;
-}
+/* Theme toggle is now always visible in the navbar */
 
 /* ── Account / Login button ── */
 .accountBtn {
@@ -400,15 +397,11 @@
 
 /* ══════════════════════════════════════
    Tablet breakpoint: 769px+
-   Show theme toggle, show "Account" text
+   Show "Account" text
    ══════════════════════════════════════ */
 @media (min-width: 769px) {
   .navbar {
     padding: 10px var(--layout-gutter-tablet);
-  }
-
-  .rightActions > :first-child {
-    display: flex;
   }
 
   .rightActions {

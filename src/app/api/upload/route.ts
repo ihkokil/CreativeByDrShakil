@@ -49,10 +49,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const targetFolder = formData.get('folder') as string;
+    const sanitizedFolder = targetFolder ? sanitizeFileName(targetFolder) : 'course-thumbnails';
     const safeName = sanitizeFileName(file.name || 'thumbnail.jpg');
     const ext = path.extname(safeName) || '.jpg';
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-    const folderPath = `uploads/course-thumbnails/${payload.sub}`;
+    const folderPath = `uploads/${sanitizedFolder}/${payload.sub}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
