@@ -6,6 +6,7 @@ import Image from "next/image";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
 import styles from "./Navbar.module.css";
 import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home } from "lucide-react";
+import MobileBottomNav from "./MobileBottomNav";
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
@@ -189,7 +190,8 @@ export default function Navbar() {
                     </div>
                 </div>
             </nav>
-
+            {user && <MobileBottomNav />}
+            
             <AuthModal isOpen={isAuthOpen} onClose={handleCloseAuth} defaultMode={authMode} />
         </>
     );
