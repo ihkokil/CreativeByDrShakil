@@ -9,8 +9,7 @@ const supabaseUrl = process.env.SUPABASE_DATABASE_URL;
 const neonUrl = process.env.NEON_DATABASE_URL;
 
 if (!supabaseUrl || !neonUrl) {
-  console.error("❌ ERROR: Please set both SUPABASE_DATABASE_URL and NEON_DATABASE_URL in your .env file.");
-  process.exit(1);
+  throw new Error("❌ ERROR: Please set both SUPABASE_DATABASE_URL and NEON_DATABASE_URL in your .env file.");
 }
 
 // Instantiate two separate Prisma clients pointing to the two databases
