@@ -48,8 +48,8 @@ const TABLE_MIGRATION_ORDER = [
 
 async function migrate() {
   console.log("🚀 Starting database migration from Supabase to Neon...");
-  console.log(`Source: ${supabaseUrl.split('@')[1] || 'Supabase'}`);
-  console.log(`Target: ${neonUrl.split('@')[1] || 'Neon'}`);
+  console.log(`Source: ${supabaseUrl!.split('@')[1] || 'Supabase'}`);
+  console.log(`Target: ${neonUrl!.split('@')[1] || 'Neon'}`);
   
   // 1. Clear target database (in reverse order to respect FKs for deletion)
   console.log("\n--- 🧹 CLEARING TARGET DATABASE ---");
