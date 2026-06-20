@@ -3,29 +3,36 @@ import { checkEnvVariables } from './env-check';
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClientType | undefined };
 
-// We dynamically load the correct PrismaClient class depending on the environment.
-// In production (Cloudflare Workers), we load the WASM client ('@prisma/client/wasm')
-// to avoid filesystem scanning checks (fs.readdir) that throw in the edge environment.
-let CachedPrismaClientClass: any = null;
+// ---------------------------------------------------------------------------
+// Prisma Client Factory
+// ---------------------------------------------------------------------------
+// This project has TWO deployment targets:
+//   1. Local development (Node.js) → standard @prisma/client with native engine
+//   2. Production (Cloudflare Workers via OpenNext) → @prisma/client/wasm
+//        + @prisma/adapter-neon for WebSocket-based database connections
+//
+// We use NODE_ENV to distinguish because production === Cloudflare Workers.
+// The WASM client is required because Cloudflare Workers cannot load native
+// Rust binaries. The Neon serverless adapter is required because standard
+// pg.Pool uses TCP sockets that go stale when Workers isolates freeze.
+// ---------------------------------------------------------------------------
 
-// Check if we are running in a Cloudflare Workers / Edge environment.
-// We check for Cloudflare Workers-specific globals (like WebSocketPair or navigator.userAgent)
-// or the Next.js edge runtime environment variable.
-const isEdgeOrCloudflare =
-  typeof (globalThis as any).WebSocketPair !== 'undefined' ||
-  (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers') ||
-  process.env.NEXT_RUNTIME === 'edge';
+let CachedPrismaClientClass: any = null;
 
 function getPrismaClientClass() {
   if (CachedPrismaClientClass) {
     return CachedPrismaClientClass;
   }
 
-  if (isEdgeOrCloudflare) {
-    const { PrismaClient } = require('@prisma/client/wasm');
+  if (process.env.NODE_ENV === 'development') {
+    // Local dev: use the standard @prisma/client with the native query engine.
+    const { PrismaClient } = require('@prisma/client');
     CachedPrismaClientClass = PrismaClient;
   } else {
-    const { PrismaClient } = require('@prisma/client');
+    // Production (Cloudflare Workers): use the WASM-based client.
+    // The generated .prisma/client/wasm.js resolves the WASM engine via the
+    // #wasm-engine-loader import map (workerd → wasm-worker-loader.mjs).
+    const { PrismaClient } = require('.prisma/client/wasm');
     CachedPrismaClientClass = PrismaClient;
   }
 
@@ -35,14 +42,14 @@ function getPrismaClientClass() {
 function getPrismaClient(): PrismaClientType {
   const PrismaClient = getPrismaClientClass();
 
+  // During next build, create a dummy client (no DB connection needed).
   if (process.env.NEXT_PHASE === 'phase-production-build') {
     return new PrismaClient({
       log: ['error'],
     }) as PrismaClientType;
   }
 
-  // Run env checks lazily (process.env is only populated per-request in Workers)
-  // Always use standard NEON_DATABASE_URL for Neon / production environments
+  // Run env checks lazily (process.env is only populated per-request in Workers).
   checkEnvVariables();
 
   const connectionString = process.env.NEON_DATABASE_URL;
@@ -50,40 +57,36 @@ function getPrismaClient(): PrismaClientType {
     throw new Error('NEON_DATABASE_URL environment variable is not defined.');
   }
 
-  // In local development, bypass the pg adapter to let Prisma manage its own connection pool.
-  // This prevents connection pool leaks during Turbopack hot reloads.
+  // Local development: let Prisma manage its own connection pool.
+  // This prevents connection pool leaks during Turbopack/Webpack hot reloads.
   if (process.env.NODE_ENV === 'development') {
     return new PrismaClient({
       log: ['error', 'warn'],
     }) as PrismaClientType;
   }
 
-  // Cloudflare Workers / Edge environment: use Neon serverless driver over WebSockets
-  if (isEdgeOrCloudflare) {
-    const { Pool } = require('@neondatabase/serverless');
-    const { PrismaNeon } = require('@prisma/adapter-neon');
+  // Production (Cloudflare Workers): use the Neon serverless driver.
+  // This communicates with Neon over WebSockets (native to Workers) instead
+  // of TCP sockets (which go stale when isolates freeze between requests).
+  const { Pool } = require('@neondatabase/serverless');
+  const { PrismaNeon } = require('@prisma/adapter-neon');
 
-    const pool = new Pool({ connectionString });
-    const adapter = new PrismaNeon(pool);
+  const pool = new Pool({ connectionString });
+  const adapter = new PrismaNeon(pool);
 
-    return new PrismaClient({
-      adapter,
-      log: ['error'],
-    }) as PrismaClientType;
-  }
-
-  // Standard Node.js production environment (e.g. Vercel Serverless / Hostinger):
-  // Let Prisma use its native Rust/binary query engine (more performant on Node.js)
   return new PrismaClient({
+    adapter,
     log: ['error'],
   }) as PrismaClientType;
 }
 
 export const prisma = globalForPrisma.prisma ?? getPrismaClient();
 
-if (process.env.NODE_ENV !== 'production' || isEdgeOrCloudflare) {
+// Cache the instance on globalThis to reuse across warm starts.
+// In dev, this prevents "too many connections" from HMR.
+// In Workers, this reuses the client across requests in the same isolate.
+if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
 export default prisma;
-
