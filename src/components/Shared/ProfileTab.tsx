@@ -32,7 +32,7 @@ export default function ProfileTab() {
         .slice(0, 2)
         .toUpperCase();
 
-    const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) {
             return;
@@ -48,14 +48,28 @@ export default function ProfileTab() {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (typeof reader.result === "string") {
-                setProfileImage(reader.result);
-                setMessage(null);
+        setMessage({ type: "success", text: "Uploading profile image..." });
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "profiles");
+
+        try {
+            const token = localStorage.getItem("auth_token");
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                body: formData,
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setProfileImage(data.url);
+                setMessage({ type: "success", text: "Image uploaded! Remember to click Secure Save." });
+            } else {
+                setMessage({ type: "error", text: data.error || "Failed to upload image." });
             }
-        };
-        reader.readAsDataURL(file);
+        } catch (err) {
+            setMessage({ type: "error", text: "Failed to upload image." });
+        }
     };
 
     const handleSave = async (event: React.FormEvent) => {
