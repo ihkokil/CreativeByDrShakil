@@ -42,9 +42,27 @@ if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     exit;
 }
 
+$fileName = isset($_POST['fileName']) ? basename($_POST['fileName']) : basename($_FILES['file']['name']);
+$fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+// Define allowed extensions based on user request
+$allowedExtensions = [
+    // Images
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico',
+    // Videos
+    'mp4', 'webm', 'ogg', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v',
+    // Documents
+    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'csv'
+];
+
+if (!in_array($fileExt, $allowedExtensions)) {
+    http_response_code(415);
+    echo json_encode(['error' => "Unsupported file type: .$fileExt. Only images, videos, and standard documents are allowed."]);
+    exit;
+}
+
 // Get POST variables
 $folderPath = isset($_POST['folderPath']) ? trim($_POST['folderPath'], '/') : 'uploads';
-$fileName = isset($_POST['fileName']) ? basename($_POST['fileName']) : basename($_FILES['file']['name']);
 
 // Construct target directory
 $targetDir = __DIR__ . '/' . $folderPath;
