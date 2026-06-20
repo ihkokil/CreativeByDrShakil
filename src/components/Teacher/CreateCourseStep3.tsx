@@ -1131,7 +1131,7 @@ function CreateCourseStep3Content() {
               const mainTopicDisplayDate = dateOverrides[mainTopic.id] || mainTopicComputedDate;
               
               // For hierarchical folders, keep per-sub-folder counting (No longer needed, but keeping for reference)
-              let itemCountBeforeTopic = 0;
+              const itemCountBeforeTopic = 0;
 
               return (
                 <div key={mainTopic.id} style={{ border: "1px solid var(--glass-border)", borderRadius: "12px", overflow: "hidden" }}>

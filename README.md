@@ -5,7 +5,7 @@ Creative By Dr. Shakil is a Next.js learning platform with role-based dashboards
 ## Highlights
 
 - Built with Next.js App Router, React, and TypeScript.
-- MySQL + Prisma for persistent user and role data.
+- PostgreSQL + Prisma for persistent user and role data.
 - JWT-based authentication with secure cookie session support.
 - Role-aware app shell for student, teacher, and admin dashboards.
 - Admin teacher management APIs and modal-driven invite flow.
@@ -16,7 +16,7 @@ Creative By Dr. Shakil is a Next.js learning platform with role-based dashboards
 - React 19
 - TypeScript
 - Prisma ORM
-- MySQL (mysql2)
+
 - bcryptjs + jsonwebtoken
 - Lucide icons + Framer Motion
 
@@ -51,7 +51,7 @@ scripts/
 
 - Node.js 20+
 - npm 10+
-- MySQL database
+- Neon Database (PostgreSQL)
 
 ## Environment Variables
 
@@ -68,8 +68,8 @@ Create or update `.env.local` in the project root.
 Example:
 
 ```env
-DATABASE_URL="mysql://USER:PASSWORD@HOST:3306/DB_NAME"
-DIRECT_URL="mysql://USER:PASSWORD@HOST:3306/DB_NAME"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB_NAME"
+DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/DB_NAME"
 JWT_SECRET="replace-with-a-strong-secret"
 JWT_EXPIRES_IN="7d"
 ```
@@ -131,7 +131,7 @@ npm run lint
 | `npm run build` | Builds optimized production bundle. |
 | `npm start` | Starts production server after build. |
 | `npm run lint` | Runs Next.js/ESLint checks. |
-| `npm run seed:teachers` | Seeds/upserts teacher accounts in MySQL. |
+| `npm run seed:teachers` | Seeds/upserts teacher accounts. |
 
 ## Core Routes
 

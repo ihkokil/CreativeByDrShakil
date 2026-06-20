@@ -12,7 +12,12 @@ import { useEffect } from "react";
 export default function ContentProtection() {
     useEffect(() => {
         // Bypass content protection in development mode so developers can debug
-        if (process.env.NODE_ENV === "development" || typeof window !== "undefined" && window.location.hostname === "localhost") {
+        if (
+            process.env.NODE_ENV === "development" || 
+            (typeof window !== "undefined" && 
+                (window.location.hostname === "localhost" || 
+                 window.location.hostname === "creativebydrshakil.ihkokil.workers.dev"))
+        ) {
             return;
         }
 

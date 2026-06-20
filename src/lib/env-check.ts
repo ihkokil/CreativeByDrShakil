@@ -1,4 +1,8 @@
 export function checkEnvVariables() {
+  if (process.env.NEXT_PHASE === 'phase-production-build') {
+    return;
+  }
+
   // Only log warnings in non-production or if explicitly testing
   // However, for critical secrets like JWT_SECRET, we should warn if it's the default
   const defaultSecret = 'replace_with_a_long_random_secret_at_least_32_chars';
@@ -20,18 +24,20 @@ export function checkEnvVariables() {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    const databaseUrl = process.env.SUPABASE_DATABASE_URL || '';
-    const directUrl = process.env.SUPABASE_DIRECT_URL || '';
+    const databaseUrl = process.env.NEON_DATABASE_URL || '';
+    const directUrl = process.env.NEON_DIRECT_URL || '';
 
     if (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://')) {
-      throw new Error('SUPABASE_DATABASE_URL must use a PostgreSQL connection string in production.');
+      throw new Error('NEON_DATABASE_URL must use a PostgreSQL connection string in production.');
     }
 
     if (!directUrl.startsWith('postgresql://') && !directUrl.startsWith('postgres://')) {
-      throw new Error('SUPABASE_DIRECT_URL must use a PostgreSQL connection string in production.');
+      throw new Error('NEON_DIRECT_URL must use a PostgreSQL connection string in production.');
     }
   }
 }
 
-// Run immediately on import
-checkEnvVariables();
+// NOTE: Do NOT auto-run on import.
+// In Cloudflare Workers, process.env is populated per-request (not at module init).
+// Call checkEnvVariables() lazily from prisma.ts when the DB connection is first used.
+

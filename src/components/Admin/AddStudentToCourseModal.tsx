@@ -49,13 +49,6 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    // Fetch students and courses when modal opens
-    useEffect(() => {
-        if (isOpen && session) {
-            fetchData();
-        }
-    }, [isOpen, session]);
-
     const fetchData = async () => {
         setLoadingData(true);
         try {
@@ -81,6 +74,13 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
         }
         setLoadingData(false);
     };
+
+    // Fetch students and courses when modal opens
+    useEffect(() => {
+        if (isOpen && session) {
+            fetchData();
+        }
+    }, [isOpen, session]);
 
     const showMessage = (msg: { type: 'success' | 'error'; text: string }) => {
         setMessage(msg);

@@ -3,7 +3,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
-export const runtime = 'nodejs';
+
 
 const MAX_FILE_SIZE_BYTES = 1024 * 1024 * 1024; // 1GB
 const ALLOWED_VIDEO_TYPES = new Set([

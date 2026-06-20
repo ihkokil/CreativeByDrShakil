@@ -9,8 +9,9 @@ import {
   type ContactIssueType,
 } from '@/lib/contact-emails';
 
-export const runtime = 'nodejs';
+
 export const maxDuration = 60;
+
 
 const ALLOWED_ISSUES: ContactIssueType[] = ['query', 'technical_assistance', 'billing', 'course_access', 'other'];
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);

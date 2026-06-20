@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const groupIdToNodeId = new Map(groups.map(g => [g.id, g.nodeId]));
 
     let targetDates: Record<string, string> = {};
-    let anchor = new Date(); // Start from today
+    const anchor = new Date(); // Start from today
     let mode: any = course.releaseMode;
     let computedInterval = course.releaseIntervalDays || 7;
     let computedDaysOfWeek = (course as any).releaseDaysOfWeek as any;
