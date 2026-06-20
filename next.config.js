@@ -2,7 +2,7 @@
 const nextConfig = {
     serverExternalPackages: ['@prisma/client', '.prisma/client'],
     experimental: {
-        optimizePackageImports: ['lucide-react', 'framer-motion', '@vidstack/react', 'vidstack', 'zod', 'bcryptjs', '@supabase/ssr', '@supabase/supabase-js'],
+        optimizePackageImports: ['lucide-react', 'framer-motion', '@vidstack/react', 'vidstack', 'zod', 'bcryptjs'],
     },
     images: {
         remotePatterns: [

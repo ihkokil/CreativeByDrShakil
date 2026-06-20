@@ -36,8 +36,6 @@
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^6.19.3",
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.106.1",
     "@tinymce/tinymce-react": "^6.3.0",
     "@vercel/speed-insights": "^2.0.0",
     "@vidstack/react": "^1.12.11",

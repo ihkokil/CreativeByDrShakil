@@ -24,15 +24,15 @@ export function checkEnvVariables() {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    const databaseUrl = process.env.SUPABASE_DATABASE_URL || '';
-    const directUrl = process.env.SUPABASE_DIRECT_URL || '';
+    const databaseUrl = process.env.NEON_DATABASE_URL || '';
+    const directUrl = process.env.NEON_DIRECT_URL || '';
 
     if (!databaseUrl.startsWith('postgresql://') && !databaseUrl.startsWith('postgres://')) {
-      throw new Error('SUPABASE_DATABASE_URL must use a PostgreSQL connection string in production.');
+      throw new Error('NEON_DATABASE_URL must use a PostgreSQL connection string in production.');
     }
 
     if (!directUrl.startsWith('postgresql://') && !directUrl.startsWith('postgres://')) {
-      throw new Error('SUPABASE_DIRECT_URL must use a PostgreSQL connection string in production.');
+      throw new Error('NEON_DIRECT_URL must use a PostgreSQL connection string in production.');
     }
   }
 }

@@ -36,11 +36,12 @@ function getPrismaClient(): PrismaClientType {
   }
 
   // Run env checks lazily (process.env is only populated per-request in Workers)
+  // Always use standard NEON_DATABASE_URL for Neon / production environments
   checkEnvVariables();
 
-  const connectionString = process.env.SUPABASE_DATABASE_URL;
+  const connectionString = process.env.NEON_DATABASE_URL;
   if (!connectionString) {
-    throw new Error('SUPABASE_DATABASE_URL environment variable is not defined.');
+    throw new Error('NEON_DATABASE_URL environment variable is not defined.');
   }
 
   // In local development, bypass the pg adapter to let Prisma manage its own connection pool.
