@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, Upload, Link as LinkIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { MediaPlayer, MediaProvider } from '@vidstack/react';
 
-export type ContentType = 'youtube' | 'self-hosted' | 'document';
+export type ContentType = 'youtube' | 'vimeo' | 'self-hosted' | 'document';
 
 export interface CurriculumNode {
     id: string;
@@ -102,16 +103,6 @@ const LibraryItem = ({ node, depth, onAddFolder, onAddVideo, onDelete, onEdit, o
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
                     <button className={styles.actionBtn} onClick={() => onMove(node.id, 'up')} title="Move Up"><ArrowUp size={14} /></button>
                     <button className={styles.actionBtn} onClick={() => onMove(node.id, 'down')} title="Move Down"><ArrowDown size={14} /></button>
-                    {isFolder && (
-                        <>
-                            <button className={styles.actionBtn} onClick={() => onAddFolder(node.id)} title="Add Subfolder">
-                                <Folder size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
-                            </button>
-                            <button className={styles.actionBtn} onClick={() => onAddVideo(node.id)} title="Add Module">
-                                <Video size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
-                            </button>
-                        </>
-                    )}
                     <button className={styles.actionBtn} title="Edit" onClick={() => onEdit(node)}>
                         <Edit2 size={14} />
                     </button>
@@ -167,6 +158,9 @@ export default function ModuleLibraryManager() {
     const [editingNode, setEditingNode] = useState<CurriculumNode | null>(null);
     const [activeParentId, setActiveParentId] = useState<string | null>(null);
 
+    const [isVideoDropdownOpen, setIsVideoDropdownOpen] = useState(false);
+    const [isDocDropdownOpen, setIsDocDropdownOpen] = useState(false);
+
     const [folderTitle, setFolderTitle] = useState("");
     const [videoTitle, setVideoTitle] = useState("");
     const [videoType, setVideoType] = useState<ContentType>('youtube');
@@ -202,7 +196,20 @@ export default function ModuleLibraryManager() {
     useEffect(() => { fetchLibrary(); }, [fetchLibrary]);
 
     const handleAddFolderClick = (parentId?: string) => { setActiveParentId(parentId || null); setIsFolderModalOpen(true); };
-    const handleAddVideoClick = (parentId: string) => { setActiveParentId(parentId); setIsVideoModalOpen(true); };
+    const handleAddVideoClick = (parentId: string, defaultType: ContentType) => { 
+        setActiveParentId(parentId); 
+        setVideoType(defaultType);
+        setIsVideoModalOpen(true); 
+        setIsVideoDropdownOpen(false);
+        setIsDocDropdownOpen(false);
+    };
+
+    const formatDuration = (seconds: number) => {
+        if (!seconds || isNaN(seconds)) return "";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
 
     const handleDeleteClick = async (id: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -432,13 +439,36 @@ export default function ModuleLibraryManager() {
                             <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Root Folders
                         </button>
                         <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
-                        <div className={styles.actions}>
-                            <button className={styles.actionBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Add Subfolder">
-                                <Folder size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
+                        
+                        <div className={styles.toolbar}>
+                            <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Create Folder">
+                                <Folder size={16} /> Folder
                             </button>
-                            <button className={styles.actionBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Module">
-                                <Video size={14} /> <Plus size={10} style={{ marginLeft: '-4px', marginBottom: '-4px' }} />
-                            </button>
+
+                            <div className={styles.dropdownWrap}>
+                                <button className={styles.toolbarBtn} onClick={() => { setIsVideoDropdownOpen(!isVideoDropdownOpen); setIsDocDropdownOpen(false); }} title="Add Video">
+                                    <Video size={16} /> Video <ChevronDown size={14} />
+                                </button>
+                                {isVideoDropdownOpen && (
+                                    <div className={styles.dropdownMenu}>
+                                        <button onClick={() => handleAddVideoClick(activeRootId, 'youtube')}><Video size={14}/> YouTube Video</button>
+                                        <button onClick={() => handleAddVideoClick(activeRootId, 'vimeo')}><Video size={14}/> Vimeo Video</button>
+                                        <button onClick={() => handleAddVideoClick(activeRootId, 'self-hosted')}><Video size={14}/> Self Hosted Video</button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className={styles.dropdownWrap}>
+                                <button className={styles.toolbarBtn} onClick={() => { setIsDocDropdownOpen(!isDocDropdownOpen); setIsVideoDropdownOpen(false); }} title="Add Document">
+                                    <FileText size={16} /> Document <ChevronDown size={14} />
+                                </button>
+                                {isDocDropdownOpen && (
+                                    <div className={styles.dropdownMenu}>
+                                        <button onClick={() => handleAddVideoClick(activeRootId, 'document')}><Upload size={14}/> Upload Document</button>
+                                        <button onClick={() => handleAddVideoClick(activeRootId, 'document')}><LinkIcon size={14}/> Drive URL</button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -494,20 +524,30 @@ export default function ModuleLibraryManager() {
                                         <label>Module Type</label>
                                         <select value={videoType} onChange={e => { const nextType = e.target.value as ContentType; setVideoType(nextType); setVideoFile(null); setVideoUrl(''); }}>
                                             <option value="youtube">YouTube Embed</option>
+                                            <option value="vimeo">Vimeo Embed</option>
                                             <option value="self-hosted">Self-Hosted Video</option>
                                             <option value="document">Document (PDF/PPT/DOC)</option>
                                         </select>
                                     </div>
                                     <div className={styles.formGroup}>
-                                        <label>Duration (Optional)</label>
+                                        <label>Duration (Auto-fetched for Videos)</label>
                                         <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder="e.g. 45:00" />
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    {videoType === 'youtube' ? (
+                                    {videoType === 'youtube' || videoType === 'vimeo' ? (
                                         <>
-                                            <label>YouTube URL</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." required />
+                                            <label>{videoType === 'youtube' ? 'YouTube' : 'Vimeo'} URL</label>
+                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." required />
+                                            
+                                            {/* Hidden player to fetch duration automatically */}
+                                            {videoUrl && (
+                                                <div style={{ display: 'none' }}>
+                                                    <MediaPlayer src={videoUrl} onDurationChange={(duration) => setVideoDuration(formatDuration(duration))}>
+                                                        <MediaProvider />
+                                                    </MediaPlayer>
+                                                </div>
+                                            )}
                                         </>
                                     ) : videoType === 'document' ? (
                                         <>
@@ -520,7 +560,19 @@ export default function ModuleLibraryManager() {
                                     ) : (
                                         <>
                                             <label>Upload Video File</label>
-                                            <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" onChange={e => setVideoFile(e.target.files?.[0] || null)} />
+                                            <input type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska" onChange={e => {
+                                                const file = e.target.files?.[0] || null;
+                                                setVideoFile(file);
+                                                if (file) {
+                                                    const objectUrl = URL.createObjectURL(file);
+                                                    const video = document.createElement('video');
+                                                    video.src = objectUrl;
+                                                    video.onloadedmetadata = () => {
+                                                        setVideoDuration(formatDuration(video.duration));
+                                                        URL.revokeObjectURL(objectUrl);
+                                                    };
+                                                }
+                                            }} />
                                             <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
                                             <label style={{ marginTop: '8px' }}>Or Direct Video URL (Optional)</label>
                                             <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." />
@@ -559,6 +611,7 @@ export default function ModuleLibraryManager() {
                                                 <label>Module Type</label>
                                                 <select value={videoType} onChange={e => setVideoType(e.target.value as ContentType)}>
                                                     <option value="youtube">YouTube Embed</option>
+                                                    <option value="vimeo">Vimeo Embed</option>
                                                     <option value="self-hosted">Self-Hosted Video</option>
                                                     <option value="document">Document</option>
                                                 </select>
@@ -570,8 +623,15 @@ export default function ModuleLibraryManager() {
                                         </div>
                                         <div className={styles.formGroup}>
                                             <label>Resource URL</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} required />
+                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} required={!videoFile} />
                                         </div>
+                                        {(videoType === 'self-hosted' || videoType === 'document') && (
+                                            <div className={styles.formGroup}>
+                                                <label>Replace File (Optional)</label>
+                                                <input type="file" accept={videoType === 'self-hosted' ? "video/*" : ".pdf,.doc,.docx,.ppt,.pptx"} onChange={e => setVideoFile(e.target.files?.[0] || null)} />
+                                                <small className={styles.fieldHint}>Leave empty to keep existing file. Uploading a new file will overwrite the Resource URL.</small>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                                 <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Save Changes'}</button>
