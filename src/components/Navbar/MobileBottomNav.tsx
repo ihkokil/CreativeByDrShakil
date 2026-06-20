@@ -9,7 +9,7 @@ export default function MobileBottomNav() {
         <Home size={20} />
         <span className={styles.label}>Home</span>
       </Link>
-      <Link href="/dashboard" className={styles.navItem} aria-label="Courses">
+      <Link href="/dashboard?tab=courses" className={styles.navItem} aria-label="Courses">
         <BookOpen size={20} />
         <span className={styles.label}>Courses</span>
       </Link>
