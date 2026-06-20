@@ -54,6 +54,17 @@ function getPrismaClient(): PrismaClientType {
   checkEnvVariables();
 
   const connectionString = process.env.NEON_DATABASE_URL;
+  console.log('[Prisma Init] NEON_DATABASE_URL present:', !!connectionString, 'length:', connectionString?.length);
+  if (connectionString) {
+    // Log masked connection string for safety
+    try {
+      const url = new URL(connectionString);
+      console.log('[Prisma Init] Host:', url.hostname, 'Protocol:', url.protocol, 'Database:', url.pathname);
+    } catch (e) {
+      console.log('[Prisma Init] Failed to parse connection string as URL');
+    }
+  }
+
   if (!connectionString) {
     throw new Error('NEON_DATABASE_URL environment variable is not defined.');
   }
@@ -69,25 +80,40 @@ function getPrismaClient(): PrismaClientType {
   // Production (Cloudflare Workers): use the Neon serverless driver.
   // This communicates with Neon over WebSockets (native to Workers) instead
   // of TCP sockets (which go stale when isolates freeze between requests).
-  const { Pool } = require('@neondatabase/serverless');
   const { PrismaNeon } = require('@prisma/adapter-neon');
 
-  const pool = new Pool({ connectionString });
-  const adapter = new PrismaNeon(pool);
+  const adapter = new PrismaNeon({ connectionString });
 
   return new PrismaClient({
     adapter,
+    datasourceUrl: connectionString,
     log: ['error'],
   }) as PrismaClientType;
 }
 
-export const prisma = globalForPrisma.prisma ?? getPrismaClient();
+// Helper to retrieve the actual client instance lazily.
+function getPrismaInstance(): PrismaClientType {
+  if (globalForPrisma.prisma) {
+    return globalForPrisma.prisma;
+  }
 
-// Cache the instance on globalThis to reuse across warm starts.
-// In dev, this prevents "too many connections" from HMR.
-// In Workers, this reuses the client across requests in the same isolate.
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
+  const client = getPrismaClient();
+  globalForPrisma.prisma = client;
+  return client;
 }
+
+// Export a Proxy wrapper that delegates property access to the lazily initialized client.
+// This prevents Prisma from evaluating environment variables (like NEON_DATABASE_URL) at module import time,
+// which is crucial since Cloudflare Workers only populate process.env per-request.
+export const prisma = new Proxy({} as PrismaClientType, {
+  get(target, prop) {
+    const instance = getPrismaInstance();
+    const value = Reflect.get(instance, prop);
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  }
+});
 
 export default prisma;
