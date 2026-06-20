@@ -7,6 +7,7 @@ import { createTokenPair } from '@/lib/token-utils';
 import { sendVerificationEmail } from '@/lib/auth-emails';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import { createDeviceSession } from '@/lib/session-manager';
+import { sendTelegramRegistrationNotification } from '@/lib/telegram';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -93,6 +94,13 @@ export async function POST(request: NextRequest) {
         emailVerificationExpires: verifyExpiry,
       },
     });
+
+    // Send Telegram Notification (fire and forget)
+    sendTelegramRegistrationNotification({
+      userName: user.fullName,
+      userEmail: user.email,
+      phoneNumber: user.phone || undefined,
+    }).catch(err => console.error('[Register] Telegram notification failed:', err));
 
     if (otpVerified) {
       // Clean up OTP record if verified via OTP
