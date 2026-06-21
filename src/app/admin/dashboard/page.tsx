@@ -31,9 +31,9 @@ import EditTeacherModal from "@/components/Admin/EditTeacherModal";
 import DeleteTeacherModal from "@/components/Admin/DeleteTeacherModal";
 import AddStudentToCourseModal from "@/components/Admin/AddStudentToCourseModal";
 import Image from "next/image";
-import SessionsManager from "@/components/Admin/SessionsManager";
+import UsersManager from "@/components/Shared/UsersManager";
+import StudentsManager from "@/components/Shared/StudentsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
-import StudentsList from "@/components/Admin/StudentsList";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
 import PaymentsManager from "@/components/Admin/PaymentsManager";
@@ -69,7 +69,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "students" | "teachers" | "courses" | "payments" | "sessions" | "support" | "settings" | "security" | "profile") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "users" | "students" | "teachers" | "courses" | "payments" | "support" | "settings" | "security" | "profile") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -399,6 +399,18 @@ function AdminDashboardContent() {
                 </section>
             )}
 
+            {activeTab === "users" && (
+                <section className={styles.panel}>
+                    <div className={styles.panelHeader}>
+                        <div>
+                            <h2 className={styles.panelTitle}>User Directory</h2>
+                            <p className={styles.subtitle}>Active device sessions and enrolled programs</p>
+                        </div>
+                    </div>
+                    <UsersManager />
+                </section>
+            )}
+
             {activeTab === "students" && (
                 <section className={styles.panel}>
                     <div className={styles.panelHeader}>
@@ -407,7 +419,7 @@ function AdminDashboardContent() {
                             <p className={styles.subtitle}>Enrolled students and user accounts</p>
                         </div>
                     </div>
-                    <StudentsList />
+                    <StudentsManager />
                 </section>
             )}
 
@@ -462,12 +474,7 @@ function AdminDashboardContent() {
             )}
 
 
-            {activeTab === "sessions" && (
-                <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Security Sessions</h2>
-                    <SessionsManager />
-                </section>
-            )}
+
 
             {activeTab === "support" && (
                 <section className={styles.panel}>

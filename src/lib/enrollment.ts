@@ -10,8 +10,13 @@ export async function ensureCourseEnrollment(
   courseId: string,
   courseTitle: string,
   courseSlug: string | null,
-  enrolledByAdmin: boolean = false
+  enrolledByAdmin: boolean = false,
+  enrolledAt?: Date,
+  expiresAt?: Date
 ) {
+  const finalEnrolledAt = enrolledAt || new Date();
+  const finalExpiresAt = expiresAt || new Date(finalEnrolledAt.getTime() + 365 * 24 * 60 * 60 * 1000);
+
   // Enroll in the main course
   await tx.order.upsert({
     where: {
@@ -22,13 +27,17 @@ export async function ensureCourseEnrollment(
     },
     update: {
       status: 'approved',
-      updatedAt: new Date(), // Reset the 1-year clock
+      enrolledAt: finalEnrolledAt,
+      expiresAt: finalExpiresAt,
+      updatedAt: new Date(),
     },
     create: {
       userId,
       courseId,
       status: 'approved',
       totalAmount: 0,
+      enrolledAt: finalEnrolledAt,
+      expiresAt: finalExpiresAt,
     },
   });
 
