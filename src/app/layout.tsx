@@ -6,7 +6,6 @@ import SessionWarningToast from "@/components/SessionWarning/SessionWarning";
 import ContentProtection from "@/components/ContentProtection/ContentProtection";
 
 import MobileBottomNavWrapper from "@/components/Navbar/MobileBottomNavWrapper";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const outfit = Outfit({ subsets: ["latin"], display: 'swap', adjustFontFallback: false });
 
@@ -32,7 +31,6 @@ export default function RootLayout({
                     <SessionWarningToast />
 
                     <MobileBottomNavWrapper />
-                    <SpeedInsights />
                 </AuthProvider>
             </body>
         </html>
