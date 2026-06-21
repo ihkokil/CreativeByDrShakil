@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = verifyAuthToken(token);
-    if (payload.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
+    if (payload.role !== 'admin' && payload.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }
 
     const courses = await prisma.course.findMany({
