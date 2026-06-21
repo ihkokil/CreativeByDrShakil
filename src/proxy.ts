@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Global Middleware for CreativeByDrShakil
+ * Global Proxy for CreativeByDrShakil
  * Handles central route protection and authentication redirects.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
     
     // 1. Specify protected routes
@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
     // 3. Optional: Basic role-based prefix check logic could go here
     // But since we can't verify JWT easily without 'jose' in Edge, 
     // we rely on the Page/API level 'requireAdmin' / 'requireTeacher' checks 
-    // for deep authorization. The middleware act as the first gate.
+    // for deep authorization. The proxy act as the first gate.
 
     return NextResponse.next();
 }
@@ -44,7 +44,7 @@ export const config = {
     matcher: [
         /*
          * Match all request paths except for the ones starting with:
-         * - api (API routes) -> Handled internally by API middleware logic
+         * - api (API routes) -> Handled internally by API proxy logic
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
