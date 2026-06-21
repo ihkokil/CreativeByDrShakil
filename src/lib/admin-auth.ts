@@ -13,7 +13,7 @@ export async function requireAdmin(request: NextRequest) {
   let payload: AuthTokenPayload;
 
   try {
-    payload = verifyAuthToken(token);
+    payload = await verifyAuthToken(token);
   } catch {
     return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized.' }, { status: 401 }) };
   }
@@ -40,7 +40,7 @@ export async function requirePaymentManager(request: NextRequest) {
   let payload: AuthTokenPayload;
 
   try {
-    payload = verifyAuthToken(token);
+    payload = await verifyAuthToken(token);
   } catch {
     return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized.' }, { status: 401 }) };
   }

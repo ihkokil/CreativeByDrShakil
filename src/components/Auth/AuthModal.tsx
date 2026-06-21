@@ -5,7 +5,6 @@ import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, ArrowLeft, User, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { signIn } from "next-auth/react";
 
 interface Props {
     isOpen: boolean;
@@ -463,7 +462,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                     <button 
                                         type="button" 
                                         className={styles.socialBtn} 
-                                        onClick={() => signIn("google")}
+                                        onClick={() => { window.location.href = '/api/auth/nextauth'; }}
                                     >
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ marginRight: '10px' }}>
                                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>

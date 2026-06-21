@@ -11,7 +11,7 @@ async function requireAdmin(request: NextRequest) {
     return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized.' }, { status: 401 }) }
   }
 
-  const payload = verifyAuthToken(token)
+  const payload = await verifyAuthToken(token)
   if (payload.role !== 'admin') {
     return { ok: false as const, response: NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 }) }
   }

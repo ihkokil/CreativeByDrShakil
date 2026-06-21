@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
       emailVerified = true;
     } else {
-      const tokenPair = createTokenPair();
+      const tokenPair = await createTokenPair();
       token = tokenPair.token;
       tokenHash = tokenPair.tokenHash;
       verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         ipAddress,
       });
 
-      const authToken = signAuthToken({
+      const authToken = await signAuthToken({
         sub: user.id,
         role: user.role,
         email: user.email,
