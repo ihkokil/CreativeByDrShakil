@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = verifyAuthToken(token);
-    if (payload.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
+    if (payload.role !== 'admin' && payload.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -96,7 +96,7 @@ export async function PUT(request: NextRequest) {
         if (!token) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     
         const payload = verifyAuthToken(token);
-        if (payload.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        if (payload.role !== 'admin' && payload.role !== 'teacher') return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     
         const body = await request.json();
             const { id, fullName, phone, bmdcNumber, profileImage, emailVerified } = body;
@@ -140,7 +140,7 @@ export async function DELETE(request: NextRequest) {
         if (!token) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     
         const payload = verifyAuthToken(token);
-        if (payload.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        if (payload.role !== 'admin' && payload.role !== 'teacher') return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     
         const body = await request.json();
         const { id } = body;

@@ -92,6 +92,9 @@ export async function GET(request: NextRequest) {
     } else {
       const approvedOrders = orders.filter((order: any) => {
         if (order.status !== 'approved') return false;
+        if (order.expiresAt) {
+          return new Date(order.expiresAt) >= new Date();
+        }
         return order.updatedAt >= oneYearAgo;
       });
       enrolledCourses = approvedOrders.map((order: any) => {
@@ -104,7 +107,7 @@ export async function GET(request: NextRequest) {
           courseTitle: order.course.title,
           imageUrl: order.course.imageUrl,
           duration: order.course.duration,
-          enrolledAt: order.updatedAt,
+          enrolledAt: order.enrolledAt || order.updatedAt,
           lessonNodes
         };
       });

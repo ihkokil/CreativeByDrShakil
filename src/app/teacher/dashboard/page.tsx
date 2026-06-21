@@ -12,6 +12,8 @@ import { Loader2 } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
 import PaymentsManager from "@/components/Admin/PaymentsManager";
 import Loader from "@/components/UI/Loader";
+import UsersManager from "@/components/Shared/UsersManager";
+import StudentsManager from "@/components/Shared/StudentsManager";
 
 interface TeacherStats {
     totalCourses: number;
@@ -112,6 +114,30 @@ function TeacherDashboardContent() {
 
             {activeTab === "profile" && (
                 <ProfileTab />
+            )}
+
+            {activeTab === "users" && (
+                <section className={styles.panel}>
+                    <div className={styles.sectionHeader}>
+                        <div>
+                            <h2 className={styles.sectionTitle}>User Directory</h2>
+                            <p className={styles.subtitle}>Active device sessions and enrolled programs</p>
+                        </div>
+                    </div>
+                    <UsersManager />
+                </section>
+            )}
+
+            {activeTab === "students" && (
+                <section className={styles.panel}>
+                    <div className={styles.sectionHeader}>
+                        <div>
+                            <h2 className={styles.sectionTitle}>Student Directory</h2>
+                            <p className={styles.subtitle}>Enrolled students and user accounts</p>
+                        </div>
+                    </div>
+                    <StudentsManager />
+                </section>
             )}
 
             {activeTab === "payments" && user?.user_metadata?.canManagePayments && (
