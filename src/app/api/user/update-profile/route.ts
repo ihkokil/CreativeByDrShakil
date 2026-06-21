@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     const { fullName, phone, bmdcNumber, profileImage } = await request.json();
 
     if (!fullName) {

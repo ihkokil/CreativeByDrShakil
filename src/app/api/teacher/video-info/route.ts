@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     if (payload.role !== 'admin' && payload.role !== 'teacher') {
       return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }

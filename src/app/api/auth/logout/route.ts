@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       const token = await extractCookieToken();
       if (token) {
         try {
-          const payload = verifyAuthToken(token);
+          const payload = await verifyAuthToken(token);
           if (payload.sessionId) {
             await terminateSession(payload.sessionId);
           }

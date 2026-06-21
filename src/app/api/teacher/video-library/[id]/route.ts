@@ -12,7 +12,7 @@ async function requireTeacherOrAdmin(request: NextRequest) {
     }
 
     try {
-        const payload = verifyAuthToken(token);
+        const payload = await verifyAuthToken(token);
         if (payload.role !== 'teacher' && payload.role !== 'admin') {
             return {
                 ok: false as const,

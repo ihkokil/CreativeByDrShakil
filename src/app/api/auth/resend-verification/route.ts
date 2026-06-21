@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
     if (user && !user.emailVerified) {
-      const { token, tokenHash } = createTokenPair();
+      const { token, tokenHash } = await createTokenPair();
       const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
       await prisma.user.update({

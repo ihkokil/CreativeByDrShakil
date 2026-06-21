@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/verify-payment?status=error&message=Missing token', request.url));
   }
 
-  const payload = verifyVerificationToken(token);
+  const payload = await verifyVerificationToken(token);
   if (!payload) {
     return NextResponse.redirect(new URL('/verify-payment?status=error&message=Invalid or expired token', request.url));
   }

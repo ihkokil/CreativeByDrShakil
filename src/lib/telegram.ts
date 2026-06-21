@@ -22,10 +22,10 @@ function getTelegramApiUrl(method: string) {
   return `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 }
 
-function buildApproveRejectKeyboard(orderId: string) {
+async function buildApproveRejectKeyboard(orderId: string) {
   const appUrl = getAppUrl();
-  const approveToken = signVerificationToken({ orderId, action: 'approve' });
-  const rejectToken = signVerificationToken({ orderId, action: 'reject' });
+  const approveToken = await signVerificationToken({ orderId, action: 'approve' });
+  const rejectToken = await signVerificationToken({ orderId, action: 'reject' });
 
   return {
     inline_keyboard: [
@@ -160,7 +160,7 @@ export async function sendTelegramVerification({
 Please verify this payment.
 `;
 
-  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
+  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: await buildApproveRejectKeyboard(orderId) });
 }
 
 /**
@@ -206,7 +206,7 @@ export async function sendTelegramPurchaseNotification({
     adminOrderUrl,
   });
 
-  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
+  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: await buildApproveRejectKeyboard(orderId) });
 }
 
 /**

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     if (payload.role !== 'admin' && payload.role !== 'teacher') {
       return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(placeholder);
 
     // Generate a password-reset token good for 72 hours
-    const { token: setupToken, tokenHash: resetTokenHash } = createTokenPair();
+    const { token: setupToken, tokenHash: resetTokenHash } = await createTokenPair();
     const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
     const student = await prisma.user.create({
@@ -95,7 +95,7 @@ export async function PUT(request: NextRequest) {
     
         if (!token) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     
-        const payload = verifyAuthToken(token);
+        const payload = await verifyAuthToken(token);
         if (payload.role !== 'admin' && payload.role !== 'teacher') return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     
         const body = await request.json();
@@ -139,7 +139,7 @@ export async function DELETE(request: NextRequest) {
     
         if (!token) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     
-        const payload = verifyAuthToken(token);
+        const payload = await verifyAuthToken(token);
         if (payload.role !== 'admin' && payload.role !== 'teacher') return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     
         const body = await request.json();

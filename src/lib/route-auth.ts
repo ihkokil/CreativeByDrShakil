@@ -16,7 +16,7 @@ export async function getAuthPayload(request: NextRequest): Promise<AuthTokenPay
   }
 
   try {
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     
     // If the token has a sessionId, verify it is still valid in the database
     if (payload.sessionId) {

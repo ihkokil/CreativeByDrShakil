@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     if (payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     if (payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create password reset token for the new student
-        const { token: setupTokenPair, tokenHash } = createTokenPair();
+        const { token: setupTokenPair, tokenHash } = await createTokenPair();
         setupToken = setupTokenPair;
         const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
@@ -239,7 +239,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     if (payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }

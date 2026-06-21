@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Sign token with session ID
-    const token = signAuthToken({
+    const token = await signAuthToken({
       sub: user.id,
       role: user.role,
       email: user.email,
