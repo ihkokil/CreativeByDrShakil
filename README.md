@@ -55,23 +55,59 @@ scripts/
 
 ## Environment Variables
 
-Create or update `.env.local` in the project root.
+Create or update `.env.local` or `.env` in the project root.
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| DATABASE_URL | Yes | Prisma database connection URL for app/runtime queries. |
-| DIRECT_URL | Yes | Direct database URL used by Prisma for schema operations. |
-| JWT_SECRET | Yes | Secret used to sign and verify auth tokens. |
-| JWT_EXPIRES_IN | No | JWT expiration window (default: `7d`). |
-| NODE_ENV | No | Runtime mode (`development`/`production`). |
+| NEON_DATABASE_URL | Yes | PostgreSQL connection string for the database (Neon). |
+| NEON_DIRECT_URL | Yes | Direct PostgreSQL connection string for database schema migrations. |
+| JWT_SECRET | Yes | Secret used to sign and verify JWT authentication tokens. |
+| JWT_EXPIRES_IN | No | JWT token expiration window (e.g. `7d`). |
+| RESEND_API_KEY | Yes | Resend API key used to send emails. |
+| RESEND_FROM_EMAIL | Yes | The sender email address registered with Resend. |
+| NEXTAUTH_URL | Yes | NextAuth client application base URL. |
+| NEXTAUTH_SECRET | Yes | Cryptographic secret for signing NextAuth session hashes. |
+| GOOGLE_CLIENT_ID | Yes | Client ID for Google OAuth provider. |
+| GOOGLE_CLIENT_SECRET| Yes | Client Secret for Google OAuth provider. |
+| APP_URL | Yes | Base URL of the application. |
+| NEXT_PUBLIC_APP_URL | Yes | Public-facing client-accessible application base URL. |
+| TELEGRAM_BOT_TOKEN | Yes | API token for your Telegram Bot integration. |
+| TELEGRAM_CHAT_ID | Yes | Target Telegram Chat ID(s) (comma-separated for multiples). |
+| NEXT_PUBLIC_FILE_URL | Yes | Custom Hostinger CDN / storage CDN base URL for file uploads. |
+| HOSTINGER_UPLOAD_TOKEN| Yes | Secure upload token for Hostinger file storage updates. |
 
 Example:
 
 ```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB_NAME"
-DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/DB_NAME"
-JWT_SECRET="replace-with-a-strong-secret"
+# Neon Database
+NEON_DATABASE_URL="postgresql://user:pass@host.neon.tech/neondb?sslmode=require"
+NEON_DIRECT_URL="postgresql://user:pass@host.neon.tech/neondb?sslmode=require"
+
+# Authentication
+JWT_SECRET="your-super-secret-jwt-key"
 JWT_EXPIRES_IN="7d"
+
+# Resend Email API
+RESEND_API_KEY="re_..."
+RESEND_FROM_EMAIL="Creative by Dr. Shakil <no-reply@creativebydrshakil.com>"
+
+# NextAuth / Google OAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your_nextauth_secret"
+GOOGLE_CLIENT_ID="your_google_client_id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+
+# App
+APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+
+# Telegram Integration
+TELEGRAM_BOT_TOKEN="your_bot_token_here"
+TELEGRAM_CHAT_ID="your_chat_id_here"
+
+# Hostinger Storage Upload Variables
+NEXT_PUBLIC_FILE_URL="https://your-public-cdn-or-domain.com"
+HOSTINGER_UPLOAD_TOKEN="your_upload_token"
 ```
 
 ## Installation
