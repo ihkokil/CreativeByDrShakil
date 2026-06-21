@@ -109,9 +109,10 @@ export default function UsersManager() {
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => 
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchQuery.toLowerCase())
+      user.role === 'student' && (
+        user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     );
   }, [users, searchQuery]);
 
@@ -156,12 +157,11 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>User Info</th>
-              <th>Role</th>
-              <th>Desktop Sessions</th>
-              <th>Mobile Sessions</th>
-              <th>Enrolled Programs</th>
-              <th>Actions</th>
+              <th style={{ width: '28%' }}>User Info</th>
+              <th style={{ width: '16%' }}>Desktop Sessions</th>
+              <th style={{ width: '16%' }}>Mobile Sessions</th>
+              <th style={{ width: '26%' }}>Enrolled Programs</th>
+              <th style={{ width: '14%' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -179,20 +179,6 @@ export default function UsersManager() {
                         Joined {new Date(userObj.createdAt).toLocaleDateString('en-GB')}
                       </span>
                     </div>
-                  </td>
-                  <td>
-                    <span style={{
-                      display: 'inline-block',
-                      padding: '4px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      background: userObj.role === 'admin' ? 'rgba(239, 68, 68, 0.12)' : userObj.role === 'teacher' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(59, 130, 246, 0.12)',
-                      color: userObj.role === 'admin' ? '#ef4444' : userObj.role === 'teacher' ? '#f59e0b' : '#3b82f6',
-                    }}>
-                      {userObj.role}
-                    </span>
                   </td>
                   <td>
                     <div className={styles.sessionList}>
@@ -231,23 +217,29 @@ export default function UsersManager() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '240px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '280px' }}>
                       {userObj.enrolledCourses.length > 0 ? (
                         userObj.enrolledCourses.map((c) => (
-                          <div key={c.courseId} style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            padding: '6px 8px',
-                            background: 'var(--surface-soft)',
-                            borderRadius: '6px',
-                            fontSize: '0.8rem',
-                          }}>
-                            <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>
-                              {c.courseTitle}
-                            </span>
+                          <div 
+                            key={c.courseId} 
+                            title={`Enrolled: ${c.enrolledAt ? new Date(c.enrolledAt).toLocaleDateString('en-GB') : 'N/A'}\nExpires: ${c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('en-GB') : 'N/A'}`}
+                            style={{
+                              display: 'inline-flex',
+                              flexDirection: 'column',
+                              padding: '5px 8px',
+                              background: 'rgba(59, 130, 246, 0.08)',
+                              border: '1px solid rgba(59, 130, 246, 0.18)',
+                              color: 'var(--primary)',
+                              borderRadius: '8px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'help'
+                            }}
+                          >
+                            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{c.courseTitle}</span>
                             {c.expiresAt && (
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                Expires: {new Date(c.expiresAt).toLocaleDateString('en-GB')}
+                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 500 }}>
+                                Exp: {new Date(c.expiresAt).toLocaleDateString('en-GB')}
                               </span>
                             )}
                           </div>
