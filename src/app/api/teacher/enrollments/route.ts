@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'A user with this email or phone already exists.' }, { status: 409 });
       }
 
-      const { token: setupToken, tokenHash } = createTokenPair();
+      const { token: setupToken, tokenHash } = await createTokenPair();
       const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); 
 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;

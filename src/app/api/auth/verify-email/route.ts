@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing verification token." }, { status: 400 });
     }
 
-    const tokenHash = hashToken(token);
+    const tokenHash = await hashToken(token);
 
     const user = await prisma.user.findFirst({
       where: {

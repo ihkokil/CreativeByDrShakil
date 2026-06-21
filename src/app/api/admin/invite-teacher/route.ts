@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
         }
 
-        const payload = verifyAuthToken(token);
+        const payload = await verifyAuthToken(token);
         if (payload.role !== 'admin') {
             return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
         }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         const passwordHash = await hashPassword(placeholder);
 
         // Generate a password-reset token good for 72 hours (longer than normal resets)
-        const { token: resetToken, tokenHash } = createTokenPair();
+        const { token: resetToken, tokenHash } = await createTokenPair();
         const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
         await prisma.user.create({

@@ -4,17 +4,23 @@ import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/a
 import { isSessionValid, updateSessionActivity } from '@/lib/session-manager';
 
 export async function GET(request: NextRequest) {
+  const bearerToken = extractBearerToken(request);
+  const cookieToken = await extractCookieToken();
+  const token = bearerToken || cookieToken;
+
+  if (!token) {
+    return NextResponse.json({ user: null, role: null }, { status: 200 });
+  }
+
+  let payload;
   try {
-    const bearerToken = extractBearerToken(request);
-    const cookieToken = await extractCookieToken();
-    const token = bearerToken || cookieToken;
+    payload = await verifyAuthToken(token);
+  } catch {
+    // Token is expired or invalid — treat as unauthenticated, not a server error
+    return NextResponse.json({ user: null, role: null }, { status: 200 });
+  }
 
-    if (!token) {
-      return NextResponse.json({ user: null, role: null }, { status: 200 });
-    }
-
-    const payload = verifyAuthToken(token);
-
+  try {
     // Check if session is still valid (not locked or logged out)
     if (payload.sessionId) {
       const sessionValid = await isSessionValid(payload.sessionId);
@@ -70,7 +76,8 @@ export async function GET(request: NextRequest) {
       token,
       sessionId: payload.sessionId,
     });
-  } catch {
+  } catch (error) {
+    console.error('[/api/auth/session] Unexpected error:', error);
     return NextResponse.json(
       { error: 'Failed to validate session.' },
       { status: 500 }

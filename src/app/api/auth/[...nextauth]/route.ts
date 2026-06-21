@@ -1,69 +1,46 @@
-import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/lib/prisma";
-import { signAuthToken, AUTH_COOKIE_NAME } from "@/lib/auth-server";
-import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from 'next/server';
 
-const baseAdapter = PrismaAdapter(prisma);
-const customAdapter = {
-  ...baseAdapter,
-  createUser: async (data: any) => {
-    // NextAuth provides 'name', but your database requires 'fullName'
-    return await prisma.user.create({
-      data: {
-        ...data,
-        fullName: data.name || "Google User",
-        emailVerified: true, // Google emails are already verified
-      },
-    });
-  },
-};
+/**
+ * Google OAuth Initiation
+ * 
+ * GET /api/auth/[...nextauth] → Redirects to Google's OAuth consent screen.
+ * This replaces the old NextAuth handler with a direct fetch()-based implementation
+ * that is compatible with Cloudflare Workers (no Node.js `https.request` dependency).
+ */
 
-const handler = NextAuth({
-  adapter: customAdapter as any,
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      allowDangerousEmailAccountLinking: true,
-    }),
-  ],
-  session: {
-    strategy: "jwt",
-  },
-  callbacks: {
-    async jwt({ token, user, account }) {
-      // `user` is only defined during the initial sign-in
-      if (account && user) {
-        // Find the user in the database to get their role
-        const dbUser = await prisma.user.findUnique({
-          where: { email: user.email as string },
-        });
+function getGoogleOAuthURL() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || 'http://localhost:3000';
+  const redirectUri = `${appUrl}/api/auth/google-callback`;
 
-        if (dbUser) {
-          // Mint our custom JWT!
-          const payload = {
-            sub: dbUser.id,
-            role: dbUser.role,
-            email: dbUser.email,
-          };
-          const customToken = signAuthToken(payload);
-          
-          // Set the custom cookie so the rest of the application recognizes the session
-          const cookieStore = await cookies();
-          cookieStore.set(AUTH_COOKIE_NAME, customToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 7 * 24 * 60 * 60, // 7 days
-          });
-        }
-      }
-      return token;
-    },
-  },
-});
+  if (!clientId) {
+    throw new Error('GOOGLE_CLIENT_ID environment variable is not set.');
+  }
 
-export { handler as GET, handler as POST };
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    access_type: 'offline',
+    prompt: 'select_account',
+  });
+
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const url = getGoogleOAuthURL();
+    return NextResponse.redirect(url);
+  } catch (error) {
+    console.error('[Google OAuth] Failed to initiate:', error);
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    return NextResponse.redirect(`${appUrl}/login?error=OAuthInitFailed`);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  // POST is used by the old NextAuth signIn() — redirect to GET
+  return GET(request);
+}

@@ -1,23 +1,23 @@
 import bcrypt from 'bcryptjs';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 
 export const AUTH_COOKIE_NAME = 'session_token';
 
-export interface AuthTokenPayload extends JwtPayload {
+export interface AuthTokenPayload extends JWTPayload {
   sub: string;
   role: 'admin' | 'teacher' | 'student';
   email: string;
   sessionId?: string;
 }
 
-function getJwtSecret() {
+function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('Missing JWT_SECRET environment variable.');
   }
-  return secret;
+  return new TextEncoder().encode(secret);
 }
 
 export async function hashPassword(password: string) {
@@ -28,16 +28,19 @@ export async function comparePassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
-export function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string }) {
-  const options: jwt.SignOptions = {
-    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'],
-  };
+export async function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string }) {
+  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
-  return jwt.sign(payload, getJwtSecret() as jwt.Secret, options);
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(expiresIn)
+    .sign(getJwtSecret());
 }
 
-export function verifyAuthToken(token: string): AuthTokenPayload {
-  return jwt.verify(token, getJwtSecret()) as AuthTokenPayload;
+export async function verifyAuthToken(token: string): Promise<AuthTokenPayload> {
+  const { payload } = await jwtVerify(token, getJwtSecret());
+  return payload as AuthTokenPayload;
 }
 
 export function extractBearerToken(request: NextRequest): string | null {
@@ -58,7 +61,7 @@ export async function getSession() {
   if (!token) return null;
 
   try {
-    const payload = verifyAuthToken(token);
+    const payload = await verifyAuthToken(token);
     
     if (payload.sessionId) {
       const { isSessionValid } = await import('@/lib/session-manager');

@@ -18,8 +18,8 @@ export async function sendPaymentVerificationEmail({
   phoneNumber: string;
   orderId: string;
 }) {
-  const approveToken = signVerificationToken({ orderId, action: 'approve' });
-  const rejectToken = signVerificationToken({ orderId, action: 'reject' });
+  const approveToken = await signVerificationToken({ orderId, action: 'approve' });
+  const rejectToken = await signVerificationToken({ orderId, action: 'reject' });
 
   const appUrl = getAppUrl();
   const approveUrl = `${appUrl}/api/payments/verify?token=${approveToken}`;
