@@ -13,7 +13,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
             return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
         }
 
-        const payload = verifyAuthToken(token);
+        const payload = await verifyAuthToken(token);
         if (payload.role !== 'admin') {
             return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
         }
@@ -49,7 +49,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
             return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
         }
 
-        const payload = verifyAuthToken(token);
+        const payload = await verifyAuthToken(token);
         if (payload.role !== 'admin') {
             return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
         }

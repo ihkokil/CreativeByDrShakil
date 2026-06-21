@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     const { token, password } = parsed.data;
 
-    const tokenHash = hashToken(String(token));
+    const tokenHash = await hashToken(String(token));
 
     const user = await prisma.user.findFirst({
       where: {
