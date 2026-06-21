@@ -21,6 +21,7 @@ const customAdapter = {
 };
 
 const handler = NextAuth({
+  trustHost: true,
   adapter: customAdapter as any,
   providers: [
     GoogleProvider({
