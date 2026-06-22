@@ -3,9 +3,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import styles from '@/components/Admin/SessionsManager.module.css';
-import { Smartphone, Monitor, Lock, AlertCircle, Search, UserCheck, ShieldAlert, Trash2 } from 'lucide-react';
+import { Smartphone, Monitor, Lock, AlertCircle, Search, UserCheck, ShieldAlert, Trash2, Settings2 } from 'lucide-react';
 import { LogOut } from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
+import SessionSettingsModal from '@/components/Admin/SessionSettingsModal';
 import { formatDateGMT6, formatDateTimeGMT6 } from '@/lib/date-format';
 
 interface SessionData {
@@ -28,6 +29,9 @@ interface UserData {
   createdAt: string;
   lastActiveAt: string;
   profileImage?: string | null;
+  autoLockSetting: boolean;
+  hasUserOverride: boolean;
+  userAutoLockSetting: boolean | null;
   activeSessions: SessionData[];
   sessions: SessionData[];
   enrolledCourses: Array<{
@@ -46,6 +50,8 @@ export default function UsersManager() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSession, setSelectedSession] = useState<SessionData | null>(null);
+  const [globalAutoLock, setGlobalAutoLock] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const getInitials = (name: string) => {
     if (!name) return 'US';
@@ -73,6 +79,7 @@ export default function UsersManager() {
 
       const data = await response.json();
       setUsers(data.users || []);
+      setGlobalAutoLock(data.globalAutoLockSetting ?? true);
     } catch (err: any) {
       setError(err.message || 'Failed to load users');
     } finally {
@@ -83,6 +90,26 @@ export default function UsersManager() {
   useEffect(() => {
     fetchUsers();
   }, [token]);
+
+  const handleToggleGlobalAutoLock = async () => {
+    try {
+      const response = await fetch('/api/admin/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ autoLockFirstBrowser: !globalAutoLock }),
+      });
+
+      if (response.ok) {
+        setGlobalAutoLock(!globalAutoLock);
+        fetchUsers();
+      }
+    } catch {
+      setError('Failed to update global setting');
+    }
+  };
 
   const handleLockSession = async (sessionId: string) => {
     try {
@@ -200,6 +227,25 @@ export default function UsersManager() {
     <div className={styles.container}>
       {error && <div className={styles.error}>{error}</div>}
 
+      {/* Global Settings */}
+      <div className={styles.settingsPanel}>
+        <div className={styles.settingsHeader}>
+          <h3>Auto-Lock First Browser</h3>
+          <p className={styles.description}>
+            When enabled, a student logging in from a new browser on the same device will be blocked until they manually log out from the previous session.
+          </p>
+        </div>
+        <button
+          className={`${styles.toggleButton} ${globalAutoLock ? styles.enabled : ''}`}
+          onClick={handleToggleGlobalAutoLock}
+        >
+          <span className={styles.toggleTrack}>
+            <span className={styles.toggleThumb} />
+          </span>
+          <span>{globalAutoLock ? 'Enabled' : 'Disabled'}</span>
+        </button>
+      </div>
+
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', margin: '8px 0' }}>
         <div style={{
           flex: 1,
@@ -233,12 +279,13 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th style={{ width: '30%' }}>User Information</th>
-              <th style={{ width: '13%' }}>Desktop Session</th>
-              <th style={{ width: '13%' }}>Mobile Session</th>
-              <th style={{ width: '16%' }}>Last Active</th>
-              <th style={{ width: '14%' }}>Account Actions</th>
-              <th style={{ width: '14%', textAlign: 'right' }}>Session Actions</th>
+              <th style={{ width: '25%' }}>User Information</th>
+              <th style={{ width: '12%' }}>Desktop Session</th>
+              <th style={{ width: '12%' }}>Mobile Session</th>
+              <th style={{ width: '15%' }}>Last Active</th>
+              <th style={{ width: '12%' }}>Auto-Lock</th>
+              <th style={{ width: '12%' }}>Account Actions</th>
+              <th style={{ width: '12%', textAlign: 'right' }}>Session Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -353,6 +400,19 @@ export default function UsersManager() {
                     </div>
                   </td>
                   <td>
+                    <button
+                      className={`${styles.settingButton} ${
+                        userObj.autoLockSetting ? styles.enabled : styles.disabled
+                      }`}
+                      onClick={() => setSelectedUserId(userObj.id)}
+                      title="Click to override"
+                    >
+                      <Settings2 size={14} />
+                      {userObj.autoLockSetting ? 'ON' : 'OFF'}
+                      {userObj.hasUserOverride ? '' : ' (GLOBAL)'}
+                    </button>
+                  </td>
+                  <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '135px' }}>
                       <button
                         className={styles.actionBtn}
@@ -442,6 +502,17 @@ export default function UsersManager() {
           onLogout={() => {
             handleLogoutSession(selectedSession.id);
             setSelectedSession(null);
+          }}
+        />
+      )}
+
+      {selectedUserId && (
+        <SessionSettingsModal
+          userId={selectedUserId}
+          onClose={() => setSelectedUserId(null)}
+          onSave={() => {
+            fetchUsers();
+            setSelectedUserId(null);
           }}
         />
       )}

@@ -127,7 +127,7 @@ export default function AdminOverview({
                         <div className={styles.actionIcon}><Users size={18} /></div>
                         <span style={{ fontSize: '0.85rem' }}>Students</span>
                     </button>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('sessions')} style={{ padding: '12px' }}>
+                    <button className={styles.actionBtn} onClick={() => onTabChange('users')} style={{ padding: '12px' }}>
                         <div className={styles.actionIcon}><MonitorIcon size={18} /></div>
                         <span style={{ fontSize: '0.85rem' }}>Sessions</span>
                     </button>
