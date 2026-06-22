@@ -53,8 +53,9 @@ export default function AdminSidebar({
 
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-        { id: 'users', label: 'Users', icon: <Users size={20} /> },
+        { id: 'enrollments', label: 'Enrollments', icon: <BookOpen size={20} /> },
         { id: 'students', label: 'Students', icon: <GraduationCap size={20} /> },
+        { id: 'users', label: 'Users', icon: <Users size={20} /> },
         { id: 'teachers', label: 'Teachers', icon: <UserCog size={20} /> },
         { id: 'payments', label: 'Payments', icon: <CreditCard size={20} /> },
         { id: 'support', label: 'Contact Help', icon: <Inbox size={20} /> },

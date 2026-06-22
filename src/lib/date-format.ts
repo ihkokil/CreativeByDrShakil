@@ -60,4 +60,62 @@ export const formatLastUpdated = (value?: string | Date | null) => {
   const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(parsed);
   const year = parsed.getFullYear();
   return `${day} ${month}, ${year}`;
+};
+
+export const formatDateTimeGMT6 = (value?: string | Date | null): string => {
+  if (!value) return '—';
+  
+  let dateToParse = value;
+  if (typeof value === 'string' && !value.endsWith('Z') && !value.includes('+')) {
+    dateToParse = value.replace(' ', 'T') + (value.includes('T') ? 'Z' : 'Z');
+  }
+  const date = typeof dateToParse === 'string' ? new Date(dateToParse) : dateToParse;
+  
+  if (!date || isNaN(date.getTime())) return '—';
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Dhaka',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+
+  const parts = formatter.formatToParts(date);
+  const day = parts.find(p => p.type === 'day')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const year = parts.find(p => p.type === 'year')?.value || '';
+  const hour = parts.find(p => p.type === 'hour')?.value || '';
+  const minute = parts.find(p => p.type === 'minute')?.value || '';
+  const dayPeriod = parts.find(p => p.type === 'dayPeriod')?.value || ''; // AM/PM
+
+  return `${day} ${month} ${year}, ${hour}:${minute} ${dayPeriod}`;
+};
+
+export const formatDateGMT6 = (value?: string | Date | null): string => {
+  if (!value) return '—';
+  
+  let dateToParse = value;
+  if (typeof value === 'string' && !value.endsWith('Z') && !value.includes('+')) {
+    dateToParse = value.replace(' ', 'T') + (value.includes('T') ? 'Z' : 'Z');
+  }
+  const date = typeof dateToParse === 'string' ? new Date(dateToParse) : dateToParse;
+  
+  if (!date || isNaN(date.getTime())) return '—';
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Dhaka',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+
+  const parts = formatter.formatToParts(date);
+  const day = parts.find(p => p.type === 'day')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const year = parts.find(p => p.type === 'year')?.value || '';
+
+  return `${day}/${month}/${year}`;
 };

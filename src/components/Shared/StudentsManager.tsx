@@ -375,11 +375,11 @@ export default function StudentsManager() {
         </div>
       ) : filteredStudents.length > 0 ? (
         <>
-          <div className={dashStyles.tableContainer} style={{ background: 'var(--glass)', border: '1px solid var(--glass-border)', borderRadius: '16px' }}>
-            <table className={dashStyles.table} style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className={styles.tableContainer}>
+            <table className={styles.table}>
               <thead>
-                <tr style={{ background: 'var(--surface-soft)', borderBottom: '1px solid var(--glass-border)' }}>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', width: '40px' }}>
+                <tr>
+                  <th style={{ width: '40px' }}>
                     <button 
                       onClick={handleToggleSelectAll}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', display: 'flex', padding: 0 }}
@@ -387,16 +387,16 @@ export default function StudentsManager() {
                       {selectedIds.size === filteredStudents.length ? <CheckSquare size={18} /> : <Square size={18} />}
                     </button>
                   </th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>Student</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>Details</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>Programs Enrolled</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>Actions</th>
+                  <th>Student</th>
+                  <th>Details</th>
+                  <th>Programs Enrolled</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredStudents.map((student) => (
-                  <tr key={student.id} style={{ borderBottom: '1px solid var(--glass-border)' }}>
-                    <td style={{ padding: '16px' }}>
+                  <tr key={student.id}>
+                    <td>
                       <input 
                         type="checkbox" 
                         className={styles.checkbox}
@@ -404,7 +404,7 @@ export default function StudentsManager() {
                         onChange={() => handleToggleSelect(student.id)}
                       />
                     </td>
-                    <td style={{ padding: '16px' }}>
+                    <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
                           width: '40px',
@@ -430,14 +430,14 @@ export default function StudentsManager() {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '16px' }}>
+                    <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                         <span>📱 {student.phone || 'No phone'}</span>
                         {student.bmdcNumber && <span>📋 BM&DC: {student.bmdcNumber}</span>}
                         <span style={{ fontSize: '0.75rem', marginTop: '2px' }}>Joined {new Date(student.createdAt).toLocaleDateString('en-GB')}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '16px' }}>
+                    <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '260px' }}>
                         {student.enrolledCourses.length > 0 ? (
                           student.enrolledCourses.map((c) => (
@@ -480,7 +480,7 @@ export default function StudentsManager() {
                         )}
                       </div>
                     </td>
-                    <td style={{ padding: '16px' }}>
+                    <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {!student.emailVerified && (
                           <button className={dashStyles.actionBtn} onClick={() => handleConfirmEmail(student)} title="Confirm email" disabled={isSubmitting}><MailCheck size={16} /></button>
