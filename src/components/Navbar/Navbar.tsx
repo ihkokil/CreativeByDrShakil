@@ -103,7 +103,9 @@ export default function Navbar() {
                                 />
                                 <div className={styles.navSidePanel}>
                                     <div className={styles.navPanelHeader}>
-                                        <span className={styles.navPanelTitle}>Menu</span>
+                                        <Link href="/" className={styles.navPanelLogo} onClick={() => setIsNavMenuOpen(false)}>
+                                            <Image src="/logo.png" alt="Creative By Dr. Shakil" width={120} height={34} priority className={styles.logoImg} />
+                                        </Link>
                                         <button
                                             type="button"
                                             className={styles.navPanelCloseBtn}
@@ -218,7 +220,8 @@ export default function Navbar() {
                                         setIsAuthOpen(true);
                                     }}
                                 >
-                                    <span className={styles.navText}>Login / Register</span>
+                                    <User size={18} />
+                                    <span className={styles.navText}>Login</span>
                                 </button>
                             )}
                         </div>
