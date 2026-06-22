@@ -49,7 +49,7 @@ export default function UsersManager() {
   const getInitials = (name: string) => {
     return name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : 'US';
   };
-  
+
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('auth_token');
@@ -115,7 +115,7 @@ export default function UsersManager() {
     const confirmMessage = currentlyBanned
       ? 'Are you sure you want to unban this user? They will be allowed to log in again.'
       : 'Are you sure you want to ban this user? They will be locked out immediately.';
-      
+
     if (!window.confirm(confirmMessage)) return;
 
     try {
@@ -173,7 +173,7 @@ export default function UsersManager() {
   };
 
   const filteredUsers = useMemo(() => {
-    const list = users.filter((user) => 
+    const list = users.filter((user) =>
       user.role === 'student' && (
         user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase())
@@ -208,9 +208,9 @@ export default function UsersManager() {
           background: 'var(--glass)',
         }}>
           <Search size={18} style={{ color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Search directory by name, email, or role..." 
+          <input
+            type="text"
+            placeholder="Search directory by name, email, or role..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -229,19 +229,19 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th style={{ width: '28%' }}>User Information</th>
+              <th style={{ width: '32%' }}>User Information</th>
               <th style={{ width: '13%' }}>Desktop Session</th>
               <th style={{ width: '13%' }}>Mobile Session</th>
               <th style={{ width: '16%' }}>Last Active</th>
-              <th style={{ width: '15%' }}>Account Actions</th>
-              <th style={{ width: '15%', textAlign: 'right' }}>Session Actions</th>
+              <th style={{ width: '13%' }}>Account Actions</th>
+              <th style={{ width: '13%', textAlign: 'right' }}>Session Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map((userObj) => {
               const desktopSessions = userObj.activeSessions.filter((s) => s.deviceType === 'desktop');
               const mobileSessions = userObj.activeSessions.filter((s) => s.deviceType === 'mobile');
-              
+
               const latestSession = [...(userObj.sessions || [])].sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0];
               const lastActiveText = latestSession ? formatDateTimeGMT6(latestSession.lastActivityAt) : 'Never';
 
@@ -266,7 +266,7 @@ export default function UsersManager() {
                         border: '1px solid var(--glass-border)'
                       }}>
                         {userObj.profileImage ? (
-                          <Image src={userObj.profileImage} alt={userObj.fullName} fill style={{ objectFit: 'cover' }} unoptimized/>
+                          <Image src={userObj.profileImage} alt={userObj.fullName} fill style={{ objectFit: 'cover' }} unoptimized />
                         ) : getInitials(userObj.fullName)}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
