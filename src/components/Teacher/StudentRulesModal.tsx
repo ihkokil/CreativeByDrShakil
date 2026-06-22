@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface StudentRulesModalProps {
     courseId: string;
-    userId: string;
+    userId?: string;
+    userIds?: string[];
     studentName: string;
     onClose: () => void;
     onSuccess: () => void;
@@ -24,7 +25,7 @@ const DAYS = [
     { label: "Sat", value: 6 },
 ];
 
-export default function StudentRulesModal({ courseId, userId, studentName, onClose, onSuccess, onOpenAdvanced }: StudentRulesModalProps) {
+export default function StudentRulesModal({ courseId, userId, userIds, studentName, onClose, onSuccess, onOpenAdvanced }: StudentRulesModalProps) {
     const [action, setAction] = useState<"start_from_today" | "continue_with_batch" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [intervalDays, setIntervalDays] = useState<number>(7);
@@ -54,6 +55,7 @@ export default function StudentRulesModal({ courseId, userId, studentName, onClo
                 body: JSON.stringify({
                     courseId,
                     userId,
+                    userIds,
                     action,
                     daysOfWeek,
                     intervalDays

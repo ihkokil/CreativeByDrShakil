@@ -173,6 +173,7 @@ export const user = pgTable("User", {
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 	canManagePayments: boolean().default(false).notNull(),
+	isBanned: boolean().default(false).notNull(),
 	telegramChatId: text(),
 	image: text(),
 }, (table) => [

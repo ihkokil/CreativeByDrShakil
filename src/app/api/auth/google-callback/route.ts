@@ -40,8 +40,17 @@ interface GoogleUserInfo {
   picture?: string;
 }
 
+function getRequestOrigin(request: NextRequest) {
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const proto = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http');
+  if (host) {
+    return `${proto}://${host}`;
+  }
+  return request.nextUrl.origin;
+}
+
 export async function GET(request: NextRequest) {
-  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || 'http://localhost:3000';
+  const appUrl = getRequestOrigin(request);
 
   try {
     const { searchParams } = new URL(request.url);
@@ -50,11 +59,11 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[Google OAuth Callback] Error from Google:', error);
-      return NextResponse.redirect(`${appUrl}/login?error=OAuthDenied`);
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=OAuthDenied`);
     }
 
     if (!code) {
-      return NextResponse.redirect(`${appUrl}/login?error=NoCode`);
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=NoCode`);
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -63,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     if (!clientId || !clientSecret) {
       console.error('[Google OAuth Callback] Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
-      return NextResponse.redirect(`${appUrl}/login?error=OAuthConfig`);
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=OAuthConfig`);
     }
 
     // Step 1: Exchange authorization code for tokens via fetch()
@@ -82,7 +91,7 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const errorBody = await tokenResponse.text();
       console.error('[Google OAuth Callback] Token exchange failed:', tokenResponse.status, errorBody);
-      return NextResponse.redirect(`${appUrl}/login?error=TokenExchangeFailed`);
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=TokenExchangeFailed`);
     }
 
     const tokens: GoogleTokenResponse = await tokenResponse.json();
@@ -94,13 +103,13 @@ export async function GET(request: NextRequest) {
 
     if (!userInfoResponse.ok) {
       console.error('[Google OAuth Callback] Failed to fetch user info:', userInfoResponse.status);
-      return NextResponse.redirect(`${appUrl}/login?error=UserInfoFailed`);
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=UserInfoFailed`);
     }
 
     const googleUser: GoogleUserInfo = await userInfoResponse.json();
 
     if (!googleUser.email) {
-      return NextResponse.redirect(`${appUrl}/login?error=NoEmail`);
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=NoEmail`);
     }
 
     // Step 3: Find or create user in database
@@ -128,6 +137,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (user.isBanned) {
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=Banned`);
+    }
+
     // Step 4: Device session management
     const userAgent = request.headers.get('user-agent') || '';
     const deviceInfo = parseUserAgent(userAgent);
@@ -144,7 +157,7 @@ export async function GET(request: NextRequest) {
 
         if (autoLockEnabled) {
           // Redirect with error — user is already logged in on this device type
-          return NextResponse.redirect(`${appUrl}/login?error=DeviceAlreadyLoggedIn`);
+          return NextResponse.redirect(`${appUrl}/?auth=login&error=DeviceAlreadyLoggedIn`);
         } else {
           // Terminate old sessions and allow new login
           await terminateActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
@@ -183,6 +196,6 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('[Google OAuth Callback] Unexpected error:', error);
-    return NextResponse.redirect(`${appUrl}/login?error=OAuthUnexpected`);
+    return NextResponse.redirect(`${appUrl}/?auth=login&error=OAuthUnexpected`);
   }
 }
