@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import styles from '@/components/Admin/SessionsManager.module.css';
-import { Smartphone, Monitor, Lock, LogOut, AlertCircle, Search, UserCheck, ShieldAlert } from 'lucide-react';
+import { Smartphone, Monitor, Lock, LogOut, AlertCircle, Search, UserCheck, ShieldAlert, Trash2 } from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
 import { formatDateGMT6, formatDateTimeGMT6 } from '@/lib/date-format';
 
@@ -132,6 +132,31 @@ export default function UsersManager() {
       );
     } catch (err: any) {
       setError(err.message || `Failed to ${action} user`);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    const confirmMessage = `Are you sure you want to permanently delete user "${userName}"? This will delete the user, their enrolled programs, and sessions entirely from the database and application. This action cannot be undone.`;
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const response = await fetch('/api/admin/students/manage', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ id: userId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete user');
+      }
+
+      setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete user');
     }
   };
 
@@ -295,19 +320,33 @@ export default function UsersManager() {
                     </div>
                   </td>
                   <td>
-                    <div className={styles.actionsCell}>
+                    <div className={styles.actionsCell} style={{ flexWrap: 'wrap' }}>
                       <button
                         className={styles.actionBtn}
                         onClick={() => handleToggleBan(userObj.id, userObj.isBanned)}
                         title={userObj.isBanned ? "Unban user and allow login" : "Ban user and prevent login"}
                         style={{
-                          color: userObj.isBanned ? '#22c55e' : '#ef4444',
-                          borderColor: userObj.isBanned ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)',
-                          background: userObj.isBanned ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                          color: userObj.isBanned ? '#22c55e' : '#f97316',
+                          borderColor: userObj.isBanned ? 'rgba(34, 197, 94, 0.3)' : 'rgba(249, 115, 22, 0.3)',
+                          background: userObj.isBanned ? 'rgba(34, 197, 94, 0.08)' : 'rgba(249, 115, 22, 0.08)',
                         }}
                       >
                         {userObj.isBanned ? <UserCheck size={16} /> : <ShieldAlert size={16} />}
                         <span>{userObj.isBanned ? 'Unban' : 'Ban User'}</span>
+                      </button>
+
+                      <button
+                        className={styles.actionBtn}
+                        onClick={() => handleDeleteUser(userObj.id, userObj.fullName)}
+                        title="Delete user entirely from database and application"
+                        style={{
+                          color: '#ef4444',
+                          borderColor: 'rgba(239, 68, 68, 0.3)',
+                          background: 'rgba(239, 68, 68, 0.08)',
+                        }}
+                      >
+                        <Trash2 size={16} />
+                        <span>Delete User</span>
                       </button>
 
                       {userObj.activeSessions.length > 0 && (
