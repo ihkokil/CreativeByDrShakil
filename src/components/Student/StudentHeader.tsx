@@ -20,9 +20,14 @@ export default function StudentHeader({ title, user, onToggleSidebar }: StudentH
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
 
-    const initials = user?.user_metadata?.full_name
-        ? user.user_metadata.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-        : "ST";
+    const getInitials = (name: string, fallback: string) => {
+        if (!name) return fallback;
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0][0].toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
+    const initials = getInitials(user?.user_metadata?.full_name, "ST");
 
     return (
         <header className={styles.header}>

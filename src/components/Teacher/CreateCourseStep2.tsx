@@ -48,13 +48,12 @@ function CreateCourseStep2Content() {
     setter((prev) => (prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]));
   };
 
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() || "")
-      .join("") || "T";
+  const getInitials = (name: string) => {
+    if (!name) return 'T';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   useEffect(() => {
     if (!courseId) return;

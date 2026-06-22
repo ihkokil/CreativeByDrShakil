@@ -26,6 +26,15 @@ export default function Navbar() {
             ? "/teacher/dashboard"
             : "/dashboard";
 
+    const getInitials = (name: string | undefined, fallback: string) => {
+        if (!name) return fallback;
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0][0].toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
+    const initials = getInitials(user?.user_metadata?.full_name, "US");
+
     useEffect(() => {
         const handleScroll = () => {
             setScrolled(window.scrollY > 20);
@@ -169,8 +178,36 @@ export default function Navbar() {
                                 <Link
                                     href={dashboardHref}
                                     className={styles.userMenuBtn}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                                 >
-                                    <User size={18} />
+                                    <div style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        background: 'var(--surface-soft)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 700,
+                                        fontSize: '0.8rem',
+                                        color: 'var(--primary)',
+                                        position: 'relative',
+                                        overflow: 'hidden',
+                                        flexShrink: 0,
+                                        border: '1px solid var(--glass-border)'
+                                    }}>
+                                        {user.user_metadata?.profile_image ? (
+                                            <Image 
+                                                src={user.user_metadata.profile_image} 
+                                                alt={user.user_metadata.full_name || "Profile"} 
+                                                fill 
+                                                style={{ objectFit: 'cover' }} 
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            initials
+                                        )}
+                                    </div>
                                     <span className={styles.navText}>Account</span>
                                 </Link>
                             ) : (

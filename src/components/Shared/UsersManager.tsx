@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import styles from '@/components/Admin/SessionsManager.module.css';
-import { Smartphone, Monitor, Lock, LogOut, AlertCircle, Search, UserCheck, ShieldAlert, Trash2 } from 'lucide-react';
+import { Smartphone, Monitor, Lock, AlertCircle, Search, UserCheck, ShieldAlert, Trash2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
 import { formatDateGMT6, formatDateTimeGMT6 } from '@/lib/date-format';
 
@@ -47,7 +48,10 @@ export default function UsersManager() {
   const [selectedSession, setSelectedSession] = useState<SessionData | null>(null);
 
   const getInitials = (name: string) => {
-    return name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : 'US';
+    if (!name) return 'US';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
   const token = useMemo(() => {
@@ -229,12 +233,12 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th style={{ width: '32%' }}>User Information</th>
+              <th style={{ width: '30%' }}>User Information</th>
               <th style={{ width: '13%' }}>Desktop Session</th>
               <th style={{ width: '13%' }}>Mobile Session</th>
               <th style={{ width: '16%' }}>Last Active</th>
-              <th style={{ width: '13%' }}>Account Actions</th>
-              <th style={{ width: '13%', textAlign: 'right' }}>Session Actions</th>
+              <th style={{ width: '14%' }}>Account Actions</th>
+              <th style={{ width: '14%', textAlign: 'right' }}>Session Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -349,7 +353,7 @@ export default function UsersManager() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '135px' }}>
                       <button
                         className={styles.actionBtn}
                         onClick={() => handleToggleBan(userObj.id, userObj.isBanned)}
@@ -385,7 +389,7 @@ export default function UsersManager() {
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     {userObj.activeSessions.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px', marginLeft: 'auto' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '135px', marginLeft: 'auto' }}>
                         <button
                           className={styles.actionBtn}
                           onClick={() =>
