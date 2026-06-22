@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { contactSubmission as csSchema } from '@/db/schema';
 import {
   sendContactSubmissionAcknowledgement,
   sendContactSubmissionNotification,
@@ -81,8 +82,7 @@ export async function POST(request: NextRequest) {
       imageUrls.push(`/${relativePath}`);
     }
 
-    const submission = await prisma.contactSubmission.create({
-      data: {
+    const [submission] = await db.insert(csSchema).values({
         id: submissionId,
         fullName,
         phone,
@@ -90,9 +90,8 @@ export async function POST(request: NextRequest) {
         issueType,
         subject,
         message,
-        imageUrls: (imageUrls.length > 0 ? JSON.stringify(imageUrls) : null) as any,
-      },
-    });
+        imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
+    }).returning();
 
     let parsedImageUrls: string[] = [];
     try {
@@ -114,7 +113,7 @@ export async function POST(request: NextRequest) {
       message: submission.message,
       imageUrls: parsedImageUrls,
       submissionId: submission.id,
-      createdAt: submission.createdAt,
+      createdAt: new Date(submission.createdAt),
     };
 
     await Promise.allSettled([

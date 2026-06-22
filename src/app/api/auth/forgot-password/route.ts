@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { user as userSchema } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { createTokenPair } from "@/lib/token-utils";
 import { sendPasswordResetEmail } from "@/lib/auth-emails";
 
@@ -23,19 +25,18 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = parsed.data.email.trim().toLowerCase();
 
-    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.email, normalizedEmail) });
 
     if (user) {
       const { token, tokenHash } = await createTokenPair();
       const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
+      await db.update(userSchema)
+        .set({
           passwordResetTokenHash: tokenHash,
-          passwordResetExpires: resetExpiry,
-        },
-      });
+          passwordResetExpires: resetExpiry.toISOString(),
+        })
+        .where(eq(userSchema.id, user.id));
 
       try {
         await sendPasswordResetEmail({

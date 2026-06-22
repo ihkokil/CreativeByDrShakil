@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordResetEmail } from '@/lib/auth-emails';
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
         }
 
-        const teacher = await prisma.user.findUnique({ where: { id: params.id } });
+        const teacher = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.id, params.id) });
         if (!teacher) {
             return NextResponse.json({ error: 'Teacher not found.' }, { status: 404 });
         }
@@ -28,13 +30,12 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         const { token: resetToken, tokenHash } = await createTokenPair();
         const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
-        await prisma.user.update({
-            where: { id: teacher.id },
-            data: {
+        await db.update(userSchema)
+            .set({
                 passwordResetTokenHash: tokenHash,
-                passwordResetExpires: resetExpiry,
-            },
-        });
+                passwordResetExpires: resetExpiry.toISOString(),
+            })
+            .where(eq(userSchema.id, teacher.id));
 
         await sendPasswordResetEmail({
             email: teacher.email,

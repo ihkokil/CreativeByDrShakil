@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth-server'
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db';
+import { order as orderSchema, payment as paymentSchema, user as userSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { sendPaymentVerificationEmail } from '@/lib/payment-emails'
 import { sendTelegramVerification } from '@/lib/telegram'
 
-const paymentSchema = z.object({
+const paymentInputSchema = z.object({
   orderId: z.string().min(1, 'Order ID is required'),
   phoneNumber: z.string().min(1, 'Phone number is required'),
   transactionId: z.string().min(1, 'Transaction ID is required'),
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const parsed = paymentSchema.safeParse(body)
+    const parsed = paymentInputSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json({ error: (parsed.error as any).errors[0].message }, { status: 400 })
@@ -35,43 +37,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid payment amount' }, { status: 400 })
     }
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } })
+    const order = await db.query.order.findFirst({ where: (o, { eq }) => eq(o.id, orderId) })
     if (!order || order.userId !== session.user.id) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    const [payment] = await prisma.$transaction([
-      prisma.payment.upsert({
-        where: { orderId },
-        update: {
-          phoneNumber,
-          transactionId,
-          amount: paymentAmount,
-          status: 'pending',
-        },
-        create: {
-          orderId,
-          phoneNumber,
-          transactionId,
-          amount: paymentAmount,
-          status: 'pending',
-        },
-      }),
-      prisma.order.update({
-        where: { id: orderId },
-        data: { status: 'pending' },
-      }),
-    ]);
+    const [payment] = await db.transaction(async (tx) => {
+      await tx.delete(paymentSchema).where(eq(paymentSchema.orderId, orderId));
+      const [p] = await tx.insert(paymentSchema).values({
+        id: crypto.randomUUID(),
+        orderId,
+        phoneNumber,
+        transactionId,
+        amount: paymentAmount,
+        status: 'pending',
+      }).returning();
+      await tx.update(orderSchema).set({ status: 'pending' }).where(eq(orderSchema.id, orderId));
+      return [p];
+    });
 
-    const fullOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        user: { select: { fullName: true } },
+    const fullOrder = await db.query.order.findFirst({
+      where: (o, { eq }) => eq(o.id, orderId),
+      with: {
+        user: { columns: { fullName: true } },
         course: {
-          select: {
-            title: true,
+          columns: { title: true },
+          with: {
             teacher: {
-              select: {
+              columns: {
                 email: true,
                 telegramChatId: true,
               },
@@ -82,9 +75,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (fullOrder) {
-      const managers = await prisma.user.findMany({
-        where: { canManagePayments: true },
-        select: { email: true, telegramChatId: true },
+      const managers = await db.query.user.findMany({
+        where: (u, { eq }) => eq(u.canManagePayments, true),
+        columns: { email: true, telegramChatId: true },
       });
 
       const recipientEmails = new Set<string>();

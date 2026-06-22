@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { lessonProgress as lpSchema } from '@/db/schema';
+import { eq, and, gte } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -32,12 +34,9 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
     curriculumJson: any;
   }
 
-  const course = await prisma.course.findFirst({
-    where: {
-      slug,
-      status: 'published',
-    },
-    select: {
+  const course = await db.query.course.findFirst({
+    where: (c, { eq, and }) => and(eq(c.slug, slug), eq(c.status, 'published')),
+    columns: {
       id: true,
       title: true,
       timezone: true,
@@ -46,11 +45,11 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
       courseStartDate: true,
       releaseIntervalDays: true,
       releaseGroupsPerWeek: true,
-      ...({ releaseDaysOfWeek: true } as any),
+      releaseDaysOfWeek: true,
       releaseGroupDates: true,
       curriculumJson: true,
     },
-  }) as CourseResult | null;
+  }) as CourseResult | undefined;
 
   if (!course) {
     return { error: NextResponse.json({ error: 'Course not found.' }, { status: 404 }) };
@@ -63,17 +62,15 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-  const hasAccess = await prisma.order.findFirst({
-    where: {
-      userId,
-      courseId: course.id,
-      status: 'approved',
-      updatedAt: {
-        gte: oneYearAgo,
-      },
-    },
-    orderBy: { updatedAt: 'asc' },
-    select: { id: true, updatedAt: true },
+  const hasAccess = await db.query.order.findFirst({
+    where: (o, { eq, and, gte }) => and(
+      eq(o.userId, userId),
+      eq(o.courseId, course.id),
+      eq(o.status, 'approved'),
+      gte(o.updatedAt, oneYearAgo.toISOString())
+    ),
+    orderBy: (o, { asc }) => [asc(o.updatedAt)],
+    columns: { id: true, updatedAt: true },
   });
 
   if (!hasAccess) {
@@ -143,12 +140,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupDates,
     });
 
-    const overrideRows = await prisma.studentModuleAvailability.findMany({
-      where: {
-        courseId: result.course!.id,
-        userId: payload.sub,
-      },
-      select: {
+    const overrideRows = await db.query.studentModuleAvailability.findMany({
+      where: (sma, { eq, and }) => and(eq(sma.courseId, result.course!.id), eq(sma.userId, payload.sub)),
+      columns: {
         lessonNodeId: true,
         availabilityMode: true,
         availableAt: true,
@@ -166,12 +160,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }))
     );
     const playableNodes = collectPlayableNodes(curriculumWithAvailability);
-    const completedRows = await prisma.lessonProgress.findMany({
-      where: {
-        userId: payload.sub,
-        courseId: result.course!.id,
-      },
-      select: {
+    const completedRows = await db.query.lessonProgress.findMany({
+      where: (lp, { eq, and }) => and(eq(lp.userId, payload.sub), eq(lp.courseId, result.course!.id)),
+      columns: {
         lessonNodeId: true,
       },
     });
@@ -237,12 +228,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       releaseGroupDates,
     });
 
-    const overrideRows = await prisma.studentModuleAvailability.findMany({
-      where: {
-        courseId: result.course!.id,
-        userId: payload.sub,
-      },
-      select: {
+    const overrideRows = await db.query.studentModuleAvailability.findMany({
+      where: (sma, { eq, and }) => and(eq(sma.courseId, result.course!.id), eq(sma.userId, payload.sub)),
+      columns: {
         lessonNodeId: true,
         availabilityMode: true,
         availableAt: true,
@@ -270,31 +258,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'This lesson is currently locked.' }, { status: 400 });
     }
 
-    await prisma.lessonProgress.upsert({
-      where: {
-        userId_courseId_lessonNodeId: {
-          userId: payload.sub,
-          courseId: result.course!.id,
-          lessonNodeId,
-        },
-      },
-      create: {
+    await db.delete(lpSchema).where(
+        and(eq(lpSchema.userId, payload.sub), eq(lpSchema.courseId, result.course!.id), eq(lpSchema.lessonNodeId, lessonNodeId))
+    );
+    await db.insert(lpSchema).values({
+        id: crypto.randomUUID(),
         userId: payload.sub,
         courseId: result.course!.id,
         lessonNodeId,
-        completedAt: new Date(),
-      },
-      update: {
-        completedAt: new Date(),
-      },
+        completedAt: new Date().toISOString(),
     });
 
-    const completedRows = await prisma.lessonProgress.findMany({
-      where: {
-        userId: payload.sub,
-        courseId: result.course!.id,
-      },
-      select: {
+    const completedRows = await db.query.lessonProgress.findMany({
+      where: (lp, { eq, and }) => and(eq(lp.userId, payload.sub), eq(lp.courseId, result.course!.id)),
+      columns: {
         lessonNodeId: true,
       },
     });

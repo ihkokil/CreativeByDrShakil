@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 
 /**
@@ -15,15 +15,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const users = await prisma.user.findMany({
-      select: {
+    const users = await db.query.user.findMany({
+      columns: {
         id: true,
         fullName: true,
         email: true,
         role: true,
         createdAt: true,
+      },
+      with: {
         deviceSessions: {
-          select: {
+          columns: {
             id: true,
             deviceType: true,
             browserName: true,
@@ -33,16 +35,18 @@ export async function GET() {
             createdAt: true,
             lastActivityAt: true,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: (ds, { desc }) => [desc(ds.createdAt)],
         },
         orders: {
-          where: { status: 'approved' },
-          select: {
+          where: (o, { eq }) => eq(o.status, 'approved'),
+          columns: {
             id: true,
             enrolledAt: true,
             expiresAt: true,
+          },
+          with: {
             course: {
-              select: {
+              columns: {
                 id: true,
                 title: true,
                 slug: true,
@@ -51,7 +55,7 @@ export async function GET() {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: (u, { desc }) => [desc(u.createdAt)],
     });
 
     const formattedUsers = users.map((user) => {

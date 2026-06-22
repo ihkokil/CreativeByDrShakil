@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { videoLibraryNode as vlnSchema } from '@/db/schema';
+import { eq, max, isNull } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
@@ -31,9 +33,9 @@ export async function GET(request: NextRequest) {
         const authCheck = await requireTeacherOrAdmin(request);
         if (!authCheck.ok) return authCheck.response;
 
-        const nodes = await prisma.videoLibraryNode.findMany({
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            select: {
+        const nodes = await db.query.videoLibraryNode.findMany({
+            orderBy: (v, { asc }) => [asc(v.sortOrder), asc(v.createdAt)],
+            columns: {
                 id: true,
                 title: true,
                 type: true,
@@ -71,31 +73,27 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid type.' }, { status: 400 });
         }
 
-        // If parentId is provided, verify it exists
         if (parentId) {
-            const parent = await prisma.videoLibraryNode.findUnique({ where: { id: parentId } });
+            const parent = await db.query.videoLibraryNode.findFirst({ where: (v, { eq }) => eq(v.id, parentId) });
             if (!parent) {
                 return NextResponse.json({ error: 'Parent node not found.' }, { status: 404 });
             }
         }
 
-        // Get next sortOrder for siblings
-        const maxSort = await prisma.videoLibraryNode.aggregate({
-            where: { parentId },
-            _max: { sortOrder: true },
-        });
-        const nextOrder = (maxSort._max.sortOrder ?? -1) + 1;
+        const result = await db.select({ _max: max(vlnSchema.sortOrder) })
+            .from(vlnSchema)
+            .where(parentId ? eq(vlnSchema.parentId, parentId) : isNull(vlnSchema.parentId));
+        const nextOrder = (result[0]?._max ?? -1) + 1;
 
-        const node = await prisma.videoLibraryNode.create({
-            data: {
-                title,
-                type,
-                url,
-                duration,
-                parentId,
-                sortOrder: nextOrder,
-            },
-        });
+        const [node] = await db.insert(vlnSchema).values({
+            id: crypto.randomUUID(),
+            title,
+            type,
+            url,
+            duration,
+            parentId,
+            sortOrder: nextOrder,
+        }).returning();
 
         return NextResponse.json({ node }, { status: 201 });
     } catch (error: any) {
