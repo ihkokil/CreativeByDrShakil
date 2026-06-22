@@ -234,7 +234,7 @@ export default function UsersManager() {
               <th style={{ width: '13%' }}>Mobile Session</th>
               <th style={{ width: '16%' }}>Last Active</th>
               <th style={{ width: '15%' }}>Account Actions</th>
-              <th style={{ width: '15%' }}>Session Actions</th>
+              <th style={{ width: '15%', textAlign: 'right' }}>Session Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -383,9 +383,9 @@ export default function UsersManager() {
                       </button>
                     </div>
                   </td>
-                  <td>
+                  <td style={{ textAlign: 'right' }}>
                     {userObj.activeSessions.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px', marginLeft: 'auto' }}>
                         <button
                           className={styles.actionBtn}
                           onClick={() =>
@@ -410,7 +410,7 @@ export default function UsersManager() {
                         </button>
                       </div>
                     ) : (
-                      <span className={styles.empty}>—</span>
+                      <span className={styles.empty} style={{ display: 'inline-block', paddingRight: '24px' }}>—</span>
                     )}
                   </td>
                 </tr>
