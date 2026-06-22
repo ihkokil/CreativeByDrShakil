@@ -40,6 +40,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 
+    if (userRecord.isBanned) {
+      return NextResponse.json(
+        { error: 'You have been banned from this site. Please contact the administrator.' },
+        { status: 403 }
+      );
+    }
+
     // Check email verification BEFORE password so unverified users
     // always see the verification message instead of "Invalid credentials"
     if (!userRecord.emailVerified) {

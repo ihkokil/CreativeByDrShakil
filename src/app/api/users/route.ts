@@ -21,6 +21,7 @@ export async function GET() {
         fullName: true,
         email: true,
         role: true,
+        isBanned: true,
         createdAt: true,
       },
       with: {
@@ -61,14 +62,22 @@ export async function GET() {
     const formattedUsers = users.map((user) => {
       const activeSessions = user.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
 
+      // Calculate last active timestamp from all deviceSessions, falling back to createdAt
+      const latestSession = [...user.deviceSessions].sort(
+        (a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
+      )[0];
+      const lastActiveAt = latestSession ? latestSession.lastActivityAt : user.createdAt;
+
       return {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
         role: user.role,
+        isBanned: user.isBanned,
         createdAt: user.createdAt,
         activeSessions,
-        sessions: activeSessions, // compatibility
+        sessions: user.deviceSessions, // return all sessions to enable historical last active timestamp on client
+        lastActiveAt,
         enrolledCourses: user.orders.map((order) => ({
           orderId: order.id,
           courseId: order.course.id,
@@ -79,6 +88,9 @@ export async function GET() {
         })),
       };
     });
+
+    // Sort users by lastActiveAt descending
+    formattedUsers.sort((a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime());
 
     return NextResponse.json({ users: formattedUsers });
   } catch (error: any) {

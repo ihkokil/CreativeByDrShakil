@@ -55,6 +55,33 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             setConfirmPassword("");
             setOtpValues(Array(6).fill(""));
             setResendTimer(0);
+
+            // Read error query parameters on load
+            if (typeof window !== "undefined") {
+                const params = new URLSearchParams(window.location.search);
+                const err = params.get("error");
+                if (err === "Banned") {
+                    setMessage({
+                        type: 'error',
+                        text: 'You have been banned from this site. Please contact the administrator.'
+                    });
+                } else if (err === "DeviceAlreadyLoggedIn") {
+                    setMessage({
+                        type: 'error',
+                        text: 'You are already logged in on another browser on this device. Please log out from the previous session or ask admin to log you out.'
+                    });
+                } else if (err === "OAuthDenied") {
+                    setMessage({
+                        type: 'error',
+                        text: 'Google OAuth login was denied.'
+                    });
+                } else if (err === "OAuthInitFailed" || err === "TokenExchangeFailed" || err === "UserInfoFailed" || err === "OAuthUnexpected") {
+                    setMessage({
+                        type: 'error',
+                        text: 'An error occurred during Google Sign-In. Please try again.'
+                    });
+                }
+            }
         }
     }, [defaultMode, isOpen]);
 

@@ -27,7 +27,7 @@ interface Props {
 }
 
 export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: Props) {
-    const { session } = useAuth();
+    const { session, role } = useAuth();
     const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
     
     // Data states
@@ -54,8 +54,9 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
         try {
             const token = localStorage.getItem("auth_token");
             
+            const apiPrefix = role === "admin" ? "/api/admin" : "/api/teacher";
             // Fetch students
-            const studentsRes = await fetch("/api/admin/students", {
+            const studentsRes = await fetch(`${apiPrefix}/students`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             if (studentsRes.ok) {
@@ -140,7 +141,8 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                 return;
             }
 
-            const response = await fetch("/api/admin/enrollments", {
+            const apiPrefix = role === "admin" ? "/api/admin" : "/api/teacher";
+            const response = await fetch(`${apiPrefix}/enrollments`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

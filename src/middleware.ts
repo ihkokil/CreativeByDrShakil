@@ -26,7 +26,8 @@ export function middleware(request: NextRequest) {
 
     if (!sessionToken) {
         // Redirect to login if trying to access protected content
-        const loginUrl = new URL('/login', request.url);
+        const loginUrl = new URL('/', request.url);
+        loginUrl.searchParams.set('auth', 'login');
         loginUrl.searchParams.set('callbackUrl', pathname);
         return NextResponse.redirect(loginUrl);
     }
