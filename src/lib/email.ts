@@ -15,8 +15,13 @@ export async function sendMail({
   text: string;
 }) {
   const fromAddress = process.env.RESEND_FROM_EMAIL || "no-reply@creativebydrshakil.com";
-  const fromName = process.env.RESEND_FROM_NAME || "Creative by Dr. Shakil";
-  const from = `"${fromName}" <${fromAddress}>`;
+  let from: string;
+  if (fromAddress.includes("<") && fromAddress.includes(">")) {
+    from = fromAddress;
+  } else {
+    const fromName = process.env.RESEND_FROM_NAME || "Creative by Dr. Shakil";
+    from = `"${fromName}" <${fromAddress}>`;
+  }
 
   try {
     if (!resend) {

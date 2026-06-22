@@ -40,9 +40,8 @@
   display: flex;
   align-items: center;
   order: 2;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  position: static;
+  margin-right: auto;
 }
 
 .logoImg {
@@ -136,9 +135,9 @@
   border-color: var(--primary);
 }
 
-/* Hide "Account" text on small screens — icon-only */
+/* Show "Account" and "Login / Register" text always */
 .navText {
-  display: none;
+  display: inline;
 }
 
 /* ── User dropdown ── */
@@ -436,6 +435,7 @@
     position: static;
     transform: none;
     order: 1;
+    margin-right: 0;
   }
 
   .centerLinks {
@@ -459,5 +459,24 @@
   .navBackdrop,
   .navSidePanel {
     display: none;
+  }
+}
+
+/* ── Sizing optimization for smaller mobile devices ── */
+@media (max-width: 480px) {
+  .accountBtn,
+  .userMenuBtn {
+    padding: 8px 10px !important;
+    font-size: 0.8rem !important;
+    gap: 4px !important;
+    min-height: 38px !important;
+  }
+  .logoImg {
+    max-width: 110px !important;
+    height: auto !important;
+  }
+  .navMenuBtn {
+    width: 38px !important;
+    height: 38px !important;
   }
 }
