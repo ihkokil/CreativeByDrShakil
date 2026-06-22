@@ -223,11 +223,11 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th style={{ width: '28%' }}>User Information</th>
-              <th style={{ width: '16%' }}>Desktop Session</th>
-              <th style={{ width: '16%' }}>Mobile Session</th>
-              <th style={{ width: '26%' }}>Last Active</th>
-              <th style={{ width: '14%' }}>Actions</th>
+              <th style={{ width: '25%' }}>User Information</th>
+              <th style={{ width: '15%' }}>Desktop Session</th>
+              <th style={{ width: '15%' }}>Mobile Session</th>
+              <th style={{ width: '20%' }}>Last Active</th>
+              <th style={{ width: '25%' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -320,9 +320,9 @@ export default function UsersManager() {
                     </div>
                   </td>
                   <td>
-                    <div className={styles.actionsCell} style={{ flexWrap: 'wrap', gap: '12px' }}>
+                    <div className={styles.actionsCell} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                       {/* Account Management Column */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px', flex: '1 1 auto' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px', flexShrink: 0 }}>
                         <button
                           className={styles.actionBtn}
                           onClick={() => handleToggleBan(userObj.id, userObj.isBanned)}
@@ -358,7 +358,7 @@ export default function UsersManager() {
 
                       {/* Sessions Management Column */}
                       {userObj.activeSessions.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px', flex: '1 1 auto' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px', flexShrink: 0 }}>
                           <button
                             className={styles.actionBtn}
                             onClick={() =>
