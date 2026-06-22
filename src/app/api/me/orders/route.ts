@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth'
 
 export async function GET(request: NextRequest) {
@@ -9,10 +9,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const orders = await prisma.order.findMany({
-      where: { userId: payload.sub },
-      include: { course: true, payment: true },
-      orderBy: { createdAt: 'desc' },
+    const orders = await db.query.order.findMany({
+      where: (o, { eq }) => eq(o.userId, payload.sub),
+      with: { course: true, payments: true },
+      orderBy: (o, { desc }) => [desc(o.createdAt)],
     })
 
     return NextResponse.json(orders)

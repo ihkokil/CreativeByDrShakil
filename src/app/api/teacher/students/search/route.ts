@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema } from '@/db/schema';
+import { eq, or, and, ilike } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,25 +13,29 @@ export async function GET(request: NextRequest) {
 
     const query = request.nextUrl.searchParams.get('q') || '';
     
-    // Build where clause
-    const whereClause: any = { role: 'student' };
-    if (query.length > 0) {
-      whereClause.OR = [
-        { fullName: { contains: query } },
-        { email: { contains: query } },
-        { phone: { contains: query } },
-      ];
-    }
-
-    const students = await prisma.user.findMany({
-      where: whereClause,
-      select: {
+    const students = await db.query.user.findMany({
+      where: (u, { eq, or, and, ilike }) => {
+        const roleMatch = eq(u.role, 'student');
+        if (query.length > 0) {
+          const searchPattern = `%${query}%`;
+          return and(
+            roleMatch,
+            or(
+              ilike(u.fullName, searchPattern),
+              ilike(u.email, searchPattern),
+              ilike(u.phone, searchPattern)
+            )
+          );
+        }
+        return roleMatch;
+      },
+      columns: {
         id: true,
         fullName: true,
         email: true,
         phone: true,
       },
-      take: 200
+      limit: 200
     });
 
     return NextResponse.json({ students });

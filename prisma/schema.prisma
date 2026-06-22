@@ -138,6 +138,8 @@ model Order {
   totalAmount Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  enrolledAt  DateTime? @default(now())
+  expiresAt   DateTime?
   course      Course   @relation(fields: [courseId], references: [id])
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   payment     Payment?

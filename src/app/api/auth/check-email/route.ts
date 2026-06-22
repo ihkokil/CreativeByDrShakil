@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 
 const checkEmailSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -22,11 +22,9 @@ export async function POST(request: NextRequest) {
     const { email } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
-    const user = await prisma.user.findUnique({
-      where: {
-        email: normalizedEmail,
-      },
-      select: {
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.email, normalizedEmail),
+      columns: {
         id: true,
       },
     });

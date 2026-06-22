@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema } from '@/db/schema';
 import {
     extractBearerToken,
     extractCookieToken,
@@ -34,8 +35,8 @@ export async function POST(request: NextRequest) {
 
         const normalizedEmail = email.trim().toLowerCase();
 
-        const existingTeacher = await prisma.user.findUnique({
-            where: { email: normalizedEmail },
+        const existingTeacher = await db.query.user.findFirst({
+            where: (u, { eq }) => eq(u.email, normalizedEmail),
         });
 
         if (existingTeacher) {
@@ -50,20 +51,19 @@ export async function POST(request: NextRequest) {
         const { token: resetToken, tokenHash } = await createTokenPair();
         const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
-        await prisma.user.create({
-            data: {
-                email: normalizedEmail,
-                fullName,
-                passwordHash,
-                role: 'teacher',
-                designation: designation || null,
-                institution: institution || null,
-                degrees: degrees || null,
-                profileImage: profileImage || null,
-                emailVerified: true,
-                passwordResetTokenHash: tokenHash,
-                passwordResetExpires: resetExpiry,
-            },
+        await db.insert(userSchema).values({
+            id: crypto.randomUUID(),
+            email: normalizedEmail,
+            fullName,
+            passwordHash,
+            role: 'teacher',
+            designation: designation || null,
+            institution: institution || null,
+            degrees: degrees || null,
+            profileImage: profileImage || null,
+            emailVerified: true,
+            passwordResetTokenHash: tokenHash,
+            passwordResetExpires: resetExpiry.toISOString(),
         });
 
         // Send the "Set Your Password" email using the existing reset-password template

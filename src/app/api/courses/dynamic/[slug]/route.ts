@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { formatLastUpdated } from '@/lib/date-format';
 
@@ -16,11 +16,11 @@ export async function GET(
   const { slug } = await params;
   try {
 
-    const course = await prisma.course.findUnique({
-      where: { slug: slug },
-      include: {
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.slug, slug),
+      with: {
         teacher: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             designation: true,
@@ -28,8 +28,8 @@ export async function GET(
           },
         },
         instructors: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
+          orderBy: (i, { asc }) => [asc(i.sortOrder)],
+          columns: {
             id: true,
             name: true,
             designation: true,
@@ -37,11 +37,10 @@ export async function GET(
             sortOrder: true,
           },
         },
-        _count: {
-          select: {
-            orders: {
-              where: { status: 'approved' },
-            },
+        orders: {
+          where: (o, { eq }) => eq(o.status, 'approved'),
+          columns: {
+            id: true,
           },
         },
       },
@@ -70,7 +69,7 @@ export async function GET(
         image: course.imageUrl || '/placeholder.svg',
         status: course.status,
         lastUpdated: formatLastUpdated(course.updatedAt),
-        enrolledCount: course._count.orders,
+        enrolledCount: course.orders.length,
         publishedAt: course.publishedAt,
         instructors: course.instructors,
         mainInstructor: {

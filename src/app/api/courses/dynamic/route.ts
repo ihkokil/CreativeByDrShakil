@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { countLessons, parseCurriculumJson } from '@/lib/teacher-course-builder';
 
 const formatPrice = (price: number) => {
@@ -12,15 +12,15 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const courses = await prisma.course.findMany({
-      where: {
-        status: 'published',
-        slug: { not: null },
-      },
-      orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
-      include: {
+    const courses = await db.query.course.findMany({
+      where: (c, { eq, isNotNull, and }) => and(
+        eq(c.status, 'published'),
+        isNotNull(c.slug)
+      ),
+      orderBy: (c, { desc }) => [desc(c.publishedAt), desc(c.updatedAt)],
+      with: {
         teacher: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             designation: true,
@@ -28,8 +28,8 @@ export async function GET() {
           },
         },
         instructors: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
+          orderBy: (i, { asc }) => [asc(i.sortOrder)],
+          columns: {
             id: true,
             name: true,
             designation: true,
@@ -37,11 +37,10 @@ export async function GET() {
             sortOrder: true,
           },
         },
-        _count: {
-          select: {
-            orders: {
-              where: { status: 'approved' },
-            },
+        orders: {
+          where: (o, { eq }) => eq(o.status, 'approved'),
+          columns: {
+            id: true,
           },
         },
       },
@@ -61,7 +60,7 @@ export async function GET() {
           priceValue: course.price,
           duration: course.duration,
           lessonCount,
-          enrolledCount: course._count.orders,
+          enrolledCount: course.orders.length,
           isFeatured: course.isFeatured,
           description: course.overview || course.description,
           overview: course.overview,

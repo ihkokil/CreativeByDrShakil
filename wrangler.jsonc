@@ -18,7 +18,8 @@
   "rules": [
     {
       "type": "CompiledWasm",
-      "globs": ["**/*.wasm"]
+      "globs": ["**/*.wasm"],
+      "fallthrough": true
     }
   ]
 }

@@ -51,10 +51,10 @@ export async function requirePaymentManager(request: NextRequest) {
 
   if (payload.role === 'teacher') {
     // Check database to see if the teacher has the canManagePayments flag
-    const { prisma } = await import('@/lib/prisma');
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { canManagePayments: true }
+    const { db } = await import('@/lib/db');
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+      columns: { canManagePayments: true }
     });
 
     if (user?.canManagePayments) {
