@@ -320,43 +320,52 @@ export default function UsersManager() {
                     </div>
                   </td>
                   <td>
-                    <div className={styles.actionsCell} style={{ flexWrap: 'wrap' }}>
-                      <button
-                        className={styles.actionBtn}
-                        onClick={() => handleToggleBan(userObj.id, userObj.isBanned)}
-                        title={userObj.isBanned ? "Unban user and allow login" : "Ban user and prevent login"}
-                        style={{
-                          color: userObj.isBanned ? '#22c55e' : '#f97316',
-                          borderColor: userObj.isBanned ? 'rgba(34, 197, 94, 0.3)' : 'rgba(249, 115, 22, 0.3)',
-                          background: userObj.isBanned ? 'rgba(34, 197, 94, 0.08)' : 'rgba(249, 115, 22, 0.08)',
-                        }}
-                      >
-                        {userObj.isBanned ? <UserCheck size={16} /> : <ShieldAlert size={16} />}
-                        <span>{userObj.isBanned ? 'Unban' : 'Ban User'}</span>
-                      </button>
+                    <div className={styles.actionsCell} style={{ flexWrap: 'wrap', gap: '12px' }}>
+                      {/* Account Management Column */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px', flex: '1 1 auto' }}>
+                        <button
+                          className={styles.actionBtn}
+                          onClick={() => handleToggleBan(userObj.id, userObj.isBanned)}
+                          title={userObj.isBanned ? "Unban user and allow login" : "Ban user and prevent login"}
+                          style={{
+                            color: userObj.isBanned ? '#22c55e' : '#f97316',
+                            borderColor: userObj.isBanned ? 'rgba(34, 197, 94, 0.3)' : 'rgba(249, 115, 22, 0.3)',
+                            background: userObj.isBanned ? 'rgba(34, 197, 94, 0.08)' : 'rgba(249, 115, 22, 0.08)',
+                            width: '100%',
+                            justifyContent: 'flex-start',
+                          }}
+                        >
+                          {userObj.isBanned ? <UserCheck size={16} /> : <ShieldAlert size={16} />}
+                          <span>{userObj.isBanned ? 'Unban' : 'Ban User'}</span>
+                        </button>
 
-                      <button
-                        className={styles.actionBtn}
-                        onClick={() => handleDeleteUser(userObj.id, userObj.fullName)}
-                        title="Delete user entirely from database and application"
-                        style={{
-                          color: '#ef4444',
-                          borderColor: 'rgba(239, 68, 68, 0.3)',
-                          background: 'rgba(239, 68, 68, 0.08)',
-                        }}
-                      >
-                        <Trash2 size={16} />
-                        <span>Delete User</span>
-                      </button>
+                        <button
+                          className={styles.actionBtn}
+                          onClick={() => handleDeleteUser(userObj.id, userObj.fullName)}
+                          title="Delete user entirely from database and application"
+                          style={{
+                            color: '#ef4444',
+                            borderColor: 'rgba(239, 68, 68, 0.3)',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            width: '100%',
+                            justifyContent: 'flex-start',
+                          }}
+                        >
+                          <Trash2 size={16} />
+                          <span>Delete User</span>
+                        </button>
+                      </div>
 
+                      {/* Sessions Management Column */}
                       {userObj.activeSessions.length > 0 && (
-                        <>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '120px', flex: '1 1 auto' }}>
                           <button
                             className={styles.actionBtn}
                             onClick={() =>
                               userObj.activeSessions.forEach((s) => handleLockSession(s.id))
                             }
                             title="Lock all active sessions"
+                            style={{ width: '100%', justifyContent: 'flex-start' }}
                           >
                             <Lock size={16} />
                             <span>Lock Active</span>
@@ -367,11 +376,12 @@ export default function UsersManager() {
                               userObj.activeSessions.forEach((s) => handleLogoutSession(s.id))
                             }
                             title="Logout all sessions"
+                            style={{ width: '100%', justifyContent: 'flex-start' }}
                           >
                             <LogOut size={16} />
                             <span>Logout Active</span>
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
                   </td>
