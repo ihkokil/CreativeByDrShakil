@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { course as courseSchema, user as userSchema, order as orderSchema } from '@/db/schema';
+import { eq, or, and } from 'drizzle-orm';
 import { hashPassword } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
@@ -27,8 +29,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify course exists
-    const course = await prisma.course.findFirst({
-      where: { id: courseId },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
     });
 
     if (!course) {
@@ -45,10 +47,8 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = String(email).trim().toLowerCase();
 
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          OR: [{ email: normalizedEmail }, ...(phone ? [{ phone }] : [])],
-        },
+      const existingUser = await db.query.user.findFirst({
+        where: (u, { eq, or }) => phone ? or(eq(u.email, normalizedEmail), eq(u.phone, phone)) : eq(u.email, normalizedEmail),
       });
 
       if (existingUser) {
@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
       const passwordHash = await hashPassword(tempPassword);
 
-      student = await prisma.user.create({
-        data: {
+      const [newStudent] = await db.insert(userSchema).values({
+          id: crypto.randomUUID(),
           email: normalizedEmail,
           fullName,
           phone: phone || null,
@@ -70,9 +70,9 @@ export async function POST(request: NextRequest) {
           role: 'student',
           emailVerified: true,
           passwordResetTokenHash: tokenHash,
-          passwordResetExpires: resetExpiry,
-        },
-      });
+          passwordResetExpires: resetExpiry.toISOString(),
+      }).returning();
+      student = newStudent;
 
       isNewRegistration = true;
 
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Student ID is required for existing students.' }, { status: 400 });
       }
 
-      student = await prisma.user.findFirst({
-        where: { id: studentId, role: 'student' },
+      student = await db.query.user.findFirst({
+        where: (u, { eq, and }) => and(eq(u.id, studentId), eq(u.role, 'student')),
       });
 
       if (!student) {
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const existingOrder = await prisma.order.findUnique({
-      where: { userId_courseId: { userId: student.id, courseId } },
+    const existingOrder = await db.query.order.findFirst({
+      where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.courseId, courseId)),
     });
 
     if (existingOrder?.status === 'approved') {
@@ -109,23 +109,26 @@ export async function POST(request: NextRequest) {
 
     let order;
     if (existingOrder) {
-      order = await prisma.order.update({
-        where: { id: existingOrder.id },
-        data: { 
+      const [updatedOrder] = await db.update(orderSchema).set({
           status: 'approved',
           totalAmount: 0,
-        },
-        include: { course: true, user: true },
+      }).where(eq(orderSchema.id, existingOrder.id)).returning();
+      order = await db.query.order.findFirst({
+        where: (o, { eq }) => eq(o.id, updatedOrder.id),
+        with: { course: true, user: true },
       });
     } else {
-      order = await prisma.order.create({
-        data: {
+      const newOrderId = crypto.randomUUID();
+      await db.insert(orderSchema).values({
+          id: newOrderId,
           userId: student.id,
           courseId,
           status: 'approved',
           totalAmount: 0,
-        },
-        include: { course: true, user: true },
+      });
+      order = await db.query.order.findFirst({
+        where: (o, { eq }) => eq(o.id, newOrderId),
+        with: { course: true, user: true },
       });
     }
 
@@ -135,7 +138,7 @@ export async function POST(request: NextRequest) {
         ? `Student enrolled successfully. A password setup email has been sent to ${student.email}.`
         : 'Student enrolled successfully.',
       enrollment: {
-        id: order.id,
+        id: order!.id,
         student: {
           id: student.id,
           fullName: student.fullName,

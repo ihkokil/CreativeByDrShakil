@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { inArray, and, eq } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 
@@ -14,9 +15,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+      columns: {
         id: true,
         email: true,
         phone: true,
@@ -38,13 +39,11 @@ export async function GET(request: NextRequest) {
     const isAdmin = user.role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    const orders = await prisma.order.findMany({
-      where: {
-        userId: user.id,
-      },
-      include: {
+    const orders = await db.query.order.findMany({
+      where: (o, { eq }) => eq(o.userId, user.id),
+      with: {
         course: {
-          select: {
+          columns: {
             id: true,
             slug: true,
             title: true,
@@ -54,8 +53,8 @@ export async function GET(request: NextRequest) {
             curriculumJson: true,
           },
         },
-        payment: {
-          select: {
+        payments: {
+          columns: {
             id: true,
             status: true,
             transactionId: true,
@@ -65,14 +64,14 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: (o, { desc }) => [desc(o.createdAt)],
     });
 
     let enrolledCourses: any[] = [];
     
     if (isAdmin) {
-      const allPublishedCourses = await prisma.course.findMany({
-        where: { status: 'published' },
+      const allPublishedCourses = await db.query.course.findMany({
+        where: (c, { eq }) => eq(c.status, 'published'),
       });
 
       enrolledCourses = allPublishedCourses.map((course: any) => {
@@ -115,12 +114,12 @@ export async function GET(request: NextRequest) {
 
     const courseIds = enrolledCourses.map((c) => c.courseId);
     const progressRows = courseIds.length
-      ? await prisma.lessonProgress.findMany({
-          where: {
-            userId: user.id,
-            courseId: { in: courseIds },
-          },
-          select: {
+      ? await db.query.lessonProgress.findMany({
+          where: (lp, { eq, inArray, and }) => and(
+            eq(lp.userId, user.id),
+            inArray(lp.courseId, courseIds)
+          ),
+          columns: {
             courseId: true,
             lessonNodeId: true,
           },
@@ -181,7 +180,7 @@ export async function GET(request: NextRequest) {
         title: order.course.title,
         slug: order.course.slug,
       },
-      payment: order.payment,
+      payment: order.payments?.[0] ?? null,
     }));
 
     return NextResponse.json({

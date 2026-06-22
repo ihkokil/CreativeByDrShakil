@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema, course as courseSchema, order as orderSchema, lessonProgress as lessonProgressSchema } from '@/db/schema';
+import { count, eq } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 
 export async function GET(request: NextRequest) {
@@ -9,12 +11,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const [studentCount, teacherCount, courseCount, totalEnrollments, totalLessonsCompleted] = await Promise.all([
-      prisma.user.count({ where: { role: 'student' } }),
-      prisma.user.count({ where: { role: 'teacher' } }),
-      prisma.course.count({ where: { status: 'published' } }),
-      prisma.order.count({ where: { status: 'approved' } }),
-      prisma.lessonProgress.count(),
+    const [
+      [{ count: studentCount }],
+      [{ count: teacherCount }],
+      [{ count: courseCount }],
+      [{ count: totalEnrollments }],
+      [{ count: totalLessonsCompleted }]
+    ] = await Promise.all([
+      db.select({ count: count() }).from(userSchema).where(eq(userSchema.role, 'student')),
+      db.select({ count: count() }).from(userSchema).where(eq(userSchema.role, 'teacher')),
+      db.select({ count: count() }).from(courseSchema).where(eq(courseSchema.status, 'published')),
+      db.select({ count: count() }).from(orderSchema).where(eq(orderSchema.status, 'approved')),
+      db.select({ count: count() }).from(lessonProgressSchema),
     ]);
 
     return NextResponse.json({

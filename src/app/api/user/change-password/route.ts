@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { comparePassword, hashPassword } from '@/lib/auth-server';
 
@@ -26,9 +28,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New password must be different from current password.' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+      columns: {
         id: true,
         passwordHash: true,
       },
@@ -51,14 +53,11 @@ export async function POST(request: NextRequest) {
     }
 
     const nextHash = await hashPassword(newPassword);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
+    await db.update(userSchema).set({
         passwordHash: nextHash,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
-      },
-    });
+      }).where(eq(userSchema.id, user.id));
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

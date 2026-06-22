@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { eq, inArray, and } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 
@@ -13,9 +14,8 @@ export async function GET(request: NextRequest) {
     const teacherId = payload.sub;
 
     // 1. Get all courses in the system
-    const courses = await prisma.course.findMany({
-      where: {},
-      select: {
+    const courses = await db.query.course.findMany({
+      columns: {
         id: true,
         title: true,
         curriculumJson: true,
@@ -24,39 +24,49 @@ export async function GET(request: NextRequest) {
 
     const courseIds = courses.map((c) => c.id);
 
+    if (courseIds.length === 0) {
+      return NextResponse.json({
+        totalCourses: 0,
+        totalStudents: 0,
+        totalEnrollments: 0,
+        totalLessonsCompleted: 0,
+        courseProgress: [],
+        aggregateProgress: 0,
+      });
+    }
+
     // 2. Get approved orders for these courses from users with 'student' role
-    const approvedOrders = await prisma.order.findMany({
-      where: {
-        courseId: { in: courseIds },
-        status: 'approved',
-        user: {
-          role: 'student'
-        }
-      },
-      select: {
+    const allOrders = await db.query.order.findMany({
+      where: (o, { inArray, eq, and }) => and(inArray(o.courseId, courseIds), eq(o.status, 'approved')),
+      columns: {
         id: true,
         userId: true,
         courseId: true,
       },
+      with: {
+        user: { columns: { role: true } },
+      },
     });
+    
+    const approvedOrders = allOrders.filter(o => o.user?.role === 'student');
 
     const uniqueStudentIds = new Set(approvedOrders.map(o => o.userId));
     const totalStudents = uniqueStudentIds.size;
 
     // 3. Get progress entries for these courses (only for students)
-    const progressEntries = await prisma.lessonProgress.findMany({
-      where: {
-        courseId: { in: courseIds },
-        user: {
-          role: 'student'
-        }
-      },
-      select: {
+    const allProgressEntries = await db.query.lessonProgress.findMany({
+      where: (lp, { inArray }) => inArray(lp.courseId, courseIds),
+      columns: {
         userId: true,
         courseId: true,
         lessonNodeId: true,
       },
+      with: {
+        user: { columns: { role: true } },
+      },
     });
+    
+    const progressEntries = allProgressEntries.filter(p => p.user?.role === 'student');
 
     // 4. Group data to calculate averages
     const courseStats = courses.map((course) => {

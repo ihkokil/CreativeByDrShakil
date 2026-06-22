@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -11,7 +12,7 @@ import {
 } from '@/lib/teacher-course-builder';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return prisma.course.findUnique({ where: { id: courseId } });
+  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
 };
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -83,10 +84,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.publishedAt = body.status === 'published' ? new Date() : null;
     }
 
-    const updatedCourse = await prisma.course.update({
-      where: { id: course.id },
-      data: updateData,
-    });
+    if (updateData.releaseStartAt instanceof Date) {
+      updateData.releaseStartAt = updateData.releaseStartAt.toISOString();
+    }
+    if (updateData.publishedAt instanceof Date) {
+      updateData.publishedAt = updateData.publishedAt.toISOString();
+    }
+
+    const [updatedCourse] = await db.update(courseSchema)
+      .set(updateData)
+      .where(eq(courseSchema.id, course.id))
+      .returning();
 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(updatedCourse.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);

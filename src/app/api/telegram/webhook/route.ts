@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { order as orderSchema, payment as paymentSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { updateTelegramVerificationMessage } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
@@ -12,9 +14,9 @@ export async function POST(request: NextRequest) {
       const [prefix, orderId, action] = (data || '').split(':');
 
       if (prefix === 'payment_verify' && orderId && action) {
-        const order = await prisma.order.findUnique({
-          where: { id: orderId },
-          include: { payment: true },
+        const order = await db.query.order.findFirst({
+          where: (o, { eq }) => eq(o.id, orderId),
+          with: { payments: true },
         });
 
         if (!order) {
@@ -24,20 +26,13 @@ export async function POST(request: NextRequest) {
         if (order.status === 'pending') {
           const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-          await prisma.$transaction(async (tx) => {
-            await tx.order.update({
-              where: { id: orderId },
-              data: { status: nextStatus },
-            });
-
-            if (order.payment) {
-              await tx.payment.update({
-                where: { orderId },
-                data: {
+          await db.transaction(async (tx) => {
+            await tx.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
+            if (order.payments?.length) {
+              await tx.update(paymentSchema).set({
                   status: nextStatus,
-                  approvedAt: action === 'approve' ? new Date() : null,
-                },
-              });
+                  approvedAt: action === 'approve' ? new Date().toISOString() : null,
+              }).where(eq(paymentSchema.orderId, orderId));
             }
           });
 
