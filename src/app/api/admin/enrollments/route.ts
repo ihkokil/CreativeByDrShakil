@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { order as orderSchema, user as userSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken, hashPassword } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
@@ -21,11 +23,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const enrollments = await prisma.order.findMany({
-      where: { status: 'approved' },
-      include: {
+    const enrollments = await db.query.order.findMany({
+      where: (o, { eq }) => eq(o.status, 'approved'),
+      with: {
         user: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -33,15 +35,15 @@ export async function GET(request: NextRequest) {
           },
         },
         course: {
-          select: {
+          columns: {
             id: true,
             title: true,
             slug: true,
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
+      orderBy: (o, { desc }) => [desc(o.createdAt)],
+      limit: 100,
     });
 
     return NextResponse.json({
@@ -88,15 +90,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify course exists
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
     });
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       let finalStudent;
       let isNewReg = false;
       let setupToken = null;
@@ -110,10 +112,8 @@ export async function POST(request: NextRequest) {
         const normalizedEmail = String(email).trim().toLowerCase();
 
         // Check if user already exists
-        const existingUser = await tx.user.findFirst({
-          where: {
-            OR: [{ email: normalizedEmail }, ...(phone ? [{ phone }] : [])],
-          },
+        const existingUser = await tx.query.user.findFirst({
+          where: (u, { eq, or }) => or(eq(u.email, normalizedEmail), phone ? eq(u.phone, phone) : undefined),
         });
 
         if (existingUser) {
@@ -129,18 +129,18 @@ export async function POST(request: NextRequest) {
         const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
         const passwordHashVal = await hashPassword(tempPassword);
 
-        finalStudent = await tx.user.create({
-          data: {
-            email: normalizedEmail,
-            fullName,
-            phone: phone || null,
-            passwordHash: passwordHashVal,
-            role: 'student',
-            emailVerified: true,
-            passwordResetTokenHash: tokenHash,
-            passwordResetExpires: resetExpiry,
-          },
-        });
+        const [newUser] = await tx.insert(userSchema).values({
+          id: crypto.randomUUID(),
+          email: normalizedEmail,
+          fullName,
+          phone: phone || null,
+          passwordHash: passwordHashVal,
+          role: 'student',
+          emailVerified: true,
+          passwordResetTokenHash: tokenHash,
+          passwordResetExpires: resetExpiry.toISOString(),
+        }).returning();
+        finalStudent = newUser;
 
         isNewReg = true;
       } else {
@@ -149,8 +149,8 @@ export async function POST(request: NextRequest) {
           throw new Error('Student ID is required for existing students.');
         }
 
-        finalStudent = await tx.user.findFirst({
-          where: { id: studentId, role: 'student' },
+        finalStudent = await tx.query.user.findFirst({
+          where: (u, { eq, and }) => and(eq(u.id, studentId), eq(u.role, 'student')),
         });
 
         if (!finalStudent) {
@@ -159,8 +159,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if already enrolled
-      const existingOrder = await tx.order.findUnique({
-        where: { userId_courseId: { userId: finalStudent.id, courseId } },
+      const existingOrder = await tx.query.order.findFirst({
+        where: (o, { eq, and }) => and(eq(o.userId, finalStudent.id), eq(o.courseId, courseId)),
       });
 
       if (existingOrder?.status === 'approved') {
@@ -178,9 +178,9 @@ export async function POST(request: NextRequest) {
       );
 
       // Fetch the order created/updated by the helper to return it
-      const finalOrder = await tx.order.findUnique({
-        where: { userId_courseId: { userId: finalStudent.id, courseId: course.id } },
-        include: { course: true, user: true },
+      const finalOrder = await tx.query.order.findFirst({
+        where: (o, { eq, and }) => and(eq(o.userId, finalStudent.id), eq(o.courseId, course.id)),
+        with: { course: true, user: true },
       });
 
       if (!finalOrder) throw new Error('Failed to create enrollment.');
@@ -251,9 +251,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Order ID is required.' }, { status: 400 });
     }
 
-    await prisma.order.delete({
-      where: { id: orderId },
-    });
+    await db.delete(orderSchema).where(eq(orderSchema.id, orderId));
 
     return NextResponse.json({
       success: true,

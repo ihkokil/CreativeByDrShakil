@@ -150,3 +150,10 @@
     text-align: center;
     color: var(--text-muted);
 }
+
+.panel {
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    background: color-mix(in srgb, var(--card-bg) 88%, transparent);
+    padding: 22px;
+}

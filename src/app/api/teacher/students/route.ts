@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { db } from '@/lib/db';
+import { course as courseSchema, studentModuleAvailability as smaSchema } from '@/db/schema';
+import { eq, inArray, and, gte, desc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -51,18 +52,17 @@ type ProgressRow = {
 };
 
 const getTeacherCourses = async (teacherId: string, role: string) => {
-  return prisma.course.findMany({
-    where: {},
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      instructors: { orderBy: { sortOrder: 'asc' } },
-      _count: {
-        select: {
-          orders: true,
-        },
-      },
+  const courses = await db.query.course.findMany({
+    orderBy: (c, { desc }) => [desc(c.updatedAt)],
+    with: {
+      instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
+      orders: { columns: { id: true } },
     },
-  }) as Promise<TeacherCourseSummary[]>;
+  });
+  return courses.map(c => ({
+    ...c,
+    _count: { orders: c.orders.length },
+  })) as TeacherCourseSummary[];
 };
 
 const buildAvailabilityOverrides = (rows: OverrideRow[]) => {
@@ -116,9 +116,9 @@ export async function GET(request: NextRequest) {
       curriculumJson: any;
     }
 
-    const selectedCourse = await prisma.course.findFirst({
-      where: { id: selectedCourseId },
-      select: {
+    const selectedCourse = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, selectedCourseId),
+      columns: {
         id: true,
         title: true,
         slug: true,
@@ -129,12 +129,12 @@ export async function GET(request: NextRequest) {
         releaseStartAt: true,
         releaseIntervalDays: true,
         releaseGroupsPerWeek: true,
-        ...({ releaseDaysOfWeek: true } as any),
+        releaseDaysOfWeek: true,
         releaseGroupDates: true,
         curriculumJson: true,
         courseStartDate: true,
       },
-    }) as CourseResult | null;
+    }) as CourseResult | undefined;
 
     if (!selectedCourse) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -143,18 +143,16 @@ export async function GET(request: NextRequest) {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    const enrollments = await prisma.order.findMany({
-      where: {
-        courseId: selectedCourse.id,
-        status: 'approved',
-        updatedAt: {
-          gte: oneYearAgo,
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-      include: {
+    const enrollments = await db.query.order.findMany({
+      where: (o, { eq, and, gte }) => and(
+        eq(o.courseId, selectedCourse.id),
+        eq(o.status, 'approved'),
+        gte(o.updatedAt, oneYearAgo.toISOString())
+      ),
+      orderBy: (o, { desc }) => [desc(o.updatedAt)],
+      with: {
         user: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -171,9 +169,9 @@ export async function GET(request: NextRequest) {
     // Safely query LessonProgress if it exists
     if (userIds.length > 0) {
       try {
-        const lpResult = await prisma.lessonProgress.findMany({
-          where: { courseId: selectedCourse.id, userId: { in: userIds } },
-          select: { userId: true, lessonNodeId: true }
+        const lpResult = await db.query.lessonProgress.findMany({
+          where: (lp, { eq, inArray, and }) => and(eq(lp.courseId, selectedCourse.id), inArray(lp.userId, userIds)),
+          columns: { userId: true, lessonNodeId: true }
         });
         progressRows = lpResult;
       } catch (err) {
@@ -183,9 +181,9 @@ export async function GET(request: NextRequest) {
 
       // Safely query StudentModuleAvailability if it exists
       try {
-        const smaResult = await prisma.studentModuleAvailability.findMany({
-          where: { courseId: selectedCourse.id, userId: { in: userIds } },
-          select: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
+        const smaResult = await db.query.studentModuleAvailability.findMany({
+          where: (sma, { eq, inArray, and }) => and(eq(sma.courseId, selectedCourse.id), inArray(sma.userId, userIds)),
+          columns: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
         });
         overrideRows = smaResult as OverrideRow[];
       } catch (err) {
@@ -247,7 +245,7 @@ export async function GET(request: NextRequest) {
         fullName: enrollment.user.fullName,
         email: enrollment.user.email,
         profileImage: enrollment.user.profileImage || null,
-        enrolledAt: enrollment.updatedAt.toISOString(),
+        enrolledAt: enrollment.updatedAt,
         completedCount,
         totalCount,
         progressPercent: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
@@ -297,9 +295,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId, and lessonNodeId are required.' }, { status: 400 });
     }
 
-    const course = await prisma.course.findFirst({
-      where: { id: courseId },
-      select: { id: true },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      columns: { id: true },
     });
 
     if (!course) {
@@ -311,31 +309,22 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (availabilityMode === 'inherit') {
-      await prisma.studentModuleAvailability.deleteMany({
-        where: { courseId, userId, lessonNodeId }
-      });
+      await db.delete(smaSchema).where(
+        and(eq(smaSchema.courseId, courseId), eq(smaSchema.userId, userId), eq(smaSchema.lessonNodeId, lessonNodeId))
+      );
     } else {
       const nextAvailableAt = availableAt && !Number.isNaN(availableAt.getTime()) ? availableAt : null;
 
-      await prisma.studentModuleAvailability.upsert({
-        where: {
-          courseId_userId_lessonNodeId: {
-            courseId,
-            userId,
-            lessonNodeId
-          }
-        },
-        update: {
-          availabilityMode,
-          availableAt: nextAvailableAt
-        },
-        create: {
-          courseId,
-          userId,
-          lessonNodeId,
-          availabilityMode,
-          availableAt: nextAvailableAt
-        }
+      await db.delete(smaSchema).where(
+        and(eq(smaSchema.courseId, courseId), eq(smaSchema.userId, userId), eq(smaSchema.lessonNodeId, lessonNodeId))
+      );
+      await db.insert(smaSchema).values({
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+        lessonNodeId,
+        availabilityMode,
+        availableAt: nextAvailableAt ? nextAvailableAt.toISOString() : null,
       });
     }
 

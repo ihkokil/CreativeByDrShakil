@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user } from '@/db/schema';
+import { eq, or } from 'drizzle-orm';
 import { comparePassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
@@ -30,37 +32,35 @@ export async function POST(request: NextRequest) {
 
     const { identifier, password } = parsed.data;
 
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [{ email: identifier }, { phone: identifier }],
-      },
+    const userRecord = await db.query.user.findFirst({
+      where: (u, { eq, or }) => or(eq(u.email, identifier), eq(u.phone, identifier)),
     });
 
-    if (!user) {
+    if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 
     // Check email verification BEFORE password so unverified users
     // always see the verification message instead of "Invalid credentials"
-    if (!user.emailVerified) {
+    if (!userRecord.emailVerified) {
       return NextResponse.json(
         {
           error: 'Your email has not been verified yet. Please check your inbox and verify your email before logging in.',
           code: 'email_not_verified',
-          email: user.email,
+          email: userRecord.email,
         },
         { status: 403 }
       );
     }
 
-    if (!user.passwordHash) {
+    if (!userRecord.passwordHash) {
       return NextResponse.json(
         { error: 'This account is linked to Google. Please use "Continue with Google" to log in.' },
         { status: 401 }
       );
     }
 
-    const isValid = await comparePassword(password, user.passwordHash);
+    const isValid = await comparePassword(password, userRecord.passwordHash);
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
@@ -71,14 +71,14 @@ export async function POST(request: NextRequest) {
     const ipAddress = extractClientIp(request.headers);
 
     // Check for existing sessions on the same device type
-    const activeSessionsSameDevice = await getActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
+    const activeSessionsSameDevice = await getActiveSessionsByDeviceType(userRecord.id, deviceInfo.deviceType);
 
     // handle existing session logic
-    const isSessionRestrictionExempt = user.role === 'admin' || user.role === 'teacher';
+    const isSessionRestrictionExempt = userRecord.role === 'admin' || userRecord.role === 'teacher';
 
     if (activeSessionsSameDevice.length > 0 && !isSessionRestrictionExempt) {
       // Get Lock First Browser setting for the user
-      const autoLockEnabled = await getAutoLockSetting(user.id);
+      const autoLockEnabled = await getAutoLockSetting(userRecord.id);
 
       if (autoLockEnabled) {
         // Lock is ON - reject the login request
@@ -92,13 +92,13 @@ export async function POST(request: NextRequest) {
         );
       } else {
         // Lock is OFF - terminate all old same-device sessions and allow new login
-        await terminateActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
+        await terminateActiveSessionsByDeviceType(userRecord.id, deviceInfo.deviceType);
       }
     }
 
     // Create new device session
     const newSession = await createDeviceSession({
-      userId: user.id,
+      userId: userRecord.id,
       deviceType: deviceInfo.deviceType,
       browserName: deviceInfo.browserName,
       userAgent,
@@ -107,24 +107,24 @@ export async function POST(request: NextRequest) {
 
     // Sign token with session ID
     const token = await signAuthToken({
-      sub: user.id,
-      role: user.role,
-      email: user.email,
+      sub: userRecord.id,
+      role: userRecord.role as 'admin' | 'teacher' | 'student',
+      email: userRecord.email,
       sessionId: newSession.id,
     });
 
     const response = NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
+        id: userRecord.id,
+        email: userRecord.email,
+        phone: userRecord.phone,
+        role: userRecord.role,
         user_metadata: {
-          full_name: user.fullName,
-          phone: user.phone,
-          bmdc_number: user.bmdcNumber,
-          profile_image: user.profileImage,
+          full_name: userRecord.fullName,
+          phone: userRecord.phone,
+          bmdc_number: userRecord.bmdcNumber,
+          profile_image: userRecord.profileImage,
         },
       },
       token,

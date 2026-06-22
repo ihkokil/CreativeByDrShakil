@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { videoLibraryNode as vlnSchema } from '@/db/schema';
+import { eq, isNull } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
@@ -37,14 +39,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid parameters.' }, { status: 400 });
         }
 
-        const node = await prisma.videoLibraryNode.findUnique({ where: { id } });
+        const node = await db.query.videoLibraryNode.findFirst({ where: (v, { eq }) => eq(v.id, id) });
         if (!node) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
 
-        const siblings = await prisma.videoLibraryNode.findMany({
-            where: { parentId: node.parentId },
-            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+        const siblings = await db.query.videoLibraryNode.findMany({
+            where: (v, { eq, isNull }) => node.parentId ? eq(v.parentId, node.parentId) : isNull(v.parentId),
+            orderBy: (v, { asc }) => [asc(v.sortOrder), asc(v.createdAt)],
         });
 
         const index = siblings.findIndex(s => s.id === id);
@@ -60,14 +62,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, changed: false });
         }
 
-        const updates = reordered.map((item, idx) => 
-            prisma.videoLibraryNode.update({
-                where: { id: item.id },
-                data: { sortOrder: idx },
-            })
-        );
-        
-        await prisma.$transaction(updates);
+        await db.transaction(async (tx) => {
+            await Promise.all(reordered.map((item, idx) => 
+                tx.update(vlnSchema)
+                  .set({ sortOrder: idx })
+                  .where(eq(vlnSchema.id, item.id))
+            ));
+        });
 
         return NextResponse.json({ success: true, changed: true });
     } catch (error: any) {

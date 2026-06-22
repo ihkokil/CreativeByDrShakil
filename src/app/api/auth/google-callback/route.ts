@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
@@ -102,28 +104,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 3: Find or create user in database
-    let user = await prisma.user.findUnique({
-      where: { email: googleUser.email },
+    let user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.email, googleUser.email),
     });
 
     if (!user) {
       // Create new user
-      user = await prisma.user.create({
-        data: {
-          email: googleUser.email,
-          fullName: googleUser.name || 'Google User',
-          emailVerified: true, // Google emails are already verified
-          profileImage: googleUser.picture || null,
-          role: 'student',
-        },
-      });
+      const [newUser] = await db.insert(userSchema).values({
+        id: crypto.randomUUID(),
+        email: googleUser.email,
+        fullName: googleUser.name || 'Google User',
+        emailVerified: true, // Google emails are already verified
+        profileImage: googleUser.picture || null,
+        role: 'student',
+      }).returning();
+      user = newUser;
     } else {
       // Update profile image from Google if not already set
       if (!user.profileImage && googleUser.picture) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { profileImage: googleUser.picture },
-        });
+        await db.update(userSchema)
+          .set({ profileImage: googleUser.picture })
+          .where(eq(userSchema.id, user.id));
       }
     }
 
@@ -163,7 +164,7 @@ export async function GET(request: NextRequest) {
     // Step 5: Mint custom JWT and set cookie
     const token = await signAuthToken({
       sub: user.id,
-      role: user.role,
+      role: user.role as 'admin' | 'teacher' | 'student',
       email: user.email,
       sessionId: newSession.id,
     });

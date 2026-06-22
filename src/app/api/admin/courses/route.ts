@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
     }
 
     const payload = await verifyAuthToken(token);
-    if (payload.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
+    if (payload.role !== 'admin' && payload.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }
 
-    const courses = await prisma.course.findMany({
-      select: {
+    const courses = await db.query.course.findMany({
+      columns: {
         id: true,
         title: true,
         slug: true,
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         price: true,
         instructor: true,
       },
-      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+      orderBy: (c, { desc }) => [desc(c.updatedAt), desc(c.createdAt)],
     });
 
     return NextResponse.json({

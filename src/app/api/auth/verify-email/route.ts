@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { user as userSchema } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { hashToken } from "@/lib/token-utils";
 
 export async function GET(request: NextRequest) {
@@ -12,25 +14,24 @@ export async function GET(request: NextRequest) {
 
     const tokenHash = await hashToken(token);
 
-    const user = await prisma.user.findFirst({
-      where: {
-        emailVerificationTokenHash: tokenHash,
-        emailVerificationExpires: { gt: new Date() },
-      },
+    const user = await db.query.user.findFirst({
+      where: (u, { eq, and, gt }) => and(
+        eq(u.emailVerificationTokenHash, tokenHash),
+        gt(u.emailVerificationExpires, new Date().toISOString())
+      ),
     });
 
     if (!user) {
       return NextResponse.json({ error: "Verification link is invalid or expired." }, { status: 400 });
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
+    await db.update(userSchema)
+      .set({
         emailVerified: true,
         emailVerificationTokenHash: null,
         emailVerificationExpires: null,
-      },
-    });
+      })
+      .where(eq(userSchema.id, user.id));
 
     return NextResponse.json({ success: true, message: "Email verified successfully." });
   } catch (error: any) {

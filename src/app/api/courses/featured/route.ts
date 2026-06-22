@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -11,16 +11,16 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const course = await prisma.course.findFirst({
-      where: {
-        status: 'published',
-        isFeatured: true,
-        slug: { not: null },
-      },
-      orderBy: [{ publishedAt: 'desc' }, { updatedAt: 'desc' }],
-      include: {
+    const course = await db.query.course.findFirst({
+      where: (c, { eq, isNotNull, and }) => and(
+        eq(c.status, 'published'),
+        eq(c.isFeatured, true),
+        isNotNull(c.slug)
+      ),
+      orderBy: (c, { desc }) => [desc(c.publishedAt), desc(c.updatedAt)],
+      with: {
         teacher: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             designation: true,

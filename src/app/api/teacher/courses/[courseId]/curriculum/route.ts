@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   BuilderCurriculumNode,
@@ -16,7 +17,7 @@ import {
 } from '@/lib/teacher-course-builder';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return prisma.course.findUnique({ where: { id: courseId } });
+  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -139,13 +140,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return acc;
     }, {});
 
-    const updatedCourse = await prisma.course.update({
-      where: { id: course.id },
-      data: {
+    const [updatedCourse] = await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(normalizedCurriculum),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      },
-    });
+      }).where(eq(courseSchema.id, course.id)).returning();
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,

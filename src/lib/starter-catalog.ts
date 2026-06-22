@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
 import {
   BuilderCurriculumNode,
   createNodeId,
@@ -58,9 +58,9 @@ function buildSubTree(parentId: string, allNodes: FlatDBNode[]): FlatDBNode[] {
  *   - If the child is a video, it becomes a single-video sub-topic.
  */
 export async function getStarterCatalogFromDB(): Promise<StarterMainTopic[]> {
-  const allNodes = await prisma.videoLibraryNode.findMany({
-    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-    select: {
+  const allNodes = await db.query.videoLibraryNode.findMany({
+    orderBy: (v, { asc }) => [asc(v.sortOrder), asc(v.createdAt)],
+    columns: {
       id: true,
       title: true,
       type: true,

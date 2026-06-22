@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -14,9 +16,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const status = body.status || 'published';
 
     // Verify course exists and belongs to teacher
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      select: { teacherId: true, title: true },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      columns: { teacherId: true, title: true },
     });
 
     if (!course) {
@@ -28,9 +30,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Validate course has required fields
-    const fullCourse = await prisma.course.findUnique({
-      where: { id: courseId },
-      include: { instructors: true },
+    const fullCourse = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      with: { instructors: true },
     });
 
     if (!fullCourse) {
@@ -56,15 +58,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Update course status
-    const publishedCourse = await prisma.course.update({
-      where: { id: courseId },
-      data: {
+    await db.update(courseSchema)
+      .set({
         status,
-        publishedAt: status === 'published' ? new Date() : null,
-      },
-      include: {
-        instructors: { orderBy: { sortOrder: 'asc' } },
-      },
+        publishedAt: status === 'published' ? new Date().toISOString() : null,
+      })
+      .where(eq(courseSchema.id, courseId));
+
+    const publishedCourse = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
     });
 
     return NextResponse.json({ course: publishedCourse }, { status: 200 });

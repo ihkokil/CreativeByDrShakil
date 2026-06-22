@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken, hashPassword } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
@@ -16,8 +18,8 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await verifyAuthToken(token);
-    if (payload.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
+    if (payload.role !== 'admin' && payload.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -29,8 +31,8 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await prisma.user.findFirst({
-        where: { OR: [{ email: normalizedEmail }, ...(phone ? [{ phone }] : [])] }
+    const existingUser = await db.query.user.findFirst({
+        where: (u, { eq, or }) => or(eq(u.email, normalizedEmail), phone ? eq(u.phone, phone) : undefined)
     });
 
     if (existingUser) {
@@ -45,20 +47,19 @@ export async function POST(request: NextRequest) {
     const { token: setupToken, tokenHash: resetTokenHash } = await createTokenPair();
     const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
-    const student = await prisma.user.create({
-        data: {
-            email: normalizedEmail,
-            fullName,
-            phone: phone || null,
-            bmdcNumber: bmdcNumber || null,
-            profileImage: profileImage || null,
-            passwordHash,
-            role: 'student',
-            emailVerified: true, // Auto-verify internally added students
-            passwordResetTokenHash: resetTokenHash,
-            passwordResetExpires: resetExpiry,
-        }
-    });
+    const [student] = await db.insert(userSchema).values({
+        id: crypto.randomUUID(),
+        email: normalizedEmail,
+        fullName,
+        phone: phone || null,
+        bmdcNumber: bmdcNumber || null,
+        profileImage: profileImage || null,
+        passwordHash,
+        role: 'student',
+        emailVerified: true, // Auto-verify internally added students
+        passwordResetTokenHash: resetTokenHash,
+        passwordResetExpires: resetExpiry.toISOString(),
+    }).returning();
 
     // Send password setup email
     let emailSent = true;
@@ -96,7 +97,7 @@ export async function PUT(request: NextRequest) {
         if (!token) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     
         const payload = await verifyAuthToken(token);
-        if (payload.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        if (payload.role !== 'admin' && payload.role !== 'teacher') return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     
         const body = await request.json();
             const { id, fullName, phone, bmdcNumber, profileImage, emailVerified } = body;
@@ -118,10 +119,10 @@ export async function PUT(request: NextRequest) {
                 }
             }
 
-            const updated = await prisma.user.update({
-                where: { id },
-                data,
-            });
+            const [updated] = await db.update(userSchema)
+                .set(data)
+                .where(eq(userSchema.id, id))
+                .returning();
     
         return NextResponse.json({ message: 'Student updated successfully.', student: updated });
     } catch (err: any) {
@@ -140,14 +141,14 @@ export async function DELETE(request: NextRequest) {
         if (!token) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     
         const payload = await verifyAuthToken(token);
-        if (payload.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        if (payload.role !== 'admin' && payload.role !== 'teacher') return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     
         const body = await request.json();
         const { id } = body;
     
         if (!id) return NextResponse.json({ error: 'Missing student ID' }, { status: 400 });
     
-        await prisma.user.delete({ where: { id } });
+        await db.delete(userSchema).where(eq(userSchema.id, id));
     
         return NextResponse.json({ message: 'Student deleted successfully.' });
     } catch (err: any) {

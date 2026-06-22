@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { user as userSchema } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth-server";
 import { hashToken } from "@/lib/token-utils";
 
@@ -26,11 +28,11 @@ export async function POST(request: NextRequest) {
 
     const tokenHash = await hashToken(String(token));
 
-    const user = await prisma.user.findFirst({
-      where: {
-        passwordResetTokenHash: tokenHash,
-        passwordResetExpires: { gt: new Date() },
-      },
+    const user = await db.query.user.findFirst({
+      where: (u, { eq, and, gt }) => and(
+        eq(u.passwordResetTokenHash, tokenHash),
+        gt(u.passwordResetExpires, new Date().toISOString())
+      ),
     });
 
     if (!user) {
@@ -39,14 +41,13 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(String(password));
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
+    await db.update(userSchema)
+      .set({
         passwordHash,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
-      },
-    });
+      })
+      .where(eq(userSchema.id, user.id));
 
     return NextResponse.json({ success: true, message: "Password reset successful. Please login." });
   } catch (error: any) {

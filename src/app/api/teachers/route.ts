@@ -1,22 +1,22 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 
 const normalizeOptionalText = (value: unknown) =>
   typeof value === 'string' ? value.trim() || null : null;
 
 export async function GET() {
   try {
-    const teachers = await prisma.user.findMany({
-      where: { role: 'teacher' },
-      select: {
+    const teachers = await db.query.user.findMany({
+      where: (u, { eq }) => eq(u.role, 'teacher'),
+      columns: {
         id: true,
         fullName: true,
         profileImage: true,
         designation: true,
         institution: true,
       },
-      orderBy: { fullName: 'asc' },
+      orderBy: (u, { asc }) => [asc(u.fullName)],
     });
 
     return NextResponse.json({

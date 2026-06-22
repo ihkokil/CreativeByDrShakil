@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import {
   resolveAutoLockSetting,
@@ -17,19 +17,21 @@ export async function GET() {
   try {
     const auth = await getSession();
 
-    if (!auth || auth.user.role !== 'admin') {
+    if (!auth || (auth.user.role !== 'admin' && auth.user.role !== 'teacher')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get all students
-    const students = await prisma.user.findMany({
-      where: { role: 'student' },
-      select: {
+    const students = await db.query.user.findMany({
+      where: (u, { eq }) => eq(u.role, 'student'),
+      columns: {
         id: true,
         fullName: true,
         email: true,
+      },
+      with: {
         deviceSessions: {
-          select: {
+          columns: {
             id: true,
             deviceType: true,
             browserName: true,
@@ -39,10 +41,10 @@ export async function GET() {
             createdAt: true,
             lastActivityAt: true,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: (ds, { desc }) => [desc(ds.createdAt)],
         },
-        sessionSettings: {
-          select: {
+        sessionLockSettings: {
+          columns: {
             autoLockFirstBrowser: true,
           },
         },
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await getSession();
 
-    if (!auth || auth.user.role !== 'admin') {
+    if (!auth || (auth.user.role !== 'admin' && auth.user.role !== 'teacher')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

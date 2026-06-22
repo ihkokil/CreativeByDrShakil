@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -18,7 +20,7 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
 
   while (true) {
 
-    const found = await prisma.course.findUnique({ where: { slug }, select: { id: true } });
+    const found = await db.query.course.findFirst({ where: (c, { eq }) => eq(c.slug, slug), columns: { id: true } });
     if (!found || found.id === currentCourseId) {
       return slug;
     }
@@ -29,7 +31,7 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
 };
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return prisma.course.findUnique({ where: { id: courseId } });
+  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -40,10 +42,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { courseId } = await params;
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      include: {
-        instructors: { orderBy: { sortOrder: 'asc' } },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      with: {
+        instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
       },
     });
 
@@ -162,10 +164,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.publishedAt = body.status === 'published' ? new Date() : null;
     }
 
-    const course = await prisma.course.update({
-      where: { id: existingCourse.id },
-      data: updateData,
-    });
+    if (updateData.courseStartDate instanceof Date) {
+      updateData.courseStartDate = updateData.courseStartDate.toISOString();
+    }
+    if (updateData.publishedAt instanceof Date) {
+      updateData.publishedAt = updateData.publishedAt.toISOString();
+    }
+    if (updateData.releaseStartAt instanceof Date) {
+      updateData.releaseStartAt = updateData.releaseStartAt.toISOString();
+    }
+    // price is already a number for doublePrecision column
+
+    const [course] = await db.update(courseSchema)
+      .set(updateData)
+      .where(eq(courseSchema.id, existingCourse.id))
+      .returning();
 
     return NextResponse.json({ course });
   } catch (error: any) {
@@ -188,7 +201,8 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // Published courses or courses with orders cannot be deleted
-    const orderCount = await prisma.order.count({ where: { courseId: existingCourse.id } });
+    const orders = await db.query.order.findMany({ where: (o, { eq }) => eq(o.courseId, existingCourse.id), columns: { id: true } });
+    const orderCount = orders.length;
     if (existingCourse.status === 'published' || orderCount > 0) {
       return NextResponse.json(
         { error: 'Published courses or courses with orders cannot be deleted. Archive the course instead.' },
@@ -196,7 +210,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
 
-    await prisma.course.delete({ where: { id: existingCourse.id } });
+    await db.delete(courseSchema).where(eq(courseSchema.id, existingCourse.id));
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
