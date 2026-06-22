@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function POST(request: NextRequest) {
@@ -19,24 +21,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Full name is required.' }, { status: 400 });
     }
 
-    const user = await prisma.user.update({
-      where: { id: payload.sub },
-      data: {
+    const [user] = await db.update(userSchema)
+      .set({
         fullName,
         phone: phone || null,
         bmdcNumber: bmdcNumber || null,
         profileImage: profileImage || null,
-      },
-      select: {
-        id: true,
-        email: true,
-        phone: true,
-        role: true,
-        fullName: true,
-        bmdcNumber: true,
-        profileImage: true,
-      },
-    });
+      })
+      .where(eq(userSchema.id, payload.sub))
+      .returning({
+        id: userSchema.id,
+        email: userSchema.email,
+        phone: userSchema.phone,
+        role: userSchema.role,
+        fullName: userSchema.fullName,
+        bmdcNumber: userSchema.bmdcNumber,
+        profileImage: userSchema.profileImage,
+      });
 
     return NextResponse.json({
       success: true,

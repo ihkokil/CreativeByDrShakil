@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const teachers = await prisma.user.findMany({
-      where: { role: 'teacher' },
-      select: {
+    const teachers = await db.query.user.findMany({
+      where: (u, { eq }) => eq(u.role, 'teacher'),
+      columns: {
         id: true,
         fullName: true,
         role: true,
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         profileImage: true,
         canManagePayments: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: (u, { desc }) => [desc(u.createdAt)],
     });
 
     return NextResponse.json({
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         id: string;
         fullName: string;
         role: string;
-        createdAt: Date;
+        createdAt: string;
         email: string;
         designation: string | null;
         institution: string | null;

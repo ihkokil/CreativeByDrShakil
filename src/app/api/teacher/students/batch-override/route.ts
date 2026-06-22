@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { randomUUID } from 'crypto';
+import { db } from '@/lib/db';
+import { course as courseSchema, order as orderSchema, studentModuleAvailability as smaSchema } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -27,17 +30,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId, and action are required.' }, { status: 400 });
     }
 
-    const course = await prisma.course.findFirst({
-      where: payload.role === 'admin' ? { id: courseId } : { id: courseId, teacherId: payload.sub },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq, and }) => payload.role === 'admin' ? eq(c.id, courseId) : and(eq(c.id, courseId), eq(c.teacherId, payload.sub)),
     });
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    const order = await prisma.order.findFirst({
-      where: { userId, courseId, status: 'approved' },
-      orderBy: { updatedAt: 'asc' },
+    const order = await db.query.order.findFirst({
+      where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.courseId, courseId), eq(o.status, 'approved')),
+      orderBy: (o, { asc }) => [asc(o.updatedAt)],
     });
 
     if (!order) {
@@ -46,9 +49,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'continue_with_batch') {
       // Clear custom overrides to fall back to course schedule
-      await prisma.studentModuleAvailability.deleteMany({
-        where: { courseId, userId }
-      });
+      await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), eq(smaSchema.userId, userId)));
       return NextResponse.json({ success: true });
     }
 
@@ -69,17 +70,16 @@ export async function POST(request: NextRequest) {
         userId,
         lessonNodeId: nodeId,
         availabilityMode: 'available',
-        availableAt: null
+        availableAt: null,
+        updatedAt: new Date().toISOString()
       }));
 
-      await prisma.$transaction([
-        prisma.studentModuleAvailability.deleteMany({
-          where: { courseId, userId }
-        }),
-        prisma.studentModuleAvailability.createMany({
-          data: dataToInsert
-        })
-      ]);
+      await db.transaction(async (tx) => {
+        await tx.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), eq(smaSchema.userId, userId)));
+        if (dataToInsert.length > 0) {
+          await tx.insert(smaSchema).values(dataToInsert.map(d => ({ id: randomUUID(), ...d })));
+        }
+      });
 
       return NextResponse.json({ success: true });
     }
@@ -122,17 +122,16 @@ export async function POST(request: NextRequest) {
       userId,
       lessonNodeId: groupIdToNodeId.get(groupId)!,
       availabilityMode: 'available',
-      availableAt: dateStr ? new Date(dateStr) : null
+      availableAt: dateStr ? new Date(dateStr).toISOString() : null,
+      updatedAt: new Date().toISOString()
     }));
 
-    await prisma.$transaction([
-      prisma.studentModuleAvailability.deleteMany({
-        where: { courseId, userId }
-      }),
-      prisma.studentModuleAvailability.createMany({
-        data: dataToInsert
-      })
-    ]);
+    await db.transaction(async (tx) => {
+        await tx.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), eq(smaSchema.userId, userId)));
+        if (dataToInsert.length > 0) {
+          await tx.insert(smaSchema).values(dataToInsert.map(d => ({ id: randomUUID(), ...d })));
+        }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

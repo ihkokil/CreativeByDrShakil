@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { contactSubmission as csSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/admin-auth';
 import { sendMail } from '@/lib/email';
 import { type ContactIssueType } from '@/lib/contact-emails';
 
 function normalizeSubmission(submission: any) {
+  let parsedImageUrls = [];
+  if (typeof submission.imageUrls === 'string') {
+    try { parsedImageUrls = JSON.parse(submission.imageUrls); } catch (e) {}
+  } else if (Array.isArray(submission.imageUrls)) {
+    parsedImageUrls = submission.imageUrls;
+  }
   return {
     ...submission,
-    imageUrls: Array.isArray(submission.imageUrls) ? submission.imageUrls : [],
+    imageUrls: parsedImageUrls,
   };
 }
 
@@ -33,11 +41,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!adminCheck.ok) return adminCheck.response;
 
     const resolvedParams = await params;
-    const submission = await prisma.contactSubmission.findUnique({
-      where: { id: resolvedParams.id },
-      include: {
+    const submission = await db.query.contactSubmission.findFirst({
+      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
+      with: {
         repliedByAdmin: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -67,8 +75,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const adminReply = typeof body?.adminReply === 'string' ? body.adminReply.trim() : '';
     const sendReplyEmail = Boolean(body?.sendReplyEmail ?? true);
 
-    const existing = await prisma.contactSubmission.findUnique({
-      where: { id: resolvedParams.id },
+    const existing = await db.query.contactSubmission.findFirst({
+      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
     });
 
     if (!existing) {
@@ -91,10 +99,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.status = normalizedStatus || 'responded';
     }
 
-    const updatedSubmission = await prisma.contactSubmission.update({
-      where: { id: resolvedParams.id },
-      data: updateData,
-    });
+    const [updatedSubmission] = await db.update(csSchema)
+      .set(updateData)
+      .where(eq(csSchema.id, resolvedParams.id))
+      .returning();
 
     let replyEmailSent = false;
 

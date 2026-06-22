@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { course as courseSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 interface InstructorData {
@@ -24,9 +26,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const instructors = Array.isArray(body.instructors) ? body.instructors : [];
 
     // Verify course exists and belongs to teacher
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      select: { teacherId: true },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      columns: { teacherId: true },
     });
 
     if (!course) {
@@ -38,9 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Delete existing instructors
-    await prisma.courseInstructor.deleteMany({
-      where: { courseId },
-    });
+    await db.delete(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId));
 
     // Create new instructors
     const validInstructors = instructors.filter(
@@ -49,28 +49,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     await Promise.all(
       validInstructors.map((instr: InstructorData, index: number) =>
-        prisma.courseInstructor.create({
-          data: {
-            courseId,
-            name: instr.name.trim(),
-            designation: instr.designation ? instr.designation.trim() : null,
-            imageUrl: instr.imageUrl || null,
-            sortOrder: index,
-          },
+        db.insert(courseInstructorSchema).values({
+          id: crypto.randomUUID(),
+          courseId,
+          name: instr.name.trim(),
+          designation: instr.designation ? instr.designation.trim() : null,
+          imageUrl: instr.imageUrl || null,
+          sortOrder: index,
         })
       )
     );
 
     // Update course
-    const updatedCourse = await prisma.course.update({
-      where: { id: courseId },
-      data: {
+    await db.update(courseSchema).set({
         overview,
         learningOutcomes,
-      },
-      include: {
-        instructors: { orderBy: { sortOrder: 'asc' } },
-      },
+      }).where(eq(courseSchema.id, courseId));
+
+    const updatedCourse = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
     });
 
     return NextResponse.json({ course: updatedCourse }, { status: 200 });
