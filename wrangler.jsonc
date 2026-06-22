@@ -20,5 +20,11 @@
       "type": "CompiledWasm",
       "globs": ["**/*.wasm"]
     }
+  ],
+  "services": [
+    {
+      "binding": "IMAGES",
+      "service": "images"
+    }
   ]
 }

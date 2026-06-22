@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    const config = await prisma.paymentConfig.findUnique({
-      where: { id: 'default' },
-      select: {
+    const config = await db.query.paymentConfig.findFirst({
+      where: (p, { eq }) => eq(p.id, 'default'),
+      columns: {
         provider: true,
         sendMoneyNumber: true,
         qrCodeUrl: true,

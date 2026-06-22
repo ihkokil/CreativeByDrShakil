@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { user as userSchema, emailOtp } from '@/db/schema';
+import { eq, or, and, gt } from 'drizzle-orm';
 import { hashPassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendVerificationEmail } from '@/lib/auth-emails';
@@ -40,10 +42,8 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [{ email: normalizedEmail }, ...(phone ? [{ phone }] : [])],
-      },
+    const existingUser = await db.query.user.findFirst({
+      where: (u, { eq, or }) => or(eq(u.email, normalizedEmail), phone ? eq(u.phone, phone) : undefined),
     });
 
     if (existingUser) {
@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
     let token = '';
 
     if (otpVerified) {
-      const otpRecord = await prisma.emailOtp.findFirst({
-        where: {
-          email: normalizedEmail,
-          verified: true,
-          expiresAt: { gt: new Date() },
-        },
+      const otpRecord = await db.query.emailOtp.findFirst({
+        where: (e, { eq, and, gt }) => and(
+          eq(e.email, normalizedEmail),
+          eq(e.verified, true),
+          gt(e.expiresAt, new Date().toISOString())
+        ),
       });
 
       if (!otpRecord) {
@@ -81,19 +81,18 @@ export async function POST(request: NextRequest) {
       verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
 
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash,
-        fullName,
-        phone: phone || null,
-        bmdcNumber: bmdc || null,
-        role: 'student',
-        emailVerified,
-        emailVerificationTokenHash: tokenHash,
-        emailVerificationExpires: verifyExpiry,
-      },
-    });
+    const [user] = await db.insert(userSchema).values({
+      id: crypto.randomUUID(),
+      email: normalizedEmail,
+      passwordHash,
+      fullName,
+      phone: phone || null,
+      bmdcNumber: bmdc || null,
+      role: 'student',
+      emailVerified,
+      emailVerificationTokenHash: tokenHash,
+      emailVerificationExpires: verifyExpiry?.toISOString() || null,
+    }).returning();
 
     // Send Telegram Notification (fire and forget)
     sendTelegramRegistrationNotification({
@@ -104,11 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (otpVerified) {
       // Clean up OTP record if verified via OTP
-      await prisma.emailOtp.deleteMany({
-        where: {
-          email: normalizedEmail,
-        },
-      });
+      await db.delete(emailOtp).where(eq(emailOtp.email, normalizedEmail));
 
       // Log the user in immediately
       const userAgent = request.headers.get('user-agent') || '';
@@ -125,7 +120,7 @@ export async function POST(request: NextRequest) {
 
       const authToken = await signAuthToken({
         sub: user.id,
-        role: user.role,
+        role: user.role as 'admin' | 'teacher' | 'student',
         email: user.email,
         sessionId: newSession.id,
       });
@@ -192,12 +187,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    if (error?.code === 'P2002') {
-      const target = error.meta?.target;
-      if (target?.includes('email')) {
+    if (error?.code === '23505') {
+      const detail = error.detail || '';
+      if (detail.includes('email')) {
         return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
       }
-      if (target?.includes('phone')) {
+      if (detail.includes('phone')) {
         return NextResponse.json({ error: 'An account with this phone number already exists.' }, { status: 409 });
       }
       return NextResponse.json({ error: 'An account with these details already exists.' }, { status: 409 });

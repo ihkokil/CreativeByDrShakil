@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { isSessionValid, updateSessionActivity } from '@/lib/session-manager';
 
@@ -40,9 +40,9 @@ export async function GET(request: NextRequest) {
       await updateSessionActivity(payload.sessionId);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+      columns: {
         id: true,
         email: true,
         phone: true,

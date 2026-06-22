@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 import { getAutoLockSetting, setAutoLockSetting } from '@/lib/session-manager';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 
 /**
  * GET /api/admin/user-session-settings/[userId]
@@ -24,8 +24,8 @@ export async function GET(
     }
 
     // Verify user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, userId),
     });
 
     if (!user) {
@@ -72,8 +72,8 @@ export async function PUT(
     }
 
     // Verify user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, userId),
     });
 
     if (!user) {

@@ -1,5 +1,9 @@
-import { prisma } from './prisma';
+import { db } from './db';
+import { deviceSession, sessionLockSettings, globalSessionLockSettings } from '@/db/schema';
 import { DeviceType } from './device-detection';
+import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
+
+
 
 export interface CreateSessionOptions {
   userId: string;
@@ -28,92 +32,79 @@ export interface AutoLockResolution {
   globalAutoLockFirstBrowser: boolean;
 }
 
-/**
- * Create a new device session
- */
+function mapDate(d: string | null): Date | null {
+    return d ? new Date(d) : null;
+}
+
 export async function createDeviceSession(options: CreateSessionOptions): Promise<SessionInfo> {
-  const session = await prisma.deviceSession.create({
-    data: {
-      userId: options.userId,
-      deviceType: options.deviceType,
-      browserName: options.browserName,
-      userAgent: options.userAgent,
-      ipAddress: options.ipAddress,
-    },
-  });
+  const [session] = await db.insert(deviceSession).values({
+    id: crypto.randomUUID(), // Using UUID instead of CUID for new ones
+    userId: options.userId,
+    deviceType: options.deviceType,
+    browserName: options.browserName,
+    userAgent: options.userAgent,
+    ipAddress: options.ipAddress,
+  }).returning();
 
   return {
     id: session.id,
     userId: session.userId,
-    deviceType: session.deviceType,
+    deviceType: session.deviceType as DeviceType,
     browserName: session.browserName,
     ipAddress: session.ipAddress,
     isLocked: session.isLocked,
-    loggedOutAt: session.loggedOutAt,
-    createdAt: session.createdAt,
-    lastActivityAt: session.lastActivityAt,
+    loggedOutAt: mapDate(session.loggedOutAt),
+    createdAt: new Date(session.createdAt),
+    lastActivityAt: new Date(session.lastActivityAt),
   };
 }
 
-/**
- * Get all active sessions for a user
- */
 export async function getActiveSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const sessions = await prisma.deviceSession.findMany({
-    where: {
-      userId,
-      loggedOutAt: null,
-      isLocked: false,
-    },
-    orderBy: { createdAt: 'desc' },
+  const sessions = await db.query.deviceSession.findMany({
+    where: (ds, { eq, and, isNull }) => and(eq(ds.userId, userId), isNull(ds.loggedOutAt), eq(ds.isLocked, false)),
+    orderBy: (ds, { desc }) => [desc(ds.createdAt)],
   });
 
   return sessions.map((s) => ({
     id: s.id,
     userId: s.userId,
-    deviceType: s.deviceType,
+    deviceType: s.deviceType as DeviceType,
     browserName: s.browserName,
     ipAddress: s.ipAddress,
     isLocked: s.isLocked,
-    loggedOutAt: s.loggedOutAt,
-    createdAt: s.createdAt,
-    lastActivityAt: s.lastActivityAt,
+    loggedOutAt: mapDate(s.loggedOutAt),
+    createdAt: new Date(s.createdAt),
+    lastActivityAt: new Date(s.lastActivityAt),
   }));
 }
 
-/**
- * Get all sessions for a user (including logged out and locked)
- */
 export async function getAllSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const sessions = await prisma.deviceSession.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
+  const sessions = await db.query.deviceSession.findMany({
+    where: (ds, { eq }) => eq(ds.userId, userId),
+    orderBy: (ds, { desc }) => [desc(ds.createdAt)],
   });
 
   return sessions.map((s) => ({
     id: s.id,
     userId: s.userId,
-    deviceType: s.deviceType,
+    deviceType: s.deviceType as DeviceType,
     browserName: s.browserName,
     ipAddress: s.ipAddress,
     isLocked: s.isLocked,
-    loggedOutAt: s.loggedOutAt,
-    createdAt: s.createdAt,
-    lastActivityAt: s.lastActivityAt,
+    loggedOutAt: mapDate(s.loggedOutAt),
+    createdAt: new Date(s.createdAt),
+    lastActivityAt: new Date(s.lastActivityAt),
   }));
 }
 
-/**
- * Get active session of a specific device type for a user
- */
 export async function getActiveSessionByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo | null> {
-  const session = await prisma.deviceSession.findFirst({
-    where: {
-      userId,
-      deviceType,
-      loggedOutAt: null,
-      isLocked: false,
-    },
+  const session = await db.query.deviceSession.findFirst({
+    where: (ds, { eq, and, isNull }) => and(
+        eq(ds.userId, userId), 
+        eq(ds.deviceType, deviceType),
+        isNull(ds.loggedOutAt), 
+        eq(ds.isLocked, false)
+    ),
   });
 
   if (!session) return null;
@@ -121,46 +112,40 @@ export async function getActiveSessionByDeviceType(userId: string, deviceType: D
   return {
     id: session.id,
     userId: session.userId,
-    deviceType: session.deviceType,
+    deviceType: session.deviceType as DeviceType,
     browserName: session.browserName,
     ipAddress: session.ipAddress,
     isLocked: session.isLocked,
-    loggedOutAt: session.loggedOutAt,
-    createdAt: session.createdAt,
-    lastActivityAt: session.lastActivityAt,
+    loggedOutAt: mapDate(session.loggedOutAt),
+    createdAt: new Date(session.createdAt),
+    lastActivityAt: new Date(session.lastActivityAt),
   };
 }
 
-/**
- * Get all active sessions of a specific device type for a user
- */
 export async function getActiveSessionsByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo[]> {
-  const sessions = await prisma.deviceSession.findMany({
-    where: {
-      userId,
-      deviceType,
-      loggedOutAt: null,
-      isLocked: false,
-    },
-    orderBy: { createdAt: 'desc' },
+  const sessions = await db.query.deviceSession.findMany({
+    where: (ds, { eq, and, isNull }) => and(
+        eq(ds.userId, userId), 
+        eq(ds.deviceType, deviceType),
+        isNull(ds.loggedOutAt), 
+        eq(ds.isLocked, false)
+    ),
+    orderBy: (ds, { desc }) => [desc(ds.createdAt)],
   });
 
   return sessions.map((s) => ({
     id: s.id,
     userId: s.userId,
-    deviceType: s.deviceType,
+    deviceType: s.deviceType as DeviceType,
     browserName: s.browserName,
     ipAddress: s.ipAddress,
     isLocked: s.isLocked,
-    loggedOutAt: s.loggedOutAt,
-    createdAt: s.createdAt,
-    lastActivityAt: s.lastActivityAt,
+    loggedOutAt: mapDate(s.loggedOutAt),
+    createdAt: new Date(s.createdAt),
+    lastActivityAt: new Date(s.lastActivityAt),
   }));
 }
 
-/**
- * Terminate all active sessions of a specific device type for a user
- */
 export async function terminateActiveSessionsByDeviceType(userId: string, deviceType: DeviceType): Promise<string[]> {
   const sessions = await getActiveSessionsByDeviceType(userId, deviceType);
   const sessionIds = sessions.map((s) => s.id);
@@ -169,20 +154,16 @@ export async function terminateActiveSessionsByDeviceType(userId: string, device
     return [];
   }
 
-  await prisma.deviceSession.updateMany({
-    where: { id: { in: sessionIds } },
-    data: { loggedOutAt: new Date() },
-  });
+  await db.update(deviceSession)
+    .set({ loggedOutAt: new Date().toISOString() })
+    .where(inArray(deviceSession.id, sessionIds));
 
   return sessionIds;
 }
 
-/**
- * Get session by ID
- */
 export async function getSessionById(sessionId: string): Promise<SessionInfo | null> {
-  const session = await prisma.deviceSession.findUnique({
-    where: { id: sessionId },
+  const session = await db.query.deviceSession.findFirst({
+    where: (ds, { eq }) => eq(ds.id, sessionId),
   });
 
   if (!session) return null;
@@ -190,134 +171,95 @@ export async function getSessionById(sessionId: string): Promise<SessionInfo | n
   return {
     id: session.id,
     userId: session.userId,
-    deviceType: session.deviceType,
+    deviceType: session.deviceType as DeviceType,
     browserName: session.browserName,
     ipAddress: session.ipAddress,
     isLocked: session.isLocked,
-    loggedOutAt: session.loggedOutAt,
-    createdAt: session.createdAt,
-    lastActivityAt: session.lastActivityAt,
+    loggedOutAt: mapDate(session.loggedOutAt),
+    createdAt: new Date(session.createdAt),
+    lastActivityAt: new Date(session.lastActivityAt),
   };
 }
 
-/**
- * Terminate a session (mark as logged out)
- */
 export async function terminateSession(sessionId: string): Promise<void> {
-  await prisma.deviceSession.update({
-    where: { id: sessionId },
-    data: {
-      loggedOutAt: new Date(),
-    },
-  });
+  await db.update(deviceSession)
+    .set({ loggedOutAt: new Date().toISOString() })
+    .where(eq(deviceSession.id, sessionId));
 }
 
-/**
- * Lock a session (prevent future access)
- */
 export async function lockSession(sessionId: string): Promise<void> {
-  await prisma.deviceSession.update({
-    where: { id: sessionId },
-    data: {
-      isLocked: true,
-    },
-  });
+  await db.update(deviceSession)
+    .set({ isLocked: true })
+    .where(eq(deviceSession.id, sessionId));
 }
 
-/**
- * Unlock a session
- */
 export async function unlockSession(sessionId: string): Promise<void> {
-  await prisma.deviceSession.update({
-    where: { id: sessionId },
-    data: {
-      isLocked: false,
-    },
-  });
+  await db.update(deviceSession)
+    .set({ isLocked: false })
+    .where(eq(deviceSession.id, sessionId));
 }
 
-/**
- * Check if session is still valid (not locked and not logged out)
- */
 export async function isSessionValid(sessionId: string): Promise<boolean> {
-  const session = await prisma.deviceSession.findUnique({
-    where: { id: sessionId },
+  const session = await db.query.deviceSession.findFirst({
+    where: (ds, { eq }) => eq(ds.id, sessionId),
   });
 
   if (!session) return false;
   return !session.isLocked && !session.loggedOutAt;
 }
 
-/**
- * Update last activity timestamp for a session
- */
 export async function updateSessionActivity(sessionId: string): Promise<void> {
-  await prisma.deviceSession.update({
-    where: { id: sessionId },
-    data: {
-      lastActivityAt: new Date(),
-    },
-  });
+  await db.update(deviceSession)
+    .set({ lastActivityAt: new Date().toISOString() })
+    .where(eq(deviceSession.id, sessionId));
 }
 
-/**
- * Get Lock First Browser setting for a user
- * Returns user-specific setting if exists, otherwise returns global setting (default: true)
- */
 export async function getAutoLockSetting(userId: string): Promise<boolean> {
   const resolution = await resolveAutoLockSetting(userId);
   return resolution.effectiveAutoLockFirstBrowser;
 }
 
-/**
- * Update Lock First Browser setting for a user
- */
 export async function setAutoLockSetting(userId: string, enabled: boolean): Promise<void> {
-  await prisma.sessionLockSettings.upsert({
-    where: { userId },
-    create: {
-      userId,
-      autoLockFirstBrowser: enabled,
-    },
-    update: {
-      autoLockFirstBrowser: enabled,
-    },
-  });
+    const existing = await db.query.sessionLockSettings.findFirst({
+        where: (sls, { eq }) => eq(sls.userId, userId)
+    });
+
+    if (existing) {
+        await db.update(sessionLockSettings)
+            .set({ autoLockFirstBrowser: enabled })
+            .where(eq(sessionLockSettings.userId, userId));
+    } else {
+        await db.insert(sessionLockSettings)
+            .values({ id: crypto.randomUUID(), userId, autoLockFirstBrowser: enabled, updatedAt: new Date().toISOString() });
+    }
 }
 
-/**
- * Get global Lock First Browser setting
- */
 export async function getGlobalAutoLockSetting(): Promise<boolean> {
-  const setting = await prisma.globalSessionLockSettings.findUnique({
-    where: { id: 'global' },
+  const setting = await db.query.globalSessionLockSettings.findFirst({
+    where: (gsls, { eq }) => eq(gsls.id, 'global'),
   });
 
   return setting?.autoLockFirstBrowser ?? true;
 }
 
-/**
- * Update global Lock First Browser setting
- */
 export async function setGlobalAutoLockSetting(enabled: boolean): Promise<void> {
-  await prisma.globalSessionLockSettings.upsert({
-    where: { id: 'global' },
-    create: {
-      id: 'global',
-      autoLockFirstBrowser: enabled,
-    },
-    update: {
-      autoLockFirstBrowser: enabled,
-    },
-  });
+    const existing = await db.query.globalSessionLockSettings.findFirst({
+        where: (gsls, { eq }) => eq(gsls.id, 'global')
+    });
+
+    if (existing) {
+        await db.update(globalSessionLockSettings)
+            .set({ autoLockFirstBrowser: enabled })
+            .where(eq(globalSessionLockSettings.id, 'global'));
+    } else {
+        await db.insert(globalSessionLockSettings)
+            .values({ id: 'global', autoLockFirstBrowser: enabled, updatedAt: new Date().toISOString() });
+    }
 }
 
-/**
- * Resolve effective lock setting for a user with global fallback
- */
 export async function resolveAutoLockSetting(userId: string): Promise<AutoLockResolution> {
   const [userSetting, globalAutoLockFirstBrowser] = await Promise.all([
-    prisma.sessionLockSettings.findUnique({ where: { userId } }),
+    db.query.sessionLockSettings.findFirst({ where: (sls, { eq }) => eq(sls.userId, userId) }),
     getGlobalAutoLockSetting(),
   ]);
 
@@ -334,9 +276,6 @@ export async function resolveAutoLockSetting(userId: string): Promise<AutoLockRe
   };
 }
 
-/**
- * Get all session lock settings overrides
- */
 export async function getAllSessionLockSettings() {
-  return prisma.sessionLockSettings.findMany();
+  return db.query.sessionLockSettings.findMany();
 }
