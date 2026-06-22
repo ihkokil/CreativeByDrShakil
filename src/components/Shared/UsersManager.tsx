@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import Image from 'next/image';
 import styles from '@/components/Admin/SessionsManager.module.css';
 import { Smartphone, Monitor, Lock, LogOut, AlertCircle, Search, UserCheck, ShieldAlert, Trash2 } from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
@@ -25,6 +26,7 @@ interface UserData {
   isBanned: boolean;
   createdAt: string;
   lastActiveAt: string;
+  profileImage?: string | null;
   activeSessions: SessionData[];
   sessions: SessionData[];
   enrolledCourses: Array<{
@@ -43,6 +45,10 @@ export default function UsersManager() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSession, setSelectedSession] = useState<SessionData | null>(null);
+
+  const getInitials = (name: string) => {
+    return name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : 'US';
+  };
   
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -223,10 +229,10 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th style={{ width: '25%' }}>User Information</th>
-              <th style={{ width: '14%' }}>Desktop Session</th>
-              <th style={{ width: '14%' }}>Mobile Session</th>
-              <th style={{ width: '17%' }}>Last Active</th>
+              <th style={{ width: '28%' }}>User Information</th>
+              <th style={{ width: '13%' }}>Desktop Session</th>
+              <th style={{ width: '13%' }}>Mobile Session</th>
+              <th style={{ width: '16%' }}>Last Active</th>
               <th style={{ width: '15%' }}>Account Actions</th>
               <th style={{ width: '15%' }}>Session Actions</th>
             </tr>
@@ -242,39 +248,61 @@ export default function UsersManager() {
               return (
                 <tr key={userObj.id}>
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={styles.nameCell}>{userObj.fullName}</span>
-                        {userObj.isBanned ? (
-                          <span style={{
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            color: '#ef4444',
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            padding: '2px 8px',
-                            borderRadius: '12px'
-                          }}>
-                            Banned
-                          </span>
-                        ) : (
-                          <span style={{
-                            fontSize: '0.7rem',
-                            fontWeight: 600,
-                            color: '#22c55e',
-                            background: 'rgba(34, 197, 94, 0.1)',
-                            border: '1px solid rgba(34, 197, 94, 0.2)',
-                            padding: '2px 8px',
-                            borderRadius: '12px'
-                          }}>
-                            Active
-                          </span>
-                        )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: 'var(--surface-soft)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 700,
+                        fontSize: '0.9rem',
+                        color: 'var(--primary)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        border: '1px solid var(--glass-border)'
+                      }}>
+                        {userObj.profileImage ? (
+                          <Image src={userObj.profileImage} alt={userObj.fullName} fill style={{ objectFit: 'cover' }} unoptimized/>
+                        ) : getInitials(userObj.fullName)}
                       </div>
-                      <span className={styles.emailCell}>{userObj.email}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Joined {formatDateGMT6(userObj.createdAt)}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span className={styles.nameCell}>{userObj.fullName}</span>
+                          {userObj.isBanned ? (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              color: '#ef4444',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              padding: '2px 8px',
+                              borderRadius: '12px'
+                            }}>
+                              Banned
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              color: '#22c55e',
+                              background: 'rgba(34, 197, 94, 0.1)',
+                              border: '1px solid rgba(34, 197, 94, 0.2)',
+                              padding: '2px 8px',
+                              borderRadius: '12px'
+                            }}>
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <span className={styles.emailCell}>{userObj.email}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Joined {formatDateGMT6(userObj.createdAt)}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td>
