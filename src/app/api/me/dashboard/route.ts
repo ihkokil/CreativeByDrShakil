@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
         if (order.expiresAt) {
           return new Date(order.expiresAt) >= new Date();
         }
-        return order.updatedAt >= oneYearAgo;
+        return new Date(order.updatedAt) >= oneYearAgo;
       });
       enrolledCourses = approvedOrders.map((order: any) => {
         const curriculum = parseCurriculumJson(order.course.curriculumJson);
