@@ -260,6 +260,10 @@
   font-weight: 600;
 }
 
+.actionBtn svg {
+  flex-shrink: 0;
+}
+
 .actionBtn:hover {
   background: var(--accent);
   color: white;

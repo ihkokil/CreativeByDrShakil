@@ -124,7 +124,10 @@ export default function StudentsManager() {
   };
 
   const getInitials = (name: string) => {
-    return name ? name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2) : 'ST';
+    if (!name) return 'ST';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
   const filteredStudents = useMemo(() => {

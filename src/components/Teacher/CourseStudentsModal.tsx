@@ -25,14 +25,12 @@ type StudentSummary = {
 
 const ITEMS_PER_PAGE = 20;
 
-const initials = (name: string) =>
-    name
-        .split(" ")
-        .filter(Boolean)
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
+const initials = (name: string) => {
+    if (!name) return 'ST';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
 
 export default function CourseStudentsModal({ courseId, courseTitle, onClose }: CourseStudentsModalProps) {
     const [students, setStudents] = useState<StudentSummary[]>([]);

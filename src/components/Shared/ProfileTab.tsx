@@ -26,12 +26,14 @@ export default function ProfileTab() {
         }
     }, [user]);
 
-    const initials = (fullName || user?.email || "DR")
-        .split(" ")
-        .map((part) => part[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
+    const getInitials = (name: string, fallback: string) => {
+        if (!name) return fallback;
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0][0].toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
+    const initials = getInitials(fullName || user?.email || "", "DR");
 
     const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
 

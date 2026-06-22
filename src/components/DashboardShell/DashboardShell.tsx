@@ -58,12 +58,14 @@ export default function DashboardShell({
         return items.filter((item) => !primaryKeys.has(item.key));
     }, [items, primaryMobileItems]);
 
-    const initials = userName
-        .split(" ")
-        .map((segment) => segment[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
+    const getInitials = (name: string) => {
+        if (!name) return 'US';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0][0].toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    };
+
+    const initials = getInitials(userName);
 
     const handleSelect = (key: string) => {
         onSelect(key);
