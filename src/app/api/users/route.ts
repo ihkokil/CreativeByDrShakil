@@ -24,6 +24,7 @@ export async function GET() {
         isBanned: true,
         createdAt: true,
         profileImage: true,
+        image: true,
       },
       with: {
         deviceSessions: {
@@ -76,7 +77,7 @@ export async function GET() {
         role: user.role,
         isBanned: user.isBanned,
         createdAt: user.createdAt,
-        profileImage: user.profileImage,
+        profileImage: user.profileImage || user.image || null,
         activeSessions,
         sessions: user.deviceSessions, // return all sessions to enable historical last active timestamp on client
         lastActiveAt,
