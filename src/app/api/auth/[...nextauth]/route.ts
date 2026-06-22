@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[Google OAuth] Failed to initiate:', error);
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
-    return NextResponse.redirect(`${appUrl}/login?error=OAuthInitFailed`);
+    return NextResponse.redirect(`${appUrl}/?auth=login&error=OAuthInitFailed`);
   }
 }
 

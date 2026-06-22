@@ -25,6 +25,7 @@ export async function GET() {
         email: true,
         role: true,
         createdAt: true,
+        profileImage: true,
       },
       with: {
         deviceSessions: {
@@ -70,6 +71,7 @@ export async function GET() {
         email: student.email,
         role: student.role,
         createdAt: student.createdAt,
+        profileImage: student.profileImage,
         activeSessions,
         sessions: activeSessions, // compatibility
         enrolledCourses: student.orders.map((order) => ({

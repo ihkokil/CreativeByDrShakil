@@ -27,7 +27,8 @@
   pointer-events: none;
 }
 
-.searchBar input {
+.searchBar input,
+.searchBar select {
   width: 100%;
   padding: 12px 16px 12px 42px;
   background: var(--surface-soft);
@@ -36,9 +37,12 @@
   color: var(--foreground);
   font-size: 0.9rem;
   transition: all 0.2s var(--ease-premium);
+  appearance: none;
+  cursor: pointer;
 }
 
-.searchBar input:focus {
+.searchBar input:focus,
+.searchBar select:focus {
   outline: none;
   border-color: var(--primary);
   background: var(--surface-strong);
@@ -231,6 +235,36 @@
   object-fit: cover;
 }
 
+.formHelp {
+  margin: 4px 0 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.viewDetailsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewDetailsBtn:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
 .imagePlaceholder {
   font-size: 0.7rem;
   color: var(--text-muted);
@@ -308,6 +342,44 @@
 @keyframes modalSlide {
   from { opacity: 0; transform: translateY(30px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Table Responsive Styles */
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.table th, .table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.table th {
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.table tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.table tr:hover {
+  background: var(--surface-soft);
 }
 
 @media (max-width: 1024px) {
