@@ -181,7 +181,6 @@ export default function Navbar() {
                                         setIsAuthOpen(true);
                                     }}
                                 >
-                                    <User size={18} />
                                     <span className={styles.navText}>Login / Register</span>
                                 </button>
                             )}
