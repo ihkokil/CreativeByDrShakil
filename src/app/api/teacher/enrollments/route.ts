@@ -156,3 +156,95 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
+
+// GET - List all enrollments for teacher courses
+export async function GET(request: NextRequest) {
+  try {
+    const payload = await requireTeacherPayload(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
+    const enrollments = await db.query.order.findMany({
+      where: (o, { eq }) => eq(o.status, 'approved'),
+      with: {
+        user: {
+          columns: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+          },
+        },
+        course: {
+          columns: {
+            id: true,
+            title: true,
+            slug: true,
+            teacherId: true,
+          },
+        },
+      },
+      orderBy: (o, { desc }) => [desc(o.createdAt)],
+      limit: 100,
+    });
+
+    // Filter to only include enrollments for courses this teacher owns or manages (if needed, but platform seems to give full access)
+    // Actually, teacher has full view of students usually, but we'll just filter by teacherId if they are not admin.
+    let teacherEnrollments = enrollments;
+    if (payload.role !== 'admin') {
+       teacherEnrollments = enrollments.filter(e => e.course?.teacherId === payload.sub);
+    }
+
+    return NextResponse.json({
+      enrollments: teacherEnrollments.map((e) => ({
+        id: e.id,
+        student: e.user,
+        course: e.course,
+        createdAt: e.createdAt,
+      })),
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
+}
+
+// DELETE - Remove enrollment
+export async function DELETE(request: NextRequest) {
+  try {
+    const payload = await requireTeacherPayload(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { orderId } = body;
+
+    if (!orderId) {
+      return NextResponse.json({ error: 'Order ID is required.' }, { status: 400 });
+    }
+
+    // A teacher might only be allowed to delete enrollments for their own course
+    const existingOrder = await db.query.order.findFirst({
+        where: (o, { eq }) => eq(o.id, orderId),
+        with: { course: true }
+    });
+    
+    if (!existingOrder) {
+        return NextResponse.json({ error: 'Enrollment not found.' }, { status: 404 });
+    }
+    
+    if (payload.role !== 'admin' && existingOrder.course?.teacherId !== payload.sub) {
+        return NextResponse.json({ error: 'Forbidden: You do not own this course.' }, { status: 403 });
+    }
+
+    await db.delete(orderSchema).where(eq(orderSchema.id, orderId));
+
+    return NextResponse.json({
+      success: true,
+      message: 'Enrollment removed successfully.',
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
+}

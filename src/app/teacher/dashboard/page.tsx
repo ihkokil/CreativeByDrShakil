@@ -14,6 +14,7 @@ import PaymentsManager from "@/components/Admin/PaymentsManager";
 import Loader from "@/components/UI/Loader";
 import UsersManager from "@/components/Shared/UsersManager";
 import StudentsManager from "@/components/Shared/StudentsManager";
+import EnrollmentsManager from "@/components/Shared/EnrollmentsManager";
 
 interface TeacherStats {
     totalCourses: number;
@@ -66,7 +67,7 @@ function TeacherDashboardContent() {
         if (user) {
             fetchStats();
         }
-    }, [user, loading, router, fetchStats]);
+    }, [user, loading, router, fetchStats, activeTab]);
 
     if (loading || !user) {
         return (
@@ -96,6 +97,18 @@ function TeacherDashboardContent() {
                         />
                     )}
                 </>
+            )}
+
+            {activeTab === "enrollments" && (
+                <section className={styles.panel}>
+                    <div className={styles.sectionHeader}>
+                        <div>
+                            <h2 className={styles.sectionTitle}>Bulk Enrollment Manager</h2>
+                            <p className={styles.subtitle}>Select multiple students to batch assign courses.</p>
+                        </div>
+                    </div>
+                    <EnrollmentsManager />
+                </section>
             )}
 
             {activeTab === "courses" && (

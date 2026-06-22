@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import styles from '@/components/Admin/SessionsManager.module.css';
-import { Smartphone, Monitor, Lock, LogOut, AlertCircle, Search, UserCheck } from 'lucide-react';
+import { Smartphone, Monitor, Lock, LogOut, AlertCircle, Search, UserCheck, ShieldAlert } from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
+import { formatDateGMT6, formatDateTimeGMT6 } from '@/lib/date-format';
 
 interface SessionData {
   id: string;
@@ -21,7 +22,9 @@ interface UserData {
   fullName: string;
   email: string;
   role: string;
+  isBanned: boolean;
   createdAt: string;
+  lastActiveAt: string;
   activeSessions: SessionData[];
   sessions: SessionData[];
   enrolledCourses: Array<{
@@ -101,6 +104,37 @@ export default function UsersManager() {
     }
   };
 
+  const handleToggleBan = async (userId: string, currentlyBanned: boolean) => {
+    const action = currentlyBanned ? 'unban' : 'ban';
+    const confirmMessage = currentlyBanned
+      ? 'Are you sure you want to unban this user? They will be allowed to log in again.'
+      : 'Are you sure you want to ban this user? They will be locked out immediately.';
+      
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const response = await fetch('/api/teacher/users/ban', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ userId, action }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || `Failed to ${action} user`);
+      }
+
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => (u.id === userId ? { ...u, isBanned: !currentlyBanned } : u))
+      );
+    } catch (err: any) {
+      setError(err.message || `Failed to ${action} user`);
+    }
+  };
+
   const getSessionStatus = (session: SessionData) => {
     if (session.isLocked) return 'locked';
     if (session.loggedOutAt) return 'loggedout';
@@ -108,12 +142,19 @@ export default function UsersManager() {
   };
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => 
+    const list = users.filter((user) => 
       user.role === 'student' && (
         user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase())
       )
     );
+
+    // Sort by last active descending (newest activity first)
+    return list.sort((a, b) => {
+      const timeA = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : new Date(a.createdAt).getTime();
+      const timeB = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : new Date(b.createdAt).getTime();
+      return timeB - timeA;
+    });
   }, [users, searchQuery]);
 
   if (loading) {
@@ -157,10 +198,10 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th style={{ width: '28%' }}>User Info</th>
-              <th style={{ width: '16%' }}>Desktop Sessions</th>
-              <th style={{ width: '16%' }}>Mobile Sessions</th>
-              <th style={{ width: '26%' }}>Enrolled Programs</th>
+              <th style={{ width: '28%' }}>User Information</th>
+              <th style={{ width: '16%' }}>Desktop Session</th>
+              <th style={{ width: '16%' }}>Mobile Session</th>
+              <th style={{ width: '26%' }}>Last Active</th>
               <th style={{ width: '14%' }}>Actions</th>
             </tr>
           </thead>
@@ -168,15 +209,45 @@ export default function UsersManager() {
             {filteredUsers.map((userObj) => {
               const desktopSessions = userObj.activeSessions.filter((s) => s.deviceType === 'desktop');
               const mobileSessions = userObj.activeSessions.filter((s) => s.deviceType === 'mobile');
+              
+              const latestSession = [...(userObj.sessions || [])].sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0];
+              const lastActiveText = latestSession ? formatDateTimeGMT6(latestSession.lastActivityAt) : 'Never';
 
               return (
                 <tr key={userObj.id}>
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span className={styles.nameCell}>{userObj.fullName}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={styles.nameCell}>{userObj.fullName}</span>
+                        {userObj.isBanned ? (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            color: '#ef4444',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                            padding: '2px 8px',
+                            borderRadius: '12px'
+                          }}>
+                            Banned
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            color: '#22c55e',
+                            background: 'rgba(34, 197, 94, 0.1)',
+                            border: '1px solid rgba(34, 197, 94, 0.2)',
+                            padding: '2px 8px',
+                            borderRadius: '12px'
+                          }}>
+                            Active
+                          </span>
+                        )}
+                      </div>
                       <span className={styles.emailCell}>{userObj.email}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                        Joined {new Date(userObj.createdAt).toLocaleDateString('en-GB')}
+                        Joined {formatDateGMT6(userObj.createdAt)}
                       </span>
                     </div>
                   </td>
@@ -217,40 +288,28 @@ export default function UsersManager() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxWidth: '280px' }}>
-                      {userObj.enrolledCourses.length > 0 ? (
-                        userObj.enrolledCourses.map((c) => (
-                          <div 
-                            key={c.courseId} 
-                            title={`Enrolled: ${c.enrolledAt ? new Date(c.enrolledAt).toLocaleDateString('en-GB') : 'N/A'}\nExpires: ${c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('en-GB') : 'N/A'}`}
-                            style={{
-                              display: 'inline-flex',
-                              flexDirection: 'column',
-                              padding: '5px 8px',
-                              background: 'rgba(59, 130, 246, 0.08)',
-                              border: '1px solid rgba(59, 130, 246, 0.18)',
-                              color: 'var(--primary)',
-                              borderRadius: '8px',
-                              fontSize: '0.78rem',
-                              fontWeight: 600,
-                              cursor: 'help'
-                            }}
-                          >
-                            <span style={{ color: 'var(--foreground)', fontWeight: 700 }}>{c.courseTitle}</span>
-                            {c.expiresAt && (
-                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 500 }}>
-                                Exp: {new Date(c.expiresAt).toLocaleDateString('en-GB')}
-                              </span>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <span className={styles.empty}>None</span>
-                      )}
+                    <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--foreground)', fontWeight: 500 }}>
+                        {lastActiveText}
+                      </span>
                     </div>
                   </td>
                   <td>
                     <div className={styles.actionsCell}>
+                      <button
+                        className={styles.actionBtn}
+                        onClick={() => handleToggleBan(userObj.id, userObj.isBanned)}
+                        title={userObj.isBanned ? "Unban user and allow login" : "Ban user and prevent login"}
+                        style={{
+                          color: userObj.isBanned ? '#22c55e' : '#ef4444',
+                          borderColor: userObj.isBanned ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)',
+                          background: userObj.isBanned ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                        }}
+                      >
+                        {userObj.isBanned ? <UserCheck size={16} /> : <ShieldAlert size={16} />}
+                        <span>{userObj.isBanned ? 'Unban' : 'Ban User'}</span>
+                      </button>
+
                       {userObj.activeSessions.length > 0 && (
                         <>
                           <button

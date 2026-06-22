@@ -33,6 +33,7 @@ import AddStudentToCourseModal from "@/components/Admin/AddStudentToCourseModal"
 import Image from "next/image";
 import UsersManager from "@/components/Shared/UsersManager";
 import StudentsManager from "@/components/Shared/StudentsManager";
+import EnrollmentsManager from "@/components/Shared/EnrollmentsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
@@ -69,7 +70,7 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "users" | "students" | "teachers" | "courses" | "payments" | "support" | "settings" | "security" | "profile") || "overview";
+    const activeTab = (searchParams.get("tab") as "overview" | "users" | "students" | "teachers" | "enrollments" | "payments" | "support" | "settings" | "security" | "profile") || "overview";
 
     const setActiveTab = (tab: string) => {
         const params = new URLSearchParams(searchParams);
@@ -317,7 +318,7 @@ function AdminDashboardContent() {
                             </button>
                         </div>
                         <div className={styles.actionGrid}>
-                            <article className={styles.actionCard} onClick={() => { setActiveTab("courses"); setIsAddStudentToCourseOpen(true); }}>
+                            <article className={styles.actionCard} onClick={() => { setActiveTab("enrollments"); setIsAddStudentToCourseOpen(true); }}>
                                 <GraduationCap size={18} />
                                 <div><h3>Enroll Student</h3><p>Add student to any course.</p></div>
                             </article>
@@ -423,48 +424,15 @@ function AdminDashboardContent() {
                 </section>
             )}
 
-            {activeTab === "courses" && (
+            {activeTab === "enrollments" && (
                 <section className={styles.panel}>
                     <div className={styles.panelHeader}>
-                        <h2>Course Enrollments</h2>
-                        <button className={styles.primaryBtn} onClick={() => setIsAddStudentToCourseOpen(true)}>
-                            <GraduationCap size={16} /> Add Student to Course
-                        </button>
-                    </div>
-
-                    {enrollmentsLoading ? (
-                        <div className={styles.infoBox}>Loading enrollments...</div>
-                    ) : enrollments.length > 0 ? (
-                        <div className={styles.teacherList}>
-                            {enrollments.map((enrollment) => (
-                                <article key={enrollment.id} className={styles.listRow}>
-                                    <div className={styles.teacherHead}>
-                                        <div className={styles.avatar}>
-                                            {enrollment.student.fullName.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div className={styles.listCol}>
-                                            <h3>{enrollment.student.fullName}</h3>
-                                            <p>{enrollment.student.email}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className={styles.listCol}>
-                                        <p style={{ color: "var(--foreground)", fontWeight: 500 }}>
-                                            {enrollment.course.title}
-                                        </p>
-                                    </div>
-
-                                    <div className={styles.listCol}>
-                                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                            Enrolled {new Date(enrollment.createdAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                </article>
-                            ))}
+                        <div>
+                            <h2 className={styles.panelTitle}>Enrollments Manager</h2>
+                            <p className={styles.subtitle}>Manage student course enrollments and progress.</p>
                         </div>
-                    ) : (
-                        <div className={styles.infoBox}>No enrollments yet.</div>
-                    )}
+                    </div>
+                    <EnrollmentsManager />
                 </section>
             )}
 
