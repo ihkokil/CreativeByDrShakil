@@ -40,8 +40,17 @@ interface GoogleUserInfo {
   picture?: string;
 }
 
+function getRequestOrigin(request: NextRequest) {
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+  const proto = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http');
+  if (host) {
+    return `${proto}://${host}`;
+  }
+  return request.nextUrl.origin;
+}
+
 export async function GET(request: NextRequest) {
-  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || 'http://localhost:3000';
+  const appUrl = getRequestOrigin(request);
 
   try {
     const { searchParams } = new URL(request.url);
