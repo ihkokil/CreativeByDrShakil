@@ -5,8 +5,8 @@ export async function uploadFileToStorage(
   contentType: string,
   folderPath: string
 ): Promise<string> {
-  const publicPrefix = process.env.NEXT_PUBLIC_FILE_URL;
-  const uploadToken = process.env.HOSTINGER_UPLOAD_TOKEN;
+  const publicPrefix = process.env.NEXT_PUBLIC_FILE_URL?.replace(/"/g, '');
+  const uploadToken = process.env.HOSTINGER_UPLOAD_TOKEN?.replace(/"/g, '');
 
   if (!publicPrefix || !uploadToken) {
     throw new Error('Missing NEXT_PUBLIC_FILE_URL or HOSTINGER_UPLOAD_TOKEN in environment variables');
