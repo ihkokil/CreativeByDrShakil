@@ -43,6 +43,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.releaseStartAt = body.releaseStartAt ? new Date(body.releaseStartAt) : null;
     }
 
+    if (body.courseStartDate !== undefined) {
+      updateData.courseStartDate = body.courseStartDate ? new Date(body.courseStartDate) : null;
+    }
+
     if (body.releaseIntervalDays !== undefined) {
       const parsed = Number(body.releaseIntervalDays);
       if (!Number.isNaN(parsed) && parsed < 1) {
@@ -86,6 +90,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (updateData.releaseStartAt instanceof Date) {
       updateData.releaseStartAt = updateData.releaseStartAt.toISOString();
+    }
+    if (updateData.courseStartDate instanceof Date) {
+      updateData.courseStartDate = updateData.courseStartDate.toISOString();
     }
     if (updateData.publishedAt instanceof Date) {
       updateData.publishedAt = updateData.publishedAt.toISOString();
