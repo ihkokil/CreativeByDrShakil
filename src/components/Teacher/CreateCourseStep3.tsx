@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
+import { getPreviousFriday, generateModuleSchedule } from "@/lib/module-scheduling";
 
 export interface StarterItem {
   id: string;
@@ -44,12 +45,8 @@ function getNextFridayString(): string {
 
 function getPreviousOrCurrentFriday(dateString: string): Date {
   const [year, month, day] = dateString.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-  const dayOfWeek = d.getDay();
-  // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
-  const diff = dayOfWeek < 5 ? dayOfWeek + 2 : dayOfWeek - 5;
-  d.setDate(d.getDate() - diff);
-  return d;
+  const d = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return getPreviousFriday(d);
 }
 
 function formatDisplayDate(date: Date): string {
@@ -251,21 +248,38 @@ function CreateCourseStep3Content() {
   // Recalculate schedule map whenever selected modules or date changes
   useEffect(() => {
     if (!previewDate) return;
-    const baseFriday = getPreviousOrCurrentFriday(previewDate);
-    const newScheduleMap: Record<string, string> = {};
 
-    selectedTopicIds.forEach((id, index) => {
-      const d = new Date(baseFriday);
-      d.setDate(d.getDate() + index * 7);
-      
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      newScheduleMap[id] = `${yyyy}-${mm}-${dd}`;
+    const [year, month, day] = previewDate.split("-").map(Number);
+    const selectedDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+    const snappedFriday = getPreviousFriday(selectedDate);
+
+    const yyyy = snappedFriday.getFullYear();
+    const mm = String(snappedFriday.getMonth() + 1).padStart(2, '0');
+    const dd = String(snappedFriday.getDate()).padStart(2, '0');
+    const snappedDateStr = `${yyyy}-${mm}-${dd}`;
+
+    if (snappedDateStr !== previewDate) {
+      setPreviewDate(snappedDateStr);
+      return;
+    }
+
+    const selectedModules = selectedTopicIds.map(id => {
+      const topic = topicOptions.find(t => t.id === id);
+      return {
+        id,
+        title: topic ? topic.title : "",
+      };
+    });
+
+    const schedule = generateModuleSchedule(selectedModules, snappedFriday);
+
+    const newScheduleMap: Record<string, string> = {};
+    schedule.forEach(item => {
+      newScheduleMap[item.id] = item.releaseAt;
     });
 
     setScheduleMap(newScheduleMap);
-  }, [selectedTopicIds, previewDate]);
+  }, [selectedTopicIds, previewDate, topicOptions]);
 
   const toggleLibrarySelection = (topicId: string) => {
     if (selectedTopicIds.includes(topicId)) {
@@ -310,6 +324,7 @@ function CreateCourseStep3Content() {
           body: JSON.stringify({
             releaseMode: "fixed_interval",
             courseStartDate: previewDate, // update start date with user's selection
+            releaseStartAt: previewDate,
           }),
         });
 
