@@ -132,12 +132,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: result.course?.releaseMode,
+      releaseMode: 'circular',
       releaseStartAt: finalStartAt,
-      releaseIntervalDays: result.course?.releaseIntervalDays,
-      releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
-      releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
-      releaseGroupDates,
     });
 
     const overrideRows = await db.query.studentModuleAvailability.findMany({
@@ -220,12 +216,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const finalStartAt = courseAnchor || dbEnrollment;
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: result.course?.releaseMode,
+      releaseMode: 'circular',
       releaseStartAt: finalStartAt,
-      releaseIntervalDays: result.course?.releaseIntervalDays,
-      releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
-      releaseDaysOfWeek: (result.course as any).releaseDaysOfWeek as number[],
-      releaseGroupDates,
     });
 
     const overrideRows = await db.query.studentModuleAvailability.findMany({
