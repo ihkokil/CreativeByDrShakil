@@ -128,36 +128,35 @@ export async function POST(request: NextRequest) {
     const enrolledStudents: string[] = [];
     const errors: string[] = [];
 
-    await db.transaction(async (tx) => {
-      for (const studentId of studentIds) {
-        try {
-          const student = await tx.query.user.findFirst({
-            where: (u: any, { eq, and }: any) => and(eq(u.id, studentId), eq(u.role, 'student')),
-          });
+    // Transactions are not supported in neon-http driver, so we use standard sequential execution
+    for (const studentId of studentIds) {
+      try {
+        const student = await db.query.user.findFirst({
+          where: (u: any, { eq, and }: any) => and(eq(u.id, studentId), eq(u.role, 'student')),
+        });
 
-          if (!student) {
-            errors.push(`Student with ID ${studentId} not found.`);
-            continue;
-          }
-
-          // Enroll the student (handles basics bundle as well if needed)
-          await ensureCourseEnrollment(
-            tx,
-            student.id,
-            course.id,
-            course.title,
-            course.slug,
-            true, // enrolledByAdmin
-            enrolledAt,
-            expiresAt
-          );
-
-          enrolledStudents.push(student.fullName);
-        } catch (err: any) {
-          errors.push(`Failed to enroll student ${studentId}: ${err.message}`);
+        if (!student) {
+          errors.push(`Student with ID ${studentId} not found.`);
+          continue;
         }
+
+        // Enroll the student (handles basics bundle as well if needed)
+        await ensureCourseEnrollment(
+          db,
+          student.id,
+          course.id,
+          course.title,
+          course.slug,
+          true, // enrolledByAdmin
+          enrolledAt,
+          expiresAt
+        );
+
+        enrolledStudents.push(student.fullName);
+      } catch (err: any) {
+        errors.push(`Failed to enroll student ${studentId}: ${err.message}`);
       }
-    });
+    }
 
     return NextResponse.json({
       success: true,

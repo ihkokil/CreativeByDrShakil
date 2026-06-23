@@ -19,8 +19,6 @@ function CreateCourseStep1Content() {
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState(0);
   const [salePrice, setSalePrice] = useState<number | null>(null);
-  const [duration, setDuration] = useState("");
-  const [courseStartDate, setCourseStartDate] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -42,8 +40,6 @@ function CreateCourseStep1Content() {
             setTitle(course.title || "");
             setPrice(course.price || 0);
             setSalePrice(course.salePrice || null);
-            setDuration(course.duration || "");
-            setCourseStartDate(formatDisplayDate(course.courseStartDate));
             setIsFeatured(Boolean(course.isFeatured));
             setImagePreview(course.imageUrl || "");
           }
@@ -109,8 +105,7 @@ function CreateCourseStep1Content() {
           title: title.trim(),
           price: parseFloat(price.toString()),
           salePrice: salePrice ? parseFloat(salePrice.toString()) : null,
-          duration: duration.trim(),
-          courseStartDate: parseDisplayDateToIso(courseStartDate),
+          duration: "1 year",
           imageUrl,
           isFeatured,
         }),
@@ -193,13 +188,26 @@ function CreateCourseStep1Content() {
                   className={styles.previewImage}
                   unoptimized
                 />
-                <button
-                  type="button"
-                  className={styles.changeBtn}
-                  onClick={() => document.getElementById("imageInput")?.click()}
-                >
-                  <Upload size={20} /> Change
-                </button>
+                <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+                  <button
+                    type="button"
+                    className={styles.changeBtn}
+                    onClick={() => document.getElementById("imageInput")?.click()}
+                  >
+                    <Upload size={20} /> Change
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.changeBtn}
+                    style={{ background: "#fee2e2", color: "#ef4444", border: "1px solid #fca5a5" }}
+                    onClick={() => {
+                      setImagePreview("");
+                      setImageFile(null);
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             ) : (
               <label className={styles.uploadLabel} htmlFor="imageInput">
@@ -257,56 +265,9 @@ function CreateCourseStep1Content() {
         </div>
 
         <div className={styles.formSection}>
-          <h2 className={styles.sectionTitle}>Duration & Schedule</h2>
-          <p className={styles.sectionDesc}>Course length and start date</p>
+          <h2 className={styles.sectionTitle}>Homepage Feature</h2>
 
           <div className={styles.durationRow}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Duration <span className={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="E.g., 8 weeks, 12 hours"
-                className={styles.input}
-                required
-              />
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Start Date</label>
-              <div className={styles.dateInputWrapper}>
-                <Calendar size={20} />
-                <input
-                  type="date"
-                  value={(() => {
-                    if (!courseStartDate) return "";
-                    // Convert DD/MM/YYYY to YYYY-MM-DD for native picker
-                    const parts = courseStartDate.split("/");
-                    if (parts.length === 3) {
-                      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-                    }
-                    return courseStartDate; // Already YYYY-MM-DD or other
-                  })()}
-                  onChange={(e) => {
-                    const val = e.target.value; // YYYY-MM-DD
-                    if (!val) {
-                      setCourseStartDate("");
-                      return;
-                    }
-                    const parts = val.split("-");
-                    if (parts.length === 3) {
-                      setCourseStartDate(`${parts[2]}/${parts[1]}/${parts[0]}`);
-                    } else {
-                      setCourseStartDate(val);
-                    }
-                  }}
-                  className={styles.dateInput}
-                />
-              </div>
-            </div>
 
             <div className={styles.formGroup}>
               <label className={styles.label}>Homepage Feature</label>
