@@ -606,20 +606,12 @@ function CreateCourseStep3Content() {
 
       if (topicsPayload.length > 0) {
         // Save scheduling config first
-        const scheduleModeMap: Record<string, string> = {
-          "instant": "instant",
-          "interval": "fixed_interval",
-          "dayOfWeek": "day_of_week"
-        };
-
         const scheduleResponse = await fetch(`/api/teacher/courses/${courseId}/scheduling`, {
           method: "PATCH",
           headers,
           body: JSON.stringify({
-            releaseMode: scheduleModeMap[publishFreqMode],
-            releaseIntervalDays: publishIntervalDays,
-            releaseDaysOfWeek: publishDaysOfWeek,
-            // startDate is already in the course settings, but we could update it if needed
+            releaseMode: "circular",
+            // startDate is already in the course settings
           }),
         });
 
@@ -911,82 +903,13 @@ function CreateCourseStep3Content() {
         {/* Publish Schedule Config */}
         <div className={styles.contentCard}>
           <h2 className={styles.contentTitle}>Publish Schedule</h2>
-          <p className={styles.helperText}>Set when your modules will be released. Start date is from your course settings in Step 1.</p>
-          
-
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-            <div>
-              <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "8px" }}>Release Mode</label>
-              <select
-                value={publishFreqMode}
-                onChange={(e) => setPublishFreqMode(e.target.value as "instant" | "interval" | "dayOfWeek")}
-                style={{
-                  padding: "10px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.95rem", width: "100%",
-                }}
-              >
-                <option value="instant">Instant on Purchase</option>
-                <option value="interval">Every X Days</option>
-                <option value="dayOfWeek">Specific Days of Week</option>
-              </select>
-            </div>
-
-            {publishFreqMode === "interval" && (
-              <div>
-                <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "8px" }}>Days Between Items</label>
-                <select
-                  value={publishIntervalDays}
-                  onChange={(e) => setPublishIntervalDays(Number(e.target.value))}
-                  style={{
-                    padding: "10px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.95rem", width: "100%",
-                  }}
-                >
-                  {[1, 2, 3, 4, 5, 7, 10, 14].map(d => (
-                    <option key={d} value={d}>{d} days</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {publishFreqMode === "instant" && (
-              <div style={{ gridColumn: "1 / -1", padding: "12px 14px", border: "1px solid var(--glass-border)", borderRadius: "8px", color: "var(--text-muted)" }}>
-                Modules unlock immediately after purchase. No schedule delay will be applied.
-              </div>
-            )}
+          <div style={{ padding: "16px", background: "rgba(var(--primary-rgb), 0.1)", borderRadius: "8px", border: "1px solid var(--glass-border)", marginTop: "16px" }}>
+            <h4 style={{ margin: "0 0 8px 0" }}>Global Circular Schedule Active</h4>
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.95rem", lineHeight: "1.5" }}>
+              This course follows the Global Circular Schedule starting June 12, 2026. 
+              Modules will unlock weekly on Fridays at 10:00 PM (GMT+6).
+            </p>
           </div>
-
-          {publishFreqMode === "dayOfWeek" && (
-            <div>
-              <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "10px" }}>Release Days</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px" }}>
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((dayName, dayIdx) => (
-                  <label
-                    key={dayIdx}
-                    style={{
-                      display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px",
-                      border: `2px solid ${publishDaysOfWeek.includes(dayIdx) ? "var(--primary)" : "var(--glass-border)"}`,
-                      borderRadius: "8px", cursor: "pointer", background: publishDaysOfWeek.includes(dayIdx) ? "rgba(var(--primary-rgb), 0.1)" : "transparent",
-                      fontSize: "0.9rem", fontWeight: "600",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={publishDaysOfWeek.includes(dayIdx)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setPublishDaysOfWeek(prev => [...prev, dayIdx].sort((a, b) => a - b));
-                        } else {
-                          setPublishDaysOfWeek(prev => prev.filter(d => d !== dayIdx));
-                        }
-                      }}
-                      style={{ cursor: "pointer" }}
-                    />
-                    {dayName}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Module Selection */}

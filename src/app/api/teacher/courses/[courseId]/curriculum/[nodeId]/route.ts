@@ -128,11 +128,8 @@ export async function PATCH(
       }).where(eq(courseSchema.id, course.id)).returning();
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
-      releaseIntervalDays: updatedCourse.releaseIntervalDays,
-      releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
-      releaseGroupDates: compactReleaseGroupDates,
+      releaseMode: 'circular',
+      releaseStartAt: new Date('2026-06-12T16:00:00Z'),
     });
 
     return NextResponse.json({
@@ -185,11 +182,8 @@ export async function DELETE(
       }).where(eq(courseSchema.id, course.id)).returning();
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
-      releaseIntervalDays: updatedCourse.releaseIntervalDays,
-      releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
-      releaseGroupDates: compactReleaseGroupDates,
+      releaseMode: 'circular',
+      releaseStartAt: new Date('2026-06-12T16:00:00Z'),
     });
 
     return NextResponse.json({

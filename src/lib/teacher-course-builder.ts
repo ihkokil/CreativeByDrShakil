@@ -1,5 +1,5 @@
 export type CurriculumContentType = 'folder' | 'youtube' | 'self-hosted' | 'document';
-export type CourseReleaseModeValue = 'fixed_interval' | 'groups_per_week' | 'day_of_week' | 'explicit_dates' | 'instant';
+export type CourseReleaseModeValue = 'fixed_interval' | 'groups_per_week' | 'day_of_week' | 'explicit_dates' | 'instant' | 'circular';
 
 export interface LessonAvailabilityOverride {
   lessonNodeId: string;
@@ -357,6 +357,33 @@ export function computeReleaseGroupDates(
     return dates;
   }
 
+  if (mode === 'circular') {
+    const N = groups.length;
+    if (N === 0) return dates;
+    
+    // Global start date: June 12, 2026 16:00 UTC (10:00 PM GMT+6)
+    const GLOBAL_START_DATE = new Date(Date.UTC(2026, 5, 12, 16, 0, 0));
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    
+    let weeksSinceGlobalStart = 0;
+    if (startDate.getTime() > GLOBAL_START_DATE.getTime()) {
+      weeksSinceGlobalStart = Math.floor((startDate.getTime() - GLOBAL_START_DATE.getTime()) / ONE_WEEK_MS);
+    }
+    
+    const studentStartWeekIndex = weeksSinceGlobalStart;
+    
+    groups.forEach((group, i) => {
+      let k = i - (studentStartWeekIndex % N);
+      if (k < 0) k += N;
+      
+      const unlockWeek = studentStartWeekIndex + k;
+      const unlockDate = new Date(GLOBAL_START_DATE.getTime() + unlockWeek * ONE_WEEK_MS);
+      
+      dates[group.id] = pinTo10pmBST(unlockDate).toISOString();
+    });
+    return dates;
+  }
+
   if (mode === 'fixed_interval') {
     const intervalDays = Math.max(1, config.releaseIntervalDays || 7);
     groups.forEach((group) => {
@@ -445,13 +472,6 @@ const resolveAvailableAt = (
   if (override?.availabilityMode === 'available') {
     const overrideDate = normalizeDate(override.availableAt || null);
     return overrideDate ? overrideDate.toISOString() : null;
-  }
-
-  for (let index = path.length - 1; index >= 0; index -= 1) {
-    const overrideDate = normalizeDate(path[index].releaseAt || null);
-    if (overrideDate) {
-      return overrideDate.toISOString();
-    }
   }
 
   for (let index = path.length - 1; index >= 0; index -= 1) {
