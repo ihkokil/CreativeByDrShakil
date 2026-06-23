@@ -162,18 +162,6 @@ function CreateCourseStep4Content() {
                     {course.salePrice && <span className={styles.salePrice}> (Sale: ৳{course.salePrice})</span>}
                   </span>
                 </div>
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Duration:</span>
-                  <span className={styles.metaValue}>{course.duration}</span>
-                </div>
-                {course.courseStartDate && (
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>Start Date:</span>
-                    <span className={styles.metaValue}>
-                      {formatDisplayDate(course.courseStartDate)}
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
           </div>

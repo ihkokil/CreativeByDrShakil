@@ -21,7 +21,16 @@ $SECRET_TOKEN = 'YOUR_SUPER_SECRET_TOKEN_HERE';
 
 // Authenticate
 $headers = getallheaders();
-$providedToken = isset($headers['X-Upload-Token']) ? $headers['X-Upload-Token'] : '';
+$providedToken = '';
+foreach ($headers as $key => $val) {
+    if (strtolower($key) === 'x-upload-token') {
+        $providedToken = $val;
+        break;
+    }
+}
+if (empty($providedToken) && isset($_SERVER['HTTP_X_UPLOAD_TOKEN'])) {
+    $providedToken = $_SERVER['HTTP_X_UPLOAD_TOKEN'];
+}
 
 if ($providedToken !== $SECRET_TOKEN) {
     http_response_code(401);
@@ -48,7 +57,7 @@ $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 // Define allowed extensions based on user request
 $allowedExtensions = [
     // Images
-    'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'ico',
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'svg', 'bmp', 'tiff', 'ico',
     // Videos
     'mp4', 'webm', 'ogg', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v',
     // Documents
