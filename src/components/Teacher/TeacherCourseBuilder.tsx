@@ -371,7 +371,7 @@ export default function TeacherCourseBuilder() {
             const releaseGroupDates = Object.entries(groupDateDrafts).reduce<Record<string, string>>((acc, [g, v]) => { const iso = toIsoString(v); if (iso) acc[g] = iso; return acc; }, {});
             const response = await fetch(`/api/teacher/courses/${selectedCourseId}/scheduling`, {
                 method: "PATCH", headers: authHeaders(),
-                body: JSON.stringify({ releaseMode, releaseStartAt: toIsoString(releaseStartAt), releaseIntervalDays: Number(intervalDays), releaseGroupsPerWeek: Number(groupsPerWeek), releaseDaysOfWeek: selectedDays, releaseGroupDates, status: courseStatus, timezone: "Asia/Dhaka" }),
+                body: JSON.stringify({ releaseMode: "circular", releaseGroupDates, status: courseStatus, timezone: "Asia/Dhaka" }),
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to save schedule.");
@@ -606,59 +606,10 @@ export default function TeacherCourseBuilder() {
                             {builderStep === "schedule" && (
                                 <>
                                     <div className={styles.scheduleGrid}>
-                                        <div>
-                                            <label>Release Mode</label>
-                                            <select value={releaseMode} onChange={(e) => setReleaseMode(e.target.value as CourseReleaseModeValue)}>
-                                                <option value="instant">Instant on Purchase</option>
-                                                <option value="fixed_interval">Fixed Day Interval</option>
-                                                <option value="groups_per_week">Groups Per Week (bi/tri-weekly)</option>
-                                                <option value="day_of_week">Specific Days of Week</option>
-                                                <option value="explicit_dates">Explicit Group Dates</option>
-                                            </select>
+                                        <div style={{ gridColumn: "1 / -1", padding: "16px", background: "rgba(var(--primary-rgb), 0.1)", borderRadius: "8px", border: "1px solid var(--glass-border)" }}>
+                                            <h4 style={{ margin: "0 0 8px 0" }}>Global Circular Schedule Active</h4>
+                                            <p style={{ margin: 0, color: "var(--text-muted)" }}>This course follows the Global Circular Schedule starting June 12, 2026. Modules unlock weekly on Fridays at 10:00 PM (GMT+6).</p>
                                         </div>
-                                        <div>
-                                            <label>Start Date (Asia/Dhaka)</label>
-                                            <input type="datetime-local" value={releaseStartAt} onChange={(e) => setReleaseStartAt(e.target.value)} />
-                                        </div>
-                                        {releaseMode === "fixed_interval" && (
-                                            <div>
-                                                <label>Interval (Days)</label>
-                                                <input type="number" min="1" value={intervalDays} onChange={(e) => setIntervalDays(e.target.value)} />
-                                            </div>
-                                        )}
-                                        {releaseMode === "groups_per_week" && (
-                                            <div>
-                                                <label>Groups Per Week</label>
-                                                <select value={groupsPerWeek} onChange={(e) => setGroupsPerWeek(e.target.value)}>
-                                                    <option value="2">2 (bi-weekly)</option>
-                                                    <option value="3">3 (tri-weekly)</option>
-                                                </select>
-                                            </div>
-                                        )}
-                                        {releaseMode === "day_of_week" && (
-                                            <div style={{ gridColumn: "1 / -1" }}>
-                                                <label>Release Days</label>
-                                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
-                                                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, idx) => (
-                                                        <label key={day} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", cursor: "pointer", background: selectedDays.includes(idx) ? "rgba(var(--primary-rgb), 0.1)" : "transparent" }}>
-                                                            <input type="checkbox" checked={selectedDays.includes(idx)} onChange={(e) => {
-                                                                if (e.target.checked) setSelectedDays(prev => [...prev, idx].sort((a, b) => a - b));
-                                                                else setSelectedDays(prev => prev.filter(d => d !== idx));
-                                                            }} />
-                                                            {day}
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {releaseMode === "instant" && (
-                                            <div>
-                                                <label>Release Behavior</label>
-                                                <div style={{ padding: "12px 14px", border: "1px solid var(--glass-border)", borderRadius: "10px", color: "var(--text-muted)" }}>
-                                                    All modules unlock immediately after purchase.
-                                                </div>
-                                            </div>
-                                        )}
                                         <div>
                                             <label>Publish Status</label>
                                             <select value={courseStatus} onChange={(e) => setCourseStatus(e.target.value as any)}>

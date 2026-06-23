@@ -2,9 +2,9 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronRight, Calendar, Plus, Folder, Video, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
-import { formatDisplayDate, parseDisplayDateToIso } from "@/lib/date-format";
+import { getPreviousFriday, generateModuleSchedule } from "@/lib/module-scheduling";
 
 export interface StarterItem {
   id: string;
@@ -30,46 +30,47 @@ interface LibraryNode {
   parentId: string | null;
 }
 
+// Date Helpers
+function getNextFridayString(): string {
+  const d = new Date();
+  const dayOfWeek = d.getDay();
+  const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+  const daysToAdd = daysUntilFriday === 0 ? 7 : daysUntilFriday;
+  d.setDate(d.getDate() + daysToAdd);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getPreviousOrCurrentFriday(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const d = new Date(year, month - 1, day, 12, 0, 0, 0);
+  return getPreviousFriday(d);
+}
+
+function formatDisplayDate(date: Date): string {
+  return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+
 function CreateCourseStep3Content() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
+  const tab = searchParams.get("tab");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [topicOptions, setTopicOptions] = useState<StarterMainTopic[]>([]);
+  // Chronological order of selected topics
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
-  const [expandedTopics, setExpandedTopics] = useState<string[]>([]);
   
-  // Replace excludedVideoIndices with excludedItemIds set
-  const [excludedItemIds, setExcludedItemIds] = useState<Record<string, boolean>>({});
-  // Track expanded state for all nesting levels
-  const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  
-  // Publish frequency controls
-  const [publishFreqMode, setPublishFreqMode] = useState<"instant" | "interval" | "dayOfWeek">("interval");
-  const [publishIntervalDays, setPublishIntervalDays] = useState(7);
-  const [publishDaysOfWeek, setPublishDaysOfWeek] = useState<number[]>([0]); // 0 = Sunday
-  const [publishStartDate, setPublishStartDate] = useState("");
-  
-  // Manual date overrides for first-level items OR child items
-  const [dateOverrides, setDateOverrides] = useState<Record<string, string>>({});
-  
-  // Inline add-item form: tracks which parent item currently has the form open
-  const [addInlineItemId, setAddInlineItemId] = useState<string | null>(null);
-  const [inlineItemType, setInlineItemType] = useState<"folder" | "youtube" | "self-hosted">("youtube");
-  const [inlineItemTitle, setInlineItemTitle] = useState("");
-  const [inlineItemUrl, setInlineItemUrl] = useState("");
-  
-  // Custom topic creation
-  const [showCreateTopic, setShowCreateTopic] = useState(false);
-  const [newTopicTitle, setNewTopicTitle] = useState("");
-  const [newTopicItems, setNewTopicItems] = useState<StarterItem[]>([]);
-  const [newVideoTitle, setNewVideoTitle] = useState("");
-  const [newVideoUrl, setNewVideoUrl] = useState("");
-  const [newVideoType, setNewVideoType] = useState<"youtube" | "self-hosted">("youtube");
+  // Date Picker state
+  const [previewDate, setPreviewDate] = useState<string>("");
+  // Generated schedule: mapping topic ID to scheduled ISO Date string
+  const [scheduleMap, setScheduleMap] = useState<Record<string, string>>({});
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("auth_token");
@@ -77,13 +78,6 @@ function CreateCourseStep3Content() {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
-  };
-
-  const openInlineItemForm = (targetId: string, type: "folder" | "youtube" | "self-hosted") => {
-    setAddInlineItemId(targetId);
-    setInlineItemType(type);
-    setInlineItemTitle("");
-    setInlineItemUrl("");
   };
 
   const collectItemsRecursively = (nodes: LibraryNode[], parentId: string): StarterItem[] => {
@@ -113,7 +107,6 @@ function CreateCourseStep3Content() {
     
     return topLevelFolders.map(folder => {
       const subTopics = collectItemsRecursively(nodes, folder.id);
-      
       return {
         id: folder.id,
         title: folder.title,
@@ -121,214 +114,6 @@ function CreateCourseStep3Content() {
         source: "library",
       };
     });
-  };
-
-  // Helper to extract ALL child IDs recursively
-  const getAllChildIds = (item: StarterItem, ids: string[] = []) => {
-    ids.push(item.id);
-    if (item.items) {
-      item.items.forEach(child => getAllChildIds(child, ids));
-    }
-    return ids;
-  };
-
-  const toggleTopicSelection = (mainTopicId: string) => {
-    const topic = topicOptions.find(t => t.id === mainTopicId);
-    if (!topic) return;
-
-    const subTopicIds = topic.subTopics.map(st => st.id);
-    const allSelected = selectedTopicIds.includes(mainTopicId) && subTopicIds.every(id => selectedTopicIds.includes(id));
-
-    if (allSelected) {
-      setSelectedTopicIds(prev => prev.filter(id => id !== mainTopicId && !subTopicIds.includes(id)));
-    } else {
-      const uniqueIds = new Set([...selectedTopicIds, mainTopicId, ...subTopicIds]);
-      setSelectedTopicIds(Array.from(uniqueIds));
-    }
-  };
-
-  const toggleSubTopicSelection = (subTopicId: string) => {
-    const prevSelected = selectedTopicIds.includes(subTopicId);
-    if (prevSelected) {
-      setSelectedTopicIds(prev => prev.filter(id => id !== subTopicId));
-      // Also un-exclude anything inside this item
-      setExcludedItemIds(prev => {
-        const next = { ...prev };
-        delete next[subTopicId];
-        return next;
-      });
-    } else {
-      setSelectedTopicIds(prev => [...prev, subTopicId]);
-    }
-  };
-
-  const toggleItemExclusion = (item: StarterItem, isParentIncluded: boolean, isCurrentlyExcluded: boolean) => {
-    // If it's a deep item, we flip it and all its children.
-    const allIds = getAllChildIds(item);
-    
-    setExcludedItemIds(prev => {
-      const next = { ...prev };
-      allIds.forEach(id => {
-        if (isCurrentlyExcluded) {
-          // It was excluded, make it included (delete from excluded)
-          delete next[id];
-        } else {
-          // Make it excluded
-          next[id] = true;
-        }
-      });
-      return next;
-    });
-  };
-
-  const getIncludedContentCount = (item: StarterItem): { included: number, total: number } => {
-    let included = 0;
-    let total = 0;
-    const isExcluded = excludedItemIds[item.id];
-    
-    if (item.type !== "folder") {
-      total += 1;
-      if (!isExcluded) included += 1;
-    } else if (item.items) {
-      // It's a folder. Even if the folder itself is excluded, we can still count its contents so the UI says 0/X
-      item.items.forEach(child => {
-        const childCounts = getIncludedContentCount(child);
-        total += childCounts.total;
-        included += childCounts.included;
-      });
-    }
-    return { included, total };
-  };
-
-  // Recursively search and append item to a specific parent folder ID
-  const insertItemRecursively = (items: StarterItem[], targetParentId: string, newItem: StarterItem): StarterItem[] => {
-    return items.map(item => {
-      if (item.id === targetParentId) {
-        return {
-          ...item,
-          items: [...(item.items || []), newItem]
-        };
-      }
-      if (item.items) {
-        return {
-          ...item,
-          items: insertItemRecursively(item.items, targetParentId, newItem)
-        };
-      }
-      return item;
-    });
-  };
-
-  const handleAddInlineItem = (mainTopicId: string, targetId: string) => {
-    if (inlineItemType !== "folder" && (!inlineItemTitle.trim() || !inlineItemUrl.trim())) return;
-    if (inlineItemType === "folder" && !inlineItemTitle.trim()) return;
-    
-    const newItem: StarterItem = {
-      id: `custom_item_${Date.now()}`,
-      type: inlineItemType,
-      title: inlineItemTitle.trim(),
-      url: inlineItemType !== "folder" ? inlineItemUrl.trim() : undefined,
-      items: inlineItemType === "folder" ? [] : undefined
-    };
-
-    setTopicOptions(prev => prev.map(mt => {
-      if (mt.id !== mainTopicId) return mt;
-      if (targetId === mainTopicId) {
-        return {
-          ...mt,
-          subTopics: [...mt.subTopics, newItem]
-        };
-      }
-      return {
-        ...mt,
-        subTopics: insertItemRecursively(mt.subTopics, targetId, newItem)
-      };
-    }));
-    
-    setInlineItemTitle("");
-    setInlineItemUrl("");
-    setInlineItemType("youtube");
-    setAddInlineItemId(null);
-  };
-
-  const moveItemRecursively = (items: StarterItem[], targetId: string, direction: "up" | "down"): StarterItem[] | null => {
-    const index = items.findIndex(item => item.id === targetId);
-    if (index !== -1) {
-      if (direction === "up" && index > 0) {
-        const newItems = [...items];
-        [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
-        return newItems;
-      } else if (direction === "down" && index < items.length - 1) {
-        const newItems = [...items];
-        [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
-        return newItems;
-      }
-      return items; 
-    }
-
-    for (let i = 0; i < items.length; i++) {
-       if (items[i].items) {
-           const nestedResult = moveItemRecursively(items[i].items!, targetId, direction);
-           if (nestedResult) {
-              const newItems = [...items];
-              newItems[i] = { ...newItems[i], items: nestedResult };
-              return newItems;
-           }
-       }
-    }
-    return null;
-  };
-
-  const handleMoveItem = (mainTopicId: string, targetId: string, direction: "up" | "down") => {
-    setTopicOptions(prev => prev.map(mt => {
-      if (mt.id !== mainTopicId) return mt;
-      const newSubTopics = moveItemRecursively(mt.subTopics, targetId, direction);
-      return {
-        ...mt,
-        subTopics: newSubTopics || mt.subTopics
-      };
-    }));
-  };
-
-  const toggleTopicExpanded = (id: string) => setExpandedTopics(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  const toggleItemExpanded = (id: string) => setExpandedItems(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-
-  const calculatePublishDate = (index: number, targetDay?: number): Date => {
-    const startDate = publishStartDate ? new Date(parseDisplayDateToIso(publishStartDate) || publishStartDate) : new Date();
-    const date = new Date(startDate);
-
-    if (publishFreqMode === "instant") {
-      return date;
-    }
-
-    if (publishFreqMode === "interval") {
-      date.setDate(date.getDate() + index * publishIntervalDays);
-      return date;
-    } else {
-      const selectedDays = publishDaysOfWeek.length > 0 ? publishDaysOfWeek : [0];
-      if (targetDay !== undefined) {
-        const daysToAdd = (targetDay - date.getDay() + 7) % 7;
-         date.setDate(date.getDate() + daysToAdd + index * 7);
-         return date;
-      }
-      
-      let validDaysHit = 0;
-      const currentCheckDate = new Date(startDate);
-      
-      if (selectedDays.includes(currentCheckDate.getDay())) {
-         if (index === 0) return currentCheckDate;
-         validDaysHit++;
-      }
-      
-      while (validDaysHit <= index) {
-        currentCheckDate.setDate(currentCheckDate.getDate() + 1);
-        if (selectedDays.includes(currentCheckDate.getDay())) {
-          if (validDaysHit === index) return currentCheckDate;
-          validDaysHit++;
-        }
-      }
-      return currentCheckDate;
-    }
   };
 
   useEffect(() => {
@@ -339,34 +124,22 @@ function CreateCourseStep3Content() {
         setLoading(true);
         const headers = getAuthHeaders();
 
-        const initialSelectedIds = new Set<string>();
-        const initialExcludedIds: Record<string, boolean> = {};
         let loadedCourseData: any = null;
 
         const courseResponse = await fetch(`/api/teacher/courses/${courseId}`, { headers });
         if (courseResponse.ok) {
           loadedCourseData = await courseResponse.json();
           if (loadedCourseData.course?.courseStartDate) {
-            setPublishStartDate(formatDisplayDate(loadedCourseData.course.courseStartDate));
+            const d = new Date(loadedCourseData.course.courseStartDate);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            setPreviewDate(`${yyyy}-${mm}-${dd}`);
+          } else {
+            setPreviewDate(getNextFridayString());
           }
-          
-          if (loadedCourseData.course?.releaseMode) {
-             const modeMap: Record<string, any> = {
-                "instant": "instant",
-                "fixed_interval": "interval",
-                "day_of_week": "dayOfWeek"
-             };
-             setPublishFreqMode(modeMap[loadedCourseData.course.releaseMode] || "interval");
-          }
-          if (loadedCourseData.course?.releaseIntervalDays) {
-             setPublishIntervalDays(loadedCourseData.course.releaseIntervalDays);
-          }
-          if (loadedCourseData.course?.releaseDaysOfWeek) {
-             try {
-                const days = JSON.parse(loadedCourseData.course.releaseDaysOfWeek);
-                if (Array.isArray(days)) setPublishDaysOfWeek(days);
-             } catch(e) {}
-          }
+        } else {
+          setPreviewDate(getNextFridayString());
         }
 
         const topicsResponse = await fetch("/api/teacher/starter-catalog?verbose=1", { headers });
@@ -423,46 +196,19 @@ function CreateCourseStep3Content() {
           });
         }
 
+        const initialSelectedOrder: string[] = [];
+
         // Process existing curriculum for persistence
         if (loadedCourseData?.course?.curriculumJson) {
           try {
             const curriculum = JSON.parse(loadedCourseData.course.curriculumJson);
-            const curriculumIdMap = new Map<string, any>();
             
-            const mapNodes = (nodes: any[]) => {
-              nodes.forEach(node => {
-                curriculumIdMap.set(node.id, node);
-                if (node.children) mapNodes(node.children);
-              });
-            };
-            mapNodes(curriculum);
-
-            // 1. Mark existing catalog topics as selected
-            allTopics.forEach(topic => {
-              if (curriculumIdMap.has(topic.id)) {
-                initialSelectedIds.add(topic.id);
-                
-                // Recursively check for exclusions
-                const trackExclusions = (items: StarterItem[]) => {
-                  items.forEach(item => {
-                    if (!curriculumIdMap.has(item.id)) {
-                      initialExcludedIds[item.id] = true;
-                    } else {
-                      if (item.type === 'folder') {
-                        initialSelectedIds.add(item.id);
-                      }
-                      if (item.items) trackExclusions(item.items);
-                    }
-                  });
-                };
-                trackExclusions(topic.subTopics);
-              }
-            });
-
-            // 2. Load custom topics that are not in the catalog
+            // Reconstruct chronological order from saved JSON
             curriculum.forEach((topicNode: any) => {
-              if (!seenIds.has(topicNode.id)) {
-                const convertNodeToItem = (node: any): StarterItem => ({
+              if (seenIds.has(topicNode.id)) {
+                initialSelectedOrder.push(topicNode.id);
+              } else {
+                 const convertNodeToItem = (node: any): StarterItem => ({
                   id: node.id,
                   type: node.type,
                   title: node.title,
@@ -478,13 +224,7 @@ function CreateCourseStep3Content() {
                 };
                 allTopics.push(customTopic);
                 seenIds.add(topicNode.id);
-                initialSelectedIds.add(topicNode.id);
-                
-                if (topicNode.children) {
-                   topicNode.children.forEach((st: any) => {
-                     if (st.type === 'folder') initialSelectedIds.add(st.id);
-                   });
-                }
+                initialSelectedOrder.push(topicNode.id);
               }
             });
           } catch (e) {
@@ -493,8 +233,7 @@ function CreateCourseStep3Content() {
         }
 
         setTopicOptions(allTopics);
-        setSelectedTopicIds(Array.from(initialSelectedIds));
-        setExcludedItemIds(initialExcludedIds);
+        setSelectedTopicIds(initialSelectedOrder);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load course");
@@ -506,44 +245,52 @@ function CreateCourseStep3Content() {
     initStep();
   }, [courseId]);
 
-  const handleAddVideoToCustomTopic = () => {
-    if (!newVideoTitle.trim() || !newVideoUrl.trim()) return;
-    setNewTopicItems(prev => [...prev, {
-      id: `custom_vid_${Date.now()}`,
-      type: newVideoType,
-      title: newVideoTitle,
-      url: newVideoUrl,
-    }]);
-    setNewVideoTitle("");
-    setNewVideoUrl("");
+  // Recalculate schedule map whenever selected modules or date changes
+  useEffect(() => {
+    if (!previewDate) return;
+
+    const [year, month, day] = previewDate.split("-").map(Number);
+    const selectedDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+    const snappedFriday = getPreviousFriday(selectedDate);
+
+    const yyyy = snappedFriday.getFullYear();
+    const mm = String(snappedFriday.getMonth() + 1).padStart(2, '0');
+    const dd = String(snappedFriday.getDate()).padStart(2, '0');
+    const snappedDateStr = `${yyyy}-${mm}-${dd}`;
+
+    if (snappedDateStr !== previewDate) {
+      setPreviewDate(snappedDateStr);
+      return;
+    }
+
+    const selectedModules = selectedTopicIds.map(id => {
+      const topic = topicOptions.find(t => t.id === id);
+      return {
+        id,
+        title: topic ? topic.title : "",
+      };
+    });
+
+    const schedule = generateModuleSchedule(selectedModules, snappedFriday);
+
+    const newScheduleMap: Record<string, string> = {};
+    schedule.forEach(item => {
+      newScheduleMap[item.id] = item.releaseAt;
+    });
+
+    setScheduleMap(newScheduleMap);
+  }, [selectedTopicIds, previewDate, topicOptions]);
+
+  const toggleLibrarySelection = (topicId: string) => {
+    if (selectedTopicIds.includes(topicId)) {
+      setSelectedTopicIds(prev => prev.filter(id => id !== topicId));
+    } else {
+      setSelectedTopicIds(prev => [...prev, topicId]);
+    }
   };
 
-  const handleCreateCustomTopic = () => {
-    if (!newTopicTitle.trim()) return;
-    
-    const mainTopicId = `custom_${Date.now()}`;
-    const customItemIds = newTopicItems.map((item) => item.id);
-
-    const customTopic: StarterMainTopic = {
-      id: mainTopicId,
-      title: newTopicTitle,
-      subTopics: [...newTopicItems],
-      source: "custom",
-    };
-    
-    setTopicOptions(prev => [...prev, customTopic]);
-    setSelectedTopicIds(prev => Array.from(new Set([...prev, mainTopicId, ...customItemIds])));
-    setNewTopicTitle("");
-    setNewTopicItems([]);
-    setShowCreateTopic(false);
-  };
-
-  const handleResetCustomTopic = () => {
-    setShowCreateTopic(false);
-    setNewTopicTitle("");
-    setNewTopicItems([]);
-    setNewVideoTitle("");
-    setNewVideoUrl("");
+  const removeTopic = (topicId: string) => {
+    setSelectedTopicIds(prev => prev.filter(id => id !== topicId));
   };
 
   const handleSaveAndContinue = async () => {
@@ -553,73 +300,31 @@ function CreateCourseStep3Content() {
     try {
       const headers = getAuthHeaders();
 
-      const serializeItems = (items: StarterItem[], forceInclude = false): any[] => {
-        return items.flatMap((item) => {
-          const isExcluded = excludedItemIds[item.id];
-          const isIncluded = forceInclude || selectedTopicIds.includes(item.id);
+      // Ensure we preserve the chronological order by mapping over selectedTopicIds
+      const topicsPayload = selectedTopicIds.map((topicId) => {
+        const topic = topicOptions.find(t => t.id === topicId);
+        if (!topic) return null;
 
-          if (isExcluded || !isIncluded) {
-            return [];
-          }
+        const releaseAt = scheduleMap[topic.id] || null;
 
-          const overrideDate = dateOverrides[item.id];
-          const releaseAt = overrideDate ? parseDisplayDateToIso(overrideDate) || overrideDate : null;
-
-          if (item.type !== "folder") {
-            return [{ id: item.id, type: item.type, title: item.title, url: item.url, ...(releaseAt ? { releaseAt } : {}) }];
-          }
-
-          return [
-            {
-              id: item.id,
-              type: "folder",
-              title: item.title,
-              url: item.url,
-              ...(releaseAt ? { releaseAt } : {}),
-              items: serializeItems(item.items || [], true),
-            },
-          ];
-        });
-      };
-
-      const topicsPayload = topicOptions
-        .map((topic) => {
-          const forceInclude = selectedTopicIds.includes(topic.id);
-          const subTopics = serializeItems(topic.subTopics, forceInclude);
-
-          if (!forceInclude && subTopics.length === 0) {
-            return null;
-          }
-
-          const overrideDate = dateOverrides[topic.id];
-          const releaseAt = overrideDate ? parseDisplayDateToIso(overrideDate) || overrideDate : null;
-
-          return {
-            id: topic.id,
-            title: topic.title,
-            subTopics,
-            source: topic.source,
-            ...(releaseAt ? { releaseAt } : {}),
-          };
-        })
-        .filter(Boolean);
+        return {
+          id: topic.id,
+          title: topic.title,
+          subTopics: topic.subTopics,
+          source: topic.source,
+          ...(releaseAt ? { releaseAt } : {}),
+        };
+      }).filter(Boolean);
 
       if (topicsPayload.length > 0) {
-        // Save scheduling config first
-        const scheduleModeMap: Record<string, string> = {
-          "instant": "instant",
-          "interval": "fixed_interval",
-          "dayOfWeek": "day_of_week"
-        };
-
+        // Save scheduling config
         const scheduleResponse = await fetch(`/api/teacher/courses/${courseId}/scheduling`, {
           method: "PATCH",
           headers,
           body: JSON.stringify({
-            releaseMode: scheduleModeMap[publishFreqMode],
-            releaseIntervalDays: publishIntervalDays,
-            releaseDaysOfWeek: publishDaysOfWeek,
-            // startDate is already in the course settings, but we could update it if needed
+            releaseMode: "fixed_interval",
+            courseStartDate: previewDate, // update start date with user's selection
+            releaseStartAt: previewDate,
           }),
         });
 
@@ -652,250 +357,77 @@ function CreateCourseStep3Content() {
     return <div className={styles.loading}>Loading options...</div>;
   }
 
-  // Recursive render function for deep nesting
-  const renderItemRecursively = (
-    item: StarterItem, 
-    mainTopicId: string, 
-    level: number, 
-    isParentIncluded: boolean,
-    inheritedDate: string
-  ) => {
-    const isExcluded = excludedItemIds[item.id] || false;
-    const isIncluded = isParentIncluded && !isExcluded;
-    const isExpanded = expandedItems.includes(item.id);
-    const hasItems = item.items && item.items.length > 0;
-    
-    // An overriding date ONLY gets displayed if manually set, otherwise display inheritedDate
-    const overrideDate = dateOverrides[item.id];
-    const displayDate = overrideDate || inheritedDate;
+  const isLibraryView = tab === "library";
 
+  if (isLibraryView) {
     return (
-      <div key={item.id} style={{ marginLeft: `${level > 0 ? 16 : 0}px`, marginTop: "8px" }}>
-        <div style={{
-          padding: "10px 12px",
-          background: "rgba(0, 0, 0, 0.1)",
-          border: `1px solid var(--glass-border)`,
-          borderRadius: "6px",
-          fontSize: "0.85rem",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "10px",
-          opacity: isExcluded ? 0.5 : 1,
-          transition: "opacity 0.2s ease",
-        }}>
-          <input
-            type="checkbox"
-            checked={isIncluded}
-            onChange={() => toggleItemExclusion(item, isParentIncluded, isExcluded)}
-            onClick={(e) => e.stopPropagation()}
-            style={{ cursor: "pointer", flexShrink: 0, marginTop: "3px", width: "20px", height: "20px", accentColor: "var(--primary)" }}
-          />
-          
-          {item.type === "folder" ? (
-             <Folder size={14} style={{ color: "var(--text-muted)", flexShrink: 0, marginTop: "2px" }} />
-          ) : (
-             <Video size={14} style={{ color: "var(--text-muted)", flexShrink: 0, marginTop: "2px" }} />
-          )}
-
-          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "8px" }}>
-            <button
-              onClick={() => item.type === "folder" && toggleItemExpanded(item.id)}
-              style={{
-                background: "none", border: "none", padding: 0, margin: 0,
-                color: "var(--foreground)", cursor: item.type === "folder" ? "pointer" : "default",
-                display: "flex", alignItems: "center", gap: "4px",
-                textDecoration: isExcluded ? "line-through" : "none",
-                fontWeight: "500", textAlign: "left"
-              }}
-            >
-              {item.type === "folder" && (isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
-              {!hasItems && item.type === "folder" && <span style={{ width: "14px" }}/>}
-              {item.title}
-            </button>
-            
-            {item.type === "folder" && (
-                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                  {(() => {
-                    const counts = getIncludedContentCount(item);
-                    return `${counts.included}/${counts.total} content`;
-                  })()}
-                </span>
-            )}
-            
-            {item.type !== "folder" && item.url && (
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", wordBreak: "break-all" }}>
-                {item.url.length > 30 ? `${item.url.substring(0, 30)}...` : item.url}
-              </div>
-            )}
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <div>
+            <h1 className={styles.title}>Module Library</h1>
+            <p className={styles.subtitle}>Select folders to add to your course sequence.</p>
           </div>
-          
-          {isIncluded && displayDate && (
-             <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
-                <Calendar size={13} style={{ color: "var(--primary)" }} />
-                <input
-                  type="date"
-                  value={(() => {
-                    if (!displayDate) return "";
-                    const parts = displayDate.split("/");
-                    if (parts.length === 3) {
-                      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-                    }
-                    return displayDate;
-                  })()}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (!val) {
-                      setDateOverrides(prev => {
-                        const next = { ...prev };
-                        delete next[item.id];
-                        return next;
-                      });
-                      return;
-                    }
-                    const parts = val.split("-");
-                    if (parts.length === 3) {
-                      setDateOverrides(prev => ({ ...prev, [item.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
-                    } else {
-                      setDateOverrides(prev => ({ ...prev, [item.id]: val }));
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
-                    fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
-                  }}
-                />
-             </div>
-          )}
-          {isParentIncluded && (
-             <div style={{ display: "flex", gap: "2px", opacity: 0.6, flexShrink: 0, marginLeft: "4px" }}>
-                 <button
-                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopicId, item.id, "up"); }}
-                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
-                   title="Move Up"
-                 ><ArrowUp size={12} /></button>
-                 <button
-                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopicId, item.id, "down"); }}
-                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
-                   title="Move Down"
-                 ><ArrowDown size={12} /></button>
-             </div>
-          )}
+          <button
+            type="button"
+            onClick={() => router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}`)}
+            style={{
+              padding: "8px 16px", background: "var(--primary)", color: "white", border: "none",
+              borderRadius: "8px", cursor: "pointer", fontWeight: "600"
+            }}
+          >
+            Done
+          </button>
         </div>
 
-        {isExpanded && item.type === "folder" && (
-          <div style={{ paddingLeft: "16px", borderLeft: "1px dashed var(--glass-border)", marginLeft: "6px" }}>
-            {item.items && item.items.map((childItems) => renderItemRecursively(childItems, mainTopicId, level + 1, isIncluded, displayDate))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '24px' }}>
+          {topicOptions.map(topic => {
+            const isSelected = selectedTopicIds.includes(topic.id);
+            const orderIndex = selectedTopicIds.indexOf(topic.id);
             
-            {/* Inline Add Button Inside Folder */}
-            {isIncluded && (
-              <div style={{ marginTop: "8px" }}>
-                {addInlineItemId === item.id ? (
+            return (
+              <div 
+                key={topic.id}
+                onClick={() => toggleLibrarySelection(topic.id)}
+                style={{
+                  border: isSelected ? '2px solid var(--primary)' : '1px solid var(--glass-border)',
+                  background: isSelected ? 'rgba(var(--primary-rgb), 0.05)' : 'var(--background)',
+                  padding: '20px', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s',
+                  position: 'relative'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <Folder style={{ color: isSelected ? 'var(--primary)' : 'var(--text-muted)' }} size={24} />
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600' }}>{topic.title}</h3>
+                </div>
+                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  {topic.subTopics.length} items
+                </p>
+                {isSelected && (
                   <div style={{
-                    padding: "10px 12px", background: "rgba(var(--primary-rgb), 0.05)",
-                    border: "1px dashed var(--primary)", borderRadius: "6px",
-                    display: "flex", flexDirection: "column", gap: "8px",
+                    position: 'absolute', top: '16px', right: '16px', 
+                    background: 'var(--primary)', color: 'white', 
+                    width: '24px', height: '24px', borderRadius: '50%', 
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.8rem', fontWeight: 'bold'
                   }}>
-                    <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
-                       <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Add:</label>
-                       <select 
-                         value={inlineItemType} 
-                         onChange={(e) => setInlineItemType(e.target.value as any)}
-                         style={{ 
-                           padding: "4px", fontSize: "0.8rem", background: "var(--background)", 
-                           color: "var(--foreground)", border: "1px solid var(--glass-border)", borderRadius: "4px" 
-                         }}
-                       >
-                         <option value="youtube">YouTube Video</option>
-                         <option value="self-hosted">Self-Hosted Video</option>
-                         <option value="folder">Folder</option>
-                       </select>
-                    </div>
-                    
-                    <div style={{ display: "grid", gridTemplateColumns: inlineItemType === "folder" ? "1fr" : "1fr 1fr", gap: "8px" }}>
-                      <input
-                        type="text"
-                        placeholder={`${inlineItemType === 'folder' ? 'Folder' : 'Video'} title`}
-                        value={inlineItemTitle}
-                        onChange={(e) => setInlineItemTitle(e.target.value)}
-                        style={{
-                          padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
-                          background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
-                        }}
-                      />
-                      {inlineItemType !== "folder" && (
-                        <input
-                          type="text"
-                          placeholder="URL"
-                          value={inlineItemUrl}
-                          onChange={(e) => setInlineItemUrl(e.target.value)}
-                          style={{
-                            padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
-                            background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
-                          }}
-                        />
-                      )}
-                    </div>
-                    
-                    <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                      <button
-                        type="button"
-                        onClick={() => setAddInlineItemId(null)}
-                        style={{
-                          padding: "4px 10px", background: "var(--glass-border)", color: "var(--foreground)",
-                          border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem",
-                        }}
-                      >Cancel</button>
-                      <button
-                        type="button"
-                        onClick={() => handleAddInlineItem(mainTopicId, item.id)}
-                        disabled={inlineItemType !== "folder" ? (!inlineItemTitle.trim() || !inlineItemUrl.trim()) : !inlineItemTitle.trim()}
-                        style={{
-                          padding: "4px 10px", background: "var(--primary)", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600"
-                        }}
-                      >Add</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => openInlineItemForm(item.id, "youtube")}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
-                        border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
-                        fontSize: "0.8rem", transition: "all 0.2s ease",
-                      }}
-                    >
-                      <Video size={12} /> Add video
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openInlineItemForm(item.id, "folder")}
-                      style={{
-                        display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
-                        border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
-                        fontSize: "0.8rem", transition: "all 0.2s ease",
-                      }}
-                    >
-                      <Folder size={12} /> Add folder
-                    </button>
+                    {orderIndex + 1}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
+            );
+          })}
+        </div>
       </div>
     );
-  };
+  }
 
+  // SCHEDULE VIEW (Default)
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Modules & Media</h1>
-          <p className={styles.subtitle}>Step 3 of 4: Select modules and set publish schedule</p>
+          <h1 className={styles.title}>Modules & Scheduling</h1>
+          <p className={styles.subtitle}>Step 3 of 4: Setup your chronological module sequence</p>
         </div>
         <div className={styles.progress}>
           <div className={styles.progressBar}>
@@ -908,605 +440,98 @@ function CreateCourseStep3Content() {
       {error && <div className={styles.errorMessage}>{error}</div>}
 
       <div className={styles.reviewContent}>
-        {/* Publish Schedule Config */}
+        
+        {/* Module Selection & Scheduling UI */}
         <div className={styles.contentCard}>
-          <h2 className={styles.contentTitle}>Publish Schedule</h2>
-          <p className={styles.helperText}>Set when your modules will be released. Start date is from your course settings in Step 1.</p>
-          
-
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "20px" }}>
             <div>
-              <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "8px" }}>Release Mode</label>
-              <select
-                value={publishFreqMode}
-                onChange={(e) => setPublishFreqMode(e.target.value as "instant" | "interval" | "dayOfWeek")}
-                style={{
-                  padding: "10px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.95rem", width: "100%",
-                }}
-              >
-                <option value="instant">Instant on Purchase</option>
-                <option value="interval">Every X Days</option>
-                <option value="dayOfWeek">Specific Days of Week</option>
-              </select>
-            </div>
-
-            {publishFreqMode === "interval" && (
-              <div>
-                <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "8px" }}>Days Between Items</label>
-                <select
-                  value={publishIntervalDays}
-                  onChange={(e) => setPublishIntervalDays(Number(e.target.value))}
-                  style={{
-                    padding: "10px 12px", border: "1px solid var(--glass-border)", borderRadius: "8px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.95rem", width: "100%",
-                  }}
-                >
-                  {[1, 2, 3, 4, 5, 7, 10, 14].map(d => (
-                    <option key={d} value={d}>{d} days</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {publishFreqMode === "instant" && (
-              <div style={{ gridColumn: "1 / -1", padding: "12px 14px", border: "1px solid var(--glass-border)", borderRadius: "8px", color: "var(--text-muted)" }}>
-                Modules unlock immediately after purchase. No schedule delay will be applied.
-              </div>
-            )}
-          </div>
-
-          {publishFreqMode === "dayOfWeek" && (
-            <div>
-              <label style={{ fontSize: "0.9rem", fontWeight: "600", display: "block", marginBottom: "10px" }}>Release Days</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "8px" }}>
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((dayName, dayIdx) => (
-                  <label
-                    key={dayIdx}
+              <h2 className={styles.contentTitle}>Scheduled Sequence</h2>
+              <p className={styles.helperText} style={{ marginBottom: "12px" }}>
+                Select a start date below to preview the weekly release schedule.
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(0,0,0,0.2)", padding: "12px", borderRadius: "8px", border: "1px solid var(--glass-border)" }}>
+                <Calendar style={{ color: "var(--primary)" }} size={20} />
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "4px" }}>Start Date (Preview & Publish)</label>
+                  <input
+                    type="date"
+                    value={previewDate}
+                    onChange={(e) => setPreviewDate(e.target.value)}
                     style={{
-                      display: "flex", alignItems: "center", gap: "8px", padding: "10px 12px",
-                      border: `2px solid ${publishDaysOfWeek.includes(dayIdx) ? "var(--primary)" : "var(--glass-border)"}`,
-                      borderRadius: "8px", cursor: "pointer", background: publishDaysOfWeek.includes(dayIdx) ? "rgba(var(--primary-rgb), 0.1)" : "transparent",
-                      fontSize: "0.9rem", fontWeight: "600",
+                      background: "transparent", color: "var(--foreground)", border: "none", 
+                      fontSize: "1rem", fontWeight: "bold", cursor: "pointer", outline: "none"
                     }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={publishDaysOfWeek.includes(dayIdx)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setPublishDaysOfWeek(prev => [...prev, dayIdx].sort((a, b) => a - b));
-                        } else {
-                          setPublishDaysOfWeek(prev => prev.filter(d => d !== dayIdx));
-                        }
-                      }}
-                      style={{ cursor: "pointer" }}
-                    />
-                    {dayName}
-                  </label>
-                ))}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Module Selection */}
-        <div className={styles.contentCard}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-            <div>
-              <h2 className={styles.contentTitle}>Your Modules & Media</h2>
-              <p className={styles.helperText}>Select modules to include in your course. Select a main folder to include all content inside.</p>
             </div>
             <button
               type="button"
-              onClick={() => setShowCreateTopic(!showCreateTopic)}
+              onClick={() => router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}&tab=library`)}
               style={{
-                padding: "8px 14px", background: "var(--primary)", color: "white", border: "none", borderRadius: "8px",
-                cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontSize: "0.9rem", fontWeight: "600",
+                padding: "12px 24px", background: "var(--primary)", color: "white", border: "none", borderRadius: "8px",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "1rem", fontWeight: "600",
+                boxShadow: "0 4px 12px rgba(var(--primary-rgb), 0.3)"
               }}
             >
-              <Plus size={16} /> New Module
+              <Plus size={20} /> Add Modules
             </button>
           </div>
 
-          {showCreateTopic && (
-            <div style={{
-              padding: "14px", background: "rgba(var(--primary-rgb), 0.05)", border: "1px solid var(--glass-border)",
-              borderRadius: "8px", marginBottom: "16px", display: "flex", flexDirection: "column", gap: "12px",
-            }}>
-              <div>
-                <label style={{ fontSize: "0.85rem", fontWeight: "600", display: "block", marginBottom: "6px" }}>Module Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Introduction to TypeScript"
-                  value={newTopicTitle}
-                  onChange={(e) => setNewTopicTitle(e.target.value)}
-                  style={{
-                    width: "100%", padding: "8px 10px", border: "1px solid var(--glass-border)", borderRadius: "6px",
-                    background: "var(--background)", color: "var(--foreground)", fontSize: "0.9rem",
-                  }}
-                />
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {selectedTopicIds.length === 0 ? (
+              <div style={{ 
+                padding: "40px", textAlign: "center", border: "2px dashed var(--glass-border)", 
+                borderRadius: "12px", color: "var(--text-muted)" 
+              }}>
+                <Folder size={48} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
+                <h3>No modules selected</h3>
+                <p>Click "Add Modules" to select folders from your library.</p>
               </div>
+            ) : (
+              selectedTopicIds.map((id, index) => {
+                const topic = topicOptions.find(t => t.id === id);
+                if (!topic) return null;
+                const isoDate = scheduleMap[id];
+                const [y, m, d] = isoDate ? isoDate.split('-').map(Number) : [0, 0, 0];
+                const displayDate = isoDate ? formatDisplayDate(new Date(y, m - 1, d)) : "";
 
-              <div>
-                <label style={{ fontSize: "0.85rem", fontWeight: "600", display: "block", marginBottom: "6px" }}>Add Videos/Content</label>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {newTopicItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: "8px 10px", background: "var(--background)", border: "1px solid var(--glass-border)",
-                        borderRadius: "6px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.9rem",
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: "600" }}>{item.title}</div>
-                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{item.type}</div>
+                return (
+                  <div key={id} style={{ 
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "16px 20px", border: "1px solid var(--glass-border)", borderRadius: "12px",
+                    background: "rgba(0,0,0,0.1)"
+                  }}>
+                    <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+                      <div style={{ 
+                        width: "180px", color: "var(--primary)", fontWeight: "600", fontSize: "0.95rem",
+                        display: "flex", alignItems: "center", gap: "8px"
+                      }}>
+                        <Calendar size={16} /> {displayDate}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setNewTopicItems(prev => prev.filter((_, i) => i !== idx))}
-                        style={{ padding: "4px 8px", background: "transparent", color: "var(--text-muted)", border: "none", cursor: "pointer", fontSize: "0.8rem" }}
-                      >
-                        Remove
-                      </button>
+                      <div style={{ width: "2px", height: "30px", background: "var(--glass-border)" }} />
+                      <div>
+                        <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{topic.title}</div>
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                          Module #{index + 1} &bull; {topic.subTopics.length} items
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                  
-                  <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr auto", gap: "8px", alignItems: "flex-end" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Title</label>
-                      <input
-                        type="text"
-                        placeholder="Video title"
-                        value={newVideoTitle}
-                        onChange={(e) => setNewVideoTitle(e.target.value)}
-                        style={{ padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem" }}
-                      />
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Type</label>
-                      <select
-                        value={newVideoType}
-                        onChange={(e) => setNewVideoType(e.target.value as "youtube" | "self-hosted")}
-                        style={{ padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem" }}
-                      >
-                        <option value="youtube">YouTube</option>
-                        <option value="self-hosted">Self-Hosted</option>
-                      </select>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>URL</label>
-                      <input
-                        type="text"
-                        placeholder="Video URL"
-                        value={newVideoUrl}
-                        onChange={(e) => setNewVideoUrl(e.target.value)}
-                        style={{ padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px", background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem" }}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAddVideoToCustomTopic}
-                      style={{ padding: "6px 10px", background: "var(--primary)", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600" }}
+                    <button 
+                      onClick={() => removeTopic(id)}
+                      style={{ 
+                        background: "transparent", border: "none", color: "var(--text-muted)", 
+                        cursor: "pointer", padding: "8px", borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center"
+                      }}
+                      title="Remove module"
                     >
-                      Add
+                      <X size={20} />
                     </button>
                   </div>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  onClick={handleResetCustomTopic}
-                  style={{ padding: "8px 16px", background: "var(--glass-border)", color: "var(--foreground)", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "0.9rem" }}
-                >Cancel</button>
-                <button
-                  type="button"
-                  onClick={handleCreateCustomTopic}
-                  disabled={!newTopicTitle.trim()}
-                  style={{ padding: "8px 16px", background: newTopicTitle.trim() ? "var(--primary)" : "var(--text-muted)", color: "white", border: "none", borderRadius: "6px", cursor: newTopicTitle.trim() ? "pointer" : "not-allowed", fontSize: "0.9rem", fontWeight: "600" }}
-                >Create Module</button>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {topicOptions.length === 0 && <p className={styles.emptyText}>No modules available.</p>}
-            
-            {topicOptions.map((mainTopic) => {
-              const isExpanded = expandedTopics.includes(mainTopic.id);
-              const allSubSelected = mainTopic.subTopics.every(st => selectedTopicIds.includes(st.id));
-              const anySubSelected = mainTopic.subTopics.some(st => selectedTopicIds.includes(st.id));
-              const hasFolderChildren = mainTopic.subTopics.some(st => st.type === "folder");
-              
-              // Date index counts selected mainTopics (folder-level scheduling)
-              let mainTopicDateIndex = 0;
-              for (const t of topicOptions) {
-                if (t.id === mainTopic.id) break;
-                const tSelected = t.subTopics.some(st => selectedTopicIds.includes(st.id));
-                if (tSelected) mainTopicDateIndex++;
-              }
-              const mainTopicComputedDate = anySubSelected ? formatDisplayDate(calculatePublishDate(mainTopicDateIndex)) : "";
-              const mainTopicDisplayDate = dateOverrides[mainTopic.id] || mainTopicComputedDate;
-              
-              // For hierarchical folders, keep per-sub-folder counting (No longer needed, but keeping for reference)
-              const itemCountBeforeTopic = 0;
-
-              return (
-                <div key={mainTopic.id} style={{ border: "1px solid var(--glass-border)", borderRadius: "12px", overflow: "hidden" }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleTopicExpanded(mainTopic.id)}
-                    style={{
-                      width: "100%", padding: "12px 14px", background: "transparent", border: "none", display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", fontSize: "0.95rem", fontWeight: "600", color: "var(--foreground)",
-                    }}
-                  >
-                    {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                    <input
-                      type="checkbox"
-                      checked={allSubSelected}
-                      onChange={() => toggleTopicSelection(mainTopic.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ cursor: "pointer", width: "20px", height: "20px", accentColor: "var(--primary)" }}
-                    />
-                    <Folder size={18} style={{ color: "var(--text-muted)" }} />
-                    <span style={{ flex: 1, textAlign: "left" }}>{mainTopic.title}</span>
-                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                      {mainTopic.subTopics.length} top-level item{mainTopic.subTopics.length !== 1 ? "s" : ""}
-                    </span>
-                  </button>
-
-                  {anySubSelected && publishFreqMode !== "instant" && (
-                    <div style={{ padding: "0 14px 12px", display: "flex", alignItems: "center", gap: "8px", justifyContent: "flex-end" }}>
-                      <Calendar size={14} style={{ color: "var(--primary)" }} />
-                      <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Folder release date</span>
-                      <input
-                        type="date"
-                        value={(() => {
-                          const val = mainTopicDisplayDate;
-                          if (!val) return "";
-                          const parts = val.split("/");
-                          if (parts.length === 3) {
-                            return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-                          }
-                          return val;
-                        })()}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (!val) {
-                            setDateOverrides(prev => {
-                              const next = { ...prev };
-                              delete next[mainTopic.id];
-                              return next;
-                            });
-                            return;
-                          }
-                          const parts = val.split("-");
-                          if (parts.length === 3) {
-                            setDateOverrides(prev => ({ ...prev, [mainTopic.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
-                          } else {
-                            setDateOverrides(prev => ({ ...prev, [mainTopic.id]: val }));
-                          }
-                        }}
-                        style={{
-                          padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
-                          fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {isExpanded && (
-                    <div style={{ paddingLeft: "14px", paddingRight: "14px", paddingBottom: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {mainTopic.subTopics.map((subTopic, subIdx) => {
-                        const isSelected = selectedTopicIds.includes(subTopic.id);
-                        let calculatedDate = "";
-                        
-                        if (isSelected) {
-                          // All children inherit the mainTopic's date under the new top-level interval logic
-                          calculatedDate = mainTopicDisplayDate;
-                        }
-                        
-                        // Pass inheritedDate inside recursive renderer
-                        return (
-                          <div key={subTopic.id} style={{
-                            border: "1px solid var(--glass-border)", borderRadius: "8px", overflow: "hidden", padding: "8px 12px", paddingBottom: "12px",
-                            background: isSelected ? "rgba(var(--primary-rgb), 0.05)" : "transparent",
-                          }}>
-                            {/* Render top-level item as checkbox, same pattern as deep items but handles 'subTopic' selection via selectedTopicIds instead of excludedItemIds */}
-                            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => toggleSubTopicSelection(subTopic.id)}
-                                style={{ cursor: "pointer", flexShrink: 0, marginTop: "3px", width: "20px", height: "20px", accentColor: "var(--primary)" }}
-                              />
-                              {subTopic.type === "folder" ? (
-                                <Folder size={18} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                              ) : (
-                                <Video size={18} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-                              )}
-                              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
-                                <span style={{ fontWeight: "600" }}>{subTopic.title}</span>
-                                {subTopic.type === "folder" && (
-                                  <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                                    {(() => {
-                                      const counts = getIncludedContentCount(subTopic);
-                                      return `${counts.included}/${counts.total} content`;
-                                    })()}
-                                  </span>
-                                )} 
-                              </div>
-                              {isSelected && calculatedDate && publishFreqMode !== "instant" && (
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, whiteSpace: "nowrap" }}>
-                                  <Calendar size={14} style={{ color: subTopic.type === "folder" ? "var(--primary)" : "var(--text-muted)" }} />
-                                  {subTopic.type === "folder" ? (
-                                    <input
-                                      type="date"
-                                      value={(() => {
-                                        const val = dateOverrides[subTopic.id] || calculatedDate;
-                                        if (!val) return "";
-                                        const parts = val.split("/");
-                                        if (parts.length === 3) {
-                                          return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-                                        }
-                                        return val;
-                                      })()}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (!val) {
-                                          setDateOverrides(prev => {
-                                            const next = { ...prev };
-                                            delete next[subTopic.id];
-                                            return next;
-                                          });
-                                          return;
-                                        }
-                                        const parts = val.split("-");
-                                        if (parts.length === 3) {
-                                          setDateOverrides(prev => ({ ...prev, [subTopic.id]: `${parts[2]}/${parts[1]}/${parts[0]}` }));
-                                        } else {
-                                          setDateOverrides(prev => ({ ...prev, [subTopic.id]: val }));
-                                        }
-                                      }}
-                                      style={{
-                                        padding: "4px 8px", background: "transparent", border: "1px solid var(--glass-border)", borderRadius: "6px", color: "var(--primary)",
-                                        fontSize: "0.8rem", fontWeight: "600", cursor: "pointer"
-                                      }}
-                                    />
-                                  ) : (
-                                    <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "500" }}>
-                                      {(() => {
-                                        const val = dateOverrides[subTopic.id] || calculatedDate;
-                                        if (!val) return "";
-                                        return val;
-                                      })()}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              <div style={{ display: "flex", gap: "2px", opacity: 0.6, flexShrink: 0, marginLeft: "4px" }}>
-                                 <button
-                                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopic.id, subTopic.id, "up"); }}
-                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
-                                   title="Move Up"
-                                 ><ArrowUp size={12} /></button>
-                                 <button
-                                   onClick={(e) => { e.stopPropagation(); handleMoveItem(mainTopic.id, subTopic.id, "down"); }}
-                                   style={{ background: "transparent", border: "1px solid var(--glass-border)", padding: "6px 8px", borderRadius: "8px", cursor: "pointer", color: "var(--foreground)" }}
-                                   title="Move Down"
-                                 ><ArrowDown size={12} /></button>
-                              </div>
-                            </div>
-
-                            {/* Render children recursively */}
-                            {subTopic.type === "folder" && isSelected && (
-                              <div style={{ marginTop: "4px" }}>
-                                {subTopic.items?.map(child => renderItemRecursively(child, mainTopic.id, 0, isSelected, dateOverrides[subTopic.id] || calculatedDate))}
-                                
-                                {/* Inline Add inside TOP LEVEL sub-topic */}
-                                <div style={{ marginTop: "12px", marginLeft: "28px" }}>
-                                  {addInlineItemId === subTopic.id ? (
-                                    <div style={{
-                                      padding: "10px 12px", background: "rgba(var(--primary-rgb), 0.05)",
-                                      border: "1px dashed var(--primary)", borderRadius: "6px",
-                                      display: "flex", flexDirection: "column", gap: "8px",
-                                    }}>
-                                      <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
-                                         <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Add:</label>
-                                         <select 
-                                           value={inlineItemType} 
-                                           onChange={(e) => setInlineItemType(e.target.value as any)}
-                                           style={{ 
-                                             padding: "4px", fontSize: "0.8rem", background: "var(--background)", 
-                                             color: "var(--foreground)", border: "1px solid var(--glass-border)", borderRadius: "4px" 
-                                           }}
-                                         >
-                                           <option value="youtube">YouTube Video</option>
-                                           <option value="self-hosted">Self-Hosted Video</option>
-                                           <option value="folder">Folder</option>
-                                         </select>
-                                      </div>
-                                      
-                                      <div style={{ display: "grid", gridTemplateColumns: inlineItemType === "folder" ? "1fr" : "1fr 1fr", gap: "8px" }}>
-                                          <input
-                                            type="text"
-                                            placeholder={`${inlineItemType === 'folder' ? 'Folder' : 'Video'} title`}
-                                            value={inlineItemTitle}
-                                            onChange={(e) => setInlineItemTitle(e.target.value)}
-                                            style={{
-                                              padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
-                                              background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
-                                            }}
-                                          />
-                                        {inlineItemType !== "folder" && (
-                                          <input
-                                            type="text"
-                                            placeholder="URL"
-                                            value={inlineItemUrl}
-                                            onChange={(e) => setInlineItemUrl(e.target.value)}
-                                            style={{
-                                              padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
-                                              background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
-                                            }}
-                                          />
-                                        )}
-                                      </div>
-                                      
-                                      <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                                        <button
-                                          type="button"
-                                          onClick={() => setAddInlineItemId(null)}
-                                          style={{
-                                            padding: "4px 10px", background: "var(--glass-border)", color: "var(--foreground)",
-                                            border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem",
-                                          }}
-                                        >Cancel</button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAddInlineItem(mainTopic.id, subTopic.id)}
-                                          disabled={inlineItemType !== "folder" ? (!inlineItemTitle.trim() || !inlineItemUrl.trim()) : !inlineItemTitle.trim()}
-                                          style={{
-                                            padding: "4px 10px", background: "var(--primary)", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600"
-                                          }}
-                                        >Add</button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                                      <button
-                                        type="button"
-                                        onClick={() => openInlineItemForm(subTopic.id, "youtube")}
-                                        style={{
-                                          display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
-                                          border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
-                                          fontSize: "0.8rem", transition: "all 0.2s ease",
-                                        }}
-                                      >
-                                        <Video size={12} /> Add video
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => openInlineItemForm(subTopic.id, "folder")}
-                                        style={{
-                                          display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
-                                          border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
-                                          fontSize: "0.8rem", transition: "all 0.2s ease",
-                                        }}
-                                      >
-                                        <Folder size={12} /> Add folder
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                          </div>
-                        );
-                      })}
-
-                      <div style={{ marginTop: "12px", marginLeft: "14px", marginRight: "14px" }}>
-                        {addInlineItemId === mainTopic.id ? (
-                          <div style={{
-                            padding: "10px 12px", background: "rgba(var(--primary-rgb), 0.05)",
-                            border: "1px dashed var(--primary)", borderRadius: "6px",
-                            display: "flex", flexDirection: "column", gap: "8px",
-                          }}>
-                            <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}>
-                               <label style={{ fontSize: "0.8rem", fontWeight: "600" }}>Add:</label>
-                               <select 
-                                 value={inlineItemType} 
-                                 onChange={(e) => setInlineItemType(e.target.value as any)}
-                                 style={{ 
-                                   padding: "4px", fontSize: "0.8rem", background: "var(--background)", 
-                                   color: "var(--foreground)", border: "1px solid var(--glass-border)", borderRadius: "4px" 
-                                 }}
-                               >
-                                 <option value="youtube">YouTube Video</option>
-                                 <option value="self-hosted">Self-Hosted Video</option>
-                                 <option value="folder">Folder</option>
-                               </select>
-                            </div>
-                            
-                            <div style={{ display: "grid", gridTemplateColumns: inlineItemType === "folder" ? "1fr" : "1fr 1fr", gap: "8px" }}>
-                              <input
-                                type="text"
-                                placeholder={`${inlineItemType === 'folder' ? 'Folder' : 'Video'} title`}
-                                value={inlineItemTitle}
-                                onChange={(e) => setInlineItemTitle(e.target.value)}
-                                style={{
-                                  padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
-                                  background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
-                                }}
-                              />
-                              {inlineItemType !== "folder" && (
-                                <input
-                                  type="text"
-                                  placeholder="URL"
-                                  value={inlineItemUrl}
-                                  onChange={(e) => setInlineItemUrl(e.target.value)}
-                                  style={{
-                                    padding: "6px 8px", border: "1px solid var(--glass-border)", borderRadius: "4px",
-                                    background: "var(--background)", color: "var(--foreground)", fontSize: "0.8rem",
-                                  }}
-                                />
-                              )}
-                            </div>
-                            
-                            <div style={{ display: "flex", gap: "6px", justifyContent: "flex-end" }}>
-                              <button
-                                type="button"
-                                onClick={() => setAddInlineItemId(null)}
-                                style={{
-                                  padding: "4px 10px", background: "var(--glass-border)", color: "var(--foreground)",
-                                  border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem",
-                                }}
-                              >Cancel</button>
-                              <button
-                                type="button"
-                                onClick={() => handleAddInlineItem(mainTopic.id, mainTopic.id)}
-                                disabled={inlineItemType !== "folder" ? (!inlineItemTitle.trim() || !inlineItemUrl.trim()) : !inlineItemTitle.trim()}
-                                style={{
-                                  padding: "4px 10px", background: "var(--primary)", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "0.8rem", fontWeight: "600"
-                                }}
-                              >Add</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                            <button
-                              type="button"
-                              onClick={() => openInlineItemForm(mainTopic.id, "youtube")}
-                              style={{
-                                display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
-                                border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
-                                fontSize: "0.8rem", transition: "all 0.2s ease",
-                              }}
-                            >
-                              <Video size={12} /> Add video
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openInlineItemForm(mainTopic.id, "folder")}
-                              style={{
-                                display: "flex", alignItems: "center", gap: "6px", padding: "8px 12px", background: "transparent",
-                                border: "1px dashed var(--glass-border)", borderRadius: "8px", cursor: "pointer", color: "var(--text-muted)",
-                                fontSize: "0.8rem", transition: "all 0.2s ease",
-                              }}
-                            >
-                              <Folder size={12} /> Add folder
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 

@@ -17,6 +17,7 @@ import { useParams } from "next/navigation";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import LessonPlayer from "@/components/Study/LessonPlayer";
 import Loader from "@/components/UI/Loader";
+import { getStudentModuleView } from "@/lib/module-scheduling";
 
 const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
     for (const node of nodes) {
@@ -57,6 +58,7 @@ export default function StudyCoursePage() {
     const [courseTitle, setCourseTitle] = useState("Study Course");
     const [curriculum, setCurriculum] = useState<CurriculumNode[]>([]);
     const [activeLesson, setActiveLesson] = useState<CurriculumNode | null>(null);
+    const [enrollmentDate, setEnrollmentDate] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
@@ -91,7 +93,9 @@ export default function StudyCoursePage() {
                 if (cancelled) return;
 
                 const nextCurriculum = Array.isArray(curriculumData.curriculum) ? curriculumData.curriculum : [];
+                const eDate = curriculumData.enrollmentDate || null;
                 setCourseTitle(curriculumData.course?.title || "Study Course");
+                setEnrollmentDate(eDate);
                 setCurriculum(nextCurriculum);
 
                 const initialCompleted = Array.isArray(progressData?.progress?.completedLessonIds)
@@ -101,9 +105,18 @@ export default function StudyCoursePage() {
                         .map((node) => node.id);
                 setCompletedLessonIds(initialCompleted);
 
-                const firstPlayable = findFirstPlayableNode(nextCurriculum);
-                const firstIncompletePlayable = collectLessonNodes(nextCurriculum).find(
-                    (node) => node.type !== "folder" && !node.locked && !initialCompleted.includes(node.id)
+                // Sort nextCurriculum to find initial active lesson correctly in visual order
+                const scheduledModules = nextCurriculum.map((node: CurriculumNode) => ({
+                    ...node,
+                    releaseAt: node.availableAt || new Date(0).toISOString(),
+                }));
+                const parsedEnrollmentDate = eDate ? new Date(eDate) : new Date(0);
+                const view = getStudentModuleView(scheduledModules, parsedEnrollmentDate, new Date());
+                const sortedNextCurriculum = view.modules as unknown as CurriculumNode[];
+
+                const firstPlayable = findFirstPlayableNode(sortedNextCurriculum);
+                const firstIncompletePlayable = collectLessonNodes(sortedNextCurriculum).find(
+                    (node: CurriculumNode) => node.type !== "folder" && !node.locked && !initialCompleted.includes(node.id)
                 );
                 setActiveLesson(firstIncompletePlayable || firstPlayable);
             } catch (err: any) {
@@ -136,7 +149,30 @@ export default function StudyCoursePage() {
         setSidebarOpen(false);
     };
 
-    const lessonNodes = useMemo(() => collectLessonNodes(curriculum), [curriculum]);
+    const sortedCurriculumWithProgress = useMemo(() => {
+        const completedSet = new Set(completedLessonIds);
+
+        const annotate = (nodes: CurriculumNode[]): CurriculumNode[] => {
+            return nodes.map((node) => ({
+                ...node,
+                ...(node.type !== "folder" ? { completed: completedSet.has(node.id) } : {}),
+                children: node.children?.length ? annotate(node.children) : node.children,
+            }));
+        };
+
+        const annotated = annotate(curriculum);
+
+        const scheduledModules = annotated.map((node: CurriculumNode) => ({
+            ...node,
+            releaseAt: node.availableAt || new Date(0).toISOString(),
+        }));
+
+        const parsedEnrollmentDate = enrollmentDate ? new Date(enrollmentDate) : new Date(0);
+        const view = getStudentModuleView(scheduledModules, parsedEnrollmentDate, new Date());
+        return view.modules as unknown as CurriculumNode[];
+    }, [curriculum, completedLessonIds, enrollmentDate]);
+
+    const lessonNodes = useMemo(() => collectLessonNodes(sortedCurriculumWithProgress), [sortedCurriculumWithProgress]);
     const unlockedLessons = useMemo(
         () => lessonNodes.filter((node) => !node.locked),
         [lessonNodes]
@@ -193,19 +229,7 @@ export default function StudyCoursePage() {
         }
     };
 
-    const curriculumWithProgress = useMemo(() => {
-        const completedSet = new Set(completedLessonIds);
-
-        const annotate = (nodes: CurriculumNode[]): CurriculumNode[] => {
-            return nodes.map((node) => ({
-                ...node,
-                ...(node.type !== "folder" ? { completed: completedSet.has(node.id) } : {}),
-                children: node.children?.length ? annotate(node.children) : node.children,
-            }));
-        };
-
-        return annotate(curriculum);
-    }, [curriculum, completedLessonIds]);
+    // Replaced by sortedCurriculumWithProgress
 
 
     if (loading) {
@@ -263,7 +287,7 @@ export default function StudyCoursePage() {
 
                 <div className={styles.curriculum}>
                     <CourseCurriculum
-                        data={curriculumWithProgress}
+                        data={sortedCurriculumWithProgress}
                         onVideoSelect={handleVideoSelect}
                         activeNodeId={activeLesson?.id}
                     />
