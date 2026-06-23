@@ -111,6 +111,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (typeof body.imageUrl === 'string') updateData.imageUrl = body.imageUrl.trim() || null;
     if (typeof body.timezone === 'string' && body.timezone.trim()) updateData.timezone = body.timezone.trim();
     if (body.isFeatured !== undefined) updateData.isFeatured = Boolean(body.isFeatured);
+    if (body.courseStartDate !== undefined) {
+      const courseStartDate = typeof body.courseStartDate === 'string' ? parseDisplayDateToIso(body.courseStartDate) : null;
+      updateData.courseStartDate = courseStartDate ? new Date(courseStartDate) : null;
+    }
 
     if (body.price !== undefined) {
       const numericPrice = Number(body.price);

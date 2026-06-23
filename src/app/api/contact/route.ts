@@ -15,7 +15,7 @@ export const maxDuration = 60;
 
 
 const ALLOWED_ISSUES: ContactIssueType[] = ['query', 'technical_assistance', 'billing', 'course_access', 'other'];
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
 const MAX_IMAGES = 3;
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 

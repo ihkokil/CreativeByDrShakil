@@ -23,6 +23,16 @@ export default function CourseLessonList({ curriculum }: Props) {
   
   walk(curriculum);
 
+  // Sort lessons chronologically by availability/release date
+  lessons.sort((a, b) => {
+    const dateA = a.availableAt ? new Date(a.availableAt).getTime() : 0;
+    const dateB = b.availableAt ? new Date(b.availableAt).getTime() : 0;
+    if (dateA !== dateB) {
+      return dateA - dateB;
+    }
+    return 0;
+  });
+
   if (lessons.length === 0) {
     return <p className={styles.emptyState}>No lessons available yet.</p>;
   }
