@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Search, Filter, Loader2, Eye } from 'lucide-react';
+import { Search, Filter, Loader2, Eye, Users, X } from 'lucide-react';
 import dashStyles from '@/app/admin/dashboard/AdminDashboard.module.css';
-import styles from './StudentsManager.module.css';
+import styles from './EnrollmentsManager.module.css';
 import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
 
@@ -46,15 +46,15 @@ export default function EnrollmentsManager() {
     userId: string;
     studentName: string;
   } | null>(null);
-  const [bulkEditingRulesFor, setBulkEditingRulesFor] = useState<{
-    courseId: string;
-    userIds: string[];
-    studentName: string;
-  } | null>(null);
   const [selectedStudentForDetails, setSelectedStudentForDetails] = useState<StudentProfile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [batchCourseId, setBatchCourseId] = useState('');
   const [batchEnrollDate, setBatchEnrollDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  // Integrated module rules states
+  const [ruleAction, setRuleAction] = useState<"start_from_today" | "continue_with_batch" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
+  const [intervalDays, setIntervalDays] = useState<number>(7);
 
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -142,16 +142,27 @@ export default function EnrollmentsManager() {
     }
   };
 
-  // Batch Enrollment Submit
-  const handleBatchEnrollSubmit = async () => {
+  const toggleDay = (val: number) => {
+    setDaysOfWeek(prev => 
+      prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
+    );
+  };
+
+  const handleUnifiedSubmit = async () => {
     if (!batchCourseId) {
-      alert('Please select a course to enroll.');
+      alert('Please select a course to assign.');
       return;
     }
     
+    if (ruleAction === "week_days" && daysOfWeek.length === 0) {
+      alert('Please select at least one day of the week.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/students', {
+      // 1. Bulk Enroll Students
+      const enrollRes = await fetch('/api/students', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,17 +175,45 @@ export default function EnrollmentsManager() {
         }),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message || 'Students enrolled successfully!');
-        setSelectedIds(new Set());
-        setBatchCourseId('');
-        fetchStudents();
-      } else {
-        alert(data.error || 'Failed to enroll students.');
+      const enrollData = await enrollRes.json();
+      if (!enrollRes.ok) {
+        throw new Error(enrollData.error || 'Failed to enroll students.');
       }
+
+      // 2. Apply Custom Module Release Rules
+      const rulesRes = await fetch('/api/teacher/students/batch-override', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          courseId: batchCourseId,
+          userIds: Array.from(selectedIds),
+          action: ruleAction,
+          daysOfWeek,
+          intervalDays,
+        }),
+      });
+
+      const rulesData = await rulesRes.json();
+      if (!rulesRes.ok) {
+        throw new Error(rulesData.error || 'Enrollment succeeded but failed to apply module availability rules.');
+      }
+
+      alert('Successfully enrolled students and configured module availability rules.');
+      
+      // Reset Selection and Sidebar State
+      setSelectedIds(new Set());
+      setBatchCourseId('');
+      setRuleAction('start_from_today');
+      setDaysOfWeek([]);
+      setIntervalDays(7);
+      
+      // Refresh students list
+      fetchStudents();
     } catch (err: any) {
-      alert(err.message || 'Failed to process bulk enrollment.');
+      alert(err.message || 'Failed to complete enrollment process.');
     } finally {
       setIsSubmitting(false);
     }
@@ -209,8 +248,6 @@ export default function EnrollmentsManager() {
       alert('Network error while updating enrollment.');
     } finally {
       setIsSubmitting(false);
-      // We don't refresh the student in the details modal automatically here to avoid losing context, 
-      // but fetchStudents() will update the table. We should close the edit date modal.
     }
   };
 
@@ -239,41 +276,241 @@ export default function EnrollmentsManager() {
   };
 
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.header} style={{ flexWrap: 'wrap', gap: '16px' }}>
-        <div className={styles.searchBar} style={{ flex: '1 1 300px' }}>
-          <Search size={18} />
-          <input 
-            type="text" 
-            placeholder="Search students by name or email..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+    <div className={styles.container}>
+      {/* LEFT COLUMN: SIDEBAR CONFIGURATION */}
+      <div className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
+          <h3 className={styles.sidebarTitle}>
+            <Users size={18} style={{ color: 'var(--primary)' }} />
+            Enrollment Details
+          </h3>
+          <p className={styles.sidebarSubtitle}>
+            Configure program access and availability rules for selected students.
+          </p>
         </div>
-        
-        <div className={styles.searchBar} style={{ flex: '0 0 auto', minWidth: '250px' }}>
-          <Filter size={18} style={{ color: 'var(--text-muted)' }} />
-          <select 
-            value={courseFilter}
-            onChange={(e) => setCourseFilter(e.target.value)}
-          >
-            <option value="">All Students (Any Course)</option>
-            <option value="none">Not Enrolled in Any Course</option>
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>Enrolled in: {c.title}</option>
-            ))}
-          </select>
-          <div style={{ position: 'absolute', right: '14px', pointerEvents: 'none', color: 'var(--text-muted)' }}>▼</div>
-        </div>
+
+        {selectedIds.size === 0 ? (
+          <div className={styles.emptyState}>
+            <Users size={32} />
+            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600 }}>No Students Selected</p>
+            <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+              Select one or more students from the list on the right to start.
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className={styles.formGroup}>
+              <span className={styles.formSectionTitle}>Selected Students ({selectedIds.size})</span>
+              <div className={styles.selectedStudentsList}>
+                {Array.from(selectedIds).map(id => {
+                  const student = students.find(s => s.id === id);
+                  if (!student) return null;
+                  return (
+                    <div key={student.id} className={styles.studentBadge}>
+                      <div className={styles.badgeAvatar}>
+                        {getInitials(student.fullName)}
+                      </div>
+                      <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {student.fullName}
+                      </span>
+                      <button 
+                        type="button" 
+                        className={styles.removeBadgeBtn}
+                        onClick={() => handleToggleSelect(student.id)}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Assign Program / Course</label>
+              <select 
+                className={styles.select}
+                value={batchCourseId}
+                onChange={(e) => setBatchCourseId(e.target.value)}
+              >
+                <option value="">-- Choose Course --</option>
+                {courses.map(c => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Enrollment Start Date</label>
+              <input 
+                type="date" 
+                className={styles.dateInput}
+                value={batchEnrollDate}
+                onChange={(e) => setBatchEnrollDate(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <span className={styles.formSectionTitle}>Module Availability Option</span>
+              <div className={styles.optionsGroup}>
+                <div 
+                  className={`${styles.optionCard} ${ruleAction === "unlock_all" ? styles.selected : ""}`}
+                  onClick={() => setRuleAction("unlock_all")}
+                >
+                  <div className={styles.optionHeader}>
+                    <div className={styles.radio}></div>
+                    <span className={styles.optionTitle}>Make all modules available</span>
+                  </div>
+                  <div className={styles.optionDesc}>
+                    This will instantly unlock every module in the course.
+                  </div>
+                </div>
+
+                <div 
+                  className={`${styles.optionCard} ${ruleAction === "start_from_today" ? styles.selected : ""}`}
+                  onClick={() => setRuleAction("start_from_today")}
+                >
+                  <div className={styles.optionHeader}>
+                    <div className={styles.radio}></div>
+                    <span className={styles.optionTitle}>Start from today (Default)</span>
+                  </div>
+                  <div className={styles.optionDesc}>
+                    Modules unlock following rules, relative to today.
+                  </div>
+                </div>
+
+                <div 
+                  className={`${styles.optionCard} ${ruleAction === "continue_with_batch" ? styles.selected : ""}`}
+                  onClick={() => setRuleAction("continue_with_batch")}
+                >
+                  <div className={styles.optionHeader}>
+                    <div className={styles.radio}></div>
+                    <span className={styles.optionTitle}>Continue with batch</span>
+                  </div>
+                  <div className={styles.optionDesc}>
+                    Keep unlocked modules; future ones follow batch schedule.
+                  </div>
+                </div>
+
+                <div 
+                  className={`${styles.optionCard} ${ruleAction === "week_days" ? styles.selected : ""}`}
+                  onClick={() => setRuleAction("week_days")}
+                >
+                  <div className={styles.optionHeader}>
+                    <div className={styles.radio}></div>
+                    <span className={styles.optionTitle}>Week days</span>
+                  </div>
+                  <div className={styles.optionDesc}>
+                    Custom days of the week when modules unlock.
+                  </div>
+                  {ruleAction === "week_days" && (
+                    <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                      <div className={styles.daysGrid}>
+                        {[
+                          { label: "Sun", value: 0 },
+                          { label: "Mon", value: 1 },
+                          { label: "Tue", value: 2 },
+                          { label: "Wed", value: 3 },
+                          { label: "Thu", value: 4 },
+                          { label: "Fri", value: 5 },
+                          { label: "Sat", value: 6 }
+                        ].map(d => (
+                          <button 
+                            key={d.value}
+                            type="button"
+                            className={`${styles.dayBtn} ${daysOfWeek.includes(d.value) ? styles.active : ""}`}
+                            onClick={() => toggleDay(d.value)}
+                          >
+                            {d.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div 
+                  className={`${styles.optionCard} ${ruleAction === "custom_interval" ? styles.selected : ""}`}
+                  onClick={() => setRuleAction("custom_interval")}
+                >
+                  <div className={styles.optionHeader}>
+                    <div className={styles.radio}></div>
+                    <span className={styles.optionTitle}>X days interval</span>
+                  </div>
+                  <div className={styles.optionDesc}>
+                    Custom days between unlocks, starting from today.
+                  </div>
+                  {ruleAction === "custom_interval" && (
+                    <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                      <div className={styles.intervalInput}>
+                        <input 
+                          type="number" 
+                          value={intervalDays}
+                          min={1}
+                          onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
+                        />
+                        <span>days</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <button 
+              className={dashStyles.primaryBtn}
+              onClick={handleUnifiedSubmit}
+              disabled={isSubmitting || !batchCourseId}
+              style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" style={{ marginRight: '8px' }} />
+                  Processing...
+                </>
+              ) : (
+                'Assign Course & Apply Rules'
+              )}
+            </button>
+          </>
+        )}
       </div>
 
-      {loading ? (
-        <div className={dashStyles.loader}>
-          <Loader2 className={dashStyles.spinner} />
-          Loading enrollments...
+      {/* RIGHT COLUMN: SEARCH, FILTER, STUDENT DIRECTORY */}
+      <div className={styles.mainContent}>
+        <div className={styles.header} style={{ flexWrap: 'wrap', gap: '16px' }}>
+          <div className={styles.searchBar} style={{ flex: '1 1 300px' }}>
+            <Search size={18} />
+            <input 
+              type="text" 
+              placeholder="Search students by name or email..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <div className={styles.searchBar} style={{ flex: '0 0 auto', minWidth: '250px' }}>
+            <Filter size={18} style={{ color: 'var(--text-muted)' }} />
+            <select 
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+            >
+              <option value="">All Students (Any Course)</option>
+              <option value="none">Not Enrolled in Any Course</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>Enrolled in: {c.title}</option>
+              ))}
+            </select>
+            <div style={{ position: 'absolute', right: '14px', pointerEvents: 'none', color: 'var(--text-muted)' }}>▼</div>
+          </div>
         </div>
-      ) : filteredStudents.length > 0 ? (
-        <>
+
+        {loading ? (
+          <div className={dashStyles.loader}>
+            <Loader2 className={dashStyles.spinner} />
+            Loading enrollments...
+          </div>
+        ) : filteredStudents.length > 0 ? (
           <div className={styles.tableContainer}>
             <table className={styles.table}>
               <thead>
@@ -357,75 +594,12 @@ export default function EnrollmentsManager() {
               </tbody>
             </table>
           </div>
+        ) : (
+          <div className={dashStyles.infoBox}>No students found matching your criteria.</div>
+        )}
+      </div>
 
-          {/* BATCH ENROLLMENT BAR */}
-          {selectedIds.size > 0 && (
-            <div className={styles.batchBar}>
-              <div className={styles.batchGroup}>
-                <span className={styles.batchText}>{selectedIds.size} student(s) selected</span>
-                <select 
-                  className={styles.select}
-                  value={batchCourseId}
-                  onChange={(e) => setBatchCourseId(e.target.value)}
-                  style={{ minWidth: '220px' }}
-                >
-                  <option value="">-- Select Course to Assign --</option>
-                  {courses.map(c => (
-                    <option key={c.id} value={c.id}>{c.title}</option>
-                  ))}
-                </select>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className={styles.batchText} style={{ fontSize: '0.8rem' }}>Start Date:</span>
-                  <input 
-                    type="date" 
-                    className={styles.dateInput}
-                    value={batchEnrollDate}
-                    onChange={(e) => setBatchEnrollDate(e.target.value)}
-                  />
-                </div>
-              </div>
-              <button 
-                className={dashStyles.primaryBtn}
-                onClick={handleBatchEnrollSubmit}
-                disabled={isSubmitting || !batchCourseId}
-              >
-                {isSubmitting ? 'Enrolling...' : 'Bulk Assign Course'}
-              </button>
-              <button
-                className={dashStyles.secondaryBtn}
-                disabled={isSubmitting || !batchCourseId}
-                onClick={() => {
-                  setBulkEditingRulesFor({
-                    courseId: batchCourseId,
-                    userIds: Array.from(selectedIds),
-                    studentName: `${selectedIds.size} Selected Student(s)`,
-                  });
-                }}
-              >
-                Bulk Edit Rules
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className={dashStyles.infoBox}>No students found matching your criteria.</div>
-      )}
-
-      {/* Bulk Editing Rules Modal */}
-      {bulkEditingRulesFor && (
-        <StudentRulesModal
-          courseId={bulkEditingRulesFor.courseId}
-          userIds={bulkEditingRulesFor.userIds}
-          studentName={bulkEditingRulesFor.studentName}
-          onClose={() => setBulkEditingRulesFor(null)}
-          onSuccess={() => {
-            setBulkEditingRulesFor(null);
-            alert('Successfully updated module rules for selected students.');
-          }}
-        />
-      )}
-
-      {/* Individual Rules Modal (optional here but good to have if we need it) */}
+      {/* Individual Rules Modal (for editing via details modal) */}
       {editingRulesFor && (
         <StudentRulesModal
           courseId={editingRulesFor.courseId}
@@ -434,6 +608,7 @@ export default function EnrollmentsManager() {
           onClose={() => setEditingRulesFor(null)}
           onSuccess={() => {
             setEditingRulesFor(null);
+            fetchStudents();
           }}
         />
       )}
@@ -470,8 +645,9 @@ export default function EnrollmentsManager() {
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Edit Enrollment Date</h2>
+              <button onClick={() => setEditingEnrollment(null)} className={styles.closeBtn}><X size={20} /></button>
             </div>
-            <div className={styles.modalBody}>
+            <form onSubmit={handleSaveEnrollmentDate} className={styles.modalBody}>
               <p>Change start date for <strong>{editingEnrollment.studentName}</strong> in <strong>{editingEnrollment.courseTitle}</strong></p>
               <input 
                 type="date" 
@@ -479,13 +655,13 @@ export default function EnrollmentsManager() {
                 value={editingEnrollment.enrolledAt}
                 onChange={(e) => setEditingEnrollment({ ...editingEnrollment, enrolledAt: e.target.value })}
               />
-              <div className={styles.actions}>
-                <button className={dashStyles.secondaryBtn} onClick={() => setEditingEnrollment(null)}>Cancel</button>
-                <button className={dashStyles.primaryBtn} onClick={handleSaveEnrollmentDate} disabled={isSubmitting}>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                <button type="button" className={dashStyles.secondaryBtn} style={{ flex: 1 }} onClick={() => setEditingEnrollment(null)}>Cancel</button>
+                <button type="submit" className={dashStyles.primaryBtn} style={{ flex: 1, justifyContent: 'center' }} disabled={isSubmitting}>
                   {isSubmitting ? 'Saving...' : 'Save Date'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
