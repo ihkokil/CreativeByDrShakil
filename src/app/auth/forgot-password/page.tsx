@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import styles from "../AuthPages.module.css";
+import { resolveEmail, validateEmail } from "@/lib/email-resolver";
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState("");
@@ -11,23 +12,43 @@ export default function ForgotPasswordPage() {
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
+            setMessage({ type: "error", text: "Email address is required." });
+            return;
+        }
+
+        const resolved = resolveEmail(trimmedEmail);
+        if (!validateEmail(resolved)) {
+            if (trimmedEmail.includes("@")) {
+                setMessage({ type: "error", text: "Please enter a valid email address." });
+            } else {
+                setMessage({ type: "error", text: "Please enter a valid username." });
+            }
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
 
-        const response = await fetch("/api/auth/forgot-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
-        });
-        const data = await response.json();
+        try {
+            const response = await fetch("/api/auth/forgot-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: resolved }),
+            });
+            const data = await response.json();
 
-        if (response.ok) {
-            setMessage({ type: "success", text: data.message || "Check your email for reset instructions." });
-        } else {
-            setMessage({ type: "error", text: data.error || "Unable to process request." });
+            if (response.ok) {
+                setMessage({ type: "success", text: data.message || "Check your email for reset instructions." });
+            } else {
+                setMessage({ type: "error", text: data.error || "Unable to process request." });
+            }
+        } catch (err) {
+            setMessage({ type: "error", text: "Connection error. Please try again." });
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     return (
@@ -36,10 +57,11 @@ export default function ForgotPasswordPage() {
                 <h1 className={styles.title}>Forgot Password</h1>
                 <p className={styles.subtitle}>Enter your email and we will send you a reset link.</p>
 
-                <form className={styles.form} onSubmit={handleSubmit}>
+                <form className={styles.form} onSubmit={handleSubmit} noValidate>
                     <input
                         className={styles.input}
-                        type="email"
+                        type="text"
+                        inputMode="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="you@example.com"

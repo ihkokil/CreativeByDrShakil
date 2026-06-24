@@ -5,6 +5,8 @@ import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, ArrowRight, ArrowLeft, User, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { resolveEmail, validateEmail } from "@/lib/email-resolver";
+
 
 interface Props {
     isOpen: boolean;
@@ -114,7 +116,21 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
     // Form handlers
     const handleEmailSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!email) return;
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
+            setMessage({ type: 'error', text: 'Email address is required.' });
+            return;
+        }
+
+        const resolved = resolveEmail(trimmedEmail);
+        if (!validateEmail(resolved)) {
+            if (trimmedEmail.includes('@')) {
+                setMessage({ type: 'error', text: 'Please enter a valid email address.' });
+            } else {
+                setMessage({ type: 'error', text: 'Please enter a valid username.' });
+            }
+            return;
+        }
 
         setLoading(true);
         setMessage(null);
@@ -123,7 +139,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/check-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email: resolved }),
             });
             const data = await response.json();
 
@@ -140,7 +156,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 const sendResponse = await fetch('/api/auth/send-otp', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
+                    body: JSON.stringify({ email: resolved }),
                 });
                 const sendData = await sendResponse.json();
 
@@ -164,6 +180,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
         }
     };
 
+
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -173,7 +190,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ identifier: email, password }),
+                body: JSON.stringify({ identifier: resolveEmail(email.trim()), password }),
             });
             const data = await response.json();
 
@@ -196,6 +213,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
         }
     };
 
+
     const handleOtpSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const otpCode = otpValues.join("");
@@ -211,7 +229,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp: otpCode }),
+                body: JSON.stringify({ email: resolveEmail(email.trim()), otp: otpCode }),
             });
             const data = await response.json();
 
@@ -228,6 +246,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
         }
     };
 
+
     const handleResendOtp = async () => {
         if (resendTimer > 0) return;
         setLoading(true);
@@ -237,7 +256,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email: resolveEmail(email.trim()) }),
             });
             const data = await response.json();
 
@@ -283,7 +302,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email,
+                    email: resolveEmail(email.trim()),
                     password,
                     fullName,
                     phone,
@@ -291,6 +310,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                     otpVerified: true,
                 }),
             });
+
             const data = await response.json();
 
             if (!response.ok) {
@@ -314,6 +334,22 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
     const handleForgotSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
+            setMessage({ type: 'error', text: 'Email address is required.' });
+            return;
+        }
+
+        const resolved = resolveEmail(trimmedEmail);
+        if (!validateEmail(resolved)) {
+            if (trimmedEmail.includes('@')) {
+                setMessage({ type: 'error', text: 'Please enter a valid email address.' });
+            } else {
+                setMessage({ type: 'error', text: 'Please enter a valid username.' });
+            }
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
 
@@ -321,7 +357,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/forgot-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email: resolved }),
             });
             const data = await response.json();
 
@@ -336,6 +372,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             setLoading(false);
         }
     };
+
 
     const handleBack = () => {
         setMessage(null);
@@ -459,17 +496,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                         {/* Step 1: Email Input */}
                         {step === "email" && (
                             <>
-                                <form className={styles.form} onSubmit={handleEmailSubmit}>
+                                <form className={styles.form} onSubmit={handleEmailSubmit} noValidate>
                                     <div className={styles.inputGroup}>
                                         <Mail className={styles.inputIcon} size={18} />
                                         <input
-                                            type="email"
+                                            type="text"
+                                            inputMode="email"
                                             placeholder="Email Address"
                                             value={email}
                                             onChange={(e) => setEmail(e.target.value)}
                                             required
                                         />
                                     </div>
+
                                     {message && (
                                         <div className={`${styles.message} ${styles[message.type]}`}>
                                             {message.text}
@@ -708,17 +747,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                         {/* Step: Forgot Password */}
                         {step === "forgot" && (
-                            <form className={styles.form} onSubmit={handleForgotSubmit}>
+                            <form className={styles.form} onSubmit={handleForgotSubmit} noValidate>
                                 <div className={styles.inputGroup}>
                                     <Mail className={styles.inputIcon} size={18} />
                                     <input
-                                        type="email"
+                                        type="text"
+                                        inputMode="email"
                                         placeholder="Email Address"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
                                     />
                                 </div>
+
                                 {message && (
                                     <div className={`${styles.message} ${styles[message.type]}`}>
                                         {message.text}
