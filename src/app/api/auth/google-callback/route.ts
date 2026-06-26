@@ -143,24 +143,75 @@ export async function GET(request: NextRequest) {
 
     // Step 4: Device session management
     const userAgent = request.headers.get('user-agent') || '';
-    const deviceInfo = parseUserAgent(userAgent);
     const ipAddress = extractClientIp(request.headers);
 
-    // Check for existing sessions (same logic as login route)
-    const isSessionRestrictionExempt = user.role === 'admin' || user.role === 'teacher';
+    // Retrieve custom device headers (with fallbacks for backward compatibility)
+    const headerHash = request.headers.get('x-device-hash');
+    const headerLabel = request.headers.get('x-device-label');
+    const headerOS = request.headers.get('x-device-os');
+    const headerCategory = request.headers.get('x-device-category') as 'mobile' | 'tablet' | 'desktop' | null;
 
+    const { getDeviceCategory, getDeviceLabel, detectOS } = await import('@/lib/client-fingerprint');
+    
+    const deviceType = headerCategory || getDeviceCategory(userAgent, 0, 1024, 768);
+    const osInfo = headerOS || detectOS(userAgent);
+    const baseDeviceLabel = headerLabel || getDeviceLabel(userAgent, deviceType);
+    const fallbackHash = 'fallback-' + Buffer.from(userAgent + osInfo + baseDeviceLabel).toString('base64').slice(0, 16);
+    const deviceHash = headerHash || fallbackHash;
+
+    const deviceInfo = parseUserAgent(userAgent);
+
+    // Fetch global settings
+    const { getGlobalSessionSettings, getActiveSessionsForUser, terminateSession, lockSession } = await import('@/lib/session-manager');
+    const globalSettings = await getGlobalSessionSettings();
+
+    // Enforce allowed device type restrictions (students only — admins/teachers are exempt)
+    const isPrivilegedRole = user.role === 'admin' || user.role === 'teacher';
+    if (!isPrivilegedRole) {
+      if (deviceType === 'desktop' && !globalSettings.allowDesktop) {
+        return NextResponse.redirect(`${appUrl}/?auth=login&error=${encodeURIComponent('Access from desktop devices is currently disabled.')}`);
+      }
+      if (deviceType === 'tablet' && !globalSettings.allowTablet) {
+        return NextResponse.redirect(`${appUrl}/?auth=login&error=${encodeURIComponent('Access from tablet devices is currently disabled.')}`);
+      }
+      if (deviceType === 'mobile' && !globalSettings.allowMobile) {
+        return NextResponse.redirect(`${appUrl}/?auth=login&error=${encodeURIComponent('Access from mobile devices is currently disabled.')}`);
+      }
+    }
+
+    // Look for a custom device name previously saved for this device/browser hash
+    const existingSessionWithLabel = await db.query.deviceSession.findFirst({
+      where: (ds, { eq, and, isNotNull }) => and(
+        eq(ds.userId, user.id),
+        eq(ds.deviceHash, deviceHash),
+        isNotNull(ds.deviceLabel)
+      ),
+      orderBy: (ds, { desc }) => [desc(ds.createdAt)],
+    });
+    const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
+
+    // Check for existing active sessions
+    const activeSessions = await getActiveSessionsForUser(user.id);
+    const isSessionRestrictionExempt = isPrivilegedRole || !!user.isSessionLockedExempt;
+
+    // Graceful browser switch on same device
+    const existingActiveSameDevice = activeSessions.find(s => s.deviceHash === deviceHash);
+    if (existingActiveSameDevice) {
+      await terminateSession(existingActiveSameDevice.id);
+      const index = activeSessions.findIndex(s => s.id === existingActiveSameDevice.id);
+      if (index > -1) {
+        activeSessions.splice(index, 1);
+      }
+    }
+
+    // Enforce concurrent session limits
     if (!isSessionRestrictionExempt) {
-      const activeSessionsSameDevice = await getActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
-
-      if (activeSessionsSameDevice.length > 0) {
-        const autoLockEnabled = await getAutoLockSetting(user.id);
-
-        if (autoLockEnabled) {
-          // Redirect with error — user is already logged in on this device type
-          return NextResponse.redirect(`${appUrl}/?auth=login&error=DeviceAlreadyLoggedIn`);
-        } else {
-          // Terminate old sessions and allow new login
-          await terminateActiveSessionsByDeviceType(user.id, deviceInfo.deviceType);
+      const limit = globalSettings.maxConcurrentSessions;
+      if (activeSessions.length >= limit) {
+        const numToLock = activeSessions.length - limit + 1;
+        const sessionsToLock = activeSessions.slice(activeSessions.length - numToLock);
+        for (const sessionToLock of sessionsToLock) {
+          await lockSession(sessionToLock.id, deviceLabel);
         }
       }
     }
@@ -168,10 +219,13 @@ export async function GET(request: NextRequest) {
     // Create new device session
     const newSession = await createDeviceSession({
       userId: user.id,
-      deviceType: deviceInfo.deviceType,
+      deviceType,
       browserName: deviceInfo.browserName,
       userAgent,
       ipAddress,
+      deviceHash,
+      deviceLabel,
+      osInfo,
     });
 
     // Step 5: Mint custom JWT and set cookie

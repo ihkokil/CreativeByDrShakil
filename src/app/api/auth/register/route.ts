@@ -107,15 +107,47 @@ export async function POST(request: NextRequest) {
 
       // Log the user in immediately
       const userAgent = request.headers.get('user-agent') || '';
-      const deviceInfo = parseUserAgent(userAgent);
       const ipAddress = extractClientIp(request.headers);
+
+      // Retrieve custom device headers (with fallbacks for backward compatibility)
+      const headerHash = request.headers.get('x-device-hash');
+      const headerLabel = request.headers.get('x-device-label');
+      const headerOS = request.headers.get('x-device-os');
+      const headerCategory = request.headers.get('x-device-category') as 'mobile' | 'tablet' | 'desktop' | null;
+
+      const { getDeviceCategory, getDeviceLabel, detectOS } = await import('@/lib/client-fingerprint');
+      
+      const deviceType = headerCategory || getDeviceCategory(userAgent, 0, 1024, 768);
+      const osInfo = headerOS || detectOS(userAgent);
+      const deviceLabel = headerLabel || getDeviceLabel(userAgent, deviceType);
+      const fallbackHash = 'fallback-' + Buffer.from(userAgent + osInfo + deviceLabel).toString('base64').slice(0, 16);
+      const deviceHash = headerHash || fallbackHash;
+
+      const deviceInfo = parseUserAgent(userAgent);
+
+      // Enforce allowed device type restrictions
+      const { getGlobalSessionSettings } = await import('@/lib/session-manager');
+      const globalSettings = await getGlobalSessionSettings();
+
+      if (deviceType === 'desktop' && !globalSettings.allowDesktop) {
+        return NextResponse.json({ error: 'Access from desktop devices is currently disabled.' }, { status: 403 });
+      }
+      if (deviceType === 'tablet' && !globalSettings.allowTablet) {
+        return NextResponse.json({ error: 'Access from tablet devices is currently disabled.' }, { status: 403 });
+      }
+      if (deviceType === 'mobile' && !globalSettings.allowMobile) {
+        return NextResponse.json({ error: 'Access from mobile devices is currently disabled.' }, { status: 403 });
+      }
 
       const newSession = await createDeviceSession({
         userId: user.id,
-        deviceType: deviceInfo.deviceType,
+        deviceType,
         browserName: deviceInfo.browserName,
         userAgent,
         ipAddress,
+        deviceHash,
+        deviceLabel,
+        osInfo,
       });
 
       const authToken = await signAuthToken({

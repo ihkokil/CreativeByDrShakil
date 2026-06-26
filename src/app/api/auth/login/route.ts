@@ -74,42 +74,89 @@ export async function POST(request: NextRequest) {
 
     // Device detection
     const userAgent = request.headers.get('user-agent') || '';
-    const deviceInfo = parseUserAgent(userAgent);
     const ipAddress = extractClientIp(request.headers);
 
-    // Check for existing sessions on the same device type
-    const activeSessionsSameDevice = await getActiveSessionsByDeviceType(userRecord.id, deviceInfo.deviceType);
+    // Retrieve custom device headers (with fallbacks for backward compatibility)
+    const headerHash = request.headers.get('x-device-hash');
+    const headerLabel = request.headers.get('x-device-label');
+    const headerOS = request.headers.get('x-device-os');
+    const headerCategory = request.headers.get('x-device-category') as 'mobile' | 'tablet' | 'desktop' | null;
 
-    // handle existing session logic
-    const isSessionRestrictionExempt = userRecord.role === 'admin' || userRecord.role === 'teacher';
+    const { getDeviceCategory, getDeviceLabel, detectOS } = await import('@/lib/client-fingerprint');
+    
+    const deviceType = headerCategory || getDeviceCategory(userAgent, 0, 1024, 768);
+    const osInfo = headerOS || detectOS(userAgent);
+    const baseDeviceLabel = headerLabel || getDeviceLabel(userAgent, deviceType);
+    const fallbackHash = 'fallback-' + Buffer.from(userAgent + osInfo + baseDeviceLabel).toString('base64').slice(0, 16);
+    const deviceHash = headerHash || fallbackHash;
 
-    if (activeSessionsSameDevice.length > 0 && !isSessionRestrictionExempt) {
-      // Get Lock First Browser setting for the user
-      const autoLockEnabled = await getAutoLockSetting(userRecord.id);
+    const deviceInfo = parseUserAgent(userAgent);
 
-      if (autoLockEnabled) {
-        // Lock is ON - reject the login request
-        return NextResponse.json(
-          {
-            error: 'You are already logged in on another browser on this device. Please log out from the previous session or ask admin to log you out.',
-            code: 'device_already_logged_in',
-            sessionId: activeSessionsSameDevice[0].id,
-          },
-          { status: 409 }
-        );
-      } else {
-        // Lock is OFF - terminate all old same-device sessions and allow new login
-        await terminateActiveSessionsByDeviceType(userRecord.id, deviceInfo.deviceType);
+    // Fetch global settings
+    const { getGlobalSessionSettings, getActiveSessionsForUser, terminateSession, lockSession } = await import('@/lib/session-manager');
+    const globalSettings = await getGlobalSessionSettings();
+
+    // Enforce allowed device type restrictions (students only — admins/teachers are exempt)
+    const isPrivilegedRole = userRecord.role === 'admin' || userRecord.role === 'teacher';
+    if (!isPrivilegedRole) {
+      if (deviceType === 'desktop' && !globalSettings.allowDesktop) {
+        return NextResponse.json({ error: 'Access from desktop devices is currently disabled.' }, { status: 403 });
+      }
+      if (deviceType === 'tablet' && !globalSettings.allowTablet) {
+        return NextResponse.json({ error: 'Access from tablet devices is currently disabled.' }, { status: 403 });
+      }
+      if (deviceType === 'mobile' && !globalSettings.allowMobile) {
+        return NextResponse.json({ error: 'Access from mobile devices is currently disabled.' }, { status: 403 });
+      }
+    }
+
+    // Look for a custom device name previously saved for this device/browser hash
+    const existingSessionWithLabel = await db.query.deviceSession.findFirst({
+      where: (ds, { eq, and, isNotNull }) => and(
+        eq(ds.userId, userRecord.id),
+        eq(ds.deviceHash, deviceHash),
+        isNotNull(ds.deviceLabel)
+      ),
+      orderBy: (ds, { desc }) => [desc(ds.createdAt)],
+    });
+    const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
+
+    // Check for existing active sessions
+    const activeSessions = await getActiveSessionsForUser(userRecord.id);
+    const isSessionRestrictionExempt = isPrivilegedRole || !!userRecord.isSessionLockedExempt;
+
+    // Graceful browser switch on same device
+    const existingActiveSameDevice = activeSessions.find(s => s.deviceHash === deviceHash);
+    if (existingActiveSameDevice) {
+      await terminateSession(existingActiveSameDevice.id);
+      const index = activeSessions.findIndex(s => s.id === existingActiveSameDevice.id);
+      if (index > -1) {
+        activeSessions.splice(index, 1);
+      }
+    }
+
+    // Enforce concurrent session limits
+    if (!isSessionRestrictionExempt) {
+      const limit = globalSettings.maxConcurrentSessions;
+      if (activeSessions.length >= limit) {
+        const numToLock = activeSessions.length - limit + 1;
+        const sessionsToLock = activeSessions.slice(activeSessions.length - numToLock);
+        for (const sessionToLock of sessionsToLock) {
+          await lockSession(sessionToLock.id, deviceLabel);
+        }
       }
     }
 
     // Create new device session
     const newSession = await createDeviceSession({
       userId: userRecord.id,
-      deviceType: deviceInfo.deviceType,
+      deviceType,
       browserName: deviceInfo.browserName,
       userAgent,
       ipAddress,
+      deviceHash,
+      deviceLabel,
+      osInfo,
     });
 
     // Sign token with session ID

@@ -8,7 +8,7 @@ import SessionSettingsModal from './SessionSettingsModal';
 
 interface SessionData {
   id: string;
-  deviceType: 'desktop' | 'mobile';
+  deviceType: 'desktop' | 'mobile' | 'tablet';
   browserName: string;
   ipAddress: string;
   isLocked: boolean;
@@ -132,7 +132,7 @@ export default function SessionsManager() {
       {/* Global Settings */}
       <div className={styles.settingsPanel}>
         <div className={styles.settingsHeader}>
-          <h3>Auto-Lock First Browser</h3>
+          <h3>Auto-Lock First Device</h3>
           <p className={styles.description}>
             When enabled, a student logging in from a new browser on the same device will be blocked until they manually log out from the previous session.
           </p>
