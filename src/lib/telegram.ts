@@ -288,8 +288,8 @@ export async function sendTelegramRegistrationNotification({
   const replyMarkup = {
     inline_keyboard: [
       [
-        { text: '📚 Enroll in Course', callback_data: `tg_enroll:${userId}` },
-        { text: '⚙️ Change Module Availability', callback_data: `tg_availability:${userId}` }
+        { text: '📚 Enroll in Course', callback_data: `en:${userId}` },
+        { text: '⚙️ Change Module Availability', callback_data: `av:${userId}` }
       ]
     ]
   };
