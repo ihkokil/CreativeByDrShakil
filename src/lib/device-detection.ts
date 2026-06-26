@@ -1,4 +1,4 @@
-export type DeviceType = 'desktop' | 'mobile';
+export type DeviceType = 'desktop' | 'mobile' | 'tablet';
 
 export interface DeviceInfo {
   deviceType: DeviceType;

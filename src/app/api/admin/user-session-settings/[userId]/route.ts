@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 import { getAutoLockSetting, setAutoLockSetting } from '@/lib/session-manager';
 import { db } from '@/lib/db';
+import { user } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * GET /api/admin/user-session-settings/[userId]
- * Get user's auto-lock setting
+ * Get user's auto-lock setting and exemption status
  */
 export async function GET(
   request: NextRequest,
@@ -24,11 +26,11 @@ export async function GET(
     }
 
     // Verify user exists
-    const user = await db.query.user.findFirst({
+    const userRecord = await db.query.user.findFirst({
       where: (u, { eq }) => eq(u.id, userId),
     });
 
-    if (!user) {
+    if (!userRecord) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -37,6 +39,7 @@ export async function GET(
     return NextResponse.json({
       userId,
       autoLockFirstBrowser: autoLockSetting,
+      isSessionLockedExempt: userRecord.isSessionLockedExempt,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
@@ -45,8 +48,8 @@ export async function GET(
 
 /**
  * PUT /api/admin/user-session-settings/[userId]
- * Update user's auto-lock setting
- * Body: {autoLockFirstBrowser: boolean}
+ * Update user's auto-lock setting and/or exemption status
+ * Body: {autoLockFirstBrowser?: boolean, isSessionLockedExempt?: boolean}
  */
 export async function PUT(
   request: NextRequest,
@@ -61,32 +64,43 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { autoLockFirstBrowser } = body;
+    const { autoLockFirstBrowser, isSessionLockedExempt } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    if (typeof autoLockFirstBrowser !== 'boolean') {
-      return NextResponse.json({ error: 'autoLockFirstBrowser must be a boolean' }, { status: 400 });
-    }
-
     // Verify user exists
-    const user = await db.query.user.findFirst({
+    const userRecord = await db.query.user.findFirst({
       where: (u, { eq }) => eq(u.id, userId),
     });
 
-    if (!user) {
+    if (!userRecord) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    await setAutoLockSetting(userId, autoLockFirstBrowser);
+    if (autoLockFirstBrowser !== undefined) {
+      if (typeof autoLockFirstBrowser !== 'boolean') {
+        return NextResponse.json({ error: 'autoLockFirstBrowser must be a boolean' }, { status: 400 });
+      }
+      await setAutoLockSetting(userId, autoLockFirstBrowser);
+    }
+
+    if (isSessionLockedExempt !== undefined) {
+      if (typeof isSessionLockedExempt !== 'boolean') {
+        return NextResponse.json({ error: 'isSessionLockedExempt must be a boolean' }, { status: 400 });
+      }
+      await db.update(user)
+        .set({ isSessionLockedExempt })
+        .where(eq(user.id, userId));
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'User setting updated',
+      message: 'User settings updated',
       userId,
-      autoLockFirstBrowser,
+      autoLockFirstBrowser: autoLockFirstBrowser !== undefined ? autoLockFirstBrowser : await getAutoLockSetting(userId),
+      isSessionLockedExempt: isSessionLockedExempt !== undefined ? isSessionLockedExempt : userRecord.isSessionLockedExempt,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });

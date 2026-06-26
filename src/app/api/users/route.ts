@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
-import { getGlobalAutoLockSetting, resolveAutoLockSetting } from '@/lib/session-manager';
+import { getGlobalSessionSettings, resolveAutoLockSetting } from '@/lib/session-manager';
+import { user } from '@/db/schema';
+import { sql, eq, or, ilike, and, count, desc, asc } from 'drizzle-orm';
 
 /**
- * GET /api/users
- * Returns a list of all users, their roles, active device sessions, and enrolled courses.
+ * GET /api/users?page=1&limit=20&search=query
+ * Returns a paginated list of student users with device sessions and enrolled courses.
  * Accessible by: Admin, Teacher
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const auth = await getSession();
 
@@ -16,14 +18,55 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const [users, globalAutoLockSetting] = await Promise.all([
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
+    const search = searchParams.get('search')?.trim() || '';
+    const sortBy = searchParams.get('sortBy') || 'lastActive';
+    const offset = (page - 1) * limit;
+
+    // Build where conditions: only students, with optional search
+    const conditions = [eq(user.role, 'student')];
+    if (search) {
+      conditions.push(
+        or(
+          ilike(user.fullName, `%${search}%`),
+          ilike(user.email, `%${search}%`)
+        )!
+      );
+    }
+    const whereClause = and(...conditions);
+
+    // Build orderBy based on sortBy param
+    const getOrderBy = (): any => {
+      switch (sortBy) {
+        case 'name_asc':
+          return [asc(user.fullName)];
+        case 'name_desc':
+          return [desc(user.fullName)];
+        case 'newest':
+          return [desc(user.createdAt)];
+        case 'oldest':
+          return [asc(user.createdAt)];
+        case 'lastActive':
+        default:
+          // Subquery: order by most recent device session activity. Note the alias "user" instead of "User"
+          return [sql`(SELECT MAX("lastActivityAt") FROM "DeviceSession" WHERE "userId" = "user"."id") DESC NULLS LAST`];
+      }
+    };
+
+    // Fetch count + paginated users + globalSettings in parallel
+    const [totalResult, users, globalSettings] = await Promise.all([
+      db.select({ total: count() }).from(user).where(whereClause),
       db.query.user.findMany({
+        where: () => whereClause!,
         columns: {
           id: true,
           fullName: true,
           email: true,
           role: true,
           isBanned: true,
+          isSessionLockedExempt: true,
           createdAt: true,
           profileImage: true,
           image: true,
@@ -60,48 +103,50 @@ export async function GET() {
             },
           },
         },
-        orderBy: (u, { desc }) => [desc(u.createdAt)],
+        orderBy: getOrderBy(),
+        limit,
+        offset,
       }),
-      getGlobalAutoLockSetting(),
+      getGlobalSessionSettings(),
     ]);
 
-    const formattedUsers = await Promise.all(
-      users.map(async (user) => {
-        const activeSessions = user.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+    const totalCount = totalResult[0]?.total ?? 0;
+    const totalPages = Math.ceil(totalCount / limit);
 
-        // Calculate last active timestamp from all deviceSessions, falling back to createdAt
-        const latestSession = [...user.deviceSessions].sort(
+    const formattedUsers = await Promise.all(
+      users.map(async (u) => {
+        const activeSessions = u.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+
+        const latestSession = [...u.deviceSessions].sort(
           (a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
         )[0];
-        const lastActiveAt = latestSession ? latestSession.lastActivityAt : user.createdAt;
+        const lastActiveAt = latestSession ? latestSession.lastActivityAt : u.createdAt;
 
-        // Resolve auto lock settings for student users
-        let autoLockSetting = globalAutoLockSetting;
+        let autoLockSetting = globalSettings.autoLockFirstBrowser;
         let hasUserOverride = false;
         let userAutoLockSetting = null;
 
-        if (user.role === 'student') {
-          const resolved = await resolveAutoLockSetting(user.id);
-          autoLockSetting = resolved.effectiveAutoLockFirstBrowser;
-          hasUserOverride = resolved.hasUserOverride;
-          userAutoLockSetting = resolved.userAutoLockFirstBrowser;
-        }
+        const resolved = await resolveAutoLockSetting(u.id);
+        autoLockSetting = resolved.effectiveAutoLockFirstBrowser;
+        hasUserOverride = resolved.hasUserOverride;
+        userAutoLockSetting = resolved.userAutoLockFirstBrowser;
 
         return {
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          isBanned: user.isBanned,
-          createdAt: user.createdAt,
-          profileImage: user.profileImage || user.image || null,
+          id: u.id,
+          fullName: u.fullName,
+          email: u.email,
+          role: u.role,
+          isBanned: u.isBanned,
+          isSessionLockedExempt: u.isSessionLockedExempt,
+          createdAt: u.createdAt,
+          profileImage: u.profileImage || u.image || null,
           activeSessions,
-          sessions: user.deviceSessions, // return all sessions to enable historical last active timestamp on client
+          sessions: u.deviceSessions,
           lastActiveAt,
           autoLockSetting,
           hasUserOverride,
           userAutoLockSetting,
-          enrolledCourses: user.orders.map((order) => ({
+          enrolledCourses: u.orders.map((order) => ({
             orderId: order.id,
             courseId: order.course.id,
             courseTitle: order.course.title,
@@ -113,11 +158,19 @@ export async function GET() {
       })
     );
 
-    // Sort users by lastActiveAt descending
-    formattedUsers.sort((a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime());
 
-    return NextResponse.json({ users: formattedUsers, globalAutoLockSetting });
+    return NextResponse.json({
+      users: formattedUsers,
+      globalSettings,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+      },
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json({ error: error.message || 'Internal server error.', stack: error.stack }, { status: 500 });
   }
 }

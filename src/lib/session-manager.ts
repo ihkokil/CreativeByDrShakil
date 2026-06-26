@@ -1,6 +1,6 @@
 import { db } from './db';
 import { deviceSession, sessionLockSettings, globalSessionLockSettings } from '@/db/schema';
-import { DeviceType } from './device-detection';
+import { DeviceType } from './client-fingerprint';
 import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
 
 
@@ -11,6 +11,9 @@ export interface CreateSessionOptions {
   browserName: string;
   userAgent: string;
   ipAddress: string;
+  deviceHash?: string;
+  deviceLabel?: string;
+  osInfo?: string;
 }
 
 export interface SessionInfo {
@@ -23,6 +26,10 @@ export interface SessionInfo {
   loggedOutAt: Date | null;
   createdAt: Date;
   lastActivityAt: Date;
+  deviceHash: string | null;
+  deviceLabel: string | null;
+  osInfo: string | null;
+  lockedByDeviceLabel: string | null;
 }
 
 export interface AutoLockResolution {
@@ -44,6 +51,9 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
     browserName: options.browserName,
     userAgent: options.userAgent,
     ipAddress: options.ipAddress,
+    deviceHash: options.deviceHash || null,
+    deviceLabel: options.deviceLabel || null,
+    osInfo: options.osInfo || null,
   }).returning();
 
   return {
@@ -56,6 +66,10 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
     loggedOutAt: mapDate(session.loggedOutAt),
     createdAt: new Date(session.createdAt),
     lastActivityAt: new Date(session.lastActivityAt),
+    deviceHash: session.deviceHash,
+    deviceLabel: session.deviceLabel,
+    osInfo: session.osInfo,
+    lockedByDeviceLabel: session.lockedByDeviceLabel,
   };
 }
 
@@ -75,6 +89,10 @@ export async function getActiveSessionsForUser(userId: string): Promise<SessionI
     loggedOutAt: mapDate(s.loggedOutAt),
     createdAt: new Date(s.createdAt),
     lastActivityAt: new Date(s.lastActivityAt),
+    deviceHash: s.deviceHash,
+    deviceLabel: s.deviceLabel,
+    osInfo: s.osInfo,
+    lockedByDeviceLabel: s.lockedByDeviceLabel,
   }));
 }
 
@@ -94,6 +112,10 @@ export async function getAllSessionsForUser(userId: string): Promise<SessionInfo
     loggedOutAt: mapDate(s.loggedOutAt),
     createdAt: new Date(s.createdAt),
     lastActivityAt: new Date(s.lastActivityAt),
+    deviceHash: s.deviceHash,
+    deviceLabel: s.deviceLabel,
+    osInfo: s.osInfo,
+    lockedByDeviceLabel: s.lockedByDeviceLabel,
   }));
 }
 
@@ -119,6 +141,10 @@ export async function getActiveSessionByDeviceType(userId: string, deviceType: D
     loggedOutAt: mapDate(session.loggedOutAt),
     createdAt: new Date(session.createdAt),
     lastActivityAt: new Date(session.lastActivityAt),
+    deviceHash: session.deviceHash,
+    deviceLabel: session.deviceLabel,
+    osInfo: session.osInfo,
+    lockedByDeviceLabel: session.lockedByDeviceLabel,
   };
 }
 
@@ -143,6 +169,10 @@ export async function getActiveSessionsByDeviceType(userId: string, deviceType: 
     loggedOutAt: mapDate(s.loggedOutAt),
     createdAt: new Date(s.createdAt),
     lastActivityAt: new Date(s.lastActivityAt),
+    deviceHash: s.deviceHash,
+    deviceLabel: s.deviceLabel,
+    osInfo: s.osInfo,
+    lockedByDeviceLabel: s.lockedByDeviceLabel,
   }));
 }
 
@@ -178,6 +208,10 @@ export async function getSessionById(sessionId: string): Promise<SessionInfo | n
     loggedOutAt: mapDate(session.loggedOutAt),
     createdAt: new Date(session.createdAt),
     lastActivityAt: new Date(session.lastActivityAt),
+    deviceHash: session.deviceHash,
+    deviceLabel: session.deviceLabel,
+    osInfo: session.osInfo,
+    lockedByDeviceLabel: session.lockedByDeviceLabel,
   };
 }
 
@@ -187,9 +221,15 @@ export async function terminateSession(sessionId: string): Promise<void> {
     .where(eq(deviceSession.id, sessionId));
 }
 
-export async function lockSession(sessionId: string): Promise<void> {
+export async function lockSession(sessionId: string, lockedBy: string = 'Administrator'): Promise<void> {
   await db.update(deviceSession)
-    .set({ isLocked: true })
+    .set({ isLocked: true, lockedByDeviceLabel: lockedBy })
+    .where(eq(deviceSession.id, sessionId));
+}
+
+export async function updateSessionDeviceHash(sessionId: string, deviceHash: string): Promise<void> {
+  await db.update(deviceSession)
+    .set({ deviceHash })
     .where(eq(deviceSession.id, sessionId));
 }
 
@@ -234,27 +274,67 @@ export async function setAutoLockSetting(userId: string, enabled: boolean): Prom
     }
 }
 
-export async function getGlobalAutoLockSetting(): Promise<boolean> {
+export interface GlobalSessionSettings {
+  autoLockFirstBrowser: boolean;
+  allowDesktop: boolean;
+  allowTablet: boolean;
+  allowMobile: boolean;
+  maxConcurrentSessions: number;
+}
+
+export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings> {
   const setting = await db.query.globalSessionLockSettings.findFirst({
     where: (gsls, { eq }) => eq(gsls.id, 'global'),
   });
 
-  return setting?.autoLockFirstBrowser ?? true;
+  return {
+    autoLockFirstBrowser: setting?.autoLockFirstBrowser ?? true,
+    allowDesktop: setting?.allowDesktop ?? true,
+    allowTablet: setting?.allowTablet ?? true,
+    allowMobile: setting?.allowMobile ?? true,
+    maxConcurrentSessions: setting?.maxConcurrentSessions ?? 3,
+  };
+}
+
+export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSettings>): Promise<void> {
+  const existing = await db.query.globalSessionLockSettings.findFirst({
+    where: (gsls, { eq }) => eq(gsls.id, 'global')
+  });
+
+  const updatedFields: any = {
+    updatedAt: new Date().toISOString(),
+  };
+  if (settings.autoLockFirstBrowser !== undefined) updatedFields.autoLockFirstBrowser = settings.autoLockFirstBrowser;
+  if (settings.allowDesktop !== undefined) updatedFields.allowDesktop = settings.allowDesktop;
+  if (settings.allowTablet !== undefined) updatedFields.allowTablet = settings.allowTablet;
+  if (settings.allowMobile !== undefined) updatedFields.allowMobile = settings.allowMobile;
+  if (settings.maxConcurrentSessions !== undefined) updatedFields.maxConcurrentSessions = settings.maxConcurrentSessions;
+
+  if (existing) {
+    await db.update(globalSessionLockSettings)
+      .set(updatedFields)
+      .where(eq(globalSessionLockSettings.id, 'global'));
+  } else {
+    await db.insert(globalSessionLockSettings)
+      .values({
+        id: 'global',
+        autoLockFirstBrowser: settings.autoLockFirstBrowser ?? true,
+        allowDesktop: settings.allowDesktop ?? true,
+        allowTablet: settings.allowTablet ?? true,
+        allowMobile: settings.allowMobile ?? true,
+        maxConcurrentSessions: settings.maxConcurrentSessions ?? 3,
+        updatedAt: new Date().toISOString(),
+      });
+  }
+}
+
+export async function getGlobalAutoLockSetting(): Promise<boolean> {
+  const settings = await getGlobalSessionSettings();
+  return settings.autoLockFirstBrowser;
 }
 
 export async function setGlobalAutoLockSetting(enabled: boolean): Promise<void> {
-    const existing = await db.query.globalSessionLockSettings.findFirst({
-        where: (gsls, { eq }) => eq(gsls.id, 'global')
-    });
-
-    if (existing) {
-        await db.update(globalSessionLockSettings)
-            .set({ autoLockFirstBrowser: enabled })
-            .where(eq(globalSessionLockSettings.id, 'global'));
-    } else {
-        await db.insert(globalSessionLockSettings)
-            .values({ id: 'global', autoLockFirstBrowser: enabled, updatedAt: new Date().toISOString() });
-    }
+  await setGlobalSessionSettings({ autoLockFirstBrowser: enabled });
 }
 
 export async function resolveAutoLockSetting(userId: string): Promise<AutoLockResolution> {
@@ -278,4 +358,20 @@ export async function resolveAutoLockSetting(userId: string): Promise<AutoLockRe
 
 export async function getAllSessionLockSettings() {
   return db.query.sessionLockSettings.findMany();
+}
+
+export async function terminateAllSessions(): Promise<void> {
+  // Only terminate sessions belonging to students (not admin/teacher)
+  const { user } = await import('@/db/schema');
+  const studentIds = db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.role, 'student'));
+
+  await db.update(deviceSession)
+    .set({ loggedOutAt: new Date().toISOString() })
+    .where(and(
+      isNull(deviceSession.loggedOutAt),
+      inArray(deviceSession.userId, studentIds)
+    ));
 }

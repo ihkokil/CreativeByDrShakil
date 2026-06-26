@@ -9,7 +9,7 @@ import { AlertCircle, X } from "lucide-react";
 const SESSION_TOAST_KEY = "session_terminated_toast_shown";
 
 export default function SessionWarningToast() {
-  const { hasSessionTerminated } = useAuth();
+  const { hasSessionTerminated, sessionTerminatedReason } = useAuth();
   const router = useRouter();
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -31,7 +31,7 @@ export default function SessionWarningToast() {
   // Auto-close after 3 seconds
   useEffect(() => {
     if (!visible) return;
-    const timer = setTimeout(() => dismiss(), 3000);
+    const timer = setTimeout(() => dismiss(), 5000); // 5 seconds is better for reading custom messages
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
@@ -53,7 +53,7 @@ export default function SessionWarningToast() {
         <div className={styles.content}>
           <p className={styles.title}>Session Ended</p>
           <p className={styles.message}>
-            Your session was logged out from another device. Please log in again.
+            {sessionTerminatedReason || "Your session was logged out from another device. Please log in again."}
           </p>
         </div>
         <button

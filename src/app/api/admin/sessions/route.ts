@@ -95,14 +95,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { autoLockFirstBrowser, userId } = body;
-
-    if (typeof autoLockFirstBrowser !== 'boolean') {
-      return NextResponse.json({ error: 'autoLockFirstBrowser must be a boolean' }, { status: 400 });
-    }
+    const { autoLockFirstBrowser, allowDesktop, allowTablet, allowMobile, maxConcurrentSessions, userId } = body;
 
     // If userId is provided, update user-specific setting
     if (userId) {
+      if (typeof autoLockFirstBrowser !== 'boolean') {
+        return NextResponse.json({ error: 'autoLockFirstBrowser must be a boolean' }, { status: 400 });
+      }
       await setAutoLockSetting(userId, autoLockFirstBrowser);
       return NextResponse.json({
         success: true,
@@ -110,12 +109,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Otherwise, update true global setting
-    await setGlobalAutoLockSetting(autoLockFirstBrowser);
+    // Validate global settings if provided
+    const settingsUpdate: any = {};
+    if (autoLockFirstBrowser !== undefined) {
+      if (typeof autoLockFirstBrowser !== 'boolean') return NextResponse.json({ error: 'autoLockFirstBrowser must be a boolean' }, { status: 400 });
+      settingsUpdate.autoLockFirstBrowser = autoLockFirstBrowser;
+    }
+    if (allowDesktop !== undefined) {
+      if (typeof allowDesktop !== 'boolean') return NextResponse.json({ error: 'allowDesktop must be a boolean' }, { status: 400 });
+      settingsUpdate.allowDesktop = allowDesktop;
+    }
+    if (allowTablet !== undefined) {
+      if (typeof allowTablet !== 'boolean') return NextResponse.json({ error: 'allowTablet must be a boolean' }, { status: 400 });
+      settingsUpdate.allowTablet = allowTablet;
+    }
+    if (allowMobile !== undefined) {
+      if (typeof allowMobile !== 'boolean') return NextResponse.json({ error: 'allowMobile must be a boolean' }, { status: 400 });
+      settingsUpdate.allowMobile = allowMobile;
+    }
+    if (maxConcurrentSessions !== undefined) {
+      if (typeof maxConcurrentSessions !== 'number') return NextResponse.json({ error: 'maxConcurrentSessions must be a number' }, { status: 400 });
+      settingsUpdate.maxConcurrentSessions = maxConcurrentSessions;
+    }
+
+    const { setGlobalSessionSettings } = await import('@/lib/session-manager');
+    await setGlobalSessionSettings(settingsUpdate);
 
     return NextResponse.json({
       success: true,
-      message: 'Global lock setting updated',
+      message: 'Global session settings updated successfully',
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
