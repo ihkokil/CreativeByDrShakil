@@ -4,6 +4,38 @@ import { getAppUrl } from './email';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '');
 
+export function compressUuid(id: string): string {
+  if (!id) return id;
+  if (id.length === 36 && (id.match(/-/g) || []).length === 4) {
+    const hex = id.replace(/-/g, '');
+    if (hex.length === 32) {
+      return Buffer.from(hex, 'hex')
+        .toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+    }
+  }
+  return id;
+}
+
+export function decompressUuid(compressed: string): string {
+  if (!compressed) return compressed;
+  if (compressed.length === 22) {
+    try {
+      let base64 = compressed.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) base64 += '=';
+      const hex = Buffer.from(base64, 'base64').toString('hex');
+      if (hex.length === 32) {
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+  return compressed;
+}
+
 function escapeTelegramHtml(value: string) {
   return value
     .replaceAll('&', '&amp;')
@@ -288,8 +320,8 @@ export async function sendTelegramRegistrationNotification({
   const replyMarkup = {
     inline_keyboard: [
       [
-        { text: '📚 Enroll in Course', callback_data: `en:${userId}` },
-        { text: '⚙️ Change Module Availability', callback_data: `av:${userId}` }
+        { text: '📚 Enroll in Course', callback_data: `en:${compressUuid(userId)}` },
+        { text: '⚙️ Change Module Availability', callback_data: `av:${compressUuid(userId)}` }
       ]
     ]
   };

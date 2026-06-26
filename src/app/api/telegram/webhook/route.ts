@@ -8,17 +8,7 @@ import {
   studentModuleAvailability as smaSchema
 } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { updateTelegramVerificationMessage } from '@/lib/telegram';
-
-/**
- * In-memory session map for multi-step Telegram bot interactions.
- * Key: chatId (string), Value: session context (userId, courseId, etc.)
- * 
- * This avoids exceeding Telegram's 64-byte callback_data limit by storing
- * intermediate state server-side instead of packing multiple UUIDs into
- * the callback payload.
- */
-const tgSessions = new Map<string, Record<string, string>>();
+import { updateTelegramVerificationMessage, compressUuid, decompressUuid } from '@/lib/telegram';
 
 function getTelegramChatIds() {
   const envChatId = process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '') || '';
@@ -126,12 +116,9 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 1: Enroll — show course list ──
-      // callback_data: "en:{userId}" (max ~38 bytes ✓)
+      // callback_data: "en:{compressedUserId}" (max ~28 bytes ✓)
       else if (prefix === 'en') {
-        const userId = value;
-
-        // Store userId in session for next step
-        tgSessions.set(sessionKey, { userId, action: 'enroll' });
+        const compressedUserId = value;
 
         const courses = await db.query.course.findMany({
           where: (c, { eq }) => eq(c.status, 'published'),
@@ -144,9 +131,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // callback_data: "sc:{courseId}" (max ~39 bytes ✓)
+        // callback_data: "sc:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
         const inlineKeyboard = courses.map(c => [
-          { text: c.title, callback_data: `sc:${c.id}` }
+          { text: c.title, callback_data: `sc:${compressedUserId}:${c.id}` }
         ]);
 
         await sendMsg(callbackChatId, '📚 <b>Select a course to enroll the student:</b>', {
@@ -157,19 +144,19 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 2: Enroll — perform enrollment ──
-      // callback_data: "sc:{courseId}" (max ~39 bytes ✓)
+      // callback_data: "sc:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
       else if (prefix === 'sc') {
-        const courseId = value;
-        const session = tgSessions.get(sessionKey);
+        const parts = value.split(':');
+        const compressedUserId = parts[0];
+        const courseId = parts[1];
 
-        if (!session?.userId) {
-          await sendMsg(callbackChatId, '❌ Session expired. Please click "Enroll in Course" again from the registration notification.');
+        if (!compressedUserId || !courseId) {
+          await sendMsg(callbackChatId, '❌ Invalid callback data.');
           await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
-        const userId = session.userId;
-        tgSessions.delete(sessionKey);
+        const userId = decompressUuid(compressedUserId);
 
         const student = await db.query.user.findFirst({
           where: (u, { eq, and }) => and(eq(u.id, userId), eq(u.role, 'student')),
@@ -241,12 +228,10 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 1: Availability — show enrolled courses ──
-      // callback_data: "av:{userId}" (max ~39 bytes ✓)
+      // callback_data: "av:{compressedUserId}" (max ~28 bytes ✓)
       else if (prefix === 'av') {
-        const userId = value;
-
-        // Store userId in session
-        tgSessions.set(sessionKey, { userId, action: 'availability' });
+        const compressedUserId = value;
+        const userId = decompressUuid(compressedUserId);
 
         const enrolledOrders = await db.query.order.findMany({
           where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.status, 'approved')),
@@ -259,9 +244,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // callback_data: "ac:{courseId}" (max ~39 bytes ✓)
+        // callback_data: "ac:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
         const inlineKeyboard = enrolledOrders.map(o => [
-          { text: o.course.title, callback_data: `ac:${o.courseId}` }
+          { text: o.course.title, callback_data: `ac:${compressedUserId}:${o.courseId}` }
         ]);
 
         await sendMsg(callbackChatId, '⚙️ <b>Select course to modify:</b>', {
@@ -272,23 +257,21 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 2: Availability — select type ──
-      // callback_data: "ac:{courseId}" (max ~39 bytes ✓)
+      // callback_data: "ac:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
       else if (prefix === 'ac') {
-        const courseId = value;
-        const session = tgSessions.get(sessionKey);
+        const parts = value.split(':');
+        const compressedUserId = parts[0];
+        const courseId = parts[1];
 
-        if (!session?.userId) {
-          await sendMsg(callbackChatId, '❌ Session expired. Please click "Change Module Availability" again from the registration notification.');
+        if (!compressedUserId || !courseId) {
+          await sendMsg(callbackChatId, '❌ Invalid callback data.');
           await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
-        // Update session with courseId
-        tgSessions.set(sessionKey, { ...session, courseId });
-
-        // callback_data: "at:custom_date" (14 bytes ✓)
+        // callback_data: "at:cd:{compressedUserId}:{courseId}" (max ~57 bytes ✓)
         const inlineKeyboard = [
-          [{ text: 'Custom Date', callback_data: 'at:custom_date' }]
+          [{ text: 'Custom Date', callback_data: `at:cd:${compressedUserId}:${courseId}` }]
         ];
 
         await sendMsg(callbackChatId, '<b>Select availability type:</b>', {
@@ -299,26 +282,27 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 3: Availability — prompt for dates ──
-      // callback_data: "at:custom_date" (14 bytes ✓)
+      // callback_data: "at:cd:{compressedUserId}:{courseId}" (max ~57 bytes ✓)
       else if (prefix === 'at') {
-        const session = tgSessions.get(sessionKey);
+        const parts = value.split(':');
+        const actionType = parts[0];
+        const compressedUserId = parts[1];
+        const courseId = parts[2];
 
-        if (!session?.userId || !session?.courseId) {
-          await sendMsg(callbackChatId, '❌ Session expired. Please start over from the registration notification.');
+        if (!compressedUserId || !courseId || actionType !== 'cd') {
+          await sendMsg(callbackChatId, '❌ Invalid callback data.');
           await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
-        const { userId, courseId } = session;
+        const userId = decompressUuid(compressedUserId);
 
-        if (value === 'custom_date') {
-          // Send ForceReply message to get Start Date
-          // Embed userId and courseId in the message text for the reply handler
-          await sendMsg(callbackChatId,
-            `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
-            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
-          );
-        }
+        // Send ForceReply message to get Start Date
+        // Embed userId and courseId in the message text for the reply handler
+        await sendMsg(callbackChatId,
+          `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
+          { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+        );
 
         await answerCb(id);
       }
@@ -505,11 +489,12 @@ export async function POST(request: NextRequest) {
           'Select an action below:'
         ].join('\n');
 
+        const compressedUserId = compressUuid(student.id);
         const replyMarkup = {
           inline_keyboard: [
             [
-              { text: '📚 Enroll in Course', callback_data: `en:${student.id}` },
-              { text: '⚙️ Change Availability', callback_data: `av:${student.id}` }
+              { text: '📚 Enroll in Course', callback_data: `en:${compressedUserId}` },
+              { text: '⚙️ Change Availability', callback_data: `av:${compressedUserId}` }
             ]
           ]
         };
@@ -536,9 +521,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // Store session and show courses
-        tgSessions.set(sessionKey, { userId: student.id, action: 'enroll' });
-
         const courses = await db.query.course.findMany({
           where: (c, { eq }) => eq(c.status, 'published'),
           columns: { id: true, title: true }
@@ -549,8 +531,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
+        const compressedUserId = compressUuid(student.id);
         const inlineKeyboard = courses.map(c => [
-          { text: c.title, callback_data: `sc:${c.id}` }
+          { text: c.title, callback_data: `sc:${compressedUserId}:${c.id}` }
         ]);
 
         await sendMsg(messageChatId,
@@ -578,9 +561,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // Store session and show enrolled courses
-        tgSessions.set(sessionKey, { userId: student.id, action: 'availability' });
-
         const enrolledOrders = await db.query.order.findMany({
           where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
           with: { course: true }
@@ -591,8 +571,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
+        const compressedUserId = compressUuid(student.id);
         const inlineKeyboard = enrolledOrders.map(o => [
-          { text: o.course.title, callback_data: `ac:${o.courseId}` }
+          { text: o.course.title, callback_data: `ac:${compressedUserId}:${o.courseId}` }
         ]);
 
         await sendMsg(messageChatId,
