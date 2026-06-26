@@ -10,6 +10,16 @@ import {
 import { eq, and } from 'drizzle-orm';
 import { updateTelegramVerificationMessage } from '@/lib/telegram';
 
+/**
+ * In-memory session map for multi-step Telegram bot interactions.
+ * Key: chatId (string), Value: session context (userId, courseId, etc.)
+ * 
+ * This avoids exceeding Telegram's 64-byte callback_data limit by storing
+ * intermediate state server-side instead of packing multiple UUIDs into
+ * the callback payload.
+ */
+const tgSessions = new Map<string, Record<string, string>>();
+
 function getTelegramChatIds() {
   const envChatId = process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '') || '';
   return envChatId.split(',').map(id => id.trim()).filter(Boolean);
@@ -34,22 +44,50 @@ export async function POST(request: NextRequest) {
     const sendMsgUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
     const answerUrl = `https://api.telegram.org/bot${botToken}/answerCallbackQuery`;
 
-    // Telegram sends callback_query when an inline button is pressed
+    // Helper: send a message and log errors
+    async function sendMsg(chatId: string | number, text: string, extra?: Record<string, unknown>) {
+      const res = await fetch(sendMsgUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML', ...extra }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error('[Telegram] sendMessage failed:', err);
+      }
+      return res;
+    }
+
+    // Helper: answer callback query (stops loading spinner)
+    async function answerCb(callbackQueryId: string, text?: string) {
+      await fetch(answerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callback_query_id: callbackQueryId, ...(text ? { text } : {}) }),
+      });
+    }
+
+    // ─── CALLBACK QUERY HANDLER ───
     if (body.callback_query) {
       const { id, data, message, from } = body.callback_query;
       const callbackChatId = message.chat.id;
+      const sessionKey = String(callbackChatId);
 
-      const [prefix] = (data || '').split(':');
+      // Parse prefix:value from callback_data
+      const colonIdx = (data || '').indexOf(':');
+      const prefix = colonIdx >= 0 ? data.slice(0, colonIdx) : data;
+      const value = colonIdx >= 0 ? data.slice(colonIdx + 1) : '';
 
+      // ── Payment verification ──
       if (prefix === 'payment_verify') {
-        const [, orderId, action] = data.split(':');
+        const [orderId, action] = value.split(':');
         const order = await db.query.order.findFirst({
           where: (o, { eq }) => eq(o.id, orderId),
           with: { payments: true },
         });
 
         if (!order) {
-          return NextResponse.json({ ok: true }); // Acknowledge to Telegram
+          return NextResponse.json({ ok: true });
         }
 
         if (order.status === 'pending') {
@@ -65,7 +103,6 @@ export async function POST(request: NextRequest) {
             }
           });
 
-          // Update the Telegram message to show it's handled
           await updateTelegramVerificationMessage({
             chatId: message.chat.id,
             messageId: message.message_id,
@@ -73,7 +110,6 @@ export async function POST(request: NextRequest) {
             adminName: from.first_name || 'Admin',
           });
         } else {
-          // If already processed, just update the UI to remove buttons
           await updateTelegramVerificationMessage({
             chatId: message.chat.id,
             messageId: message.message_id,
@@ -81,66 +117,59 @@ export async function POST(request: NextRequest) {
             adminName: 'System (Already processed)',
           });
         }
+
         const statusText = order?.status === 'pending' 
           ? `Payment ${action === 'approve' ? 'approved' : 'rejected'} successfully.`
           : `This payment was already ${order?.status}.`;
 
-        // Answer callback query to stop loading spinner on Telegram
-        await fetch(answerUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            callback_query_id: id,
-            text: statusText,
-          }),
-        });
+        await answerCb(id, statusText);
       }
 
-      else if (prefix === 'tg_enroll') {
-        const [, userId] = data.split(':');
-        // Fetch all available courses
+      // ── Step 1: Enroll — show course list ──
+      // callback_data: "en:{userId}" (max ~38 bytes ✓)
+      else if (prefix === 'en') {
+        const userId = value;
+
+        // Store userId in session for next step
+        tgSessions.set(sessionKey, { userId, action: 'enroll' });
+
         const courses = await db.query.course.findMany({
           where: (c, { eq }) => eq(c.status, 'published'),
           columns: { id: true, title: true }
         });
 
         if (courses.length === 0) {
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: callbackChatId,
-              text: '❌ No available courses found in the system.',
-            })
-          });
+          await sendMsg(callbackChatId, '❌ No available courses found in the system.');
+          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
-        // Send inline buttons for courses
+        // callback_data: "sc:{courseId}" (max ~39 bytes ✓)
         const inlineKeyboard = courses.map(c => [
-          { text: c.title, callback_data: `tg_do_enroll:${userId}:${c.id}` }
+          { text: c.title, callback_data: `sc:${c.id}` }
         ]);
 
-        await fetch(sendMsgUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: callbackChatId,
-            text: '📚 <b>Select a course to enroll the student:</b>',
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: inlineKeyboard }
-          })
+        await sendMsg(callbackChatId, '📚 <b>Select a course to enroll the student:</b>', {
+          reply_markup: { inline_keyboard: inlineKeyboard }
         });
 
-        await fetch(answerUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ callback_query_id: id })
-        });
+        await answerCb(id);
       }
 
-      else if (prefix === 'tg_do_enroll') {
-        const [, userId, courseId] = data.split(':');
+      // ── Step 2: Enroll — perform enrollment ──
+      // callback_data: "sc:{courseId}" (max ~39 bytes ✓)
+      else if (prefix === 'sc') {
+        const courseId = value;
+        const session = tgSessions.get(sessionKey);
+
+        if (!session?.userId) {
+          await sendMsg(callbackChatId, '❌ Session expired. Please click "Enroll in Course" again from the registration notification.');
+          await answerCb(id);
+          return NextResponse.json({ ok: true });
+        }
+
+        const userId = session.userId;
+        tgSessions.delete(sessionKey);
 
         const student = await db.query.user.findFirst({
           where: (u, { eq, and }) => and(eq(u.id, userId), eq(u.role, 'student')),
@@ -148,14 +177,8 @@ export async function POST(request: NextRequest) {
         });
 
         if (!student) {
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: callbackChatId,
-              text: '❌ Student not found.',
-            })
-          });
+          await sendMsg(callbackChatId, '❌ Student not found.');
+          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -165,14 +188,8 @@ export async function POST(request: NextRequest) {
         });
 
         if (!course) {
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: callbackChatId,
-              text: '❌ Course not found.',
-            })
-          });
+          await sendMsg(callbackChatId, '❌ Course not found.');
+          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -186,17 +203,8 @@ export async function POST(request: NextRequest) {
         });
 
         if (existingOrder) {
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: callbackChatId,
-              text: `⚠️ Student is already enrolled in course: <b>${course.title}</b>`,
-              parse_mode: 'HTML'
-            })
-          });
+          await sendMsg(callbackChatId, `⚠️ Student is already enrolled in course: <b>${course.title}</b>`);
         } else {
-          // Perform enrollment
           await db.transaction(async (tx) => {
             const enrollOrder = await tx.query.order.findFirst({
               where: (o: any, { eq, and }: any) => and(eq(o.userId, userId), eq(o.courseId, courseId))
@@ -224,29 +232,21 @@ export async function POST(request: NextRequest) {
             }
           });
 
-          // Log action in system audit logs
           console.log(`[AUDIT] Student ${student.fullName} (${userId}) enrolled in course ${course.title} (${courseId}) via Telegram Bot by ${from.first_name || 'Admin'}`);
 
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: callbackChatId,
-              text: `✅ Student successfully enrolled in:\n📚 <b>${course.title}</b>`,
-              parse_mode: 'HTML'
-            })
-          });
+          await sendMsg(callbackChatId, `✅ Student successfully enrolled in:\n📚 <b>${course.title}</b>`);
         }
 
-        await fetch(answerUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ callback_query_id: id })
-        });
+        await answerCb(id);
       }
 
-      else if (prefix === 'tg_availability') {
-        const [, userId] = data.split(':');
+      // ── Step 1: Availability — show enrolled courses ──
+      // callback_data: "av:{userId}" (max ~39 bytes ✓)
+      else if (prefix === 'av') {
+        const userId = value;
+
+        // Store userId in session
+        tgSessions.set(sessionKey, { userId, action: 'availability' });
 
         const enrolledOrders = await db.query.order.findMany({
           where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.status, 'approved')),
@@ -254,91 +254,77 @@ export async function POST(request: NextRequest) {
         });
 
         if (enrolledOrders.length === 0) {
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: callbackChatId,
-              text: '❌ Student is not enrolled in any courses.',
-            })
-          });
+          await sendMsg(callbackChatId, '❌ Student is not enrolled in any courses.');
+          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
+        // callback_data: "ac:{courseId}" (max ~39 bytes ✓)
         const inlineKeyboard = enrolledOrders.map(o => [
-          { text: o.course.title, callback_data: `tg_avail_course:${userId}:${o.courseId}` }
+          { text: o.course.title, callback_data: `ac:${o.courseId}` }
         ]);
 
-        await fetch(sendMsgUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: callbackChatId,
-            text: '⚙️ <b>Select course to modify:</b>',
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: inlineKeyboard }
-          })
+        await sendMsg(callbackChatId, '⚙️ <b>Select course to modify:</b>', {
+          reply_markup: { inline_keyboard: inlineKeyboard }
         });
 
-        await fetch(answerUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ callback_query_id: id })
-        });
+        await answerCb(id);
       }
 
-      else if (prefix === 'tg_avail_course') {
-        const [, userId, courseId] = data.split(':');
+      // ── Step 2: Availability — select type ──
+      // callback_data: "ac:{courseId}" (max ~39 bytes ✓)
+      else if (prefix === 'ac') {
+        const courseId = value;
+        const session = tgSessions.get(sessionKey);
 
-        const inlineKeyboard = [
-          [
-            { text: 'Custom Date', callback_data: `tg_avail_type:${userId}:${courseId}:custom_date` }
-          ]
-        ];
-
-        await fetch(sendMsgUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: callbackChatId,
-            text: '<b>Select availability type:</b>',
-            parse_mode: 'HTML',
-            reply_markup: { inline_keyboard: inlineKeyboard }
-          })
-        });
-
-        await fetch(answerUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ callback_query_id: id })
-        });
-      }
-
-      else if (prefix === 'tg_avail_type') {
-        const [, userId, courseId, availType] = data.split(':');
-
-        if (availType === 'custom_date') {
-          // Send ForceReply message to get Start Date
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: callbackChatId,
-              text: `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
-              reply_markup: { force_reply: true, selective: true }
-            })
-          });
+        if (!session?.userId) {
+          await sendMsg(callbackChatId, '❌ Session expired. Please click "Change Module Availability" again from the registration notification.');
+          await answerCb(id);
+          return NextResponse.json({ ok: true });
         }
 
-        await fetch(answerUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ callback_query_id: id })
+        // Update session with courseId
+        tgSessions.set(sessionKey, { ...session, courseId });
+
+        // callback_data: "at:custom_date" (14 bytes ✓)
+        const inlineKeyboard = [
+          [{ text: 'Custom Date', callback_data: 'at:custom_date' }]
+        ];
+
+        await sendMsg(callbackChatId, '<b>Select availability type:</b>', {
+          reply_markup: { inline_keyboard: inlineKeyboard }
         });
+
+        await answerCb(id);
+      }
+
+      // ── Step 3: Availability — prompt for dates ──
+      // callback_data: "at:custom_date" (14 bytes ✓)
+      else if (prefix === 'at') {
+        const session = tgSessions.get(sessionKey);
+
+        if (!session?.userId || !session?.courseId) {
+          await sendMsg(callbackChatId, '❌ Session expired. Please start over from the registration notification.');
+          await answerCb(id);
+          return NextResponse.json({ ok: true });
+        }
+
+        const { userId, courseId } = session;
+
+        if (value === 'custom_date') {
+          // Send ForceReply message to get Start Date
+          // Embed userId and courseId in the message text for the reply handler
+          await sendMsg(callbackChatId,
+            `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
+            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+          );
+        }
+
+        await answerCb(id);
       }
     }
 
-    // Process user responses using ForceReply
+    // ─── FORCE REPLY HANDLER (user responds to bot's ForceReply) ───
     if (body.message && body.message.reply_to_message) {
       const replyToText = body.message.reply_to_message.text || '';
       const responseText = (body.message.text || '').trim();
@@ -354,42 +340,27 @@ export async function POST(request: NextRequest) {
         // Validate date YYYY-MM-DD
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(responseText)) {
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: messageChatId,
-              text: `❌ Invalid format. Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
-              reply_markup: { force_reply: true, selective: true }
-            })
-          });
+          await sendMsg(messageChatId,
+            `❌ Invalid format. Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
+            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+          );
           return NextResponse.json({ ok: true });
         }
 
         const start = new Date(responseText);
         if (Number.isNaN(start.getTime())) {
-          await fetch(sendMsgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: messageChatId,
-              text: `❌ Invalid date. Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
-              reply_markup: { force_reply: true, selective: true }
-            })
-          });
+          await sendMsg(messageChatId,
+            `❌ Invalid date. Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
+            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+          );
           return NextResponse.json({ ok: true });
         }
 
         // Ask for End Date
-        await fetch(sendMsgUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: messageChatId,
-            text: `Please enter end date (YYYY-MM-DD) or reply 'none' for no expiry:\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${responseText}]`,
-            reply_markup: { force_reply: true, selective: true }
-          })
-        });
+        await sendMsg(messageChatId,
+          `Please enter end date (YYYY-MM-DD) or reply 'none' for no expiry:\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${responseText}]`,
+          { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+        );
       }
 
       else if (replyToText.includes('[Session: enter_end_date]')) {
@@ -407,42 +378,27 @@ export async function POST(request: NextRequest) {
         if (!isNone) {
           const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
           if (!dateRegex.test(responseText)) {
-            await fetch(sendMsgUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: messageChatId,
-                text: `❌ Invalid format. Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
-                reply_markup: { force_reply: true, selective: true }
-              })
-            });
+            await sendMsg(messageChatId,
+              `❌ Invalid format. Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
+              { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+            );
             return NextResponse.json({ ok: true });
           }
 
           end = new Date(responseText);
           if (Number.isNaN(end.getTime())) {
-            await fetch(sendMsgUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: messageChatId,
-                text: `❌ Invalid date. Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
-                reply_markup: { force_reply: true, selective: true }
-              })
-            });
+            await sendMsg(messageChatId,
+              `❌ Invalid date. Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
+              { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+            );
             return NextResponse.json({ ok: true });
           }
 
           if (end < start) {
-            await fetch(sendMsgUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: messageChatId,
-                text: `❌ End date cannot be earlier than start date (${startDateStr}). Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
-                reply_markup: { force_reply: true, selective: true }
-              })
-            });
+            await sendMsg(messageChatId,
+              `❌ End date cannot be earlier than start date (${startDateStr}). Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
+              { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+            );
             return NextResponse.json({ ok: true });
           }
         }
@@ -475,15 +431,175 @@ export async function POST(request: NextRequest) {
 
         const endDisplay = end ? responseText : 'No Expiry';
 
-        await fetch(sendMsgUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: messageChatId,
-            text: `✅ <b>Module availability updated successfully.</b>\n\n📚 <b>Course:</b> ${course?.title || 'Unknown Course'}\n📅 <b>Start Date:</b> ${startDateStr}\n📅 <b>End Date:</b> ${endDisplay}`,
-            parse_mode: 'HTML'
-          })
+        await sendMsg(messageChatId, `✅ <b>Module availability updated successfully.</b>\n\n📚 <b>Course:</b> ${course?.title || 'Unknown Course'}\n📅 <b>Start Date:</b> ${startDateStr}\n📅 <b>End Date:</b> ${endDisplay}`);
+      }
+    }
+
+    // ─── TEXT COMMAND HANDLER ───
+    // Handles /enroll, /availability, /student, /help commands
+    if (body.message && body.message.text && !body.message.reply_to_message) {
+      const text = (body.message.text || '').trim();
+      const messageChatId = body.message.chat.id;
+      const sessionKey = String(messageChatId);
+
+      // /help — show available commands
+      if (text === '/help' || text === '/start') {
+        await sendMsg(messageChatId, [
+          '<b>📋 Available Commands:</b>',
+          '',
+          '<code>/student email@example.com</code>',
+          '→ Look up a student and show action buttons',
+          '',
+          '<code>/enroll email@example.com</code>',
+          '→ Enroll a student into a course',
+          '',
+          '<code>/availability email@example.com</code>',
+          '→ Change a student\'s module availability',
+          '',
+          '<code>/help</code>',
+          '→ Show this help message',
+        ].join('\n'));
+        return NextResponse.json({ ok: true });
+      }
+
+      // /student <email> — look up student and show action buttons
+      if (text.startsWith('/student')) {
+        const email = text.replace('/student', '').trim();
+        if (!email) {
+          await sendMsg(messageChatId, '❌ Usage: <code>/student email@example.com</code>');
+          return NextResponse.json({ ok: true });
+        }
+
+        const student = await db.query.user.findFirst({
+          where: (u, { eq }) => eq(u.email, email),
+          columns: { id: true, fullName: true, email: true, role: true, phone: true, createdAt: true }
         });
+
+        if (!student) {
+          await sendMsg(messageChatId, `❌ No user found with email: <code>${email}</code>`);
+          return NextResponse.json({ ok: true });
+        }
+
+        // Fetch enrolled courses
+        const enrollments = await db.query.order.findMany({
+          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
+          with: { course: { columns: { title: true } } }
+        });
+
+        const courseList = enrollments.length > 0
+          ? enrollments.map(e => `  • ${e.course.title}`).join('\n')
+          : '  <i>None</i>';
+
+        const message = [
+          '<b>👤 Student Info</b>',
+          '',
+          `<b>Name:</b> ${student.fullName}`,
+          `<b>Email:</b> ${student.email}`,
+          `<b>Phone:</b> ${student.phone || 'N/A'}`,
+          `<b>Role:</b> ${student.role}`,
+          `<b>ID:</b> <code>${student.id}</code>`,
+          '',
+          `<b>📚 Enrolled Courses (${enrollments.length}):</b>`,
+          courseList,
+          '',
+          'Select an action below:'
+        ].join('\n');
+
+        const replyMarkup = {
+          inline_keyboard: [
+            [
+              { text: '📚 Enroll in Course', callback_data: `en:${student.id}` },
+              { text: '⚙️ Change Availability', callback_data: `av:${student.id}` }
+            ]
+          ]
+        };
+
+        await sendMsg(messageChatId, message, { reply_markup: replyMarkup });
+        return NextResponse.json({ ok: true });
+      }
+
+      // /enroll <email> — start enrollment flow
+      if (text.startsWith('/enroll')) {
+        const email = text.replace('/enroll', '').trim();
+        if (!email) {
+          await sendMsg(messageChatId, '❌ Usage: <code>/enroll email@example.com</code>');
+          return NextResponse.json({ ok: true });
+        }
+
+        const student = await db.query.user.findFirst({
+          where: (u, { eq }) => eq(u.email, email),
+          columns: { id: true, fullName: true }
+        });
+
+        if (!student) {
+          await sendMsg(messageChatId, `❌ No user found with email: <code>${email}</code>`);
+          return NextResponse.json({ ok: true });
+        }
+
+        // Store session and show courses
+        tgSessions.set(sessionKey, { userId: student.id, action: 'enroll' });
+
+        const courses = await db.query.course.findMany({
+          where: (c, { eq }) => eq(c.status, 'published'),
+          columns: { id: true, title: true }
+        });
+
+        if (courses.length === 0) {
+          await sendMsg(messageChatId, '❌ No published courses found in the system.');
+          return NextResponse.json({ ok: true });
+        }
+
+        const inlineKeyboard = courses.map(c => [
+          { text: c.title, callback_data: `sc:${c.id}` }
+        ]);
+
+        await sendMsg(messageChatId,
+          `📚 <b>Select a course to enroll ${student.fullName}:</b>`,
+          { reply_markup: { inline_keyboard: inlineKeyboard } }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // /availability <email> — start availability change flow
+      if (text.startsWith('/availability')) {
+        const email = text.replace('/availability', '').trim();
+        if (!email) {
+          await sendMsg(messageChatId, '❌ Usage: <code>/availability email@example.com</code>');
+          return NextResponse.json({ ok: true });
+        }
+
+        const student = await db.query.user.findFirst({
+          where: (u, { eq }) => eq(u.email, email),
+          columns: { id: true, fullName: true }
+        });
+
+        if (!student) {
+          await sendMsg(messageChatId, `❌ No user found with email: <code>${email}</code>`);
+          return NextResponse.json({ ok: true });
+        }
+
+        // Store session and show enrolled courses
+        tgSessions.set(sessionKey, { userId: student.id, action: 'availability' });
+
+        const enrolledOrders = await db.query.order.findMany({
+          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
+          with: { course: true }
+        });
+
+        if (enrolledOrders.length === 0) {
+          await sendMsg(messageChatId, `❌ <b>${student.fullName}</b> is not enrolled in any courses.`);
+          return NextResponse.json({ ok: true });
+        }
+
+        const inlineKeyboard = enrolledOrders.map(o => [
+          { text: o.course.title, callback_data: `ac:${o.courseId}` }
+        ]);
+
+        await sendMsg(messageChatId,
+          `⚙️ <b>Select course to modify availability for ${student.fullName}:</b>`,
+          { reply_markup: { inline_keyboard: inlineKeyboard } }
+        );
+        return NextResponse.json({ ok: true });
       }
     }
 
