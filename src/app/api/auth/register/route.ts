@@ -96,9 +96,11 @@ export async function POST(request: NextRequest) {
 
     // Send Telegram Notification (fire and forget)
     sendTelegramRegistrationNotification({
+      userId: user.id,
       userName: user.fullName,
       userEmail: user.email,
       phoneNumber: user.phone || undefined,
+      createdAt: user.createdAt,
     }).catch(err => console.error('[Register] Telegram notification failed:', err));
 
     if (otpVerified) {

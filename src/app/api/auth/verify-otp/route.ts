@@ -5,6 +5,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { emailOtp } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { parseDbDate } from '@/lib/date-format';
 
 const verifyOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -40,7 +41,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No verification code found for this email.' }, { status: 400 });
     }
 
-    if (new Date(otpRecord.expiresAt) < new Date()) {
+    const expiresAt = parseDbDate(otpRecord.expiresAt);
+    if (expiresAt && expiresAt < new Date()) {
       return NextResponse.json({ error: 'Verification code has expired. Please request a new one.' }, { status: 400 });
     }
 

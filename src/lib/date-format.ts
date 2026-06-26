@@ -118,4 +118,21 @@ export const formatDateGMT6 = (value?: string | Date | null): string => {
   const year = parts.find(p => p.type === 'year')?.value || '';
 
   return `${day}/${month}/${year}`;
+};
+
+export const parseDbDate = (value?: string | Date | null): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  
+  let dateToParse = value.trim();
+  if (!dateToParse.endsWith('Z') && !dateToParse.includes('+')) {
+    dateToParse = dateToParse.replace(' ', 'T');
+    if (!dateToParse.includes('T')) {
+      dateToParse += 'T00:00:00Z';
+    } else if (!dateToParse.endsWith('Z')) {
+      dateToParse += 'Z';
+    }
+  }
+  const date = new Date(dateToParse);
+  return isNaN(date.getTime()) ? null : date;
 };

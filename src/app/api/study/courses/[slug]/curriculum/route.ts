@@ -10,6 +10,7 @@ import {
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
+import { parseDbDate } from '@/lib/date-format';
 
 type OverrideRow = {
   lessonNodeId: string;
@@ -73,38 +74,38 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const isAdmin = payload.role === 'admin';
 
+    let studentEnrollmentDate: string | Date | null = null;
     if (!isAdmin) {
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-      const hasAccess = await db.query.order.findFirst({
-        where: (o, { eq, and, gte }) => and(
+      const order = await db.query.order.findFirst({
+        where: (o, { eq, and }) => and(
           eq(o.userId, payload.sub),
           eq(o.courseId, course.id),
-          eq(o.status, 'approved'),
-          gte(o.updatedAt, oneYearAgo.toISOString())
+          eq(o.status, 'approved')
         ),
-        columns: { id: true },
       });
 
-      if (!hasAccess) {
+      if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
+
+      // Check access date range
+      const enrolledAtDate = order.enrolledAt ? parseDbDate(order.enrolledAt) : null;
+      const expiresAtDate = order.expiresAt ? parseDbDate(order.expiresAt) : null;
+      const now = new Date();
+
+      if (enrolledAtDate && now < enrolledAtDate) {
+        return NextResponse.json({ error: 'Course access has not started yet.' }, { status: 403 });
+      }
+      if (expiresAtDate && now > expiresAtDate) {
+        return NextResponse.json({ error: 'Course access has expired.' }, { status: 403 });
+      }
+
+      studentEnrollmentDate = order.enrolledAt || order.updatedAt || null;
     }
 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
-
-    let studentEnrollmentDate: string | Date | null = null;
-    if (!isAdmin) {
-      const order = await db.query.order.findFirst({
-        where: (o, { eq, and }) => and(eq(o.userId, payload.sub), eq(o.courseId, course.id), eq(o.status, 'approved')),
-        orderBy: (o, { asc }) => [asc(o.updatedAt)],
-        columns: { updatedAt: true },
-      });
-      studentEnrollmentDate = order?.updatedAt || null;
-    }
 
     const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
     const effectiveStartAt = courseAnchor || studentEnrollmentDate;

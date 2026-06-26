@@ -12,6 +12,7 @@ import {
   parseReleaseGroupDateMap,
   BuilderNodeWithAvailability,
 } from '@/lib/teacher-course-builder';
+import { parseDbDate } from '@/lib/date-format';
 
 type OverrideRow = {
   lessonNodeId: string;
@@ -59,25 +60,31 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
     return { course, studentEnrollmentDate: null };
   }
 
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-  const hasAccess = await db.query.order.findFirst({
-    where: (o, { eq, and, gte }) => and(
+  const order = await db.query.order.findFirst({
+    where: (o, { eq, and }) => and(
       eq(o.userId, userId),
       eq(o.courseId, course.id),
-      eq(o.status, 'approved'),
-      gte(o.updatedAt, oneYearAgo.toISOString())
+      eq(o.status, 'approved')
     ),
-    orderBy: (o, { asc }) => [asc(o.updatedAt)],
-    columns: { id: true, updatedAt: true },
   });
 
-  if (!hasAccess) {
+  if (!order) {
     return { error: NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 }) };
   }
 
-  return { course, studentEnrollmentDate: hasAccess.updatedAt };
+  // Check access date range
+  const enrolledAtDate = order.enrolledAt ? parseDbDate(order.enrolledAt) : null;
+  const expiresAtDate = order.expiresAt ? parseDbDate(order.expiresAt) : null;
+  const now = new Date();
+
+  if (enrolledAtDate && now < enrolledAtDate) {
+    return { error: NextResponse.json({ error: 'Course access has not started yet.' }, { status: 403 }) };
+  }
+  if (expiresAtDate && now > expiresAtDate) {
+    return { error: NextResponse.json({ error: 'Course access has expired.' }, { status: 403 }) };
+  }
+
+  return { course, studentEnrollmentDate: order.enrolledAt || order.updatedAt };
 };
 
 const collectPlayableNodes = (nodes: BuilderNodeWithAvailability[]) => {

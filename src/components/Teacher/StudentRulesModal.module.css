@@ -260,3 +260,32 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+.dateInputsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dateInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dateInputGroup label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.dateInputGroup input {
+  background: color-mix(in srgb, var(--background) 80%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
