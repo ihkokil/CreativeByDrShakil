@@ -252,27 +252,49 @@ export async function updateTelegramVerificationMessage({
  * Sends a notification when a new user registers on the site.
  */
 export async function sendTelegramRegistrationNotification({
+  userId,
   userName,
   userEmail,
   phoneNumber,
+  createdAt = new Date().toISOString(),
 }: {
+  userId: string;
   userName: string;
   userEmail: string;
   phoneNumber?: string;
+  createdAt?: string;
 }) {
   const envChatIds = getTelegramChatIds();
   if (!envChatIds.length) return;
 
-  const lines = [
-    '🎉 <b>New User Registration</b>',
+  const formattedTime = new Date(createdAt).toLocaleString('en-US', {
+    timeZone: 'Asia/Dhaka',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+
+  const message = [
+    '📢 <b>New Student Registration</b>',
     '',
     `👤 <b>Name:</b> ${escapeTelegramHtml(userName)}`,
     `📧 <b>Email:</b> ${escapeTelegramHtml(userEmail)}`,
-  ];
+    `📱 <b>Phone:</b> ${escapeTelegramHtml(phoneNumber || 'N/A')}`,
+    `🆔 <b>User ID:</b> <code>${escapeTelegramHtml(userId)}</code>`,
+    `🕒 <b>Registration Time:</b> ${escapeTelegramHtml(formattedTime)}`,
+    '',
+    'Select an action below:'
+  ].join('\n');
 
-  if (phoneNumber) lines.push(`📱 <b>Phone:</b> ${escapeTelegramHtml(phoneNumber)}`);
+  const replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: '📚 Enroll in Course', callback_data: `tg_enroll:${userId}` },
+        { text: '⚙️ Change Module Availability', callback_data: `tg_availability:${userId}` }
+      ]
+    ]
+  };
 
-  await sendTelegramMessage({ chatIds: envChatIds, text: lines.join('\n') });
+  await sendTelegramMessage({ chatIds: envChatIds, text: message, replyMarkup });
 }
 
 /**

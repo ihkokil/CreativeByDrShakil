@@ -67,6 +67,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
 
+    if (action === 'custom_date') {
+      const startDate = typeof body.startDate === 'string' ? body.startDate.trim() : '';
+      const endDate = typeof body.endDate === 'string' ? body.endDate.trim() : '';
+
+      if (!startDate) {
+        return NextResponse.json({ error: 'Start date is required for custom date.' }, { status: 400 });
+      }
+
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(startDate)) {
+        return NextResponse.json({ error: 'Start date must be in YYYY-MM-DD format.' }, { status: 400 });
+      }
+      if (endDate && !dateRegex.test(endDate)) {
+        return NextResponse.json({ error: 'End date must be in YYYY-MM-DD format.' }, { status: 400 });
+      }
+
+      const start = new Date(startDate);
+      const end = endDate ? new Date(endDate) : null;
+
+      if (Number.isNaN(start.getTime())) {
+        return NextResponse.json({ error: 'Invalid start date.' }, { status: 400 });
+      }
+      if (end && Number.isNaN(end.getTime())) {
+        return NextResponse.json({ error: 'Invalid end date.' }, { status: 400 });
+      }
+      if (end && end < start) {
+        return NextResponse.json({ error: 'End date cannot be earlier than start date.' }, { status: 400 });
+      }
+
+      // Update the student enrollment orders
+      await db.update(orderSchema)
+        .set({
+          enrolledAt: start.toISOString(),
+          expiresAt: end ? end.toISOString() : null,
+          updatedAt: new Date().toISOString()
+        })
+        .where(and(
+          eq(orderSchema.courseId, courseId),
+          inArray(orderSchema.userId, enrolledUserIds)
+        ));
+
+      // Clear student custom overrides so they follow the course schedule starting from the new enrolledAt date
+      await db.delete(smaSchema).where(and(
+        eq(smaSchema.courseId, courseId),
+        inArray(smaSchema.userId, enrolledUserIds)
+      ));
+
+      return NextResponse.json({ success: true, count: enrolledUserIds.length });
+    }
+
     const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
 
     if (action === 'unlock_all') {

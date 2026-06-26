@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { inArray, and, eq } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
+import { parseDbDate } from '@/lib/date-format';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,7 +93,8 @@ export async function GET(request: NextRequest) {
       const approvedOrders = orders.filter((order: any) => {
         if (order.status !== 'approved') return false;
         if (order.expiresAt) {
-          return new Date(order.expiresAt) >= new Date();
+          const parsedExpiry = parseDbDate(order.expiresAt);
+          return parsedExpiry ? parsedExpiry >= new Date() : false;
         }
         return new Date(order.updatedAt) >= oneYearAgo;
       });

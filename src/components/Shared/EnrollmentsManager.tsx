@@ -52,9 +52,11 @@ export default function EnrollmentsManager() {
   const [batchEnrollDate, setBatchEnrollDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // Integrated module rules states
-  const [ruleAction, setRuleAction] = useState<"start_from_today" | "continue_with_batch" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
+  const [ruleAction, setRuleAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
   const [intervalDays, setIntervalDays] = useState<number>(7);
+  const [ruleStartDate, setRuleStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [ruleEndDate, setRuleEndDate] = useState<string>("");
 
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -159,6 +161,17 @@ export default function EnrollmentsManager() {
       return;
     }
 
+    if (ruleAction === "custom_date") {
+      if (!ruleStartDate) {
+        alert('Please enter a start date.');
+        return;
+      }
+      if (ruleEndDate && new Date(ruleEndDate) < new Date(ruleStartDate)) {
+        alert('End date cannot be earlier than start date.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       // 1. Bulk Enroll Students
@@ -193,6 +206,8 @@ export default function EnrollmentsManager() {
           action: ruleAction,
           daysOfWeek,
           intervalDays,
+          startDate: ruleAction === "custom_date" ? ruleStartDate : undefined,
+          endDate: ruleAction === "custom_date" ? ruleEndDate || undefined : undefined
         }),
       });
 
@@ -209,6 +224,8 @@ export default function EnrollmentsManager() {
       setRuleAction('start_from_today');
       setDaysOfWeek([]);
       setIntervalDays(7);
+      setRuleStartDate(new Date().toISOString().split('T')[0]);
+      setRuleEndDate('');
       
       // Refresh students list
       fetchStudents();
@@ -380,16 +397,40 @@ export default function EnrollmentsManager() {
                 </div>
 
                 <div 
-                  className={`${styles.optionCard} ${ruleAction === "continue_with_batch" ? styles.selected : ""}`}
-                  onClick={() => setRuleAction("continue_with_batch")}
+                  className={`${styles.optionCard} ${ruleAction === "custom_date" ? styles.selected : ""}`}
+                  onClick={() => setRuleAction("custom_date")}
                 >
                   <div className={styles.optionHeader}>
                     <div className={styles.radio}></div>
-                    <span className={styles.optionTitle}>Continue with batch</span>
+                    <span className={styles.optionTitle}>Custom Date Range</span>
                   </div>
                   <div className={styles.optionDesc}>
-                    Keep unlocked modules; future ones follow batch schedule.
+                    Restrict module access to a custom date range. Auto-locks after expiry.
                   </div>
+                  {ruleAction === "custom_date" && (
+                    <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                      <div className={styles.dateInputsGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '12px' }}>
+                        <div className={styles.dateInputGroup} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Start Date:</label>
+                          <input 
+                            type="date" 
+                            value={ruleStartDate}
+                            onChange={(e) => setRuleStartDate(e.target.value)}
+                            style={{ background: 'color-mix(in srgb, var(--background) 80%, transparent)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '8px 12px', color: 'var(--foreground)', fontWeight: 600 }}
+                          />
+                        </div>
+                        <div className={styles.dateInputGroup} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>End Date:</label>
+                          <input 
+                            type="date" 
+                            value={ruleEndDate}
+                            onChange={(e) => setRuleEndDate(e.target.value)}
+                            style={{ background: 'color-mix(in srgb, var(--background) 80%, transparent)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '8px 12px', color: 'var(--foreground)', fontWeight: 600 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div 

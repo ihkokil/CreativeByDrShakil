@@ -26,9 +26,11 @@ const DAYS = [
 ];
 
 export default function StudentRulesModal({ courseId, userId, userIds, studentName, onClose, onSuccess, onOpenAdvanced }: StudentRulesModalProps) {
-    const [action, setAction] = useState<"start_from_today" | "continue_with_batch" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
+    const [action, setAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [intervalDays, setIntervalDays] = useState<number>(7);
+    const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -40,6 +42,16 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
         if (action === "custom_interval" && (intervalDays < 1 || isNaN(intervalDays))) {
             setError("Please enter a valid interval greater than 0.");
             return;
+        }
+        if (action === "custom_date") {
+            if (!startDate) {
+                setError("Please enter a start date.");
+                return;
+            }
+            if (endDate && new Date(endDate) < new Date(startDate)) {
+                setError("End date cannot be earlier than start date.");
+                return;
+            }
         }
 
         try {
@@ -58,7 +70,9 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                     userIds,
                     action,
                     daysOfWeek,
-                    intervalDays
+                    intervalDays,
+                    startDate: action === "custom_date" ? startDate : undefined,
+                    endDate: action === "custom_date" ? endDate || undefined : undefined
                 })
             });
 
@@ -128,16 +142,38 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                         </div>
 
                         <div 
-                            className={`${styles.optionCard} ${action === "continue_with_batch" ? styles.selected : ""}`}
-                            onClick={() => setAction("continue_with_batch")}
+                            className={`${styles.optionCard} ${action === "custom_date" ? styles.selected : ""}`}
+                            onClick={() => setAction("custom_date")}
                         >
                             <div className={styles.optionHeader}>
                                 <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Continue with batch</span>
+                                <span className={styles.optionTitle}>Custom Date Range</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                Modules available so far will be unlocked; the rest will follow the original course schedule.
+                                Restrict module access to a custom date range. Auto-locks after expiry.
                             </div>
+                            {action === "custom_date" && (
+                                <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                                    <div className={styles.dateInputsGrid}>
+                                        <div className={styles.dateInputGroup}>
+                                            <label>Start Date (Required):</label>
+                                            <input 
+                                                type="date" 
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className={styles.dateInputGroup}>
+                                            <label>End Date (Optional):</label>
+                                            <input 
+                                                type="date" 
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div 
