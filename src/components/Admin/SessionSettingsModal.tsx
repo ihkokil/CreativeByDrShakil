@@ -98,7 +98,7 @@ export default function SessionSettingsModal({
             }}
           >
             <div>
-              <p style={{ margin: '0 0 6px 0', fontWeight: 600 }}>Auto-Lock First Browser</p>
+              <p style={{ margin: '0 0 6px 0', fontWeight: 600 }}>Auto-Lock First Device</p>
               <p style={{ margin: '0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Block new logins from same device type
               </p>

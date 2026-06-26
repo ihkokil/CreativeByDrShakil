@@ -56,6 +56,8 @@ export async function extractCookieToken() {
   return cookieStore.get(AUTH_COOKIE_NAME)?.value || null;
 }
 
+import { headers } from 'next/headers';
+
 export async function getSession() {
   const token = await extractCookieToken();
   if (!token) return null;
@@ -64,10 +66,48 @@ export async function getSession() {
     const payload = await verifyAuthToken(token);
     
     if (payload.sessionId) {
-      const { isSessionValid } = await import('@/lib/session-manager');
-      const sessionValid = await isSessionValid(payload.sessionId);
-      if (!sessionValid) {
+      const { getSessionById, updateSessionDeviceHash } = await import('@/lib/session-manager');
+      const session = await getSessionById(payload.sessionId);
+      if (!session || session.isLocked || session.loggedOutAt) {
         return null; // Session has been revoked or logged out
+      }
+
+      try {
+        const { db } = await import('@/lib/db');
+        const userRecord = await db.query.user.findFirst({
+          where: (u, { eq }) => eq(u.id, session.userId),
+          columns: { role: true, isSessionLockedExempt: true }
+        });
+        const isPrivilegedRole = userRecord?.role === 'admin' || userRecord?.role === 'teacher';
+        const isExempt = isPrivilegedRole || !!userRecord?.isSessionLockedExempt;
+
+        // Enforce device category restrictions (students only)
+        if (!isPrivilegedRole) {
+          try {
+            const { getGlobalSessionSettings } = await import('@/lib/session-manager');
+            const globalSettings = await getGlobalSessionSettings();
+            if (session.deviceType === 'desktop' && !globalSettings.allowDesktop) return null;
+            if (session.deviceType === 'tablet' && !globalSettings.allowTablet) return null;
+            if (session.deviceType === 'mobile' && !globalSettings.allowMobile) return null;
+          } catch (err) {
+            // bypass lookup failure gracefully
+          }
+        }
+
+        const headerStore = await headers();
+        const incomingHash = headerStore.get('x-device-hash');
+        
+        if (incomingHash && !isExempt) {
+          if (!session.deviceHash) {
+            // Graceful migration: save device hash on first use
+            await updateSessionDeviceHash(session.id, incomingHash);
+          } else if (session.deviceHash !== incomingHash) {
+            // Device mismatch!
+            return null;
+          }
+        }
+      } catch (err) {
+        // db lookup or headers() might fail or not be available in some edge environments, bypass gracefully
       }
     }
 

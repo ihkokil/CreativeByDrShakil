@@ -5,7 +5,7 @@ export const contactIssueType = pgEnum("ContactIssueType", ['query', 'technical_
 export const contactSubmissionStatus = pgEnum("ContactSubmissionStatus", ['open', 'in_review', 'responded', 'closed'])
 export const coursePublishStatus = pgEnum("CoursePublishStatus", ['draft', 'scheduled', 'published', 'archived'])
 export const courseReleaseMode = pgEnum("CourseReleaseMode", ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant'])
-export const deviceType = pgEnum("DeviceType", ['desktop', 'mobile'])
+export const deviceType = pgEnum("DeviceType", ['desktop', 'mobile', 'tablet'])
 export const userRole = pgEnum("UserRole", ['admin', 'teacher', 'student'])
 
 
@@ -143,6 +143,10 @@ export const deviceSession = pgTable("DeviceSession", {
 	loggedOutAt: timestamp({ precision: 3, mode: 'string' }),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	lastActivityAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	deviceHash: text(),
+	deviceLabel: text(),
+	osInfo: text(),
+	lockedByDeviceLabel: text(),
 }, (table) => [
 	index("DeviceSession_userId_deviceType_idx").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.deviceType.asc().nullsLast().op("text_ops")),
 	index("DeviceSession_userId_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
@@ -176,6 +180,7 @@ export const user = pgTable("User", {
 	isBanned: boolean().default(false).notNull(),
 	telegramChatId: text(),
 	image: text(),
+	isSessionLockedExempt: boolean().default(false).notNull(),
 }, (table) => [
 	uniqueIndex("User_email_key").using("btree", table.email.asc().nullsLast().op("text_ops")),
 	uniqueIndex("User_phone_key").using("btree", table.phone.asc().nullsLast().op("text_ops")),
@@ -232,6 +237,10 @@ export const globalSessionLockSettings = pgTable("GlobalSessionLockSettings", {
 	autoLockFirstBrowser: boolean().default(true).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	allowDesktop: boolean().default(true).notNull(),
+	allowTablet: boolean().default(true).notNull(),
+	allowMobile: boolean().default(true).notNull(),
+	maxConcurrentSessions: integer().default(3).notNull(),
 });
 
 export const sessionLockSettings = pgTable("SessionLockSettings", {
