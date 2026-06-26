@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
-import { isSessionValid, updateSessionActivity } from '@/lib/session-manager';
+import { getSessionById, updateSessionActivity } from '@/lib/session-manager';
 
 export async function GET(request: NextRequest) {
   const bearerToken = extractBearerToken(request);
@@ -23,14 +23,22 @@ export async function GET(request: NextRequest) {
   try {
     // Check if session is still valid (not locked or logged out)
     if (payload.sessionId) {
-      const sessionValid = await isSessionValid(payload.sessionId);
-      if (!sessionValid) {
+      const session = await getSessionById(payload.sessionId);
+      if (!session || session.loggedOutAt || session.isLocked) {
+        let message = 'Your session was terminated from another device.';
+        
+        if (session?.isLocked && session.lockedByDeviceLabel) {
+          const oldLabel = session.deviceLabel || 'Unknown device';
+          const typeLabel = session.deviceType === 'desktop' ? 'Desktop' : session.deviceType === 'tablet' ? 'Tablet' : 'Mobile';
+          message = `Your session on ${oldLabel} was replaced by ${session.lockedByDeviceLabel} in the ${typeLabel} category.`;
+        }
+
         return NextResponse.json(
           {
             user: null,
             role: null,
             code: 'session_revoked',
-            message: 'Your session was terminated from another device.',
+            message: message,
           },
           { status: 401 }
         );

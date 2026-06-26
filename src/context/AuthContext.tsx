@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { getDeviceHash, detectOS, getDeviceCategory, getDeviceLabel } from '@/lib/client-fingerprint';
 
 interface AppUser {
     id: string;
@@ -27,6 +28,7 @@ interface AuthContextType {
     loading: boolean;
     role: string | null;
     hasSessionTerminated: boolean;
+    sessionTerminatedReason: string | null;
     signOut: () => Promise<void>;
     refreshSession: () => Promise<void>;
 }
@@ -38,6 +40,7 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     role: null,
     hasSessionTerminated: false,
+    sessionTerminatedReason: null,
     signOut: async () => { },
     refreshSession: async () => { },
 });
@@ -49,6 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
     const [role, setRole] = useState<string | null>(null);
     const [hasSessionTerminated, setHasSessionTerminated] = useState(false);
+    const [sessionTerminatedReason, setSessionTerminatedReason] = useState<string | null>(null);
 
     const sameUser = (a: AppUser | null, b: AppUser | null) => {
         if (!a && !b) return true;
@@ -66,6 +70,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             a.user_metadata?.canManagePayments === b.user_metadata?.canManagePayments
         );
     };
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const originalFetch = window.fetch;
+        window.fetch = async function (input, init) {
+            try {
+                const hash = await getDeviceHash();
+                const userAgent = navigator.userAgent;
+                const os = detectOS(userAgent);
+                const category = getDeviceCategory(
+                    userAgent,
+                    navigator.maxTouchPoints || 0,
+                    window.screen ? window.screen.width : 1024,
+                    window.screen ? window.screen.height : 768
+                );
+                const label = getDeviceLabel(userAgent, category);
+
+                const newInit = { ...init };
+                const headers = new Headers(newInit.headers || {});
+                
+                const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+                const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
+                const isSameOrigin = url.startsWith(window.location.origin);
+                
+                if (isRelative || isSameOrigin) {
+                    headers.set('X-Device-Hash', hash);
+                    headers.set('X-Device-Label', label);
+                    headers.set('X-Device-OS', os);
+                    headers.set('X-Device-Category', category);
+                }
+                
+                newInit.headers = headers;
+                return originalFetch(input, newInit);
+            } catch (err) {
+                console.error('[Fetch Interceptor Error]', err);
+                return originalFetch(input, init);
+            }
+        };
+
+        return () => {
+            window.fetch = originalFetch;
+        };
+    }, []);
 
     const refreshSession = useCallback(async (silent = false) => {
         if (!silent) {
@@ -89,6 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         setSession(null);
                         setSessionId(null);
                         setHasSessionTerminated(true);
+                        setSessionTerminatedReason(data.message || null);
                         localStorage.removeItem('auth_token');
                     }
                     return;
@@ -153,6 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSessionId(null);
         setRole(null);
         setHasSessionTerminated(false);
+        setSessionTerminatedReason(null);
 
         try {
             await fetch('/api/auth/logout', {
@@ -174,6 +224,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 loading,
                 role,
                 hasSessionTerminated,
+                sessionTerminatedReason,
                 signOut,
                 refreshSession,
             }}
