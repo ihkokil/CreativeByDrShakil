@@ -68,6 +68,13 @@ export async function POST(request: NextRequest) {
       const prefix = colonIdx >= 0 ? data.slice(0, colonIdx) : data;
       const value = colonIdx >= 0 ? data.slice(colonIdx + 1) : '';
 
+      // Answer callback query immediately to stop the Telegram loading spinner.
+      try {
+        await answerCb(id);
+      } catch (err) {
+        console.error('[Telegram Webhook] Failed to answer callback query early:', err);
+      }
+
       // ── Payment verification ──
       if (prefix === 'payment_verify') {
         const [orderId, action] = value.split(':');
@@ -111,8 +118,6 @@ export async function POST(request: NextRequest) {
         const statusText = order?.status === 'pending' 
           ? `Payment ${action === 'approve' ? 'approved' : 'rejected'} successfully.`
           : `This payment was already ${order?.status}.`;
-
-        await answerCb(id, statusText);
       }
 
       // ── Step 1: Enroll — show course list ──
@@ -127,7 +132,6 @@ export async function POST(request: NextRequest) {
 
         if (courses.length === 0) {
           await sendMsg(callbackChatId, '❌ No available courses found in the system.');
-          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -139,8 +143,6 @@ export async function POST(request: NextRequest) {
         await sendMsg(callbackChatId, '📚 <b>Select a course to enroll the student:</b>', {
           reply_markup: { inline_keyboard: inlineKeyboard }
         });
-
-        await answerCb(id);
       }
 
       // ── Step 2: Enroll — perform enrollment ──
@@ -152,7 +154,6 @@ export async function POST(request: NextRequest) {
 
         if (!compressedUserId || !courseId) {
           await sendMsg(callbackChatId, '❌ Invalid callback data.');
-          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -165,7 +166,6 @@ export async function POST(request: NextRequest) {
 
         if (!student) {
           await sendMsg(callbackChatId, '❌ Student not found.');
-          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -176,7 +176,6 @@ export async function POST(request: NextRequest) {
 
         if (!course) {
           await sendMsg(callbackChatId, '❌ Course not found.');
-          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -223,8 +222,6 @@ export async function POST(request: NextRequest) {
 
           await sendMsg(callbackChatId, `✅ Student successfully enrolled in:\n📚 <b>${course.title}</b>`);
         }
-
-        await answerCb(id);
       }
 
       // ── Step 1: Availability — show enrolled courses ──
@@ -240,7 +237,6 @@ export async function POST(request: NextRequest) {
 
         if (enrolledOrders.length === 0) {
           await sendMsg(callbackChatId, '❌ Student is not enrolled in any courses.');
-          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -252,8 +248,6 @@ export async function POST(request: NextRequest) {
         await sendMsg(callbackChatId, '⚙️ <b>Select course to modify:</b>', {
           reply_markup: { inline_keyboard: inlineKeyboard }
         });
-
-        await answerCb(id);
       }
 
       // ── Step 2: Availability — select type ──
@@ -265,7 +259,6 @@ export async function POST(request: NextRequest) {
 
         if (!compressedUserId || !courseId) {
           await sendMsg(callbackChatId, '❌ Invalid callback data.');
-          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -277,8 +270,6 @@ export async function POST(request: NextRequest) {
         await sendMsg(callbackChatId, '<b>Select availability type:</b>', {
           reply_markup: { inline_keyboard: inlineKeyboard }
         });
-
-        await answerCb(id);
       }
 
       // ── Step 3: Availability — prompt for dates ──
@@ -291,7 +282,6 @@ export async function POST(request: NextRequest) {
 
         if (!compressedUserId || !courseId || actionType !== 'cd') {
           await sendMsg(callbackChatId, '❌ Invalid callback data.');
-          await answerCb(id);
           return NextResponse.json({ ok: true });
         }
 
@@ -303,8 +293,6 @@ export async function POST(request: NextRequest) {
           `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
           { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
         );
-
-        await answerCb(id);
       }
     }
 
@@ -587,6 +575,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error('Telegram webhook error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Return 200 OK so Telegram does not retry the failed webhook
+    return NextResponse.json({ ok: true, error: error.message });
   }
 }
