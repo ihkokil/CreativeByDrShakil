@@ -42,19 +42,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    const [payment] = await db.transaction(async (tx) => {
-      await tx.delete(paymentSchema).where(eq(paymentSchema.orderId, orderId));
-      const [p] = await tx.insert(paymentSchema).values({
-        id: crypto.randomUUID(),
-        orderId,
-        phoneNumber,
-        transactionId,
-        amount: paymentAmount,
-        status: 'pending',
-      }).returning();
-      await tx.update(orderSchema).set({ status: 'pending' }).where(eq(orderSchema.id, orderId));
-      return [p];
-    });
+    // neon-http driver does not support transactions — execute sequentially.
+// Delete any existing payment attempt, insert the new one, then mark the order pending.
+    await db.delete(paymentSchema).where(eq(paymentSchema.orderId, orderId));
+    const payment = (await db.insert(paymentSchema).values({
+      id: crypto.randomUUID(),
+      orderId,
+      phoneNumber,
+      transactionId,
+      amount: paymentAmount,
+      status: 'pending',
+    }).returning())[0];
+    await db.update(orderSchema).set({ status: 'pending' }).where(eq(orderSchema.id, orderId));
 
     const fullOrder = await db.query.order.findFirst({
       where: (o, { eq }) => eq(o.id, orderId),
