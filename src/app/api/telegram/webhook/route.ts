@@ -575,6 +575,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error('Telegram webhook error:', error);
+    try {
+      const fromId = body.callback_query?.from?.id || body.message?.from?.id;
+      const chatId = body.callback_query?.message?.chat?.id || body.message?.chat?.id;
+      const targetId = chatId || fromId;
+      if (targetId) {
+        const botToken = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+        const sendMsgUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        await fetch(sendMsgUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: targetId,
+            text: `❌ <b>Webhook Error:</b>\n<pre>${error.stack || error.message || String(error)}</pre>`,
+            parse_mode: 'HTML',
+          }),
+        });
+      }
+    } catch (e) {
+      console.error('Failed to send error message to Telegram:', e);
+    }
     // Return 200 OK so Telegram does not retry the failed webhook
     return NextResponse.json({ ok: true, error: error.message });
   }
