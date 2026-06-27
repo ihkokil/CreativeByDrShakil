@@ -91,15 +91,14 @@ export async function POST(request: NextRequest) {
         if (order.status === 'pending') {
           const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-          await db.transaction(async (tx) => {
-            await tx.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
-            if (order.payments?.length) {
-              await tx.update(paymentSchema).set({
-                  status: nextStatus,
-                  approvedAt: action === 'approve' ? new Date().toISOString() : null,
-              }).where(eq(paymentSchema.orderId, orderId));
-            }
-          });
+          // neon-http driver does not support transactions — execute sequentially.
+          await db.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
+          if (order.payments?.length) {
+            await db.update(paymentSchema).set({
+                status: nextStatus,
+                approvedAt: action === 'approve' ? new Date().toISOString() : null,
+            }).where(eq(paymentSchema.orderId, orderId));
+          }
 
           await updateTelegramVerificationMessage({
             chatId: message.chat.id,
@@ -192,32 +191,34 @@ export async function POST(request: NextRequest) {
         if (existingOrder) {
           await sendMsg(callbackChatId, `⚠️ Student is already enrolled in course: <b>${course.title}</b>`);
         } else {
-          await db.transaction(async (tx) => {
-            const enrollOrder = await tx.query.order.findFirst({
-              where: (o: any, { eq, and }: any) => and(eq(o.userId, userId), eq(o.courseId, courseId))
-            });
+          // neon-http driver does not support transactions — execute sequentially.
+          // Duplicate check was already done above with `existingOrder`, so we know
+          // no row exists for (userId, courseId, approved). But other statuses may
+          // exist, in which case we update; otherwise we insert.
+          const enrollOrder = await db.query.order.findFirst({
+            where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.courseId, courseId))
+          });
 
-            if (enrollOrder) {
-              await tx.update(orderSchema)
-                .set({
-                  status: 'approved',
-                  enrolledAt: new Date().toISOString(),
-                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                  updatedAt: new Date().toISOString(),
-                })
-                .where(eq(orderSchema.id, enrollOrder.id));
-            } else {
-              await tx.insert(orderSchema).values({
-                id: crypto.randomUUID(),
-                userId,
-                courseId,
+          if (enrollOrder) {
+            await db.update(orderSchema)
+              .set({
                 status: 'approved',
-                totalAmount: 0,
                 enrolledAt: new Date().toISOString(),
                 expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-              });
-            }
-          });
+                updatedAt: new Date().toISOString(),
+              })
+              .where(eq(orderSchema.id, enrollOrder.id));
+          } else {
+            await db.insert(orderSchema).values({
+              id: crypto.randomUUID(),
+              userId,
+              courseId,
+              status: 'approved',
+              totalAmount: 0,
+              enrolledAt: new Date().toISOString(),
+              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            });
+          }
 
           console.log(`[AUDIT] Student ${student.fullName} (${userId}) enrolled in course ${course.title} (${courseId}) via Telegram Bot by ${from.first_name || 'Admin'}`);
 
