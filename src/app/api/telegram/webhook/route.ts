@@ -16,8 +16,9 @@ function getTelegramChatIds() {
 }
 
 export async function POST(request: NextRequest) {
+  let body: any = null;
   try {
-    const body = await request.json();
+    body = await request.json();
 
     // Check authorization: sender chat_id or user_id must be in TELEGRAM_CHAT_ID list
     const envChatIds = getTelegramChatIds();
@@ -576,8 +577,8 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Telegram webhook error:', error);
     try {
-      const fromId = body.callback_query?.from?.id || body.message?.from?.id;
-      const chatId = body.callback_query?.message?.chat?.id || body.message?.chat?.id;
+      const fromId = body?.callback_query?.from?.id || body?.message?.from?.id;
+      const chatId = body?.callback_query?.message?.chat?.id || body?.message?.chat?.id;
       const targetId = chatId || fromId;
       if (targetId) {
         const botToken = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
