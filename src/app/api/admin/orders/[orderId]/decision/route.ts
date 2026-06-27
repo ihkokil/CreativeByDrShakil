@@ -34,33 +34,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const nextOrderStatus = decision === 'approve' ? 'approved' : 'rejected';
     const nextPaymentStatus = decision === 'approve' ? 'approved' : 'rejected';
 
-    const updated = await db.transaction(async (tx) => {
-      const [updatedOrder] = await tx.update(orderSchema).set({
-        status: nextOrderStatus,
-      }).where(eq(orderSchema.id, orderId)).returning();
+    // neon-http driver does not support transactions — execute sequentially.
+    const [updatedOrder] = await db.update(orderSchema).set({
+      status: nextOrderStatus,
+    }).where(eq(orderSchema.id, orderId)).returning();
 
-      if (order.payments?.length) {
-        await tx.update(paymentSchema).set({
-            status: nextPaymentStatus,
-            approvedAt: decision === 'approve' ? new Date().toISOString() : null,
-        }).where(eq(paymentSchema.orderId, orderId));
-      }
+    if (order.payments?.length) {
+      await db.update(paymentSchema).set({
+          status: nextPaymentStatus,
+          approvedAt: decision === 'approve' ? new Date().toISOString() : null,
+      }).where(eq(paymentSchema.orderId, orderId));
+    }
 
-      // If approved, handle enrollment (including Basics bundle)
-      if (decision === 'approve' && order.course) {
-        await ensureCourseEnrollment(
-          tx,
-          order.userId,
-          order.course.id,
-          order.course.title,
-          order.course.slug
-        );
-      }
+    // If approved, handle enrollment (including Basics bundle)
+    if (decision === 'approve' && order.course) {
+      await ensureCourseEnrollment(
+        db,
+        order.userId,
+        order.course.id,
+        order.course.title,
+        order.course.slug
+      );
+    }
 
-      return updatedOrder;
-    });
-
-    return NextResponse.json({ order: updated, decision });
+    return NextResponse.json({ order: updatedOrder, decision });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }

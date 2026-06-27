@@ -144,16 +144,17 @@ export async function POST(request: NextRequest) {
         });
       });
 
-      await db.transaction(async (tx) => {
-        await tx.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
-        if (dataToInsert.length > 0) {
-          // Chunk inserts to avoid query size limits if many students and modules
-          const chunkSize = 1000;
-          for (let i = 0; i < dataToInsert.length; i += chunkSize) {
-            await tx.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
-          }
+      // neon-http driver does not support transactions — execute sequentially.
+      // Delete first, then insert. If insert fails, a follow-up retry will
+      // re-run the delete (idempotent for matching keys) and try the insert again.
+      await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
+      if (dataToInsert.length > 0) {
+        // Chunk inserts to avoid query size limits if many students and modules
+        const chunkSize = 1000;
+        for (let i = 0; i < dataToInsert.length; i += chunkSize) {
+          await db.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
         }
-      });
+      }
 
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
@@ -206,15 +207,14 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    await db.transaction(async (tx) => {
-        await tx.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
-        if (dataToInsert.length > 0) {
-          const chunkSize = 1000;
-          for (let i = 0; i < dataToInsert.length; i += chunkSize) {
-            await tx.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
-          }
-        }
-    });
+    // neon-http driver does not support transactions — execute sequentially.
+    await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
+    if (dataToInsert.length > 0) {
+      const chunkSize = 1000;
+      for (let i = 0; i < dataToInsert.length; i += chunkSize) {
+        await db.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
+      }
+    }
 
     return NextResponse.json({ success: true, count: enrolledUserIds.length });
   } catch (error: any) {

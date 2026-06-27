@@ -36,26 +36,25 @@ export async function GET(request: NextRequest) {
 
     const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-    await db.transaction(async (tx) => {
-      await tx.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
-      if (order.payments?.length) {
-        await tx.update(paymentSchema).set({
-            status: nextStatus,
-            approvedAt: action === 'approve' ? new Date().toISOString() : null,
-        }).where(eq(paymentSchema.orderId, orderId));
-      }
+    // neon-http driver does not support transactions — execute sequentially.
+    await db.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
+    if (order.payments?.length) {
+      await db.update(paymentSchema).set({
+          status: nextStatus,
+          approvedAt: action === 'approve' ? new Date().toISOString() : null,
+      }).where(eq(paymentSchema.orderId, orderId));
+    }
 
-      // If approved, handle enrollment (including Basics bundle)
-      if (action === 'approve') {
-        await ensureCourseEnrollment(
-          tx,
-          order.userId,
-          order.course.id,
-          order.course.title,
-          order.course.slug
-        );
-      }
-    });
+    // If approved, handle enrollment (including Basics bundle)
+    if (action === 'approve') {
+      await ensureCourseEnrollment(
+        db,
+        order.userId,
+        order.course.id,
+        order.course.title,
+        order.course.slug
+      );
+    }
 
     return NextResponse.redirect(new URL(`/verify-payment?status=success&action=${action}&student=${encodeURIComponent(order.user.fullName)}&course=${encodeURIComponent(order.course.title)}`, request.url));
   } catch (error: any) {
