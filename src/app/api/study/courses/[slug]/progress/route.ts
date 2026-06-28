@@ -12,6 +12,7 @@ import {
   parseReleaseGroupDateMap,
   BuilderNodeWithAvailability,
 } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
 
 type OverrideRow = {
@@ -119,7 +120,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const isAdmin = payload.role === 'admin';
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(result.course!.curriculumJson));
+    const rawCurriculum = parseCurriculumJson(result.course!.curriculumJson);
+    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
+    const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const dbReleaseStart = result.course?.releaseStartAt;
@@ -212,7 +215,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'lessonNodeId is required.' }, { status: 400 });
     }
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(result.course!.curriculumJson));
+    const rawCurriculum = parseCurriculumJson(result.course!.curriculumJson);
+    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
+    const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const dbReleaseStart = result.course?.releaseStartAt;

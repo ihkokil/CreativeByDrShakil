@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { inArray, and, eq } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
 
 export const dynamic = 'force-dynamic';
@@ -75,8 +76,9 @@ export async function GET(request: NextRequest) {
         where: (c, { eq }) => eq(c.status, 'published'),
       });
 
-      enrolledCourses = allPublishedCourses.map((course: any) => {
-        const curriculum = parseCurriculumJson(course.curriculumJson);
+      enrolledCourses = await Promise.all(allPublishedCourses.map(async (course: any) => {
+        const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+        const curriculum = await populateMediaVaultNodes(rawCurriculum);
         const lessonNodes = collectVideoNodes(curriculum);
         return {
           orderId: `admin-${course.id}`,
@@ -88,7 +90,7 @@ export async function GET(request: NextRequest) {
           enrolledAt: course.createdAt,
           lessonNodes // Store for progress calculation
         };
-      });
+      }));
     } else {
       const approvedOrders = orders.filter((order: any) => {
         if (order.status !== 'approved') return false;
@@ -98,8 +100,9 @@ export async function GET(request: NextRequest) {
         }
         return new Date(order.updatedAt) >= oneYearAgo;
       });
-      enrolledCourses = approvedOrders.map((order: any) => {
-        const curriculum = parseCurriculumJson(order.course.curriculumJson);
+      enrolledCourses = await Promise.all(approvedOrders.map(async (order: any) => {
+        const rawCurriculum = parseCurriculumJson(order.course.curriculumJson);
+        const curriculum = await populateMediaVaultNodes(rawCurriculum);
         const lessonNodes = collectVideoNodes(curriculum);
         return {
           orderId: order.id,
@@ -111,7 +114,7 @@ export async function GET(request: NextRequest) {
           enrolledAt: order.enrolledAt || order.updatedAt,
           lessonNodes
         };
-      });
+      }));
     }
 
     const courseIds = enrolledCourses.map((c) => c.courseId);

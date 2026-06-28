@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import { parseCurriculumJson, collectVideoNodes } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { inArray } from 'drizzle-orm';
 
 /**
@@ -66,7 +67,8 @@ export async function GET(
 
     for (const enrollment of enrollments) {
       const courseId = enrollment.courseId;
-      const curriculum = parseCurriculumJson(enrollment.course.curriculumJson);
+      const rawCurriculum = parseCurriculumJson(enrollment.course.curriculumJson);
+      const curriculum = await populateMediaVaultNodes(rawCurriculum);
       const videoNodes = collectVideoNodes(curriculum);
       
       const totalCount = videoNodes.length;

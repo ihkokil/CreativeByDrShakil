@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
 import { countLessons, parseCurriculumJson } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -46,38 +47,41 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({
-      courses: courses.map((course) => {
-        const curriculum = parseCurriculumJson(course.curriculumJson);
-        const lessonCount = countLessons(curriculum);
+    const processedCourses = await Promise.all(courses.map(async (course) => {
+      const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+      const curriculum = await populateMediaVaultNodes(rawCurriculum);
+      const lessonCount = countLessons(curriculum);
 
-        return {
-          id: course.id,
-          slug: course.slug,
-          title: course.title,
-          price: formatPrice(course.price),
-          salePrice: course.salePrice ? formatPrice(course.salePrice) : null,
-          priceValue: course.price,
-          duration: course.duration,
-          lessonCount,
-          enrolledCount: course.orders.length,
-          isFeatured: course.isFeatured,
-          description: course.overview || course.description,
-          overview: course.overview,
-          learningOutcomes: course.learningOutcomes,
-          language: course.language || 'English / Bengali',
-          image: course.imageUrl,
-          status: course.status,
-          publishedAt: course.publishedAt,
-          instructors: course.instructors,
-          mainInstructor: {
-            id: course.teacher?.id || `teacher-${course.id}`,
-            name: course.teacher?.fullName || course.instructor,
-            role: course.teacher?.designation || 'Course Instructor',
-            image: course.teacher?.profileImage || '/placeholder-square.svg',
-          },
-        };
-      }),
+      return {
+        id: course.id,
+        slug: course.slug,
+        title: course.title,
+        price: formatPrice(course.price),
+        salePrice: course.salePrice ? formatPrice(course.salePrice) : null,
+        priceValue: course.price,
+        duration: course.duration,
+        lessonCount,
+        enrolledCount: course.orders.length,
+        isFeatured: course.isFeatured,
+        description: course.overview || course.description,
+        overview: course.overview,
+        learningOutcomes: course.learningOutcomes,
+        language: course.language || 'English / Bengali',
+        image: course.imageUrl,
+        status: course.status,
+        publishedAt: course.publishedAt,
+        instructors: course.instructors,
+        mainInstructor: {
+          id: course.teacher?.id || `teacher-${course.id}`,
+          name: course.teacher?.fullName || course.instructor,
+          role: course.teacher?.designation || 'Course Instructor',
+          image: course.teacher?.profileImage || '/placeholder-square.svg',
+        },
+      };
+    }));
+
+    return NextResponse.json({
+      courses: processedCourses,
     });
   } catch (error: any) {
     console.error('[Courses Dynamic Error]', {

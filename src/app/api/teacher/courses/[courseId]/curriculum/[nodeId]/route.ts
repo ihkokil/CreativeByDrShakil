@@ -11,6 +11,7 @@ import {
   parseReleaseGroupDateMap,
   removeNodeFromCurriculum,
   updateNodeInCurriculum,
+  stripMediaVaultChildren,
 } from '@/lib/teacher-course-builder';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
@@ -122,8 +123,10 @@ export async function PATCH(
       return acc;
     }, {});
 
+    const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
+
     const [updatedCourse] = await db.update(courseSchema).set({
-        curriculumJson: JSON.stringify(normalizedCurriculum),
+        curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
       }).where(eq(courseSchema.id, course.id)).returning();
 
@@ -176,8 +179,10 @@ export async function DELETE(
       return acc;
     }, {});
 
+    const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
+
     const [updatedCourse] = await db.update(courseSchema).set({
-        curriculumJson: JSON.stringify(normalizedCurriculum),
+        curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
       }).where(eq(courseSchema.id, course.id)).returning();
 

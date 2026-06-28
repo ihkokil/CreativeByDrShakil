@@ -16,6 +16,7 @@ export interface BuilderCurriculumNode {
   storagePath?: string | null;
   releaseGroupId?: string | null;
   releaseAt?: string | null;
+  mediaVaultFolderId?: string | null;
   children?: BuilderCurriculumNode[];
 }
 
@@ -91,6 +92,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
     storagePath: normalizeNullableText(raw.storagePath),
     releaseGroupId: normalizeNullableText(raw.releaseGroupId),
     releaseAt: normalizeNullableText(raw.releaseAt),
+    mediaVaultFolderId: normalizeNullableText((raw as any).mediaVaultFolderId),
     children,
   };
 };
@@ -108,6 +110,13 @@ export function parseCurriculumJson(raw: unknown): BuilderCurriculumNode[] {
   return data
     .map(normalizeNode)
     .filter((node): node is BuilderCurriculumNode => Boolean(node));
+}
+
+export function stripMediaVaultChildren(nodes: BuilderCurriculumNode[]): BuilderCurriculumNode[] {
+  return nodes.map(node => ({
+    ...node,
+    children: node.mediaVaultFolderId ? [] : (node.children ? stripMediaVaultChildren(node.children) : []),
+  }));
 }
 
 export function parseReleaseGroupDateMap(raw: unknown): Record<string, string> {

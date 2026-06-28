@@ -62,12 +62,13 @@ const buildCurriculumFromPayloadTopics = (topics: any[]): BuilderCurriculumNode[
       .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
 
     normalized.push({
-      id: typeof topic.id === 'string' && topic.id.trim() ? topic.id.trim() : createNodeId('main'),
+      id: createNodeId('main'), // Create a new ID for the main topic folder so multiple courses don't collide
       title,
       type: 'folder',
+      mediaVaultFolderId: typeof topic.mediaVaultFolderId === 'string' && topic.mediaVaultFolderId.trim() ? topic.mediaVaultFolderId.trim() : null,
       releaseGroupId: null,
       releaseAt: typeof topic.releaseAt === 'string' && topic.releaseAt.trim() ? topic.releaseAt.trim() : null,
-      children,
+      children: topic.mediaVaultFolderId ? [] : children, // Empty children for dynamic vault link
     });
   });
 

@@ -10,6 +10,7 @@ import {
   parseReleaseGroupDateMap,
   slugify,
 } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDisplayDateToIso } from '@/lib/date-format';
 
 
@@ -55,7 +56,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Teachers and Admins can see/manage all courses
 
-    const curriculum = parseCurriculumJson(course.curriculumJson);
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+    const curriculum = await populateMediaVaultNodes(rawCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
