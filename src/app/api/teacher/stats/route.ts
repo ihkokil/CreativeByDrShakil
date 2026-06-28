@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { eq, inArray, and } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
 export async function GET(request: NextRequest) {
   try {
@@ -69,11 +70,13 @@ export async function GET(request: NextRequest) {
     const progressEntries = allProgressEntries.filter(p => p.user?.role === 'student');
 
     // 4. Group data to calculate averages
-    const courseStats = courses.map((course) => {
+    const courseStats = await Promise.all(courses.map(async (course) => {
       const courseOrders = approvedOrders.filter((o) => o.courseId === course.id);
       const enrollmentCount = courseOrders.length;
       
-      const lessonNodes = collectVideoNodes(parseCurriculumJson(course.curriculumJson));
+      const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+      const curriculum = await populateMediaVaultNodes(rawCurriculum);
+      const lessonNodes = collectVideoNodes(curriculum);
       const totalLessonsInCourse = lessonNodes.length;
 
       let avgProgress = 0;
@@ -98,7 +101,7 @@ export async function GET(request: NextRequest) {
         enrollmentCount,
         avgProgress,
       };
-    });
+    }));
 
     const totalEnrollments = approvedOrders.length;
     const totalLessonsCompleted = progressEntries.length;

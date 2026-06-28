@@ -14,6 +14,7 @@ import {
   parseReleaseGroupDateMap,
   LessonAvailabilityOverride,
 } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
 const OVERRIDE_TABLE = 'StudentModuleAvailability';
 
@@ -192,7 +193,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(selectedCourse.curriculumJson));
+    const rawCurriculum = parseCurriculumJson(selectedCourse.curriculumJson);
+    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
+    const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(selectedCourse.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {

@@ -10,6 +10,7 @@ import {
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
 
 type OverrideRow = {
@@ -103,7 +104,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       studentEnrollmentDate = order.enrolledAt || order.updatedAt || null;
     }
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
+    const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
 

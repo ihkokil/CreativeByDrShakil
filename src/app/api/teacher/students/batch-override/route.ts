@@ -11,6 +11,7 @@ import {
   parseCurriculumJson,
   parseReleaseGroupDateMap,
 } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
 export async function POST(request: NextRequest) {
   try {
@@ -117,7 +118,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
+    const curriculum = ensureGroupInheritance(populatedCurriculum);
 
     if (action === 'unlock_all') {
       const allNodeIds: string[] = [];

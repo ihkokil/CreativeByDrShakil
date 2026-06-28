@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { formatLastUpdated } from '@/lib/date-format';
 
 const formatPrice = (price: number) => {
@@ -50,7 +51,8 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    const curriculum = parseCurriculumJson(course.curriculumJson);
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+    const curriculum = await populateMediaVaultNodes(rawCurriculum);
 
     return NextResponse.json({
       course: {
