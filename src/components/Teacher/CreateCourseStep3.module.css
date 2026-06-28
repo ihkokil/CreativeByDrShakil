@@ -81,6 +81,12 @@
   gap: 32px;
 }
 
+.reviewContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 .validationSection {
   border: 1px solid color-mix(in srgb, #ef4444 35%, transparent);
   border-radius: 16px;

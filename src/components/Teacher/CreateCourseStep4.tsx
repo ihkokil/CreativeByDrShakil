@@ -18,7 +18,7 @@ interface CourseData {
   isFeatured?: boolean;
   overview: string;
   learningOutcomes: string;
-  instructors: Array<{ name: string; designation?: string }>;
+  instructors: Array<{ name: string; designation?: string; imageUrl?: string }>;
 }
 
 function CreateCourseStep4Content() {
@@ -162,6 +162,26 @@ function CreateCourseStep4Content() {
                     {course.salePrice && <span className={styles.salePrice}> (Sale: ৳{course.salePrice})</span>}
                   </span>
                 </div>
+                {course.duration && (
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Duration:</span>
+                    <span className={styles.metaValue}>{course.duration}</span>
+                  </div>
+                )}
+                {course.courseStartDate && (
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Start Date:</span>
+                    <span className={styles.metaValue}>
+                      {formatDisplayDate(new Date(course.courseStartDate))}
+                    </span>
+                  </div>
+                )}
+                {course.instructors && (
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Instructors:</span>
+                    <span className={styles.metaValue}>{course.instructors.length}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -187,8 +207,17 @@ function CreateCourseStep4Content() {
           <h2 className={styles.contentTitle}>Instructors</h2>
           <div className={styles.instructorsGrid}>
             {course.instructors.map((instructor, index) => (
-              <div key={index} className={styles.instructorCard}>
+              <div key={index} className={styles.instructorCard} style={{ alignItems: 'center' }}>
                 <div className={styles.instructorIndex}>{index + 1}</div>
+                {instructor.imageUrl ? (
+                  <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                    <Image src={instructor.imageUrl} alt={instructor.name} fill style={{ objectFit: 'cover' }} unoptimized />
+                  </div>
+                ) : (
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 'bold', flexShrink: 0 }}>
+                    {instructor.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <h4 className={styles.instructorName}>{instructor.name}</h4>
                   {instructor.designation && (
