@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
-import { getPreviousFriday, generateModuleSchedule } from "@/lib/module-scheduling";
+import { getPreviousFriday, generateModuleSchedule, generatePreviewSchedule } from "@/lib/module-scheduling";
 
 export interface StarterItem {
   id: string;
@@ -68,6 +68,7 @@ function CreateCourseStep3Content() {
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   
   // Date Picker state
+  const [courseStartDate, setCourseStartDate] = useState<string>("");
   const [previewDate, setPreviewDate] = useState<string>("");
   // Generated schedule: mapping topic ID to scheduled ISO Date string
   const [scheduleMap, setScheduleMap] = useState<Record<string, string>>({});
@@ -134,12 +135,17 @@ function CreateCourseStep3Content() {
             const yyyy = d.getFullYear();
             const mm = String(d.getMonth() + 1).padStart(2, '0');
             const dd = String(d.getDate()).padStart(2, '0');
+            setCourseStartDate(`${yyyy}-${mm}-${dd}`);
             setPreviewDate(`${yyyy}-${mm}-${dd}`);
           } else {
-            setPreviewDate(getNextFridayString());
+            const defaultDate = getNextFridayString();
+            setCourseStartDate(defaultDate);
+            setPreviewDate(defaultDate);
           }
         } else {
-          setPreviewDate(getNextFridayString());
+          const defaultDate = getNextFridayString();
+          setCourseStartDate(defaultDate);
+          setPreviewDate(defaultDate);
         }
 
         const topicsResponse = await fetch("/api/teacher/starter-catalog?verbose=1", { headers });
@@ -245,23 +251,13 @@ function CreateCourseStep3Content() {
     initStep();
   }, [courseId]);
 
-  // Recalculate schedule map whenever selected modules or date changes
+  // Recalculate schedule map whenever selected modules or course start date changes
   useEffect(() => {
-    if (!previewDate) return;
+    if (!courseStartDate) return;
 
-    const [year, month, day] = previewDate.split("-").map(Number);
+    const [year, month, day] = courseStartDate.split("-").map(Number);
     const selectedDate = new Date(year, month - 1, day, 12, 0, 0, 0);
     const snappedFriday = getPreviousFriday(selectedDate);
-
-    const yyyy = snappedFriday.getFullYear();
-    const mm = String(snappedFriday.getMonth() + 1).padStart(2, '0');
-    const dd = String(snappedFriday.getDate()).padStart(2, '0');
-    const snappedDateStr = `${yyyy}-${mm}-${dd}`;
-
-    if (snappedDateStr !== previewDate) {
-      setPreviewDate(snappedDateStr);
-      return;
-    }
 
     const selectedModules = selectedTopicIds.map(id => {
       const topic = topicOptions.find(t => t.id === id);
@@ -279,7 +275,27 @@ function CreateCourseStep3Content() {
     });
 
     setScheduleMap(newScheduleMap);
-  }, [selectedTopicIds, previewDate, topicOptions]);
+  }, [selectedTopicIds, courseStartDate, topicOptions]);
+
+  // Calculate preview schedule based on previewDate
+  const previewSchedule = useMemo(() => {
+    if (!previewDate || !courseStartDate || selectedTopicIds.length === 0) return [];
+
+    const [year, month, day] = previewDate.split("-").map(Number);
+    const enrollmentDate = new Date(year, month - 1, day, 12, 0, 0, 0);
+    
+    const [cy, cm, cd] = courseStartDate.split("-").map(Number);
+    const baseCourseDate = new Date(cy, cm - 1, cd, 12, 0, 0, 0);
+
+    const scheduleToFilter = selectedTopicIds.map((id, index) => ({
+      id,
+      title: "",
+      originalIndex: index
+    }));
+
+    const generated = generatePreviewSchedule(scheduleToFilter, baseCourseDate, enrollmentDate);
+    return generated;
+  }, [previewDate, courseStartDate, selectedTopicIds]);
 
   const toggleLibrarySelection = (topicId: string) => {
     if (selectedTopicIds.includes(topicId)) {
@@ -317,14 +333,13 @@ function CreateCourseStep3Content() {
       }).filter(Boolean);
 
       if (topicsPayload.length > 0) {
-        // Save scheduling config
         const scheduleResponse = await fetch(`/api/teacher/courses/${courseId}/scheduling`, {
           method: "PATCH",
           headers,
           body: JSON.stringify({
             releaseMode: "fixed_interval",
-            courseStartDate: previewDate, // update start date with user's selection
-            releaseStartAt: previewDate,
+            courseStartDate: courseStartDate, // Keep original start date
+            releaseStartAt: courseStartDate,
           }),
         });
 
@@ -446,16 +461,17 @@ function CreateCourseStep3Content() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "20px" }}>
             <div>
               <h2 className={styles.contentTitle}>Scheduled Sequence</h2>
-              <p className={styles.helperText} style={{ marginBottom: "12px" }}>
-                Select a start date below to preview the weekly release schedule.
+              <p className={styles.helperText} style={{ marginBottom: "12px", color: "var(--primary)" }}>
+                Preview: What a student would see if they enroll on {previewDate ? formatDisplayDate(new Date(Number(previewDate.split('-')[0]), Number(previewDate.split('-')[1]) - 1, Number(previewDate.split('-')[2]))) : ""}
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(0,0,0,0.2)", padding: "12px", borderRadius: "8px", border: "1px solid var(--glass-border)" }}>
                 <Calendar style={{ color: "var(--primary)" }} size={20} />
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "4px" }}>Start Date (Preview & Publish)</label>
+                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "4px" }}>Simulate Enrollment Date</label>
                   <input
                     type="date"
                     value={previewDate}
+                    min={courseStartDate}
                     onChange={(e) => setPreviewDate(e.target.value)}
                     style={{
                       background: "transparent", color: "var(--foreground)", border: "none", 
@@ -489,15 +505,15 @@ function CreateCourseStep3Content() {
                 <p>Click "Add Modules" to select folders from your library.</p>
               </div>
             ) : (
-              selectedTopicIds.map((id, index) => {
-                const topic = topicOptions.find(t => t.id === id);
+              previewSchedule.map((mod, index) => {
+                const topic = topicOptions.find(t => t.id === mod.id);
                 if (!topic) return null;
-                const isoDate = scheduleMap[id];
+                const isoDate = mod.releaseAt;
                 const [y, m, d] = isoDate ? isoDate.split('-').map(Number) : [0, 0, 0];
                 const displayDate = isoDate ? formatDisplayDate(new Date(y, m - 1, d)) : "";
 
                 return (
-                  <div key={id} style={{ 
+                  <div key={`${mod.id}-${index}`} style={{ 
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                     padding: "16px 20px", border: "1px solid var(--glass-border)", borderRadius: "12px",
                     background: "rgba(0,0,0,0.1)"
@@ -513,12 +529,12 @@ function CreateCourseStep3Content() {
                       <div>
                         <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{topic.title}</div>
                         <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                          Module #{index + 1} &bull; {topic.subTopics.length} items
+                          Module #{mod.originalIndex + 1} &bull; {topic.subTopics.length} items
                         </div>
                       </div>
                     </div>
                     <button 
-                      onClick={() => removeTopic(id)}
+                      onClick={() => removeTopic(mod.id)}
                       style={{ 
                         background: "transparent", border: "none", color: "var(--text-muted)", 
                         cursor: "pointer", padding: "8px", borderRadius: "50%",
