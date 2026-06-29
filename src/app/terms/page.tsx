@@ -1,6 +1,8 @@
 import React from 'react';
 import styles from '../legal.module.css';
 import { Metadata } from 'next';
+import Navbar from "@/components/Navbar/Navbar";
+import Footer from "@/components/Footer/Footer";
 
 export const metadata: Metadata = {
     title: "Terms of Service | Creative By Dr. Shakil",
@@ -9,56 +11,77 @@ export const metadata: Metadata = {
 
 export default function TermsOfService() {
     return (
-        <main className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Terms of Service</h1>
-                <p className={styles.subtitle}>Last updated: {new Date().toLocaleDateString()}</p>
-            </div>
-            
-            <div className={styles.content}>
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>1. Acceptance of Terms</h2>
-                    <p className={styles.text}>
-                        By accessing and using <span className={styles.highlight}>Creative By Dr. Shakil</span>, you accept and agree to be bound by the terms and provision of this agreement.
-                    </p>
-                </section>
+        <>
+            <Navbar />
+            <main className={styles.container}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>Terms of Service</h1>
+                    <p className={styles.subtitle}>Effective Date: {new Date().toLocaleDateString()}</p>
+                </div>
+                
+                <div className={styles.content}>
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>1. Acceptance of Terms</h2>
+                        <p className={styles.text}>
+                            By accessing, registering for, or using the <span className={styles.highlight}>Creative By Dr. Shakil</span> website and educational services, you agree to be bound by these Terms of Service. If you do not agree to all the terms and conditions of this agreement, you may not access the website or use any services.
+                        </p>
+                    </section>
 
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>2. Intellectual Property & Anti-Piracy</h2>
-                    <p className={styles.text}>
-                        This is a premium course selling platform. We strictly enforce intellectual property rights. By purchasing or accessing our courses, you agree to the following:
-                    </p>
-                    <ul className={styles.list}>
-                        <li className={styles.listItem}><strong>No Recording:</strong> You are strictly prohibited from recording, screen-capturing, or downloading any video content, audio, or proprietary materials provided on this platform.</li>
-                        <li className={styles.listItem}><strong>No Copying:</strong> You may not copy, reproduce, or transcribe course materials for distribution or personal gain.</li>
-                        <li className={styles.listItem}><strong>No Stealing or Sharing:</strong> Account credentials and course access are for your personal use only. Sharing your account or distributing our content to others is considered theft.</li>
-                    </ul>
-                    <p className={styles.text}>
-                        <span className={styles.highlight}>Violation Consequence:</span> Any violation of these terms will result in immediate termination of your account without a refund, and may result in legal action.
-                    </p>
-                </section>
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>2. Medical Education Disclaimer</h2>
+                        <p className={styles.text}>
+                            The content provided on this platform is strictly for <strong>educational and informational purposes only</strong>. It is designed to assist medical students and professionals in their studies and exam preparation.
+                        </p>
+                        <p className={styles.text}>
+                            <strong>Not Medical Advice:</strong> The information contained in our courses, videos, and study materials should not be construed as professional medical advice, diagnosis, or treatment. Always consult official medical guidelines and your own clinical judgment when treating patients. We assume no liability for any medical decisions made based on the educational content provided here.
+                        </p>
+                    </section>
 
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>3. User Accounts</h2>
-                    <p className={styles.text}>
-                        To access certain features of the platform, you may be required to register for an account. You agree to provide accurate, current, and complete information during the registration process and to update such information to keep it accurate, current, and complete.
-                    </p>
-                </section>
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>3. Intellectual Property & Anti-Piracy Policy</h2>
+                        <p className={styles.text}>
+                            Our courses represent thousands of hours of professional work and expertise. We strictly enforce our intellectual property rights. By purchasing or accessing our courses, you agree to the following absolute restrictions:
+                        </p>
+                        <ul className={styles.list}>
+                            <li className={styles.listItem}><strong>No Recording or Capturing:</strong> You are strictly prohibited from using screen recording software, cameras, or any other capture methods to copy video, audio, or visual content.</li>
+                            <li className={styles.listItem}><strong>No Distribution:</strong> You may not download, distribute, reproduce, transcribe, or publicly display any of our proprietary study materials, PDFs, or lecture notes.</li>
+                            <li className={styles.listItem}><strong>No Account Sharing:</strong> Your account credentials are for your individual use only. Our systems monitor for suspicious login patterns and simultaneous access from different locations.</li>
+                        </ul>
+                        <p className={styles.text}>
+                            <span className={styles.highlight}>Enforcement:</span> We reserve the right to immediately suspend or permanently terminate your account without warning or refund if we detect any violation of these anti-piracy terms. We also reserve the right to pursue legal action for copyright infringement.
+                        </p>
+                    </section>
 
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>4. Payments</h2>
-                    <p className={styles.text}>
-                        All payments for courses on this platform are processed manually and offline. Access to the purchased courses will be granted only after the payment has been fully verified and cleared by our administration team.
-                    </p>
-                </section>
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>4. User Accounts and Registration</h2>
+                        <p className={styles.text}>
+                            To enroll in courses, you must create an account. You agree to provide accurate, current, and complete information, including your real name and professional/student credentials if requested. You are responsible for maintaining the confidentiality of your account password and for all activities that occur under your account.
+                        </p>
+                    </section>
 
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>5. Modifications to Service</h2>
-                    <p className={styles.text}>
-                        We reserve the right to modify or discontinue, temporarily or permanently, the Service (or any part thereof) with or without notice. You agree that we shall not be liable to you or to any third party for any modification, suspension or discontinuance of the Service.
-                    </p>
-                </section>
-            </div>
-        </main>
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>5. Payments and Access</h2>
+                        <p className={styles.text}>
+                            Payments for premium courses are currently processed manually and offline. Upon submitting your payment details and receipt, our administration team will review and verify the transaction. Access to the purchased content will only be granted once the payment has fully cleared. We reserve the right to refuse service or cancel orders at our sole discretion.
+                        </p>
+                    </section>
+
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>6. Limitation of Liability</h2>
+                        <p className={styles.text}>
+                            In no event shall <span className={styles.highlight}>Creative By Dr. Shakil</span>, its instructors, directors, or employees, be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or use, arising out of or related to your use of the platform or the educational content provided.
+                        </p>
+                    </section>
+
+                    <section className={styles.section}>
+                        <h2 className={styles.sectionTitle}>7. Changes to Terms</h2>
+                        <p className={styles.text}>
+                            We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will attempt to provide at least 15 days' notice prior to any new terms taking effect. Your continued use of the platform following the posting of any changes constitutes acceptance of those changes.
+                        </p>
+                    </section>
+                </div>
+            </main>
+            <Footer />
+        </>
     );
 }
