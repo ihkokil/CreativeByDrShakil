@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
-import { getSessionById, updateSessionActivity } from '@/lib/session-manager';
+import { getSessionById } from '@/lib/session-manager';
 
 export async function GET(request: NextRequest) {
   const bearerToken = extractBearerToken(request);
@@ -44,43 +44,25 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Update last activity
-      await updateSessionActivity(payload.sessionId);
+      // Skipping `updateSessionActivity` to save Cloudflare Edge CPU/DB writes on every request.
     }
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: {
-        id: true,
-        email: true,
-        phone: true,
-        role: true,
-        fullName: true,
-        bmdcNumber: true,
-        profileImage: true,
-        canManagePayments: true,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json({ user: null, role: null }, { status: 200 });
-    }
-
+    // Build the user response entirely from the JWT payload to avoid a DB read
     return NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
+        id: payload.sub,
+        email: payload.email,
+        phone: payload.user_metadata?.phone || null,
+        role: payload.role,
         user_metadata: {
-          full_name: user.fullName,
-          phone: user.phone,
-          bmdc_number: user.bmdcNumber,
-          profile_image: user.profileImage,
-          canManagePayments: user.canManagePayments,
+          full_name: payload.user_metadata?.full_name || null,
+          phone: payload.user_metadata?.phone || null,
+          bmdc_number: payload.user_metadata?.bmdc_number || null,
+          profile_image: payload.user_metadata?.profile_image || null,
+          canManagePayments: payload.user_metadata?.canManagePayments || false,
         },
       },
-      role: user.role,
+      role: payload.role,
       token,
       sessionId: payload.sessionId,
     });

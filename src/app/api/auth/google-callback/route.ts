@@ -234,6 +234,12 @@ export async function GET(request: NextRequest) {
       role: user.role as 'admin' | 'teacher' | 'student',
       email: user.email,
       sessionId: newSession.id,
+      user_metadata: {
+        full_name: user.fullName,
+        phone: user.phone,
+        bmdc_number: user.bmdcNumber,
+        profile_image: user.profileImage,
+      },
     });
 
     // Redirect to dashboard with the cookie set

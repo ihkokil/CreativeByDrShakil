@@ -10,6 +10,13 @@ export interface AuthTokenPayload extends JWTPayload {
   role: 'admin' | 'teacher' | 'student';
   email: string;
   sessionId?: string;
+  user_metadata?: {
+    full_name: string | null;
+    phone: string | null;
+    bmdc_number: string | null;
+    profile_image: string | null;
+    canManagePayments?: boolean;
+  };
 }
 
 function getJwtSecret(): Uint8Array {
@@ -28,7 +35,7 @@ export async function comparePassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
-export async function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string }) {
+export async function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string; user_metadata?: any }) {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
   return new SignJWT(payload)
