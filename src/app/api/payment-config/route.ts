@@ -17,16 +17,28 @@ export async function GET() {
         provider: 'bkash',
         sendMoneyNumber: '01700000000',
         qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+        },
       })
     }
 
-    return NextResponse.json(config)
+    return NextResponse.json(config, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+      },
+    })
   } catch (error) {
     console.error('Failed to fetch payment configuration:', error);
     return NextResponse.json({
       provider: 'bkash',
       sendMoneyNumber: '01700000000',
       qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+      },
     })
   }
 }

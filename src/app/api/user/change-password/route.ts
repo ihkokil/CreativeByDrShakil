@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { user as userSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
-import { comparePassword, hashPassword } from '@/lib/auth-server';
+import { neon } from '@neondatabase/serverless';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,13 +28,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New password must be different from current password.' }, { status: 400 });
     }
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: {
-        id: true,
-        passwordHash: true,
-      },
-    });
+    // Ensure pgcrypto is active
+    const rawSql = neon(process.env.NEON_DATABASE_URL!);
+    await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+
+    // Query user and check current password hash in database
+    const results = await rawSql`
+      SELECT 
+        id, "passwordHash",
+        ("passwordHash" = crypt(${currentPassword}, "passwordHash")) as "isCurrentValid"
+      FROM "User" 
+      WHERE id = ${payload.sub} 
+      LIMIT 1
+    `;
+
+    const user = results[0] as any;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -47,14 +55,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isCurrentValid = await comparePassword(currentPassword, user.passwordHash);
-    if (!isCurrentValid) {
+    if (!user.isCurrentValid) {
       return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 });
     }
 
-    const nextHash = await hashPassword(newPassword);
+    // Hash and update to the new password in DB
     await db.update(userSchema).set({
-        passwordHash: nextHash,
+        passwordHash: sql`crypt(${newPassword}, gen_salt('bf', 12))`,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
       }).where(eq(userSchema.id, user.id));
