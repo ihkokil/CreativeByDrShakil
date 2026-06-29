@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { course as courseSchema, user as userSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { course as courseSchema, user as userSchema, order as orderSchema } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, slugify } from '@/lib/teacher-course-builder';
 import { parseDisplayDateToIso } from '@/lib/date-format';
@@ -42,17 +42,28 @@ export async function GET(request: NextRequest) {
 
     let courses;
     try {
-      const rawCourses = await db.query.course.findMany({
-        where: where.teacherId ? (c, { eq }) => eq(c.teacherId, where.teacherId) : undefined,
-        orderBy: (c, { desc }) => [desc(c.updatedAt)],
-        with: {
-          instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
-          orders: { columns: { id: true } },
-        },
-      });
+      const [rawCourses, orderCountsData] = await Promise.all([
+        db.query.course.findMany({
+          where: where.teacherId ? (c, { eq }) => eq(c.teacherId, where.teacherId) : undefined,
+          orderBy: (c, { desc }) => [desc(c.updatedAt)],
+          with: {
+            instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
+          },
+        }),
+        db.select({
+          courseId: orderSchema.courseId,
+          count: sql<number>`count(${orderSchema.id})`.mapWith(Number)
+        })
+        .from(orderSchema)
+        .where(eq(orderSchema.status, 'approved'))
+        .groupBy(orderSchema.courseId)
+      ]);
+
+      const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row.count]));
+
       courses = rawCourses.map(c => ({
         ...c,
-        _count: { orders: c.orders.length },
+        _count: { orders: orderCountMap.get(c.id) || 0 },
       }));
     } catch (dbError: any) {
       console.error('DB query error:', dbError);

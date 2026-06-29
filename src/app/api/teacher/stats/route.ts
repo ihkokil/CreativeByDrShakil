@@ -70,12 +70,14 @@ export async function GET(request: NextRequest) {
     const progressEntries = allProgressEntries.filter(p => p.user?.role === 'student');
 
     // 4. Group data to calculate averages
-    const courseStats = await Promise.all(courses.map(async (course) => {
+    const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson));
+    const populatedCurriculums = await populateMediaVaultNodesBatch(rawCurriculums);
+
+    const courseStats = courses.map((course, index) => {
       const courseOrders = approvedOrders.filter((o) => o.courseId === course.id);
       const enrollmentCount = courseOrders.length;
       
-      const rawCurriculum = parseCurriculumJson(course.curriculumJson);
-      const curriculum = await populateMediaVaultNodes(rawCurriculum);
+      const curriculum = populatedCurriculums[index];
       const lessonNodes = collectVideoNodes(curriculum);
       const totalLessonsInCourse = lessonNodes.length;
 
@@ -101,7 +103,7 @@ export async function GET(request: NextRequest) {
         enrollmentCount,
         avgProgress,
       };
-    }));
+    });
 
     const totalEnrollments = approvedOrders.length;
     const totalLessonsCompleted = progressEntries.length;
