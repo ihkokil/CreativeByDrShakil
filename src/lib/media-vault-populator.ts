@@ -2,6 +2,11 @@ import { db } from '@/lib/db';
 import { BuilderCurriculumNode, CurriculumContentType } from '@/lib/teacher-course-builder';
 
 export async function populateMediaVaultNodes(nodes: BuilderCurriculumNode[]): Promise<BuilderCurriculumNode[]> {
+  const [populated] = await populateMediaVaultNodesBatch([nodes]);
+  return populated;
+}
+
+export async function populateMediaVaultNodesBatch(allNodes: BuilderCurriculumNode[][]): Promise<BuilderCurriculumNode[][]> {
   const folderIds = new Set<string>();
   const collect = (list: BuilderCurriculumNode[]) => {
     list.forEach(node => {
@@ -14,13 +19,13 @@ export async function populateMediaVaultNodes(nodes: BuilderCurriculumNode[]): P
     });
   };
   
-  collect(nodes);
+  allNodes.forEach(nodes => collect(nodes));
 
   if (folderIds.size === 0) {
-    return nodes;
+    return allNodes;
   }
 
-  // Fetch children from DB for all referenced folders
+  // Fetch children from DB for all referenced folders ONCE
   const libraryContents = await db.query.videoLibraryNode.findMany({
     where: (n, { inArray }) => inArray(n.parentId, Array.from(folderIds)),
     orderBy: (n, { asc }) => asc(n.sortOrder)
@@ -58,5 +63,5 @@ export async function populateMediaVaultNodes(nodes: BuilderCurriculumNode[]): P
     });
   };
 
-  return inject(nodes);
+  return allNodes.map(nodes => inject(nodes));
 }

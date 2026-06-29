@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { db } from '@/lib/db';
-import { course as courseSchema, studentModuleAvailability as smaSchema } from '@/db/schema';
+import { course as courseSchema, studentModuleAvailability as smaSchema, order as orderSchema } from '@/db/schema';
 import { eq, inArray, and, gte, desc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
@@ -52,18 +52,32 @@ type ProgressRow = {
   lessonNodeId: string;
 };
 
+import { sql } from 'drizzle-orm';
+// ...
+
 const getTeacherCourses = async (teacherId: string, role: string) => {
-  const courses = await db.query.course.findMany({
-    orderBy: (c, { desc }) => [desc(c.updatedAt)],
-    with: {
-      instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
-      orders: { columns: { id: true } },
-    },
-  });
-  return courses.map(c => ({
+  const [rawCourses, orderCountsData] = await Promise.all([
+    db.query.course.findMany({
+      orderBy: (c, { desc }) => [desc(c.updatedAt)],
+      with: {
+        instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
+      },
+    }),
+    db.select({
+      courseId: orderSchema.courseId,
+      count: sql<number>`count(${orderSchema.id})`.mapWith(Number)
+    })
+    .from(orderSchema)
+    .where(eq(orderSchema.status, 'approved'))
+    .groupBy(orderSchema.courseId)
+  ]);
+
+  const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row.count]));
+
+  return rawCourses.map(c => ({
     ...c,
-    _count: { orders: c.orders.length },
-  })) as TeacherCourseSummary[];
+    _count: { orders: orderCountMap.get(c.id) || 0 },
+  })) as unknown as TeacherCourseSummary[];
 };
 
 const buildAvailabilityOverrides = (rows: OverrideRow[]) => {
