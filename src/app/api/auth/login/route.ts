@@ -4,8 +4,9 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { user } from '@/db/schema';
 import { eq, or } from 'drizzle-orm';
-import { comparePassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
+import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
+import { neon } from '@neondatabase/serverless';
 import {
   createDeviceSession,
   getActiveSessionsByDeviceType,
@@ -32,9 +33,22 @@ export async function POST(request: NextRequest) {
 
     const { identifier, password } = parsed.data;
 
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq, or }) => or(eq(u.email, identifier), eq(u.phone, identifier)),
-    });
+    // Use raw Neon client to verify password using pgcrypto on the database level.
+    // Bcrypt comparison in JS takes ~100ms+ of CPU, which violates the 10ms limit.
+    const sql = neon(process.env.NEON_DATABASE_URL!);
+    await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+
+    const results = await sql`
+      SELECT 
+        id, email, phone, role, "isBanned", "emailVerified", "passwordHash",
+        "fullName", "bmdcNumber", "profileImage", "canManagePayments", "isSessionLockedExempt",
+        ("passwordHash" = crypt(${password}, "passwordHash")) as "isPasswordValid"
+      FROM "User" 
+      WHERE email = ${identifier} OR phone = ${identifier} 
+      LIMIT 1
+    `;
+
+    const userRecord = results[0] as any;
 
     if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
@@ -67,8 +81,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = await comparePassword(password, userRecord.passwordHash);
-    if (!isValid) {
+    if (!userRecord.isPasswordValid) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 

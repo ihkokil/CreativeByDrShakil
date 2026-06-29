@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { db } from '@/lib/db';
-
-const checkEmailSchema = z.object({
-  email: z.string().email('Invalid email address'),
-});
+import { neon } from '@neondatabase/serverless';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,23 +8,20 @@ export async function POST(request: NextRequest) {
     if (rateLimitError) return rateLimitError;
 
     const body = await request.json();
-    const parsed = checkEmailSchema.safeParse(body);
+    const email = body.email;
 
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
 
-    const { email } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.email, normalizedEmail),
-      columns: {
-        id: true,
-      },
-    });
+    // Use raw Neon client to bypass Drizzle schema building overhead
+    const sql = neon(process.env.NEON_DATABASE_URL!);
+    const result = await sql`SELECT id FROM "User" WHERE email = ${normalizedEmail} LIMIT 1`;
 
-    return NextResponse.json({ exists: !!user });
+    return NextResponse.json({ exists: result.length > 0 });
   } catch (error: any) {
     console.error('[Check Email Error]', error?.message || error);
     return NextResponse.json(
