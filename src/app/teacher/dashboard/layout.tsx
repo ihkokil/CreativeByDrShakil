@@ -64,7 +64,7 @@ function TeacherDashboardLayoutContent({
     return (
         <div className={styles.dashboardContainer}>
             <TeacherSidebar
-                activeTab={activeTab}
+                activeTab={activeTab as any}
                 setActiveTab={setActiveTab as any}
                 teacherName={user.user_metadata?.full_name || user.email?.split("@")[0] || "Teacher"}
                 teacherEmail={user.email}
