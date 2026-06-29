@@ -94,7 +94,7 @@ export function PWAInstallPrompt() {
 
                     <div className="flex items-start gap-4 pt-2">
                         <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 rounded-xl flex items-center justify-center">
-                            <img src="/icons/icon-192x192.png" alt="App Icon" className="w-8 h-8 rounded-lg" />
+                            <img src="/icons/android-chrome-192x192.png" alt="App Icon" className="w-8 h-8 rounded-lg" />
                         </div>
                         
                         <div className="flex-1">
