@@ -67,7 +67,10 @@ export default function StudentSidebar({
             <div className={styles.sidebarHeader}>
                 <Link href="/" className={styles.logoWrapper}>
                     {isExpanded ? (
-                        <Image src="/logo.png" alt="Student Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority />
+                        <>
+                            <Image src="/logo/logo_white.webp" alt="Student Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-dark-theme" />
+                            <Image src="/logo/logo_black.webp" alt="Student Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-light-theme" />
+                        </>
                     ) : (
                         <Image src="/favicon.png" alt="Student Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
                     )}
