@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import styles from './Checkout.module.css'
 
 interface PaymentFormProps {
@@ -66,6 +67,10 @@ export function PaymentForm({ orderId, amount, onSubmit, loading }: PaymentFormP
           required
         />
         <p className={styles.fieldHint}>Example: if the payable amount is 6000, you can enter 6045 if that is what you sent.</p>
+      </div>
+
+      <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '16px', textAlign: 'center' }}>
+        By submitting this payment, you agree to our <Link href="/terms" target="_blank" style={{ textDecoration: 'underline' }}>Terms</Link> and <Link href="/refund" target="_blank" style={{ textDecoration: 'underline' }}>Refund Policy</Link>.
       </div>
 
       <button type="submit" disabled={loading}>
