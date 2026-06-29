@@ -101,10 +101,12 @@ export default function TeacherOverview({
             </motion.div>
 
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
-                <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-                    <Users size={20} />
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                        <Users size={20} />
+                    </div>
                 </div>
-                <div className={styles.metricBody} style={{ marginTop: '16px' }}>
+                <div className={styles.metricBody}>
                     <h4>{totalStudents}</h4>
                     <p>Total Students</p>
                 </div>
