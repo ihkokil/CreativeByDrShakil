@@ -165,6 +165,13 @@ export async function POST(request: NextRequest) {
       role: userRecord.role as 'admin' | 'teacher' | 'student',
       email: userRecord.email,
       sessionId: newSession.id,
+      user_metadata: {
+        full_name: userRecord.fullName,
+        phone: userRecord.phone,
+        bmdc_number: userRecord.bmdcNumber,
+        profile_image: userRecord.profileImage,
+        canManagePayments: userRecord.canManagePayments,
+      },
     });
 
     const response = NextResponse.json({
