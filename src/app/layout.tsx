@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     description: "Creative By Dr. Shakil (creativebydrshakil.com) — a premium learning platform for doctors.",
     icons: {
         icon: "/favicon.ico",
-        apple: "/icons/icon-192x192.png",
+        apple: "/icons/apple-touch-icon.png",
     },
     manifest: "/manifest.json",
     appleWebApp: {
