@@ -17,8 +17,8 @@ function hashOtp(otp: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    // Limit to 3 OTP requests per minute per IP
-    const rateLimitError = await checkRateLimit(request, 3);
+    // Limit to 5 OTP requests per minute per IP
+    const rateLimitError = await checkRateLimit(request, 5);
     if (rateLimitError) return rateLimitError;
 
     const body = await request.json();

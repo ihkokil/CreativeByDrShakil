@@ -35,7 +35,7 @@ export function rateLimit(options?: RateLimitOptions) {
 
 const limiter = rateLimit({
   interval: 60 * 1000, // 60 seconds
-  uniqueTokenPerInterval: 500, // Max 500 users per second
+  uniqueTokenPerInterval: 2000, // Max 2000 unique IP/route combinations
 });
 
 export async function checkRateLimit(request: NextRequest, limit: number = 5) {
@@ -43,8 +43,15 @@ export async function checkRateLimit(request: NextRequest, limit: number = 5) {
              request.headers.get('x-real-ip') || 
              '127.0.0.1';
   
+  // Partition rate limiting per IP per route path to avoid limits aggregating across different endpoints
+  const path = request.nextUrl.pathname;
+  const token = `${ip}:${path}`;
+  
+  // Relax the overall rate limits by tripling the default/passed limits (3x)
+  const relaxedLimit = limit * 3;
+  
   try {
-    await limiter.check(limit, ip);
+    await limiter.check(relaxedLimit, token);
     return null;
   } catch {
     return NextResponse.json(
