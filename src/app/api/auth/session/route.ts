@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
-import { getSessionById } from '@/lib/session-manager';
 
 export async function GET(request: NextRequest) {
   const bearerToken = extractBearerToken(request);
@@ -21,31 +19,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Check if session is still valid (not locked or logged out)
-    if (payload.sessionId) {
-      const session = await getSessionById(payload.sessionId);
-      if (!session || session.loggedOutAt || session.isLocked) {
-        let message = 'Your session was terminated from another device.';
-        
-        if (session?.isLocked && session.lockedByDeviceLabel) {
-          const oldLabel = session.deviceLabel || 'Unknown device';
-          const typeLabel = session.deviceType === 'desktop' ? 'Desktop' : session.deviceType === 'tablet' ? 'Tablet' : 'Mobile';
-          message = `Your session on ${oldLabel} was replaced by ${session.lockedByDeviceLabel} in the ${typeLabel} category.`;
-        }
-
-        return NextResponse.json(
-          {
-            user: null,
-            role: null,
-            code: 'session_revoked',
-            message: message,
-          },
-          { status: 401 }
-        );
-      }
-
-      // Skipping `updateSessionActivity` to save Cloudflare Edge CPU/DB writes on every request.
-    }
+    // We are skipping `getSessionById` and `updateSessionActivity` to save 
+    // Cloudflare Edge CPU and DB writes on every request. 
+    // This makes the JWT purely stateless. Session termination will only apply on login/logout.
 
     // Build the user response entirely from the JWT payload to avoid a DB read
     return NextResponse.json({
