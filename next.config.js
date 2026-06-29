@@ -12,6 +12,7 @@ const nextConfig = {
     experimental: {
         optimizePackageImports: ['lucide-react', 'framer-motion', '@vidstack/react', 'vidstack', 'zod', 'bcryptjs'],
     },
+    turbopack: {},
     images: {
         remotePatterns: [
             {
