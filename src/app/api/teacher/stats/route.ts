@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { eq, inArray, and } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
-import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
+import { populateMediaVaultNodes, populateMediaVaultNodesBatch } from '@/lib/media-vault-populator';
 
 export async function GET(request: NextRequest) {
   try {
