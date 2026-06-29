@@ -3,13 +3,15 @@ import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { user as userSchema, emailOtp } from '@/db/schema';
-import { eq, or, and, gt } from 'drizzle-orm';
-import { hashPassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
+import { eq, or, and, gt, sql } from 'drizzle-orm';
+import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendVerificationEmail } from '@/lib/auth-emails';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import { createDeviceSession } from '@/lib/session-manager';
 import { sendTelegramRegistrationNotification } from '@/lib/telegram';
+import { neon } from '@neondatabase/serverless';
+
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -50,8 +52,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already exists with this email or phone.' }, { status: 409 });
     }
 
-    const passwordHash = await hashPassword(password);
-    
+    // Ensure pgcrypto is active
+    const rawSql = neon(process.env.NEON_DATABASE_URL!);
+    await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+
     let emailVerified = false;
     let tokenHash = null;
     let verifyExpiry = null;
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
     const [user] = await db.insert(userSchema).values({
       id: crypto.randomUUID(),
       email: normalizedEmail,
-      passwordHash,
+      passwordHash: sql`crypt(${password}, gen_salt('bf', 12))`,
       fullName,
       phone: phone || null,
       bmdcNumber: bmdc || null,

@@ -31,7 +31,11 @@ export async function GET() {
     });
 
     if (!course) {
-      return NextResponse.json({ course: null });
+      return NextResponse.json({ course: null }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
+        },
+      });
     }
 
     return NextResponse.json({
@@ -51,6 +55,10 @@ export async function GET() {
           role: course.teacher?.designation || 'Course Instructor',
           image: course.teacher?.profileImage || '/placeholder-square.svg',
         },
+      },
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
       },
     });
   } catch (error: any) {

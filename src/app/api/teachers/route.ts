@@ -27,6 +27,10 @@ export async function GET() {
         designation: normalizeOptionalText(teacher.designation),
         institution: normalizeOptionalText(teacher.institution),
       })),
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
