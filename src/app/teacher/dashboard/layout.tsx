@@ -26,8 +26,13 @@ function TeacherDashboardLayoutContent({
         }
     }, []);
 
-    const activeTab = (searchParams.get("tab") as any) || "overview";
     const pathname = usePathname();
+    const activeTab = (() => {
+        const tab = searchParams.get("tab");
+        if (tab) return tab;
+        if (pathname?.includes("/courses")) return "courses";
+        return "overview";
+    })();
 
     useEffect(() => {
         if (!loading && !user) {

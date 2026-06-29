@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { X, Mail, Lock, ArrowRight, ArrowLeft, User, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { resolveEmail, validateEmail } from "@/lib/email-resolver";
@@ -795,7 +796,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                 </>
                             ) : (
                                 <>
-                                    By continuing, you agree to our Terms and Privacy Policy.
+                                    By continuing, you agree to our <Link href="/terms" onClick={onClose} style={{textDecoration: 'underline'}}>Terms</Link> and <Link href="/privacy" onClick={onClose} style={{textDecoration: 'underline'}}>Privacy Policy</Link>.
                                 </>
                             )}
                         </p>

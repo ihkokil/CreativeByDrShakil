@@ -40,7 +40,8 @@ export default function Footer() {
                             <li><Link href="#">Help Center</Link></li>
                             <li><Link href="#">Student FAQ</Link></li>
                             <li><Link href="/contact">Contact Us</Link></li>
-                            <li><Link href="#">Terms of Service</Link></li>
+                            <li><Link href="/terms">Terms of Service</Link></li>
+                            <li><Link href="/refund">Refund Policy</Link></li>
                         </ul>
                     </div>
                     <div className={styles.linkColumn}>
@@ -63,9 +64,9 @@ export default function Footer() {
                 <div className={styles.bottomContent}>
                     <p>&copy; {new Date().getFullYear()} Creative By Dr. Shakil | creativebydrshakil.com. Developed for medical excellence.</p>
                     <div className={styles.legalLinks}>
-                        <Link href="#">Privacy</Link>
-                        <Link href="#">Cookies</Link>
-                        <Link href="#">Security</Link>
+                        <Link href="/privacy">Privacy Policy</Link>
+                        <Link href="/terms">Terms of Service</Link>
+                        <Link href="/refund">Refund Policy</Link>
                     </div>
                 </div>
             </div>
