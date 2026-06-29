@@ -1,0 +1,116 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 120px 24px 80px;
+  min-height: 100vh;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.header {
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.title {
+  font-size: var(--text-4xl, 3rem);
+  font-weight: var(--weight-bold, 700);
+  color: var(--foreground);
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.5) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: var(--text-large, 1.125rem);
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: var(--weight-normal, 400);
+}
+
+.content {
+  background: var(--card-bg, rgba(20, 20, 20, 0.9));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.12));
+  border-radius: 16px;
+  padding: 48px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.section {
+  margin-bottom: 40px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionTitle {
+  font-size: var(--text-2xl, 1.5rem);
+  font-weight: var(--weight-semibold, 600);
+  color: var(--primary, #ed1c28);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.text {
+  font-size: var(--text-base, 1rem);
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+.list {
+  list-style-type: none;
+  padding-left: 0;
+  margin-bottom: 16px;
+}
+
+.listItem {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+}
+
+.listItem::before {
+  content: "•";
+  color: var(--primary, #ed1c28);
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.highlight {
+  color: var(--foreground);
+  font-weight: var(--weight-semibold, 600);
+  background: rgba(237, 28, 40, 0.15);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(237, 28, 40, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 32px 24px;
+  }
+  .title {
+    font-size: var(--text-3xl, 2rem);
+  }
+}
