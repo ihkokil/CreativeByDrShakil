@@ -77,7 +77,10 @@ export default function DashboardShell({
             <aside className={styles.sidebar}>
                 <div className={styles.sidebarHeader}>
                     <Link href="/" className={styles.brandLink} aria-label="Go to homepage">
-                        <Image src="/logo.png" alt="Creative Learning" width={152} height={40} priority />
+                        <>
+                            <Image src="/logo/logo_white.webp" alt="Creative Learning" width={152} height={40} priority className="logo-dark-theme" />
+                            <Image src="/logo/logo_black.webp" alt="Creative Learning" width={152} height={40} priority className="logo-light-theme" />
+                        </>
                     </Link>
                 </div>
 
