@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
 import { course as courseSchema, order as orderSchema } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
-import { countLessons, parseCurriculumJson } from '@/lib/teacher-course-builder';
-import { populateMediaVaultNodesBatch } from '@/lib/media-vault-populator';
+import { eq, sql, ne, count } from 'drizzle-orm';
+import { BuilderCurriculumNode, parseCurriculumJson } from '@/lib/teacher-course-builder';
+import { videoLibraryNode } from '@/db/schema';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -55,11 +55,40 @@ export async function GET() {
     const orderCountMap = new Map(orderCountsData.map(row => [row.courseId, row.count]));
 
     const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson));
-    const populatedCurriculums = await populateMediaVaultNodesBatch(rawCurriculums);
+    
+    const countsData = await db.select({
+      parentId: videoLibraryNode.parentId,
+      count: count(videoLibraryNode.id)
+    })
+    .from(videoLibraryNode)
+    .where(ne(videoLibraryNode.type, 'folder'))
+    .groupBy(videoLibraryNode.parentId);
+    
+    let folderCounts: Record<string, number> = {};
+    for (const row of countsData) {
+      if (row.parentId) folderCounts[row.parentId] = row.count;
+    }
 
     const processedCourses = courses.map((course, index) => {
-      const curriculum = populatedCurriculums[index];
-      const lessonCount = countLessons(curriculum);
+      const curriculum = rawCurriculums[index];
+      let lessonCount = 0;
+      
+      const countNodes = (list: BuilderCurriculumNode[]) => {
+        list.forEach(node => {
+          if (node.type !== 'folder') {
+            lessonCount++;
+          }
+          if (node.mediaVaultFolderId) {
+             if (folderCounts[node.mediaVaultFolderId]) {
+                 lessonCount += folderCounts[node.mediaVaultFolderId];
+             }
+          } else if (node.children) {
+            countNodes(node.children);
+          }
+        });
+      };
+      countNodes(curriculum);
+
       const enrolledCount = orderCountMap.get(course.id) || 0;
 
       return {
