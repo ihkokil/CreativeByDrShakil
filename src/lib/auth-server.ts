@@ -72,58 +72,25 @@ export async function getSession() {
   try {
     const payload = await verifyAuthToken(token);
     
-    if (payload.sessionId) {
-      const { getSessionById, updateSessionDeviceHash } = await import('@/lib/session-manager');
-      const session = await getSessionById(payload.sessionId);
-      if (!session || session.isLocked || session.loggedOutAt) {
-        return null; // Session has been revoked or logged out
-      }
-
-      try {
-        const { db } = await import('@/lib/db');
-        const userRecord = await db.query.user.findFirst({
-          where: (u, { eq }) => eq(u.id, session.userId),
-          columns: { role: true, isSessionLockedExempt: true }
-        });
-        const isPrivilegedRole = userRecord?.role === 'admin' || userRecord?.role === 'teacher';
-        const isExempt = isPrivilegedRole || !!userRecord?.isSessionLockedExempt;
-
-        // Enforce device category restrictions (students only)
-        if (!isPrivilegedRole) {
-          try {
-            const { getGlobalSessionSettings } = await import('@/lib/session-manager');
-            const globalSettings = await getGlobalSessionSettings();
-            if (session.deviceType === 'desktop' && !globalSettings.allowDesktop) return null;
-            if (session.deviceType === 'tablet' && !globalSettings.allowTablet) return null;
-            if (session.deviceType === 'mobile' && !globalSettings.allowMobile) return null;
-          } catch (err) {
-            // bypass lookup failure gracefully
-          }
-        }
-
-        const headerStore = await headers();
-        const incomingHash = headerStore.get('x-device-hash');
-        
-        if (incomingHash && !isExempt) {
-          if (!session.deviceHash) {
-            // Graceful migration: save device hash on first use
-            await updateSessionDeviceHash(session.id, incomingHash);
-          } else if (session.deviceHash !== incomingHash) {
-            // Device mismatch!
-            return null;
-          }
-        }
-      } catch (err) {
-        // db lookup or headers() might fail or not be available in some edge environments, bypass gracefully
-      }
-    }
+    // We are intentionally skipping the DB checks (`getSessionById` and `db.query.user.findFirst`)
+    // here as well to ensure Cloudflare edge rendering doesn't exceed the 10ms CPU limit.
+    // The session is completely stateless and relies purely on the JWT validity.
 
     return {
       user: {
         id: payload.sub,
         role: payload.role,
         email: payload.email,
+        phone: payload.user_metadata?.phone || null,
+        user_metadata: {
+          full_name: payload.user_metadata?.full_name || null,
+          phone: payload.user_metadata?.phone || null,
+          bmdc_number: payload.user_metadata?.bmdc_number || null,
+          profile_image: payload.user_metadata?.profile_image || null,
+          canManagePayments: payload.user_metadata?.canManagePayments || false,
+        },
       },
+      sessionId: payload.sessionId,
     };
   } catch {
     return null;
