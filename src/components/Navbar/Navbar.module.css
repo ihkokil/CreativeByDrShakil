@@ -49,9 +49,7 @@
   filter: none;
 }
 
-[data-theme='dark'] .logoImg {
-  filter: brightness(0) invert(1);
-}
+
 
 /* ── Desktop center links (hidden on mobile) ── */
 .centerLinks {
