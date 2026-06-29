@@ -408,3 +408,60 @@
 .toggleText button:hover {
     text-decoration: underline;
 }
+
+@media (max-width: 480px) {
+    .overlay {
+        padding: 10px;
+    }
+
+    .modal {
+        padding: 24px 16px;
+        border-radius: 20px;
+    }
+
+    .header {
+        margin-bottom: 24px;
+    }
+
+    .title {
+        font-size: 1.6rem;
+    }
+
+    .inputGroup input {
+        padding: 14px 16px 14px 44px;
+        font-size: 0.95rem;
+    }
+
+    .inputIcon {
+        left: 14px;
+    }
+
+    .eyeBtn {
+        right: 14px;
+    }
+
+    .row {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .halfWidth {
+        width: 100%;
+    }
+
+    .emailDisplay {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+
+    .otpContainer {
+        gap: 6px;
+    }
+
+    .otpInput {
+        width: 40px;
+        height: 46px;
+        font-size: 1.25rem;
+        border-radius: 8px;
+    }
+}
