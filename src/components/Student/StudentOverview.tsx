@@ -113,10 +113,12 @@ export default function StudentOverview({
             </motion.div>
 
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                    <CheckCircle size={20} />
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                        <CheckCircle size={20} />
+                    </div>
                 </div>
-                <div className={styles.metricBody} style={{ marginTop: '16px' }}>
+                <div className={styles.metricBody}>
                     <h4>{completedLessons}</h4>
                     <p>Lessons Completed</p>
                 </div>
