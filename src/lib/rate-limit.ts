@@ -43,8 +43,12 @@ export async function checkRateLimit(request: NextRequest, limit: number = 5) {
              request.headers.get('x-real-ip') || 
              '127.0.0.1';
   
+  // Partition rate limiting per IP per route path to avoid limits aggregating across different endpoints
+  const path = request.nextUrl.pathname;
+  const token = `${ip}:${path}`;
+  
   try {
-    await limiter.check(limit, ip);
+    await limiter.check(limit, token);
     return null;
   } catch {
     return NextResponse.json(
