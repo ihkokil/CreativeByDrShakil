@@ -100,64 +100,173 @@ export function PWAInstallPrompt() {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border border-gray-200 dark:border-zinc-800 shadow-2xl rounded-2xl p-4 z-50 overflow-hidden"
+                    style={{
+                        position: 'fixed',
+                        bottom: '24px',
+                        left: '16px',
+                        right: '16px',
+                        zIndex: 99999,
+                        maxWidth: '400px',
+                        margin: '0 auto',
+                    }}
                 >
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500" />
-                    
-                    <button 
-                        onClick={handleDismiss}
-                        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                        aria-label="Close"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-
-                    <div className="flex items-start gap-4 pt-2">
-                        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 rounded-xl flex items-center justify-center">
-                            <img src="/icons/android-chrome-192x192.png" alt="App Icon" className="w-8 h-8 rounded-lg" />
-                        </div>
+                    <div className="glass" style={{
+                        padding: '20px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px',
+                        boxShadow: 'var(--shadow-premium)',
+                    }}>
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '4px',
+                            background: 'linear-gradient(90deg, var(--primary), var(--info))'
+                        }} />
                         
-                        <div className="flex-1">
-                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-                                Install App
-                            </h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                                Install Creative By Dr. Shakil for a faster, better experience.
-                            </p>
+                        <button 
+                            onClick={handleDismiss}
+                            aria-label="Close"
+                            style={{
+                                position: 'absolute',
+                                top: '12px',
+                                right: '12px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '50%',
+                                transition: 'background 0.2s, color 0.2s'
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.background = 'var(--surface-soft)';
+                                e.currentTarget.style.color = 'var(--foreground)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.color = 'var(--text-muted)';
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                            <div style={{
+                                width: '56px',
+                                height: '56px',
+                                flexShrink: 0,
+                                background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+                                borderRadius: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid color-mix(in srgb, var(--primary) 30%, transparent)'
+                            }}>
+                                <img 
+                                    src="/icons/android-chrome-192x192.png" 
+                                    alt="App Icon" 
+                                    style={{ width: '40px', height: '40px', borderRadius: '10px' }} 
+                                />
+                            </div>
                             
-                            {installPromptEvent ? (
-                                <div className="mt-4 flex gap-2">
-                                    <button 
-                                        onClick={handleInstall}
-                                        className="flex-1 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-sm font-medium py-2 px-4 rounded-xl shadow-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                        Install Now
-                                    </button>
-                                </div>
-                            ) : isIOS ? (
-                                <div className="mt-4 bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300">
-                                    <p className="flex items-center gap-2 mb-2">
-                                        1. Tap <Share className="w-4 h-4 text-blue-500" /> in the toolbar
-                                    </p>
-                                    <p className="flex items-center gap-2">
-                                        2. Select <PlusSquare className="w-4 h-4 text-gray-900 dark:text-white" /> Add to Home Screen
-                                    </p>
-                                </div>
-                            ) : isAndroid ? (
-                                <div className="mt-4 bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300">
-                                    <p className="flex items-center gap-2 mb-2">
-                                        1. Tap <MoreVertical className="w-4 h-4 text-gray-900 dark:text-white" /> in the browser menu
-                                    </p>
-                                    <p className="flex items-center gap-2">
-                                        2. Select <PlusSquare className="w-4 h-4 text-gray-900 dark:text-white" /> Add to Home screen
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                                    Install from your browser menu.
-                                </div>
-                            )}
+                            <div style={{ flex: 1 }}>
+                                <h3 style={{ 
+                                    margin: '0 0 4px 0', 
+                                    fontSize: '1.1rem', 
+                                    fontWeight: 'var(--weight-bold)',
+                                    color: 'var(--foreground)' 
+                                }}>
+                                    Install App
+                                </h3>
+                                <p style={{ 
+                                    margin: 0, 
+                                    fontSize: '0.9rem', 
+                                    color: 'var(--text-muted)',
+                                    lineHeight: '1.4'
+                                }}>
+                                    Install Creative By Dr. Shakil for a faster, better experience.
+                                </p>
+                                
+                                {installPromptEvent ? (
+                                    <div style={{ marginTop: '16px' }}>
+                                        <button 
+                                            onClick={handleInstall}
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px 24px',
+                                                background: 'var(--foreground)',
+                                                color: 'var(--background)',
+                                                border: 'none',
+                                                borderRadius: 'var(--radius-md)',
+                                                fontWeight: 'var(--weight-bold)',
+                                                fontSize: '0.95rem',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                                boxShadow: 'var(--shadow-medium)'
+                                            }}
+                                            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                        >
+                                            <Download size={18} />
+                                            Install Now
+                                        </button>
+                                    </div>
+                                ) : isIOS ? (
+                                    <div style={{ 
+                                        marginTop: '16px',
+                                        background: 'var(--surface-soft)',
+                                        padding: '12px',
+                                        borderRadius: 'var(--radius-md)',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--foreground)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <span>1. Tap</span>
+                                            <Share size={16} color="var(--info)" />
+                                            <span>in the toolbar</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span>2. Select</span>
+                                            <PlusSquare size={16} />
+                                            <span>Add to Home Screen</span>
+                                        </div>
+                                    </div>
+                                ) : isAndroid ? (
+                                    <div style={{ 
+                                        marginTop: '16px',
+                                        background: 'var(--surface-soft)',
+                                        padding: '12px',
+                                        borderRadius: 'var(--radius-md)',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--foreground)'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <span>1. Tap</span>
+                                            <MoreVertical size={16} />
+                                            <span>in browser menu</span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span>2. Select</span>
+                                            <PlusSquare size={16} />
+                                            <span>Add to Home screen</span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                        Install from your browser menu.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </motion.div>
