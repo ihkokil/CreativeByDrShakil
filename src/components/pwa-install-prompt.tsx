@@ -116,6 +116,7 @@ export function PWAInstallPrompt() {
                         flexDirection: 'column',
                         gap: '16px',
                         boxShadow: 'var(--shadow-premium)',
+                        background: 'var(--card-bg)'
                     }}>
                         <div style={{
                             position: 'absolute',
