@@ -228,6 +228,10 @@ export async function GET(request: NextRequest) {
       osInfo,
     });
 
+    const safeProfileImage = user.profileImage && user.profileImage.length > 500 
+      ? null 
+      : user.profileImage;
+
     // Step 5: Mint custom JWT and set cookie
     const token = await signAuthToken({
       sub: user.id,
@@ -238,7 +242,7 @@ export async function GET(request: NextRequest) {
         full_name: user.fullName,
         phone: user.phone,
         bmdc_number: user.bmdcNumber,
-        profile_image: user.profileImage,
+        profile_image: safeProfileImage,
       },
     });
 

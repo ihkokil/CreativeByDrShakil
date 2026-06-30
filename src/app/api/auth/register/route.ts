@@ -151,6 +151,10 @@ export async function POST(request: NextRequest) {
         osInfo,
       });
 
+      const safeProfileImage = user.profileImage && user.profileImage.length > 500 
+        ? null 
+        : user.profileImage;
+
       const authToken = await signAuthToken({
         sub: user.id,
         role: user.role as 'admin' | 'teacher' | 'student',
@@ -160,7 +164,7 @@ export async function POST(request: NextRequest) {
           full_name: user.fullName,
           phone: user.phone,
           bmdc_number: user.bmdcNumber,
-          profile_image: user.profileImage,
+          profile_image: safeProfileImage,
         },
       });
 

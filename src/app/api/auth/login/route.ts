@@ -167,7 +167,11 @@ export async function POST(request: NextRequest) {
       osInfo,
     });
 
-    // Sign token with session ID
+    // Sign token with session ID (ensure we don't stuff huge base64 images into the JWT cookie)
+    const safeProfileImage = userRecord.profileImage && userRecord.profileImage.length > 500 
+      ? null 
+      : userRecord.profileImage;
+
     const token = await signAuthToken({
       sub: userRecord.id,
       role: userRecord.role as 'admin' | 'teacher' | 'student',
@@ -177,7 +181,7 @@ export async function POST(request: NextRequest) {
         full_name: userRecord.fullName,
         phone: userRecord.phone,
         bmdc_number: userRecord.bmdcNumber,
-        profile_image: userRecord.profileImage,
+        profile_image: safeProfileImage,
         canManagePayments: userRecord.canManagePayments,
       },
     });
