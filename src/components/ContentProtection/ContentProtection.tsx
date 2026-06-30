@@ -16,7 +16,7 @@ export default function ContentProtection() {
             process.env.NODE_ENV === "development" || 
             (typeof window !== "undefined" && 
                 (window.location.hostname === "localhost" || 
-                 window.location.hostname === "creativebydrshakil.ihkokil.workers.dev"))
+                 window.location.hostname.endsWith("creativebydrshakil.ihkokil.workers.dev")))
         ) {
             return;
         }
