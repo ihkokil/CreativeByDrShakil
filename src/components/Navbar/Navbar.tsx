@@ -9,6 +9,7 @@ import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home } from "lucide-reac
 import AuthModal from "../Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 import { usePathname, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
