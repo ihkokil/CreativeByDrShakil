@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
     LayoutDashboard, 
     UserCog, 
@@ -56,19 +57,22 @@ export default function StudentSidebar({
         } else {
             setActiveTab(item.id);
         }
+        if (typeof window !== "undefined" && window.innerWidth <= 768 && isExpanded) {
+            onToggleExpand();
+        }
     };
 
     return (
         <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
             <div className={styles.sidebarHeader}>
                 <Link href="/" className={styles.logoWrapper}>
-                    <div className={styles.logoIcon}>
-                        <GraduationCap className={styles.shieldIcon} size={24} />
-                    </div>
-                    {isExpanded && (
-                        <span className={styles.logoText}>
-                            Student<span>Portal</span>
-                        </span>
+                    {isExpanded ? (
+                        <>
+                            <Image src="/logo/logo_white.webp" alt="Student Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-dark-theme" />
+                            <Image src="/logo/logo_black.webp" alt="Student Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-light-theme" />
+                        </>
+                    ) : (
+                        <Image src="/favicon.png" alt="Student Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
                     )}
                 </Link>
                 <button className={styles.toggleBtn} onClick={onToggleExpand}>

@@ -75,8 +75,14 @@ export default function TeacherSidebar({
         <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
             <div className={styles.sidebarHeader}>
                 <Link href="/" className={styles.logoWrapper}>
-                    <div className={styles.logoIcon}>C</div>
-                    {isExpanded && <span className={styles.logoText}>Creative<span>Academy</span></span>}
+                    {isExpanded ? (
+                        <>
+                            <Image src="/logo/logo_white.webp" alt="Teacher Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-dark-theme" />
+                            <Image src="/logo/logo_black.webp" alt="Teacher Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-light-theme" />
+                        </>
+                    ) : (
+                        <Image src="/favicon.png" alt="Teacher Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
+                    )}
                 </Link>
                 <button className={styles.toggleBtn} onClick={onToggleExpand}>
                     {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
@@ -98,6 +104,11 @@ export default function TeacherSidebar({
                                     key={item.id}
                                     href={(item as any).href}
                                     className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+                                    onClick={() => {
+                                        if (typeof window !== "undefined" && window.innerWidth <= 768 && isExpanded) {
+                                            onToggleExpand();
+                                        }
+                                    }}
                                 >
                                     <span className={styles.icon}>{item.icon}</span>
                                     {isExpanded && <span className={styles.label}>{item.label}</span>}
@@ -110,7 +121,12 @@ export default function TeacherSidebar({
                             <button
                                 key={item.id}
                                 className={`${styles.navItem} ${isActive ? styles.active : ''}`}
-                                onClick={() => setActiveTab(item.id as TabType)}
+                                onClick={() => {
+                                    setActiveTab(item.id as TabType);
+                                    if (typeof window !== "undefined" && window.innerWidth <= 768 && isExpanded) {
+                                        onToggleExpand();
+                                    }
+                                }}
                             >
                                 <span className={styles.icon}>{item.icon}</span>
                                 {isExpanded && <span className={styles.label}>{item.label}</span>}

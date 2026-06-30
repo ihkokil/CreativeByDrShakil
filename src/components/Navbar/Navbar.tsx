@@ -93,67 +93,79 @@ export default function Navbar() {
                             <Menu size={20} />
                         </button>
 
-                        {isNavMenuOpen && (
-                            <>
-                                <button
-                                    type="button"
-                                    className={styles.navBackdrop}
-                                    aria-label="Close navigation menu"
-                                    onClick={() => setIsNavMenuOpen(false)}
-                                />
-                                <div className={styles.navSidePanel}>
-                                    <div className={styles.navPanelHeader}>
-                                        <Link href="/" className={styles.navPanelLogo} onClick={() => setIsNavMenuOpen(false)}>
-                                            <Image src="/logo.png" alt="Creative By Dr. Shakil" width={120} height={34} priority className={styles.logoImg} />
-                                        </Link>
-                                        <button
-                                            type="button"
-                                            className={styles.navPanelCloseBtn}
-                                            aria-label="Close navigation menu"
-                                            onClick={() => setIsNavMenuOpen(false)}
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    </div>
-
-                                    <Link href="/" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
-                                        <Home size={18} /> Home
-                                    </Link>
-                                    <Link href="/courses" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
-                                        <BookOpen size={18} /> Courses
-                                    </Link>
-                                    <Link href="/contact" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
-                                        <Mail size={18} /> Contact
-                                    </Link>
-
-                                    {/* Logged-in user section in side panel */}
-                                    {user && (
-                                        <div className={styles.navPanelUserSection}>
-                                            <div className={styles.navPanelUserInfo}>
-                                                <span className={styles.navPanelUserEmail}>{user.email}</span>
-                                                <span className={styles.navPanelUserRole}>{role}</span>
-                                            </div>
-                                            <Link
-                                                href={dashboardHref}
-                                                className={styles.navPanelLink}
-                                                onClick={() => setIsNavMenuOpen(false)}
-                                            >
-                                                <Layout size={18} /> Dashboard
+                        <AnimatePresence>
+                            {isNavMenuOpen && (
+                                <>
+                                    <motion.button
+                                        type="button"
+                                        className={styles.navBackdrop}
+                                        aria-label="Close navigation menu"
+                                        onClick={() => setIsNavMenuOpen(false)}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{ duration: 0.2 }}
+                                    />
+                                    <motion.div 
+                                        className={styles.navSidePanel}
+                                        initial={{ x: "-100%" }}
+                                        animate={{ x: 0 }}
+                                        exit={{ x: "-100%" }}
+                                        transition={{ type: "tween", duration: 0.25, ease: "easeInOut" }}
+                                    >
+                                        <div className={styles.navPanelHeader}>
+                                            <Link href="/" className={styles.navPanelLogo} onClick={() => setIsNavMenuOpen(false)}>
+                                                <Image src="/logo.png" alt="Creative By Dr. Shakil" width={120} height={34} priority className={styles.logoImg} />
                                             </Link>
                                             <button
-                                                className={styles.navPanelLogout}
-                                                onClick={() => {
-                                                    signOut();
-                                                    setIsNavMenuOpen(false);
-                                                }}
+                                                type="button"
+                                                className={styles.navPanelCloseBtn}
+                                                aria-label="Close navigation menu"
+                                                onClick={() => setIsNavMenuOpen(false)}
                                             >
-                                                <LogOut size={18} /> Sign Out
+                                                <X size={18} />
                                             </button>
                                         </div>
-                                    )}
-                                </div>
-                            </>
-                        )}
+
+                                        <Link href="/" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <Home size={18} /> Home
+                                        </Link>
+                                        <Link href="/courses" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <BookOpen size={18} /> Courses
+                                        </Link>
+                                        <Link href="/contact" className={styles.navPanelLink} onClick={() => setIsNavMenuOpen(false)}>
+                                            <Mail size={18} /> Contact
+                                        </Link>
+
+                                        {/* Logged-in user section in side panel */}
+                                        {user && (
+                                            <div className={styles.navPanelUserSection}>
+                                                <div className={styles.navPanelUserInfo}>
+                                                    <span className={styles.navPanelUserEmail}>{user.email}</span>
+                                                    <span className={styles.navPanelUserRole}>{role}</span>
+                                                </div>
+                                                <Link
+                                                    href={dashboardHref}
+                                                    className={styles.navPanelLink}
+                                                    onClick={() => setIsNavMenuOpen(false)}
+                                                >
+                                                    <Layout size={18} /> Dashboard
+                                                </Link>
+                                                <button
+                                                    className={styles.navPanelLogout}
+                                                    onClick={() => {
+                                                        signOut();
+                                                        setIsNavMenuOpen(false);
+                                                    }}
+                                                >
+                                                    <LogOut size={18} /> Sign Out
+                                                </button>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     <Link href="/" className={styles.logo}>
