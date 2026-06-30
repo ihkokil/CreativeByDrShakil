@@ -10,7 +10,6 @@ import { sendVerificationEmail } from '@/lib/auth-emails';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import { createDeviceSession } from '@/lib/session-manager';
 import { sendTelegramRegistrationNotification } from '@/lib/telegram';
-import { neon } from '@neondatabase/serverless';
 
 
 const registerSchema = z.object({
@@ -51,10 +50,6 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       return NextResponse.json({ error: 'User already exists with this email or phone.' }, { status: 409 });
     }
-
-    // Ensure pgcrypto is active
-    const rawSql = neon(process.env.NEON_DATABASE_URL!);
-    await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
 
     let emailVerified = false;
     let tokenHash = null;

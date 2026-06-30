@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { neon } from '@neondatabase/serverless';
+import { db } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,11 +18,10 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Use raw Neon client to bypass Drizzle schema building overhead
-    const sql = neon(process.env.NEON_DATABASE_URL!);
-    const result = await sql`SELECT id FROM "User" WHERE email = ${normalizedEmail} LIMIT 1`;
+    // Use Drizzle execute to bypass schema building overhead while utilizing the pool
+    const result = await db.execute(sql`SELECT id FROM "User" WHERE email = ${normalizedEmail} LIMIT 1`);
 
-    return NextResponse.json({ exists: result.length > 0 });
+    return NextResponse.json({ exists: result.rows.length > 0 });
   } catch (error: any) {
     console.error('[Check Email Error]', error?.message || error);
     return NextResponse.json(

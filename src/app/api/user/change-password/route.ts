@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { user as userSchema } from '@/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
-import { neon } from '@neondatabase/serverless';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,21 +28,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New password must be different from current password.' }, { status: 400 });
     }
 
-    // Ensure pgcrypto is active
-    const rawSql = neon(process.env.NEON_DATABASE_URL!);
-    await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
-
     // Query user and check current password hash in database
-    const results = await rawSql`
+    const results = await db.execute(sql`
       SELECT 
         id, "passwordHash",
         ("passwordHash" = crypt(${currentPassword}, "passwordHash")) as "isCurrentValid"
       FROM "User" 
       WHERE id = ${payload.sub} 
       LIMIT 1
-    `;
+    `);
 
-    const user = results[0] as any;
+    const user = results.rows[0] as any;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });

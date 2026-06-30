@@ -6,7 +6,7 @@ import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/a
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
-import { neon } from '@neondatabase/serverless';
+
 
 // GET - List all enrollments with student and course info
 export async function GET(request: NextRequest) {
@@ -129,9 +129,6 @@ export async function POST(request: NextRequest) {
 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
       
-      // Ensure pgcrypto is active
-      const rawSql = neon(process.env.NEON_DATABASE_URL!);
-      await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
 
       const [newUser] = await db.insert(userSchema).values({
         id: crypto.randomUUID(),

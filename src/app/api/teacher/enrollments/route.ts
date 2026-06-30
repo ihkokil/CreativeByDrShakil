@@ -5,7 +5,7 @@ import { eq, or, and, sql } from 'drizzle-orm';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { neon } from '@neondatabase/serverless';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,9 +55,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'A user with this email or phone already exists.' }, { status: 409 });
       }
 
-      // Ensure pgcrypto is active
-      const rawSql = neon(process.env.NEON_DATABASE_URL!);
-      await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+
 
       const { token: setupToken, tokenHash } = await createTokenPair();
       const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); 

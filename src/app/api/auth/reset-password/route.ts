@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { user as userSchema } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { hashToken } from "@/lib/token-utils";
-import { neon } from "@neondatabase/serverless";
+
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -39,9 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Reset link is invalid or expired." }, { status: 400 });
     }
 
-    // Ensure pgcrypto is active
-    const rawSql = neon(process.env.NEON_DATABASE_URL!);
-    await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+
 
     await db.update(userSchema)
       .set({

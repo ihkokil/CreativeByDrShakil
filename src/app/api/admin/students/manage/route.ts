@@ -5,7 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
-import { neon } from '@neondatabase/serverless';
+
 
 // Add a new student via invitation
 export async function POST(request: NextRequest) {
@@ -42,9 +42,7 @@ export async function POST(request: NextRequest) {
     // Create a placeholder password (unusable — student sets their own via reset link)
     const placeholder = `Invite${Date.now()}${Math.random().toString(36).slice(2)}!`;
 
-    // Ensure pgcrypto is active
-    const rawSql = neon(process.env.NEON_DATABASE_URL!);
-    await rawSql`CREATE EXTENSION IF NOT EXISTS pgcrypto`;
+
 
     // Generate a password-reset token good for 72 hours
     const { token: setupToken, tokenHash: resetTokenHash } = await createTokenPair();

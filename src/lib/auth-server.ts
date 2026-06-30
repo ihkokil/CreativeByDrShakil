@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
@@ -27,13 +26,6 @@ function getJwtSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12);
-}
-
-export async function comparePassword(password: string, passwordHash: string) {
-  return bcrypt.compare(password, passwordHash);
-}
 
 export async function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string; user_metadata?: any }) {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
