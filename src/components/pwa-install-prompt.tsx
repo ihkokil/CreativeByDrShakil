@@ -2,37 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Download, Share, PlusSquare } from "lucide-react";
+import { X, Download, Share, PlusSquare, MoreVertical } from "lucide-react";
 
 export function PWAInstallPrompt() {
+    const [isMobile, setIsMobile] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
+    const [isAndroid, setIsAndroid] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
     const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
     const [showPrompt, setShowPrompt] = useState(false);
 
     useEffect(() => {
         // Check if app is already installed
-        const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
-        setIsStandalone(isStandalone);
+        const isStandaloneCheck = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
+        setIsStandalone(isStandaloneCheck);
 
-        if (isStandalone) {
+        if (isStandaloneCheck) {
             return;
         }
 
-        // Detect iOS
+        // Detect OS
         const userAgent = window.navigator.userAgent.toLowerCase();
-        const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+        const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+        const isAndroidDevice = /android/.test(userAgent);
+        
         setIsIOS(isIOSDevice);
+        setIsAndroid(isAndroidDevice);
+        setIsMobile(isIOSDevice || isAndroidDevice);
 
-        // Check if user previously dismissed
         const dismissed = localStorage.getItem("pwa-prompt-dismissed");
+        
+        if (dismissed) {
+            return;
+        }
 
         // Helper to handle the prompt event
         const handlePromptEvent = (e: any) => {
             setInstallPromptEvent(e);
-            if (!dismissed) {
-                setShowPrompt(true);
-            }
+            setShowPrompt(true);
         };
 
         // If the event fired before this component mounted (captured in layout.tsx)
@@ -48,22 +55,25 @@ export function PWAInstallPrompt() {
 
         window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
-        // If iOS and not dismissed, show the prompt (since iOS doesn't fire beforeinstallprompt)
-        if (isIOSDevice && !dismissed) {
-            // Small delay to ensure it doesn't pop up immediately on load
-            const timer = setTimeout(() => setShowPrompt(true), 2000);
-            return () => {
-                clearTimeout(timer);
-                window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-            };
+        // If it's a mobile device (iOS or Android), we show the prompt regardless after a delay.
+        // If we captured the event above, they'll see the "Install" button. 
+        // If not, they'll see manual instructions.
+        let timer: NodeJS.Timeout;
+        if (isIOSDevice || isAndroidDevice) {
+            timer = setTimeout(() => {
+                setShowPrompt(true);
+            }, 2500);
         }
 
-        return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        return () => {
+            if (timer) clearTimeout(timer);
+            window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+        };
     }, []);
 
     const handleDismiss = () => {
         setShowPrompt(false);
-        // Set a timestamp for when they dismissed it so we don't bother them for a while (e.g., 7 days)
+        // Set a timestamp for when they dismissed it
         localStorage.setItem("pwa-prompt-dismissed", Date.now().toString());
     };
 
@@ -115,16 +125,7 @@ export function PWAInstallPrompt() {
                                 Install Creative By Dr. Shakil for a faster, better experience.
                             </p>
                             
-                            {isIOS ? (
-                                <div className="mt-4 bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300">
-                                    <p className="flex items-center gap-2 mb-2">
-                                        1. Tap <Share className="w-4 h-4 text-blue-500" /> in the toolbar
-                                    </p>
-                                    <p className="flex items-center gap-2">
-                                        2. Select <PlusSquare className="w-4 h-4 text-gray-900 dark:text-white" /> Add to Home Screen
-                                    </p>
-                                </div>
-                            ) : (
+                            {installPromptEvent ? (
                                 <div className="mt-4 flex gap-2">
                                     <button 
                                         onClick={handleInstall}
@@ -133,6 +134,28 @@ export function PWAInstallPrompt() {
                                         <Download className="w-4 h-4" />
                                         Install Now
                                     </button>
+                                </div>
+                            ) : isIOS ? (
+                                <div className="mt-4 bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300">
+                                    <p className="flex items-center gap-2 mb-2">
+                                        1. Tap <Share className="w-4 h-4 text-blue-500" /> in the toolbar
+                                    </p>
+                                    <p className="flex items-center gap-2">
+                                        2. Select <PlusSquare className="w-4 h-4 text-gray-900 dark:text-white" /> Add to Home Screen
+                                    </p>
+                                </div>
+                            ) : isAndroid ? (
+                                <div className="mt-4 bg-gray-50 dark:bg-zinc-800/50 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300">
+                                    <p className="flex items-center gap-2 mb-2">
+                                        1. Tap <MoreVertical className="w-4 h-4 text-gray-900 dark:text-white" /> in the browser menu
+                                    </p>
+                                    <p className="flex items-center gap-2">
+                                        2. Select <PlusSquare className="w-4 h-4 text-gray-900 dark:text-white" /> Add to Home screen
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                                    Install from your browser menu.
                                 </div>
                             )}
                         </div>
