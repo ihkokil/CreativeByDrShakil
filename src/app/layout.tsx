@@ -40,6 +40,19 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
+            <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            window.deferredPWAEvent = null;
+                            window.addEventListener('beforeinstallprompt', (e) => {
+                                e.preventDefault();
+                                window.deferredPWAEvent = e;
+                            });
+                        `,
+                    }}
+                />
+            </head>
             <body className={outfit.className} suppressHydrationWarning>
                 <AuthProvider>
                     <ContentProtection />

@@ -26,14 +26,24 @@ export function PWAInstallPrompt() {
 
         // Check if user previously dismissed
         const dismissed = localStorage.getItem("pwa-prompt-dismissed");
-        
-        // Listen for standard install prompt (Chrome/Edge/Android)
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault();
+
+        // Helper to handle the prompt event
+        const handlePromptEvent = (e: any) => {
             setInstallPromptEvent(e);
             if (!dismissed) {
                 setShowPrompt(true);
             }
+        };
+
+        // If the event fired before this component mounted (captured in layout.tsx)
+        if ((window as any).deferredPWAEvent) {
+            handlePromptEvent((window as any).deferredPWAEvent);
+        }
+
+        // Listen for standard install prompt (Chrome/Edge/Android) if it fires later
+        const handleBeforeInstallPrompt = (e: Event) => {
+            e.preventDefault();
+            handlePromptEvent(e);
         };
 
         window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
