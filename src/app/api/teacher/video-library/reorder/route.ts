@@ -62,14 +62,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: true, changed: false });
         }
 
-        const ops = reordered.map((item, idx) => 
-            db.update(vlnSchema)
-              .set({ sortOrder: idx })
-              .where(eq(vlnSchema.id, item.id))
-        );
-
-        if (ops.length > 0) {
-            await db.batch(ops as any);
+        if (reordered.length > 0) {
+            await db.transaction(async (tx) => {
+                for (let idx = 0; idx < reordered.length; idx++) {
+                    await tx.update(vlnSchema)
+                      .set({ sortOrder: idx })
+                      .where(eq(vlnSchema.id, reordered[idx].id));
+                }
+            });
         }
 
         return NextResponse.json({ success: true, changed: true });
