@@ -211,26 +211,35 @@ function CreateCourseStep3Content() {
             
             // Reconstruct chronological order from saved JSON
             curriculum.forEach((topicNode: any) => {
-              if (seenIds.has(topicNode.id)) {
-                initialSelectedOrder.push(topicNode.id);
+              let matchedId = topicNode.mediaVaultFolderId || topicNode.id;
+              
+              // Fallback for previously corrupted saves where mediaVaultFolderId was lost
+              if (!seenIds.has(matchedId)) {
+                  const matchedByTitle = allTopics.find(t => t.source === 'library' && t.title === topicNode.title);
+                  if (matchedByTitle) {
+                      matchedId = matchedByTitle.id;
+                  }
+              }
+
+              if (seenIds.has(matchedId)) {
+                initialSelectedOrder.push(matchedId);
               } else {
                  const convertNodeToItem = (node: any): StarterItem => ({
                   id: node.id,
                   type: node.type,
                   title: node.title,
-                  url: node.url || undefined,
-                  items: node.children ? node.children.map(convertNodeToItem) : undefined
-                });
-
-                const customTopic: StarterMainTopic = {
-                  id: topicNode.id,
-                  title: topicNode.title,
-                  subTopics: topicNode.children ? topicNode.children.map(convertNodeToItem) : [],
-                  source: "custom"
-                };
-                allTopics.push(customTopic);
-                seenIds.add(topicNode.id);
-                initialSelectedOrder.push(topicNode.id);
+                  url: node.url,
+                  items: node.children ? node.children.map(convertNodeToItem) : undefined,
+                 });
+                 const customTopic: StarterMainTopic = {
+                   id: topicNode.id,
+                   title: topicNode.title,
+                   subTopics: topicNode.children ? topicNode.children.map(convertNodeToItem) : [],
+                   source: "custom",
+                 };
+                 allTopics.push(customTopic);
+                 seenIds.add(topicNode.id);
+                 initialSelectedOrder.push(topicNode.id);
               }
             });
           } catch (e) {

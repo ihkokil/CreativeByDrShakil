@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styles from "./CourseCurriculum.module.css";
-import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder, CheckCircle2, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDisplayDate } from "@/lib/date-format";
 
@@ -62,14 +62,17 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                         </>
                     ) : (
                         <>
-                            <PlayCircle size={16} className={styles.playIcon} />
+                            {node.type === 'document' ? (
+                                <FileText size={16} className={styles.playIcon} />
+                            ) : (
+                                <PlayCircle size={16} className={styles.playIcon} />
+                            )}
                             <span className={styles.title}>{node.title}</span>
                             {node.completed && <CheckCircle2 size={14} className={styles.completedIcon} />}
                             {node.locked && <Lock size={14} className={styles.lockIcon} />}
-                            {node.duration && <span className={styles.duration}>{node.duration}</span>}
                             {node.availableAt && (
-                                <span className={node.locked ? styles.availableAt : styles.availableNow}>
-                                    {node.locked ? formatAvailability(node.availableAt) : "Available"}
+                                <span className={node.locked ? styles.availableAt : node.completed ? styles.completedBadge : styles.availableNow}>
+                                    {node.locked ? formatAvailability(node.availableAt) : node.completed ? "Completed" : "Available"}
                                 </span>
                             )}
                         </>

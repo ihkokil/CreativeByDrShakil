@@ -11,6 +11,7 @@ export interface CurriculumNode {
     type: 'folder' | ContentType;
     duration?: string;
     url?: string;
+    attachments?: { name: string; url: string; type?: string; size?: number }[];
     children?: CurriculumNode[];
 }
 
@@ -19,6 +20,7 @@ interface FlatNode {
     title: string;
     type: string;
     url: string | null;
+    attachments: any;
     duration: string | null;
     parentId: string | null;
     sortOrder: number;
@@ -34,6 +36,7 @@ function buildTree(flatNodes: FlatNode[]): CurriculumNode[] {
             title: node.title,
             type: node.type as CurriculumNode['type'],
             url: node.url || undefined,
+            attachments: node.attachments || undefined,
             duration: node.duration || undefined,
             children: node.type === 'folder' ? [] : undefined,
         });
@@ -90,9 +93,6 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove }: NodeProps) => {
                                 <PlayCircle size={18} className={styles.playIcon} />
                             )}
                             <span className={styles.videoTitle}>{node.title}</span>
-                            {node.type === 'document' && <span className={styles.documentBadge}>Document</span>}
-                            {node.url && <span className={styles.videoSource}>{node.type === 'youtube' ? 'YouTube' : (node.type === 'document' ? 'External/Uploaded' : 'Self-Hosted')}</span>}
-                            {node.duration && <span className={styles.duration}>{node.duration}</span>}
                         </>
                     )}
                 </div>
@@ -160,6 +160,7 @@ export default function ModuleLibraryManager() {
     const [videoUrl, setVideoUrl] = useState("");
     const [videoDuration, setVideoDuration] = useState("");
     const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [docAttachments, setDocAttachments] = useState<{ name: string; url?: string; file?: File }[]>([]);
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
@@ -228,6 +229,7 @@ export default function ModuleLibraryManager() {
         setActiveParentId(parentId); 
         setVideoType('document');
         setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null); setUploadProgress(0);
+        setDocAttachments([]);
         setIsDocModalOpen(true); 
     };
 
@@ -298,6 +300,7 @@ export default function ModuleLibraryManager() {
         setVideoDuration(node.duration || "");
         setVideoType(node.type === 'folder' ? 'youtube' : node.type as ContentType);
         setVideoFile(null);
+        setDocAttachments(node.attachments || []);
         setUploadProgress(0);
         setIsEditModalOpen(true);
     };
@@ -324,16 +327,15 @@ export default function ModuleLibraryManager() {
         if (!videoTitle.trim() || !activeParentId || isSubmitting) return;
 
         if (videoType === 'youtube' && !videoUrl.trim()) { alert('YouTube URL is required.'); return; }
-
         if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) { alert('Please upload a video file or provide a direct URL.'); return; }
-
-        if (videoType === 'document' && !videoUrl.trim() && !videoFile) { alert('Please provide a document URL or upload a file.'); return; }
+        if (videoType === 'document' && docAttachments.length === 0) { alert('Please add at least one document attachment.'); return; }
 
         setIsSubmitting(true);
         try {
             let resolvedVideoUrl = videoUrl.trim() || null;
+            let finalAttachments = videoType === 'document' ? [...docAttachments] : undefined;
 
-            if ((videoType === 'self-hosted' || videoType === 'document') && videoFile) {
+            if (videoType === 'self-hosted' && videoFile) {
                 setUploadingVideo(true);
                 setUploadProgress(0);
                 const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -342,10 +344,25 @@ export default function ModuleLibraryManager() {
                 resolvedVideoUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
             }
 
-            const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: videoTitle.trim(), type: videoType, url: resolvedVideoUrl, duration: videoDuration.trim() || null, parentId: activeParentId }) });
+            if (videoType === 'document' && finalAttachments) {
+                setUploadingVideo(true);
+                for (let i = 0; i < finalAttachments.length; i++) {
+                    const att = finalAttachments[i];
+                    if (att.file) {
+                        setUploadProgress(0);
+                        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                        const uploadData = await uploadFileWithProgress(att.file, token);
+                        if (uploadData.error) throw new Error(uploadData.error);
+                        att.url = typeof uploadData.url === 'string' ? uploadData.url : undefined;
+                        delete att.file;
+                    }
+                }
+            }
+
+            const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: videoTitle.trim(), type: videoType, url: resolvedVideoUrl, attachments: finalAttachments, duration: videoDuration.trim() || null, parentId: activeParentId }) });
             if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to add module.'); }
 
-            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setIsVideoModalOpen(false); setIsDocModalOpen(false); await fetchLibrary();
+            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setDocAttachments([]); setIsVideoModalOpen(false); setIsDocModalOpen(false); await fetchLibrary();
         } catch (err: any) { alert(err.message || 'Failed to add module.'); } finally { setUploadingVideo(false); setIsSubmitting(false); }
     };
 
@@ -361,7 +378,9 @@ export default function ModuleLibraryManager() {
         setIsSubmitting(true);
         try {
             let finalUrl = videoUrl.trim() || null;
-            if (!isFolder && videoFile) {
+            let finalAttachments = videoType === 'document' ? [...docAttachments] : undefined;
+
+            if (!isFolder && videoType === 'self-hosted' && videoFile) {
                 setUploadingVideo(true);
                 setUploadProgress(0);
                 const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -370,8 +389,24 @@ export default function ModuleLibraryManager() {
                 finalUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
             }
 
+            if (!isFolder && videoType === 'document' && finalAttachments) {
+                setUploadingVideo(true);
+                for (let i = 0; i < finalAttachments.length; i++) {
+                    const att = finalAttachments[i];
+                    if (att.file) {
+                        setUploadProgress(0);
+                        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                        const uploadData = await uploadFileWithProgress(att.file, token);
+                        if (uploadData.error) throw new Error(uploadData.error);
+                        att.url = typeof uploadData.url === 'string' ? uploadData.url : undefined;
+                        delete att.file;
+                    }
+                }
+            }
+
             const body: any = { title: title.trim() };
             if (!isFolder) { body.url = finalUrl; body.duration = videoDuration.trim() || null; body.type = videoType; }
+            if (videoType === 'document') { body.attachments = finalAttachments; }
 
             const res = await fetch(`/api/teacher/video-library/${editingNode.id}`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body) });
             if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to update.'); }
@@ -584,10 +619,6 @@ export default function ModuleLibraryManager() {
                                             <option value="self-hosted">Self-Hosted Video</option>
                                         </select>
                                     </div>
-                                    <div className={styles.formGroup}>
-                                        <label>Duration (Auto-fetched)</label>
-                                        <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder={isFetchingMetadata ? "Fetching..." : "e.g. 45:00"} />
-                                    </div>
                                 </div>
                                 <div className={styles.formGroup}>
                                     {videoType === 'youtube' || videoType === 'vimeo' ? (
@@ -649,7 +680,7 @@ export default function ModuleLibraryManager() {
                                     <input type="text" value={videoTitle} onChange={e => setVideoTitle(e.target.value)} placeholder="e.g. Chapter 1 Notes" required autoFocus />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Upload Document File</label>
+                                    <label>Add Documents</label>
                                     <div 
                                         className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
                                         onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
@@ -657,16 +688,36 @@ export default function ModuleLibraryManager() {
                                         onDrop={e => {
                                             e.preventDefault();
                                             setIsDragging(false);
-                                            const file = e.dataTransfer.files?.[0];
-                                            if (file) handleFileSelect(file);
+                                            const files = Array.from(e.dataTransfer.files);
+                                            const newAtts = files.map(f => ({ name: f.name, file: f }));
+                                            setDocAttachments([...docAttachments, ...newAtts]);
                                         }}
                                         onClick={() => document.getElementById('docFileInput')?.click()}
                                     >
-                                        <input id="docFileInput" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                        <input id="docFileInput" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ display: 'none' }} onChange={e => {
+                                            if (e.target.files) {
+                                                const files = Array.from(e.target.files);
+                                                const newAtts = files.map(f => ({ name: f.name, file: f }));
+                                                setDocAttachments([...docAttachments, ...newAtts]);
+                                            }
+                                        }} />
                                         <UploadCloud size={32} className={styles.dropIcon} />
-                                        <p>{videoFile ? videoFile.name : "Drag & Drop document here, or click to select"}</p>
+                                        <p>Drag & Drop documents here, or click to select multiple</p>
                                         <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX</small>
                                     </div>
+                                    
+                                    {docAttachments.length > 0 && (
+                                        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                            {docAttachments.map((att, idx) => (
+                                                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--surface-color)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                                    <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                                                    <button type="button" onClick={() => setDocAttachments(docAttachments.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
 
                                     {uploadingVideo && uploadProgress > 0 && (
                                         <div className={styles.progressContainer}>
@@ -674,11 +725,8 @@ export default function ModuleLibraryManager() {
                                             <span className={styles.progressText}>{uploadProgress}%</span>
                                         </div>
                                     )}
-                                    
-                                    <label style={{ marginTop: '12px' }}>Or External Document URL (Drive, CDN)</label>
-                                    <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://drive.google.com/..." />
                                 </div>
-                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Add Document'}</button>
+                                <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{uploadingVideo ? 'Uploading...' : isSubmitting ? 'Adding...' : 'Save Document Node'}</button>
                             </form>
                         </motion.div>
                     </div>
@@ -715,16 +763,14 @@ export default function ModuleLibraryManager() {
                                                     <option value="document">Document</option>
                                                 </select>
                                             </div>
+                                        </div>
+                                        {videoType !== 'document' && (
                                             <div className={styles.formGroup}>
-                                                <label>Duration (Auto-fetched)</label>
-                                                <input type="text" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} placeholder={isFetchingMetadata ? "Fetching..." : "e.g. 45:00"} />
+                                                <label>Resource URL</label>
+                                                <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} required={!videoFile} />
                                             </div>
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label>Resource URL</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} required={!videoFile} />
-                                        </div>
-                                        {(videoType === 'self-hosted' || videoType === 'document') && (
+                                        )}
+                                        {videoType === 'self-hosted' && (
                                             <div className={styles.formGroup}>
                                                 <label>Replace File (Optional)</label>
                                                 <div 
@@ -739,11 +785,60 @@ export default function ModuleLibraryManager() {
                                                     }}
                                                     onClick={() => document.getElementById('editFileInput')?.click()}
                                                 >
-                                                    <input id="editFileInput" type="file" accept={videoType === 'self-hosted' ? "video/*" : ".pdf,.doc,.docx,.ppt,.pptx"} style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
+                                                    <input id="editFileInput" type="file" accept="video/*" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
                                                     <UploadCloud size={32} className={styles.dropIcon} />
                                                     <p>{videoFile ? videoFile.name : "Drag & Drop new file here to replace, or click"}</p>
                                                     <small className={styles.fieldHint}>Leave empty to keep existing file. Uploading a new file will overwrite the Resource URL.</small>
                                                 </div>
+
+                                                {uploadingVideo && uploadProgress > 0 && (
+                                                    <div className={styles.progressContainer}>
+                                                        <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
+                                                        <span className={styles.progressText}>{uploadProgress}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {videoType === 'document' && (
+                                            <div className={styles.formGroup}>
+                                                <label>Manage Documents</label>
+                                                <div 
+                                                    className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
+                                                    onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+                                                    onDragLeave={() => setIsDragging(false)}
+                                                    onDrop={e => {
+                                                        e.preventDefault();
+                                                        setIsDragging(false);
+                                                        const files = Array.from(e.dataTransfer.files);
+                                                        const newAtts = files.map(f => ({ name: f.name, file: f }));
+                                                        setDocAttachments([...docAttachments, ...newAtts]);
+                                                    }}
+                                                    onClick={() => document.getElementById('editDocFileInput')?.click()}
+                                                >
+                                                    <input id="editDocFileInput" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ display: 'none' }} onChange={e => {
+                                                        if (e.target.files) {
+                                                            const files = Array.from(e.target.files);
+                                                            const newAtts = files.map(f => ({ name: f.name, file: f }));
+                                                            setDocAttachments([...docAttachments, ...newAtts]);
+                                                        }
+                                                    }} />
+                                                    <UploadCloud size={32} className={styles.dropIcon} />
+                                                    <p>Drag & Drop documents here, or click to select multiple</p>
+                                                </div>
+
+                                                {docAttachments.length > 0 && (
+                                                    <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                        {docAttachments.map((att, idx) => (
+                                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--surface-color)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                                                <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                                                                <button type="button" onClick={() => setDocAttachments(docAttachments.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
 
                                                 {uploadingVideo && uploadProgress > 0 && (
                                                     <div className={styles.progressContainer}>

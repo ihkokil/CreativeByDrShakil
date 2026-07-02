@@ -43,6 +43,7 @@ export async function populateMediaVaultNodesBatch(allNodes: BuilderCurriculumNo
       type: item.type as CurriculumContentType,
       url: item.url,
       duration: item.duration,
+      attachments: item.attachments as any[],
       storagePath: null,
       releaseGroupId: null,
       children: [], // Flat list for now

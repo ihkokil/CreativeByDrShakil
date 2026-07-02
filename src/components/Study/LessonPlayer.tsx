@@ -19,12 +19,14 @@ interface LessonPlayerProps {
         title: string;
         type: string;
         url?: string;
+        attachments?: { name: string; url: string; type?: string; size?: number }[];
         locked?: boolean;
     } | null;
     nextLesson?: () => void;
+    onComplete?: () => void;
 }
 
-export default function LessonPlayer({ lesson, nextLesson }: LessonPlayerProps) {
+export default function LessonPlayer({ lesson, nextLesson, onComplete }: LessonPlayerProps) {
     const player = useRef<MediaPlayerInstance>(null);
 
     if (!lesson) {
@@ -63,6 +65,40 @@ export default function LessonPlayer({ lesson, nextLesson }: LessonPlayerProps) 
         e.preventDefault();
     };
 
+    if (lesson.type === 'document') {
+        const atts = lesson.attachments && lesson.attachments.length > 0 
+            ? lesson.attachments 
+            : lesson.url ? [{ name: 'Document', url: lesson.url }] : [];
+            
+        return (
+            <div className={styles.documentContainer}>
+                <div className={styles.documentHeader}>
+                    <FileText size={40} style={{ color: 'var(--primary, #3b82f6)', marginBottom: '10px' }} />
+                    <h2>{lesson.title}</h2>
+                    <p>Documents & Resources</p>
+                </div>
+                <div className={styles.attachmentsList}>
+                    {atts.map((att, idx) => {
+                        const fullUrl = att.url ? (att.url.startsWith('/') ? `${process.env.NEXT_PUBLIC_UPLOADS_URL || ''}${att.url}` : att.url) : '';
+                        return (
+                            <a key={idx} href={fullUrl} target="_blank" rel="noopener noreferrer" className={styles.attachmentCard} onClick={() => onComplete?.()}>
+                                <div className={styles.attIcon}>
+                                    <FileText size={24} />
+                                </div>
+                                <div className={styles.attInfo}>
+                                    <span className={styles.attName}>{att.name}</span>
+                                </div>
+                                <div className={styles.attAction}>
+                                    Download / View
+                                </div>
+                            </a>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    }
+
     const videoSrc = lesson.type === "youtube" 
         ? `youtube/${getYoutubeId(lesson.url || "")}`
         : lesson.url;
@@ -78,7 +114,10 @@ export default function LessonPlayer({ lesson, nextLesson }: LessonPlayerProps) 
                 src={videoSrc || ""}
                 crossOrigin
                 playsInline
-                onEnded={nextLesson}
+                onEnded={() => {
+                    onComplete?.();
+                    nextLesson?.();
+                }}
                 className={styles.vidstackPlayer}
                 viewType="video"
                 streamType="on-demand"

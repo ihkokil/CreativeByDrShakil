@@ -149,7 +149,7 @@ export default function StudentIndividualOverridesModal({
                             <strong>{node.title}</strong>
                             <div className={styles.nodeSubmeta}>
                                 <span>{node.type}</span>
-                                {node.duration && <span> • {node.duration}</span>}
+
                                 {node.locked ? <span className={styles.lockedTag}>Locked</span> : <span className={styles.openTag}>Open</span>}
                                 {node.availableAt && <span> • {formatDateTime(node.availableAt)}</span>}
                             </div>

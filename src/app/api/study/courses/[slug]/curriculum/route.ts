@@ -114,8 +114,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const effectiveStartAt = courseAnchor || studentEnrollmentDate;
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: 'circular',
+      releaseMode: course.releaseMode || 'circular',
       releaseStartAt: studentEnrollmentDate,
+      releaseIntervalDays: course.releaseIntervalDays,
+      releaseGroupsPerWeek: course.releaseGroupsPerWeek,
+      releaseDaysOfWeek: course.releaseDaysOfWeek,
     });
 
     const overrideRows = await db.query.studentModuleAvailability.findMany({
