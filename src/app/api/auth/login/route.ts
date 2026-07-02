@@ -67,6 +67,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Handle newly migrated users who don't have a password yet
+    if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
+      const { hash } = await import('bcrypt');
+      const newHash = await hash(password, 10);
+      await db.update(user).set({ passwordHash: newHash }).where(eq(user.id, userRecord.id));
+      userRecord.passwordHash = newHash;
+    }
+
     const isValid = await comparePassword(password, userRecord.passwordHash);
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
