@@ -328,6 +328,7 @@ export default function StudyCoursePage() {
                         nextLesson={() => {
                             if (nextLesson) setActiveLesson(nextLesson);
                         }}
+                        onComplete={handleMarkComplete}
                     />
 
                 </div>

@@ -70,14 +70,7 @@ export default function CourseLessonList({ curriculum }: Props) {
             </div>
           </div>
           
-          {lesson.duration && (
-            <div className={styles.durationColumn}>
-              <div className={styles.durationBadge}>
-                <Clock size={14} />
-                <span>{lesson.duration}</span>
-              </div>
-            </div>
-          )}
+
           
           <div className={styles.actionColumn}>
             <button 

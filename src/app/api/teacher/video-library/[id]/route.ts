@@ -57,6 +57,7 @@ export async function PATCH(
             data.type = type;
         }
         if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder);
+        if (body.attachments !== undefined) data.attachments = Array.isArray(body.attachments) ? body.attachments : null;
 
         if (Object.keys(data).length === 0) {
             return NextResponse.json({ error: 'No valid fields to update.' }, { status: 400 });

@@ -545,10 +545,6 @@ export default function TeacherCourseBuilder() {
                                                 <label>Title</label>
                                                 <input type="text" placeholder="Content title" value={newNodeTitle} onChange={(e) => setNewNodeTitle(e.target.value)} required />
                                             </div>
-                                            <div className={styles.formGroup}>
-                                                <label>Duration</label>
-                                                <input type="text" placeholder="e.g. 45:00" value={newNodeDuration} onChange={(e) => setNewNodeDuration(e.target.value)} />
-                                            </div>
                                         </div>
 
                                         {newNodeType !== "folder" && (

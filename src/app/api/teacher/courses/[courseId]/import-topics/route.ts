@@ -47,7 +47,7 @@ const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {
   };
 };
 
-const buildCurriculumFromPayloadTopics = (topics: any[]): BuilderCurriculumNode[] => {
+const buildCurriculumFromPayloadTopics = (topics: any[], existingCurriculum: BuilderCurriculumNode[]): BuilderCurriculumNode[] => {
   const normalized: BuilderCurriculumNode[] = [];
 
   topics.forEach((topic) => {
@@ -61,14 +61,21 @@ const buildCurriculumFromPayloadTopics = (topics: any[]): BuilderCurriculumNode[
       .map(buildNodeFromPayload)
       .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
 
+    const mediaVaultFolderId = typeof topic.mediaVaultFolderId === 'string' && topic.mediaVaultFolderId.trim() ? topic.mediaVaultFolderId.trim() : null;
+
+    const existing = existingCurriculum.find(e => 
+       (mediaVaultFolderId && e.mediaVaultFolderId === mediaVaultFolderId) ||
+       (!mediaVaultFolderId && e.title === title)
+    );
+
     normalized.push({
-      id: createNodeId('main'), // Create a new ID for the main topic folder so multiple courses don't collide
+      id: existing ? existing.id : createNodeId('main'),
       title,
       type: 'folder',
-      mediaVaultFolderId: typeof topic.mediaVaultFolderId === 'string' && topic.mediaVaultFolderId.trim() ? topic.mediaVaultFolderId.trim() : null,
-      releaseGroupId: null,
-      releaseAt: typeof topic.releaseAt === 'string' && topic.releaseAt.trim() ? topic.releaseAt.trim() : null,
-      children: topic.mediaVaultFolderId ? [] : children, // Empty children for dynamic vault link
+      mediaVaultFolderId,
+      releaseGroupId: existing ? existing.releaseGroupId : null,
+      releaseAt: existing ? (existing.releaseAt || null) : (typeof topic.releaseAt === 'string' && topic.releaseAt.trim() ? topic.releaseAt.trim() : null),
+      children: mediaVaultFolderId ? [] : children,
     });
   });
 
@@ -100,7 +107,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const existingCurriculum = parseCurriculumJson(course.curriculumJson);
     const importedNodes = topics.length
-      ? buildCurriculumFromPayloadTopics(topics)
+      ? buildCurriculumFromPayloadTopics(topics, existingCurriculum)
       : buildCurriculumFromStarter(mainTopicIds, await getStarterCatalogFromDB());
 
     // If topics were provided explicitly (from the wizard), they represent the FULL desired state of selected modules.

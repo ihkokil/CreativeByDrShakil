@@ -17,6 +17,7 @@ export interface BuilderCurriculumNode {
   releaseGroupId?: string | null;
   releaseAt?: string | null;
   mediaVaultFolderId?: string | null;
+  attachments?: any[];
   children?: BuilderCurriculumNode[];
 }
 
@@ -93,6 +94,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
     releaseGroupId: normalizeNullableText(raw.releaseGroupId),
     releaseAt: normalizeNullableText(raw.releaseAt),
     mediaVaultFolderId: normalizeNullableText((raw as any).mediaVaultFolderId),
+    attachments: Array.isArray((raw as any).attachments) ? (raw as any).attachments : undefined,
     children,
   };
 };

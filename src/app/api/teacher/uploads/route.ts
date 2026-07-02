@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
-import { promises as fs } from 'fs';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { uploadFileToStorage } from '@/utils/storage';
 
 
 
@@ -50,22 +50,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'File is too large. Max size is 1GB.' }, { status: 400 });
     }
 
-    // Store teacher uploads (videos & documents) under a shared library folder
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'teacher-library', payload.sub);
-    await fs.mkdir(uploadDir, { recursive: true });
+    // Store teacher uploads using Hostinger storage API
+    const folderPath = path.posix.join('uploads', 'teacher-library', payload.sub);
 
     const safeName = sanitizeFileName(uploaded.name || 'upload.mp4');
     const ext = path.extname(safeName) || '.mp4';
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-    const absolutePath = path.join(uploadDir, fileName);
-    const relativePath = path.posix.join('uploads', 'teacher-library', payload.sub, fileName);
 
     const arrayBuffer = await uploaded.arrayBuffer();
-    await fs.writeFile(absolutePath, Buffer.from(arrayBuffer));
+    
+    // Use the existing storage utility
+    const fileUrl = await uploadFileToStorage(
+      Buffer.from(arrayBuffer),
+      fileName,
+      uploaded.type,
+      folderPath
+    );
 
     return NextResponse.json({
-      url: `/${relativePath}`,
-      storagePath: relativePath,
+      url: fileUrl,
+      storagePath: `${folderPath}/${fileName}`,
       fileName,
       bytes: uploaded.size,
     });

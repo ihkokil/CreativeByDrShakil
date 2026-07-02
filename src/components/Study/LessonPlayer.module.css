@@ -63,3 +63,94 @@
     --video-bg: rgba(0, 0, 0, 0.5) !important;
     backdrop-filter: blur(8px);
 }
+
+.documentContainer {
+    width: 100%;
+    min-height: 400px;
+    background: var(--surface-color, #1e1e2e);
+    border-radius: 12px;
+    padding: 30px;
+    color: var(--text-color, #fff);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.documentHeader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.documentHeader h2 {
+    margin: 15px 0 5px;
+    font-size: 1.5rem;
+}
+
+.documentHeader p {
+    opacity: 0.7;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.attachmentsList {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.attachmentCard {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 16px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+}
+
+.attachmentCard:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+    border-color: var(--primary, #3b82f6);
+}
+
+.attIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+}
+
+.attInfo {
+    flex: 1;
+}
+
+.attName {
+    font-weight: 500;
+    font-size: 1.05rem;
+}
+
+.attAction {
+    padding: 8px 16px;
+    background: var(--primary, #3b82f6);
+    color: #fff;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.attachmentCard:hover .attAction {
+    background: var(--primary-dark, #2563eb);
+}

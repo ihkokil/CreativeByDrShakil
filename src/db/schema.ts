@@ -1,4 +1,4 @@
-import { pgTable, index, uniqueIndex, foreignKey, text, timestamp, integer, doublePrecision, boolean, varchar, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, index, uniqueIndex, foreignKey, text, timestamp, integer, doublePrecision, boolean, varchar, pgEnum, jsonb } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const contactIssueType = pgEnum("ContactIssueType", ['query', 'technical_assistance', 'billing', 'course_access', 'other'])
@@ -275,6 +275,7 @@ export const videoLibraryNode = pgTable("VideoLibraryNode", {
 	url: text(),
 	duration: text(),
 	parentId: text(),
+	attachments: jsonb().$type<{ name: string; url: string; type?: string; size?: number }[]>(),
 	sortOrder: integer().default(0).notNull(),
 	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),

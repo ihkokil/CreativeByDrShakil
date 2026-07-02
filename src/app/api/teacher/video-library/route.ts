@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
                 url: true,
                 duration: true,
                 parentId: true,
+                attachments: true,
                 sortOrder: true,
             },
         });
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
         const url = body?.url ? String(body.url).trim() : null;
         const duration = body?.duration ? String(body.duration).trim() : null;
         const parentId = body?.parentId || null;
+        const attachments = Array.isArray(body?.attachments) ? body.attachments : null;
 
         if (!title) {
             return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
@@ -92,6 +94,7 @@ export async function POST(request: NextRequest) {
             url,
             duration,
             parentId,
+            attachments,
             sortOrder: nextOrder,
         }).returning();
 
