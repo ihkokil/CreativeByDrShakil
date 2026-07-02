@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, inArray } from 'drizzle-orm';
 import * as schema from '../src/db/schema';
 import * as dotenv from 'dotenv';
@@ -7,8 +7,8 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 dotenv.config({ path: '.env.local' });
 
-const sql = neon(process.env.NEON_DATABASE_URL!);
-const db = drizzle(sql, { schema });
+const client = postgres(process.env.DATABASE_URL!, { prepare: false });
+const db = drizzle(client, { schema });
 
 async function main() {
   console.log('Connecting to database...');

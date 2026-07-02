@@ -60,19 +60,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Handle newly migrated users who don't have a password yet
+    if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
+      const { hash } = await import('bcryptjs');
+      const newHash = await hash(password, 10);
+      await db.update(user).set({ passwordHash: newHash }).where(eq(user.id, userRecord.id));
+      userRecord.passwordHash = newHash;
+    }
+
     if (!userRecord.passwordHash) {
       return NextResponse.json(
         { error: 'This account is linked to Google. Please use "Continue with Google" to log in.' },
         { status: 401 }
       );
-    }
-
-    // Handle newly migrated users who don't have a password yet
-    if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
-      const { hash } = await import('bcrypt');
-      const newHash = await hash(password, 10);
-      await db.update(user).set({ passwordHash: newHash }).where(eq(user.id, userRecord.id));
-      userRecord.passwordHash = newHash;
     }
 
     const isValid = await comparePassword(password, userRecord.passwordHash);

@@ -75,5 +75,6 @@
     "js-yaml": "^4.2.0",
     "@babel/core": "^7.29.1",
     "@hono/node-server": "^1.19.13",
-    "node-domexception": "npm:inherits@^2.0.4",
-    
+    "node-domexception": "npm:inherits@^2.0.4"
+  }
+}
