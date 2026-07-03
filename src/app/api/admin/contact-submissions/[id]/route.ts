@@ -70,7 +70,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!adminCheck.ok) return adminCheck.response;
 
     const resolvedParams = await params;
-    const body = await request.json();
+    const body = await request.json() as {
+      status?: string;
+      adminReply?: string;
+      sendReplyEmail?: boolean;
+    };
     const status = String(body?.status || '').trim();
     const adminReply = typeof body?.adminReply === 'string' ? body.adminReply.trim() : '';
     const sendReplyEmail = Boolean(body?.sendReplyEmail ?? true);

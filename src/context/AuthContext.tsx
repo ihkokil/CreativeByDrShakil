@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 );
                 const label = getDeviceLabel(userAgent, category);
 
-                const newInit = { ...init };
+                const newInit: RequestInit = { ...init };
                 const headers = new Headers(newInit.headers || {});
                 
                 const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
