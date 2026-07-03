@@ -101,8 +101,8 @@ function AdminDashboardContent() {
             const response = await fetch("/api/admin/teachers", {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
-            const data = await response.json();
-            if (response.ok && Array.isArray(data.teachers)) {
+            const data = (await response.json()) as any;
+            if (response.ok && Array.isArray(data?.teachers)) {
                 setTeachers(data.teachers);
             }
         } catch (error) {
@@ -123,8 +123,8 @@ function AdminDashboardContent() {
             if (response.ok) {
                 fetchTeachers();
             } else {
-                const d = await response.json();
-                alert(d.error || "Failed to update teacher status.");
+                const d = (await response.json()) as any;
+                alert(d?.error || "Failed to update teacher status.");
             }
         } catch (err) {
             alert("Network error.");
@@ -138,7 +138,7 @@ function AdminDashboardContent() {
             const response = await fetch("/api/admin/stats", {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
-            const data = await response.json();
+            const data = (await response.json()) as any;
             if (response.ok) {
                 setStats(data);
             }
@@ -156,8 +156,8 @@ function AdminDashboardContent() {
             const response = await fetch(`/api/admin/orders?status=${status}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
-            const data = await response.json();
-            if (response.ok && Array.isArray(data.orders)) {
+            const data = (await response.json()) as any;
+            if (response.ok && Array.isArray(data?.orders)) {
                 setOrders(data.orders);
             }
         } catch (error) {
@@ -197,8 +197,8 @@ function AdminDashboardContent() {
             if (response.ok) {
                 alert("Reset link sent successfully.");
             } else {
-                const d = await response.json();
-                alert(d.error || "Failed to send reset link.");
+                const d = (await response.json()) as any;
+                alert(d?.error || "Failed to send reset link.");
             }
         } catch (err) {
             alert("Network error.");
@@ -222,8 +222,8 @@ function AdminDashboardContent() {
                 fetchOrders(paymentStatus);
                 fetchStats();
             } else {
-                const d = await response.json();
-                alert(d.error || `Failed to ${decision} payment.`);
+                const d = (await response.json()) as any;
+                alert(d?.error || `Failed to ${decision} payment.`);
             }
         } catch (err) {
             alert("Network error.");
@@ -243,9 +243,9 @@ function AdminDashboardContent() {
         const response = await fetch("/api/admin/enrollments", {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
-        const data = await response.json();
+        const data = (await response.json()) as any;
 
-        if (response.ok && Array.isArray(data.enrollments)) {
+        if (response.ok && Array.isArray(data?.enrollments)) {
             setEnrollments(data.enrollments);
         } else {
             setEnrollments([]);
@@ -258,9 +258,9 @@ function AdminDashboardContent() {
         const response = await fetch("/api/admin/courses", {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
-        const data = await response.json();
+        const data = (await response.json()) as any;
 
-        if (response.ok && Array.isArray(data.courses)) {
+        if (response.ok && Array.isArray(data?.courses)) {
             setCoursesList(data.courses);
         } else {
             setCoursesList([]);
