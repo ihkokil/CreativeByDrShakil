@@ -3,14 +3,30 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from '@/db/schema';
 import * as relations from '@/db/relations';
 
-// FREE TIER OPTIMIZATION: Conservative connection pool settings
-// Cloudflare Workers Free Tier has 50ms CPU budget per request
-// More connections = more CPU overhead, so we keep it minimal
-const client = postgres(process.env.DATABASE_URL!, { 
-    prepare: false, 
-    ssl: 'require',
-    max: 2,               // Only 2 concurrent connections for Free Tier
-    idle_timeout: 10000,  // 10 seconds (was 0: infinite idle connections)
-    connect_timeout: 5,   // Fail fast on Free Tier (was 10ms)
+const schemaAndRelations = { ...schema, ...relations };
+type DbType = ReturnType<typeof drizzle<typeof schemaAndRelations>>;
+
+let client: postgres.Sql;
+let _db: DbType;
+
+export const db = new Proxy({} as DbType, {
+  get(target, prop: keyof typeof _db | symbol) {
+    if ((prop as string) === 'then' || typeof prop === 'symbol') {
+      return Reflect.get(target, prop);
+    }
+    if (!_db) {
+      if (!process.env.DATABASE_URL) {
+        throw new Error("DATABASE_URL is not defined in process.env. Ensure the environment variable is bound in Cloudflare.");
+      }
+      client = postgres(process.env.DATABASE_URL, { 
+          prepare: false, 
+          ssl: true,
+          max: 2,
+          idle_timeout: 10000,
+          connect_timeout: 5,
+      });
+      _db = drizzle(client, { schema: schemaAndRelations });
+    }
+    return _db[prop];
+  }
 });
-export const db = drizzle(client, { schema: { ...schema, ...relations } });
