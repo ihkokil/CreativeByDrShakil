@@ -8,6 +8,7 @@ import * as relations from '@/db/relations';
 // More connections = more CPU overhead, so we keep it minimal
 const client = postgres(process.env.DATABASE_URL!, { 
     prepare: false, 
+    ssl: 'require',
     max: 2,               // Only 2 concurrent connections for Free Tier
     idle_timeout: 10000,  // 10 seconds (was 0: infinite idle connections)
     connect_timeout: 5,   // Fail fast on Free Tier (was 10ms)
