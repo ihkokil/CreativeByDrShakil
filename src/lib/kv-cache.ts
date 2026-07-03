@@ -3,6 +3,10 @@
  * Caches database query results in Workers KV to stay within 50ms CPU budget
  */
 
+declare global {
+  var DB_CACHE: KVNamespace;
+}
+
 export interface CacheOptions {
   ttl?: number; // Time to live in seconds (default: 600s = 10 minutes)
   key: string; // Cache key
@@ -20,10 +24,6 @@ export async function getCachedOrFetch<T>(
 ): Promise<T> {
   const { key, ttl = 600 } = options;
 
-  // Declare the global KV binding type
-  declare global {
-    var DB_CACHE: KVNamespace;
-  }
 
   try {
     // Try to get from cache
@@ -60,9 +60,6 @@ export async function getCachedOrFetch<T>(
  * Clear a specific cache key
  */
 export async function clearCache(key: string): Promise<void> {
-  declare global {
-    var DB_CACHE: KVNamespace;
-  }
 
   try {
     if (typeof DB_CACHE !== 'undefined') {
@@ -77,9 +74,6 @@ export async function clearCache(key: string): Promise<void> {
  * Clear multiple cache keys with pattern matching
  */
 export async function clearCachePattern(pattern: string): Promise<void> {
-  declare global {
-    var DB_CACHE: KVNamespace;
-  }
 
   try {
     if (typeof DB_CACHE !== 'undefined') {

@@ -1,32 +1,34 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "creativebydrshakil",
-  "main": ".open-next/worker.js",
-  "minify": true,
-  "compatibility_date": "2026-06-16",
-  "compatibility_flags": [
-    "nodejs_compat",
-    "nodejs_compat_populate_process_env"
-  ],
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
-  },
-  "observability": {
-    "enabled": true
-  },
-  "kv_namespaces": [
-    {
-      "binding": "DB_CACHE",
-      "id": "creativebydrshakil_cache",
-      "preview_id": "creativebydrshakil_cache_preview"
-    }
-  ],
-  "rules": [
-    {
-      "type": "CompiledWasm",
-      "globs": ["**/*.wasm"],
-      "fallthrough": true
-    }
-  ]
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "creativebydrshakil",
+	"main": ".open-next/worker.js",
+	"minify": true,
+	"compatibility_date": "2026-06-16",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"nodejs_compat_populate_process_env"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"observability": {
+		"enabled": true
+	},
+	"kv_namespaces": [
+		{
+			"binding": "DB_CACHE",
+			"id": "bd288232e5484bb28cc0505ca75e5b8f",
+			"preview_id": "ba9cb267eddb43dfb862625ffdb7699f"
+		}
+	],
+	"rules": [
+		{
+			"type": "CompiledWasm",
+			"globs": [
+				"**/*.wasm"
+			],
+			"fallthrough": true
+		}
+	]
 }
