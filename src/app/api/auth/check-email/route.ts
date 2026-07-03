@@ -7,6 +7,7 @@ const checkEmailSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
 
+// FREE TIER OPTIMIZATION: Real-time check (no caching) but optimized for fast execution
 export async function POST(request: NextRequest) {
   try {
     const rateLimitError = await checkRateLimit(request, 10);
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
     const { email } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
+    // FREE TIER: Only select the ID column (minimal data fetch)
     const user = await db.query.user.findFirst({
       where: (u, { eq }) => eq(u.email, normalizedEmail),
       columns: {

@@ -15,6 +15,13 @@
   "observability": {
     "enabled": true
   },
+  "kv_namespaces": [
+    {
+      "binding": "DB_CACHE",
+      "id": "creativebydrshakil_cache",
+      "preview_id": "creativebydrshakil_cache_preview"
+    }
+  ],
   "rules": [
     {
       "type": "CompiledWasm",
