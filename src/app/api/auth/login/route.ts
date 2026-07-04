@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { user } from '@/db/schema';
-import { eq, or } from 'drizzle-orm';
-import { comparePassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
+import { eq, or, sql } from 'drizzle-orm';
+import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
   createDeviceSession,
@@ -32,9 +32,18 @@ export async function POST(request: NextRequest) {
 
     const { identifier, password } = parsed.data;
 
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq, or }) => or(eq(u.email, identifier), eq(u.phone, identifier)),
-    });
+    // Use Drizzle's execute to verify password using pgcrypto on the database level via the pooled connection.
+    const results = await db.execute(sql`
+      SELECT 
+        id, email, phone, role, "isBanned", "emailVerified", "passwordHash",
+        "fullName", "bmdcNumber", "profileImage", "canManagePayments", "isSessionLockedExempt",
+        ("passwordHash" = crypt(${password}, "passwordHash")) as "isPasswordValid"
+      FROM "User" 
+      WHERE email = ${identifier} OR phone = ${identifier} 
+      LIMIT 1
+    `);
+
+    const userRecord = results.rows[0] as any;
 
     if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
@@ -75,8 +84,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = await comparePassword(password, userRecord.passwordHash);
-    if (!isValid) {
+    if (!userRecord.isPasswordValid) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 
@@ -167,12 +175,23 @@ export async function POST(request: NextRequest) {
       osInfo,
     });
 
-    // Sign token with session ID
+    // Sign token with session ID (ensure we don't stuff huge base64 images into the JWT cookie)
+    const safeProfileImage = userRecord.profileImage && userRecord.profileImage.length > 500 
+      ? null 
+      : userRecord.profileImage;
+
     const token = await signAuthToken({
       sub: userRecord.id,
       role: userRecord.role as 'admin' | 'teacher' | 'student',
       email: userRecord.email,
       sessionId: newSession.id,
+      user_metadata: {
+        full_name: userRecord.fullName,
+        phone: userRecord.phone,
+        bmdc_number: userRecord.bmdcNumber,
+        profile_image: safeProfileImage,
+        canManagePayments: userRecord.canManagePayments,
+      },
     });
 
     const response = NextResponse.json({

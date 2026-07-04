@@ -82,6 +82,10 @@ export async function GET(
         },
       },
       curriculum: curriculum,
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
+      },
     });
   } catch (error: any) {
     console.error('[Course Dynamic Slug Error]', {

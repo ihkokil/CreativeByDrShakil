@@ -3,9 +3,9 @@ import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { db } from "@/lib/db";
 import { user as userSchema } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { hashPassword } from "@/lib/auth-server";
+import { eq, sql } from "drizzle-orm";
 import { hashToken } from "@/lib/token-utils";
+
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -39,11 +39,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Reset link is invalid or expired." }, { status: 400 });
     }
 
-    const passwordHash = await hashPassword(String(password));
+
 
     await db.update(userSchema)
       .set({
-        passwordHash,
+        passwordHash: sql`crypt(${String(password)}, gen_salt('bf', 12))`,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
       })

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { user as userSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { extractBearerToken, extractCookieToken, verifyAuthToken, hashPassword } from '@/lib/auth-server';
+import { eq, sql } from 'drizzle-orm';
+import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
+
 
 // Add a new student via invitation
 export async function POST(request: NextRequest) {
@@ -19,14 +20,13 @@ export async function POST(request: NextRequest) {
 
     const payload = await verifyAuthToken(token);
     if (payload.role !== 'admin' && payload.role !== 'teacher') {
-      return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
+        return NextResponse.json({ error: 'Forbidden: Privileged access required.' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { email, fullName, phone, bmdcNumber, profileImage } = body;
+    const { fullName, email, phone, bmdcNumber, profileImage } = await request.json();
 
-    if (!email || !fullName) {
-        return NextResponse.json({ error: 'Email and Full Name are required.' }, { status: 400 });
+    if (!fullName || !email) {
+        return NextResponse.json({ error: 'Full name and email are required.' }, { status: 400 });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
 
     // Create a placeholder password (unusable — student sets their own via reset link)
     const placeholder = `Invite${Date.now()}${Math.random().toString(36).slice(2)}!`;
-    const passwordHash = await hashPassword(placeholder);
+
+
 
     // Generate a password-reset token good for 72 hours
     const { token: setupToken, tokenHash: resetTokenHash } = await createTokenPair();
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         bmdcNumber: bmdcNumber || null,
         profileImage: profileImage || null,
-        passwordHash,
+        passwordHash: sql`crypt(${placeholder}, gen_salt('bf', 12))`,
         role: 'student',
         emailVerified: true, // Auto-verify internally added students
         passwordResetTokenHash: resetTokenHash,

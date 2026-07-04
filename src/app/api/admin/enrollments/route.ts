@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { order as orderSchema, user as userSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { extractBearerToken, extractCookieToken, verifyAuthToken, hashPassword } from '@/lib/auth-server';
+import { eq, sql } from 'drizzle-orm';
+import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
+
 
 // GET - List all enrollments with student and course info
 export async function GET(request: NextRequest) {
@@ -127,14 +128,14 @@ export async function POST(request: NextRequest) {
       const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
-      const passwordHashVal = await hashPassword(tempPassword);
+      
 
       const [newUser] = await db.insert(userSchema).values({
         id: crypto.randomUUID(),
         email: normalizedEmail,
         fullName,
         phone: phone || null,
-        passwordHash: passwordHashVal,
+        passwordHash: sql`crypt(${tempPassword}, gen_salt('bf', 12))`,
         role: 'student',
         emailVerified: true,
         passwordResetTokenHash: tokenHash,

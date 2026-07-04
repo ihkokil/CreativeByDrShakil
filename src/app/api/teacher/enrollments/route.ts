@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { course as courseSchema, user as userSchema, order as orderSchema } from '@/db/schema';
-import { eq, or, and } from 'drizzle-orm';
-import { hashPassword } from '@/lib/auth-server';
+import { eq, or, and, sql } from 'drizzle-orm';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { requireTeacherPayload } from '@/lib/route-auth';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course ID is required.' }, { status: 400 });
     }
 
-    // Verify course exists
+    // Verify course belongs to this teacher
     const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
+      where: (c, { eq, and }) => and(eq(c.id, courseId), eq(c.teacherId, payload.sub)),
     });
 
     if (!course) {
@@ -55,18 +55,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'A user with this email or phone already exists.' }, { status: 409 });
       }
 
+
+
       const { token: setupToken, tokenHash } = await createTokenPair();
       const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); 
 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
-      const passwordHash = await hashPassword(tempPassword);
 
       const [newStudent] = await db.insert(userSchema).values({
           id: crypto.randomUUID(),
           email: normalizedEmail,
           fullName,
           phone: phone || null,
-          passwordHash,
+          passwordHash: sql`crypt(${tempPassword}, gen_salt('bf', 12))`,
           role: 'student',
           emailVerified: true,
           passwordResetTokenHash: tokenHash,

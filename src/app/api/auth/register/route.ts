@@ -3,13 +3,14 @@ import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
 import { user as userSchema, emailOtp } from '@/db/schema';
-import { eq, or, and, gt } from 'drizzle-orm';
-import { hashPassword, signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
+import { eq, or, and, gt, sql } from 'drizzle-orm';
+import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendVerificationEmail } from '@/lib/auth-emails';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import { createDeviceSession } from '@/lib/session-manager';
 import { sendTelegramRegistrationNotification } from '@/lib/telegram';
+
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -50,8 +51,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already exists with this email or phone.' }, { status: 409 });
     }
 
-    const passwordHash = await hashPassword(password);
-    
     let emailVerified = false;
     let tokenHash = null;
     let verifyExpiry = null;
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
     const [user] = await db.insert(userSchema).values({
       id: crypto.randomUUID(),
       email: normalizedEmail,
-      passwordHash,
+      passwordHash: sql`crypt(${password}, gen_salt('bf', 12))`,
       fullName,
       phone: phone || null,
       bmdcNumber: bmdc || null,
@@ -152,11 +151,21 @@ export async function POST(request: NextRequest) {
         osInfo,
       });
 
+      const safeProfileImage = user.profileImage && user.profileImage.length > 500 
+        ? null 
+        : user.profileImage;
+
       const authToken = await signAuthToken({
         sub: user.id,
         role: user.role as 'admin' | 'teacher' | 'student',
         email: user.email,
         sessionId: newSession.id,
+        user_metadata: {
+          full_name: user.fullName,
+          phone: user.phone,
+          bmdc_number: user.bmdcNumber,
+          profile_image: safeProfileImage,
+        },
       });
 
       const response = NextResponse.json({

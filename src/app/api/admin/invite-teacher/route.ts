@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { user as userSchema } from '@/db/schema';
+import { sql } from 'drizzle-orm';
 import {
     extractBearerToken,
     extractCookieToken,
-    hashPassword,
     verifyAuthToken,
 } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordResetEmail } from '@/lib/auth-emails';
+
 
 export async function POST(request: NextRequest) {
     try {
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
         const bearerToken = extractBearerToken(request);
         const cookieToken = await extractCookieToken();
         const token = bearerToken || cookieToken;
+
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
         }
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
 
         // Create a placeholder password (unusable — teacher sets their own via reset link)
         const placeholder = `Invite${Date.now()}${Math.random().toString(36).slice(2)}!`;
-        const passwordHash = await hashPassword(placeholder);
+
 
         // Generate a password-reset token good for 72 hours (longer than normal resets)
         const { token: resetToken, tokenHash } = await createTokenPair();
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
             id: crypto.randomUUID(),
             email: normalizedEmail,
             fullName,
-            passwordHash,
+            passwordHash: sql`crypt(${placeholder}, gen_salt('bf', 12))`,
             role: 'teacher',
             designation: designation || null,
             institution: institution || null,

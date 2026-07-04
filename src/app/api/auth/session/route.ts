@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
-import { getSessionById, updateSessionActivity } from '@/lib/session-manager';
 
 export async function GET(request: NextRequest) {
   const bearerToken = extractBearerToken(request);
@@ -21,66 +19,26 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Check if session is still valid (not locked or logged out)
-    if (payload.sessionId) {
-      const session = await getSessionById(payload.sessionId);
-      if (!session || session.loggedOutAt || session.isLocked) {
-        let message = 'Your session was terminated from another device.';
-        
-        if (session?.isLocked && session.lockedByDeviceLabel) {
-          const oldLabel = session.deviceLabel || 'Unknown device';
-          const typeLabel = session.deviceType === 'desktop' ? 'Desktop' : session.deviceType === 'tablet' ? 'Tablet' : 'Mobile';
-          message = `Your session on ${oldLabel} was replaced by ${session.lockedByDeviceLabel} in the ${typeLabel} category.`;
-        }
+    // We are skipping `getSessionById` and `updateSessionActivity` to save 
+    // Cloudflare Edge CPU and DB writes on every request. 
+    // This makes the JWT purely stateless. Session termination will only apply on login/logout.
 
-        return NextResponse.json(
-          {
-            user: null,
-            role: null,
-            code: 'session_revoked',
-            message: message,
-          },
-          { status: 401 }
-        );
-      }
-
-      // Update last activity
-      await updateSessionActivity(payload.sessionId);
-    }
-
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: {
-        id: true,
-        email: true,
-        phone: true,
-        role: true,
-        fullName: true,
-        bmdcNumber: true,
-        profileImage: true,
-        canManagePayments: true,
-      },
-    });
-
-    if (!user) {
-      return NextResponse.json({ user: null, role: null }, { status: 200 });
-    }
-
+    // Build the user response entirely from the JWT payload to avoid a DB read
     return NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
+        id: payload.sub,
+        email: payload.email,
+        phone: payload.user_metadata?.phone || null,
+        role: payload.role,
         user_metadata: {
-          full_name: user.fullName,
-          phone: user.phone,
-          bmdc_number: user.bmdcNumber,
-          profile_image: user.profileImage,
-          canManagePayments: user.canManagePayments,
+          full_name: payload.user_metadata?.full_name || null,
+          phone: payload.user_metadata?.phone || null,
+          bmdc_number: payload.user_metadata?.bmdc_number || null,
+          profile_image: payload.user_metadata?.profile_image || null,
+          canManagePayments: payload.user_metadata?.canManagePayments || false,
         },
       },
-      role: user.role,
+      role: payload.role,
       token,
       sessionId: payload.sessionId,
     });

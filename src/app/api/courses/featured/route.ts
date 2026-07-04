@@ -62,7 +62,12 @@ export async function GET() {
             },
           };
         }
-      )
+      ),
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
+        },
+      }
     );
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

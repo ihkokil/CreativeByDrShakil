@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
@@ -10,6 +9,13 @@ export interface AuthTokenPayload extends JWTPayload {
   role: 'admin' | 'teacher' | 'student';
   email: string;
   sessionId?: string;
+  user_metadata?: {
+    full_name: string | null;
+    phone: string | null;
+    bmdc_number: string | null;
+    profile_image: string | null;
+    canManagePayments?: boolean;
+  };
 }
 
 function getJwtSecret(): Uint8Array {
@@ -20,15 +26,8 @@ function getJwtSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12);
-}
 
-export async function comparePassword(password: string, passwordHash: string) {
-  return bcrypt.compare(password, passwordHash);
-}
-
-export async function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string }) {
+export async function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string; user_metadata?: any }) {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
   return new SignJWT(payload)
@@ -65,58 +64,25 @@ export async function getSession() {
   try {
     const payload = await verifyAuthToken(token);
     
-    if (payload.sessionId) {
-      const { getSessionById, updateSessionDeviceHash } = await import('@/lib/session-manager');
-      const session = await getSessionById(payload.sessionId);
-      if (!session || session.isLocked || session.loggedOutAt) {
-        return null; // Session has been revoked or logged out
-      }
-
-      try {
-        const { db } = await import('@/lib/db');
-        const userRecord = await db.query.user.findFirst({
-          where: (u, { eq }) => eq(u.id, session.userId),
-          columns: { role: true, isSessionLockedExempt: true }
-        });
-        const isPrivilegedRole = userRecord?.role === 'admin' || userRecord?.role === 'teacher';
-        const isExempt = isPrivilegedRole || !!userRecord?.isSessionLockedExempt;
-
-        // Enforce device category restrictions (students only)
-        if (!isPrivilegedRole) {
-          try {
-            const { getGlobalSessionSettings } = await import('@/lib/session-manager');
-            const globalSettings = await getGlobalSessionSettings();
-            if (session.deviceType === 'desktop' && !globalSettings.allowDesktop) return null;
-            if (session.deviceType === 'tablet' && !globalSettings.allowTablet) return null;
-            if (session.deviceType === 'mobile' && !globalSettings.allowMobile) return null;
-          } catch (err) {
-            // bypass lookup failure gracefully
-          }
-        }
-
-        const headerStore = await headers();
-        const incomingHash = headerStore.get('x-device-hash');
-        
-        if (incomingHash && !isExempt) {
-          if (!session.deviceHash) {
-            // Graceful migration: save device hash on first use
-            await updateSessionDeviceHash(session.id, incomingHash);
-          } else if (session.deviceHash !== incomingHash) {
-            // Device mismatch!
-            return null;
-          }
-        }
-      } catch (err) {
-        // db lookup or headers() might fail or not be available in some edge environments, bypass gracefully
-      }
-    }
+    // We are intentionally skipping the DB checks (`getSessionById` and `db.query.user.findFirst`)
+    // here as well to ensure Cloudflare edge rendering doesn't exceed the 10ms CPU limit.
+    // The session is completely stateless and relies purely on the JWT validity.
 
     return {
       user: {
         id: payload.sub,
         role: payload.role,
         email: payload.email,
+        phone: payload.user_metadata?.phone || null,
+        user_metadata: {
+          full_name: payload.user_metadata?.full_name || null,
+          phone: payload.user_metadata?.phone || null,
+          bmdc_number: payload.user_metadata?.bmdc_number || null,
+          profile_image: payload.user_metadata?.profile_image || null,
+          canManagePayments: payload.user_metadata?.canManagePayments || false,
+        },
       },
+      sessionId: payload.sessionId,
     };
   } catch {
     return null;
