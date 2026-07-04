@@ -70,7 +70,7 @@ export default function Courses() {
             <div className={styles.content}>
                 <div className={styles.header}>
                     <div className={styles.titles}>
-                        <h2 className={styles.sectionTitle}>Featured Courses</h2>
+                        <h2 className={styles.sectionTitle}>Most Popular Courses</h2>
                         <p className={styles.subtitle}>Hand-picked professional training by senior consultants.</p>
                     </div>
                 </div>

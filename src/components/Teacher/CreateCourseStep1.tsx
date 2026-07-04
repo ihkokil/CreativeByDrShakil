@@ -277,7 +277,7 @@ function CreateCourseStep1Content() {
                   checked={isFeatured}
                   onChange={(e) => setIsFeatured(e.target.checked)}
                 />
-                <span>Show this course in the homepage upcoming featured course section</span>
+                <span>Show this course in the homepage upcoming most popular course section</span>
               </label>
             </div>
           </div>

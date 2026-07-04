@@ -152,7 +152,7 @@ function CreateCourseStep4Content() {
 
             <div className={styles.overviewInfo}>
               <h3 className={styles.courseTitle}>{course.title}</h3>
-              {course.isFeatured && <p className={styles.courseCategory}>Featured course</p>}
+              {course.isFeatured && <p className={styles.courseCategory}>Most popular course</p>}
 
               <div className={styles.courseMeta}>
                 <div className={styles.metaItem}>

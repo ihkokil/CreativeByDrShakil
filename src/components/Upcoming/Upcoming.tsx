@@ -22,12 +22,7 @@ import { useRouter } from "next/navigation";
 export default function Upcoming() {
     const router = useRouter();
     const { user } = useAuth();
-    const [timeLeft, setTimeLeft] = useState({
-        days: 0,
-        hours: 0,
-        minutes: 0,
-        seconds: 0,
-    });
+
     const [featuredCourse, setFeaturedCourse] = useState<FeaturedCourse | null>(null);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -35,26 +30,7 @@ export default function Upcoming() {
     const [courseStarted, setCourseStarted] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const calculateTimeLeft = useCallback((targetDate: string | null) => {
-        if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-        
-        const target = new Date(targetDate);
-        if (isNaN(target.getTime())) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
 
-        const difference = +target - +new Date();
-        let timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
-
-        if (difference > 0) {
-            timeLeft = {
-                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-                hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-                minutes: Math.floor((difference / 1000 / 60) % 60),
-                seconds: Math.floor((difference / 1000) % 60),
-            };
-        }
-
-        return timeLeft;
-    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -114,19 +90,7 @@ export default function Upcoming() {
         return () => { cancelled = true; };
     }, [user, featuredCourse]);
 
-    useEffect(() => {
-        const timer = setInterval(() => {
-            if (featuredCourse?.courseStartDate) {
-                setTimeLeft(calculateTimeLeft(featuredCourse.courseStartDate));
-            } else {
-                // If no date, use a placeholder countdown that looks realistic (e.g. end of week)
-                const now = new Date();
-                const nextSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - now.getDay()));
-                setTimeLeft(calculateTimeLeft(nextSunday.toISOString()));
-            }
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [featuredCourse, calculateTimeLeft]);
+
 
     if (loading) return null; // Or a skeleton
     if (!featuredCourse) return null;
@@ -155,32 +119,13 @@ export default function Upcoming() {
         <section className="section-padding alt-bg">
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h2 className={styles.title}>Featured Upcoming Course</h2>
-                    <p className={styles.subtitle}>Our most anticipated batch is starting soon.</p>
+                    <h2 className={styles.title}>Most Popular Program</h2>
+                    <p className={styles.subtitle}>Our most popular program chosen by students.</p>
                 </div>
 
                 <div className={styles.featuredBox}>
-                    <div className={styles.timerWrapper}>
-                        <div className={styles.timerLabel}>BATCH STARTS IN</div>
-                        <div className={styles.timer}>
-                            <div className={styles.timeUnit}>
-                                <span>{String(timeLeft.days).padStart(2, '0')}</span>
-                                <label>Days</label>
-                            </div>
-                            <div className={styles.timeUnit}>
-                                <span>{String(timeLeft.hours).padStart(2, '0')}</span>
-                                <label>Hours</label>
-                            </div>
-                            <div className={styles.timeUnit}>
-                                <span>{String(timeLeft.minutes).padStart(2, '0')}</span>
-                                <label>Mins</label>
-                            </div>
-                            <div className={styles.timerSeparator}>:</div>
-                            <div className={styles.timeUnit}>
-                                <span>{String(timeLeft.seconds).padStart(2, '0')}</span>
-                                <label>Secs</label>
-                            </div>
-                        </div>
+                    <div className={styles.timerWrapper} style={{ minWidth: 'auto', padding: '12px 32px', borderRadius: '40px' }}>
+                        <div className={styles.timerLabel} style={{ marginBottom: 0, fontSize: '1.1rem' }}>MOST POPULAR</div>
                     </div>
 
                     <div className={styles.content}>
@@ -195,7 +140,7 @@ export default function Upcoming() {
                                 </div>
                                 <div className={styles.metaItem}>
                                     <UserCheck size={18} />
-                                    <span>{course.price === "Free" ? "Free enrollment available" : `Featured course: ${course.price}`}</span>
+                                    <span>{course.price === "Free" ? "Free enrollment available" : `Most popular: ${course.price}`}</span>
                                 </div>
                             </div>
                         </div>
