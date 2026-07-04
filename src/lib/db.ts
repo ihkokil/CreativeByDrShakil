@@ -15,10 +15,11 @@ export const db = new Proxy({} as DbType, {
       return Reflect.get(target, prop);
     }
     if (!_db) {
-      if (!process.env.DATABASE_URL) {
-        throw new Error("DATABASE_URL is not defined in process.env. Ensure the environment variable is bound in Cloudflare.");
+      const dbUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+      if (!dbUrl) {
+        throw new Error("No database URL is defined in process.env. Ensure the environment variable is bound in Cloudflare.");
       }
-      client = postgres(process.env.DATABASE_URL, { 
+      client = postgres(dbUrl, { 
           prepare: false, 
           // Local Node.js rejects self-signed certs (needs 'require' to bypass)
           // Cloudflare Workers hangs if 'require' is passed due to unsupported TLS options
