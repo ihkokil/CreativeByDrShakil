@@ -25,7 +25,7 @@ interface TeacherOverviewProps {
     totalCourses: number;
     totalStudents: number;
     totalEnrollments: number;
-    totalLessonsCompleted: number;
+
     courseProgress: CourseProgress[];
     aggregateProgress: number;
     teacherName: string;
@@ -36,7 +36,7 @@ export default function TeacherOverview({
     totalCourses,
     totalStudents,
     totalEnrollments,
-    totalLessonsCompleted,
+
     courseProgress,
     aggregateProgress,
     teacherName,
@@ -180,17 +180,7 @@ export default function TeacherOverview({
                 )}
             </motion.div>
 
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                        <CheckCircle size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>{totalLessonsCompleted}</h4>
-                    <p>Milestones Reached</p>
-                </div>
-            </motion.div>
+
         </motion.div>
     );
 }

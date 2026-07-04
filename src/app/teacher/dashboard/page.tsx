@@ -89,7 +89,6 @@ function TeacherDashboardContent() {
                             totalCourses={stats?.totalCourses || 0}
                             totalStudents={stats?.totalStudents || 0}
                             totalEnrollments={stats?.totalEnrollments || 0}
-                            totalLessonsCompleted={stats?.totalLessonsCompleted || 0}
                             courseProgress={stats?.courseProgress || []}
                             aggregateProgress={stats?.aggregateProgress || 0}
                             teacherName={user.user_metadata?.full_name || "Teacher"}
