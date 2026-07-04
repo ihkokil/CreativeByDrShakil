@@ -20,7 +20,9 @@ export const db = new Proxy({} as DbType, {
       }
       client = postgres(process.env.DATABASE_URL, { 
           prepare: false, 
-          ssl: 'require',
+          // Local Node.js rejects self-signed certs (needs 'require' to bypass)
+          // Cloudflare Workers hangs if 'require' is passed due to unsupported TLS options
+          ssl: process.env.NODE_ENV === 'development' ? 'require' : true,
           max: 2,
           idle_timeout: 10000,
           connect_timeout: 5,
