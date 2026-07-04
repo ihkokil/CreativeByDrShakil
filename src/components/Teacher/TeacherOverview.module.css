@@ -7,8 +7,8 @@
 }
 
 .bentoItem {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
     border-radius: 24px;
     padding: 24px;
     backdrop-filter: blur(10px);
@@ -16,8 +16,8 @@
 }
 
 .bentoItem:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary);
+    background: var(--surface-strong);
     transform: translateY(-4px);
 }
 
@@ -79,7 +79,7 @@
     font-size: 3.5rem;
     font-weight: 800;
     letter-spacing: -2px;
-    background: linear-gradient(to right, #fff, #8b5cf6);
+    background: linear-gradient(to right, var(--foreground), #8b5cf6);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -163,8 +163,8 @@
     align-items: center;
     gap: 20px;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.2s;
@@ -173,7 +173,7 @@
 }
 
 .actionBtn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-strong);
     border-color: var(--primary);
     transform: scale(1.02);
 }
@@ -231,7 +231,7 @@
     align-items: center;
     gap: 16px;
     padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .activityItem:last-child {
@@ -287,7 +287,7 @@
 .viewAllBtn {
     width: 100%;
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 10px;
     color: var(--text-muted);
@@ -303,7 +303,7 @@
 }
 
 .viewAllBtn:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     color: var(--foreground);
 }
 
@@ -400,7 +400,7 @@
     justify-content: space-between;
     font-size: 0.85rem;
     padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .healthItem:last-child {
@@ -433,7 +433,7 @@
 
 .progressBar {
     height: 8px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-strong);
     border-radius: 4px;
     overflow: hidden;
 }
@@ -451,7 +451,7 @@
     align-items: center;
     margin-top: auto;
     padding-top: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--glass-border);
 }
 
 .lessonInfo .tag {
@@ -487,7 +487,7 @@
     gap: 12px;
     font-size: 0.85rem;
     padding: 12px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-soft);
     border-radius: 12px;
     margin-bottom: 12px;
 }
@@ -507,7 +507,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-soft);
     padding: 12px;
     border-radius: 12px;
 }
