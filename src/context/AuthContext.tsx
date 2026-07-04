@@ -125,6 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const response = await fetch('/api/auth/session', {
                 method: 'GET',
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
+                cache: 'no-store', // Prevent Next.js/Browser aggressive caching
             });
 
             if (!response.ok) {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const bearerToken = extractBearerToken(request);
   const cookieToken = await extractCookieToken();
