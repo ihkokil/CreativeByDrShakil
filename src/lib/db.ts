@@ -22,10 +22,10 @@ export const db = new Proxy({} as DbType, {
           prepare: false, 
           // Local Node.js rejects self-signed certs (needs 'require' to bypass)
           // Cloudflare Workers hangs if 'require' is passed due to unsupported TLS options
-          ssl: process.env.NODE_ENV === 'development' ? 'require' : true,
+          ssl: process.env.NODE_ENV === 'production' ? true : 'require',
           max: 2,
           idle_timeout: 10000,
-          connect_timeout: 5,
+          connect_timeout: 30, // Increased to 30s to allow Cloudflare Worker cold starts to reach Tokyo
       });
       _db = drizzle(client, { schema: schemaAndRelations });
     }
