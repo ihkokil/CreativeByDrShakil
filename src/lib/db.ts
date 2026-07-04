@@ -9,28 +9,23 @@ type DbType = ReturnType<typeof drizzle<typeof schemaAndRelations>>;
 let client: postgres.Sql;
 let _db: DbType;
 
-function getDatabaseUrl() {
-  return process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
-}
-
 export const db = new Proxy({} as DbType, {
   get(target, prop: keyof typeof _db | symbol) {
     if ((prop as string) === 'then' || typeof prop === 'symbol') {
       return Reflect.get(target, prop);
     }
     if (!_db) {
-      const databaseUrl = getDatabaseUrl();
-
-      if (!databaseUrl) {
-        throw new Error('SUPABASE_DATABASE_URL or DATABASE_URL is not defined in process.env. Ensure the database URL is bound in Cloudflare.');
+      if (!process.env.DATABASE_URL) {
+        throw new Error("DATABASE_URL is not defined in process.env. Ensure the environment variable is bound in Cloudflare.");
       }
-
-      client = postgres(databaseUrl, {
-        prepare: false,
-        ssl: process.env.NODE_ENV === 'production' ? true : 'require',
-        max: 2,
-        idle_timeout: 10000,
-        connect_timeout: 30,
+      client = postgres(process.env.DATABASE_URL, { 
+          prepare: false, 
+          // Local Node.js rejects self-signed certs (needs 'require' to bypass)
+          // Cloudflare Workers hangs if 'require' is passed due to unsupported TLS options
+          ssl: process.env.NODE_ENV === 'production' ? true : 'require',
+          max: 2,
+          idle_timeout: 10000,
+          connect_timeout: 30, // Increased to 30s to allow Cloudflare Worker cold starts to reach Tokyo
       });
       _db = drizzle(client, { schema: schemaAndRelations });
     }
