@@ -73,8 +73,6 @@ export async function POST(request: NextRequest) {
 
     if (action === 'custom_date') {
       const startDate = typeof body.startDate === 'string' ? body.startDate.trim() : '';
-      const endDate = typeof body.endDate === 'string' ? body.endDate.trim() : '';
-
       if (!startDate) {
         return NextResponse.json({ error: 'Start date is required for custom date.' }, { status: 400 });
       }
@@ -83,22 +81,15 @@ export async function POST(request: NextRequest) {
       if (!dateRegex.test(startDate)) {
         return NextResponse.json({ error: 'Start date must be in YYYY-MM-DD format.' }, { status: 400 });
       }
-      if (endDate && !dateRegex.test(endDate)) {
-        return NextResponse.json({ error: 'End date must be in YYYY-MM-DD format.' }, { status: 400 });
-      }
 
       const start = new Date(startDate);
-      const end = endDate ? new Date(endDate) : null;
 
       if (Number.isNaN(start.getTime())) {
         return NextResponse.json({ error: 'Invalid start date.' }, { status: 400 });
       }
-      if (end && Number.isNaN(end.getTime())) {
-        return NextResponse.json({ error: 'Invalid end date.' }, { status: 400 });
-      }
-      if (end && end < start) {
-        return NextResponse.json({ error: 'End date cannot be earlier than start date.' }, { status: 400 });
-      }
+
+      const end = new Date(start);
+      end.setFullYear(end.getFullYear() + 1);
 
       // Update the student enrollment orders
       await db.order.updateMany({
@@ -186,7 +177,7 @@ export async function POST(request: NextRequest) {
       mode = 'fixed_interval';
       computedInterval = intervalDays;
     } else if (action === 'week_days') {
-      mode = 'days_of_week';
+      mode = 'day_of_week';
       computedDaysOfWeek = daysOfWeek;
     } else {
       return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });

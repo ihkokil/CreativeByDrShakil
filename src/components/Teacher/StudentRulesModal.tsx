@@ -30,7 +30,6 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [intervalDays, setIntervalDays] = useState<number>(7);
     const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-    const [endDate, setEndDate] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -46,10 +45,6 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
         if (action === "custom_date") {
             if (!startDate) {
                 setError("Please enter a start date.");
-                return;
-            }
-            if (endDate && new Date(endDate) < new Date(startDate)) {
-                setError("End date cannot be earlier than start date.");
                 return;
             }
         }
@@ -71,8 +66,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                     action,
                     daysOfWeek,
                     intervalDays,
-                    startDate: action === "custom_date" ? startDate : undefined,
-                    endDate: action === "custom_date" ? endDate || undefined : undefined
+                    startDate: action === "custom_date" ? startDate : undefined
                 })
             });
 
@@ -90,15 +84,15 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
     };
 
     const toggleDay = (val: number) => {
-        setDaysOfWeek(prev => 
+        setDaysOfWeek(prev =>
             prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val]
         );
     };
 
     return (
         <div className={styles.overlay} onClick={onClose}>
-            <motion.div 
-                className={styles.modal} 
+            <motion.div
+                className={styles.modal}
                 onClick={e => e.stopPropagation()}
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -111,11 +105,11 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
 
                 <div className={styles.body}>
                     <div className={styles.studentName}>{studentName}</div>
-                    
+
                     {error && <div className={styles.errorBanner}>{error}</div>}
 
                     <div className={styles.optionsGroup}>
-                        <div 
+                        <div
                             className={`${styles.optionCard} ${action === "unlock_all" ? styles.selected : ""}`}
                             onClick={() => setAction("unlock_all")}
                         >
@@ -128,7 +122,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                             </div>
                         </div>
 
-                        <div 
+                        <div
                             className={`${styles.optionCard} ${action === "start_from_today" ? styles.selected : ""}`}
                             onClick={() => setAction("start_from_today")}
                         >
@@ -141,34 +135,26 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                             </div>
                         </div>
 
-                        <div 
+                        <div
                             className={`${styles.optionCard} ${action === "custom_date" ? styles.selected : ""}`}
                             onClick={() => setAction("custom_date")}
                         >
                             <div className={styles.optionHeader}>
                                 <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Custom Date Range</span>
+                                <span className={styles.optionTitle}>Change enrollment date</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                Restrict module access to a custom date range. Auto-locks after expiry.
+                                Set a custom enrollment date. The student will gain access to modules exactly as if they enrolled on this date.
                             </div>
                             {action === "custom_date" && (
                                 <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
                                     <div className={styles.dateInputsGrid}>
-                                        <div className={styles.dateInputGroup}>
-                                            <label>Start Date (Required):</label>
+                                        <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>New Enrollment Date (Required):</label>
                                             <input 
                                                 type="date" 
                                                 value={startDate}
                                                 onChange={(e) => setStartDate(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className={styles.dateInputGroup}>
-                                            <label>End Date (Optional):</label>
-                                            <input 
-                                                type="date" 
-                                                value={endDate}
-                                                onChange={(e) => setEndDate(e.target.value)}
                                             />
                                         </div>
                                     </div>
@@ -176,7 +162,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                             )}
                         </div>
 
-                        <div 
+                        <div
                             className={`${styles.optionCard} ${action === "week_days" ? styles.selected : ""}`}
                             onClick={() => setAction("week_days")}
                         >
@@ -191,7 +177,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                 <div className={styles.subConfig}>
                                     <div className={styles.daysGrid}>
                                         {DAYS.map(d => (
-                                            <button 
+                                            <button
                                                 key={d.value}
                                                 type="button"
                                                 className={`${styles.dayBtn} ${daysOfWeek.includes(d.value) ? styles.active : ""}`}
@@ -205,7 +191,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                             )}
                         </div>
 
-                        <div 
+                        <div
                             className={`${styles.optionCard} ${action === "custom_interval" ? styles.selected : ""}`}
                             onClick={() => setAction("custom_interval")}
                         >
@@ -219,8 +205,8 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                             {action === "custom_interval" && (
                                 <div className={styles.subConfig}>
                                     <div className={styles.intervalInput}>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             value={intervalDays}
                                             min={1}
                                             onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
