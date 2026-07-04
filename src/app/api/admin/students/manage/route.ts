@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { user as userSchema } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
-
 
 // Add a new student via invitation
 export async function POST(request: NextRequest) {
@@ -31,8 +28,13 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await db.query.user.findFirst({
-        where: (u, { eq, or }) => or(eq(u.email, normalizedEmail), phone ? eq(u.phone, phone) : undefined)
+    const existingUser = await db.user.findFirst({
+        where: {
+            OR: [
+                { email: normalizedEmail },
+                ...(phone ? [{ phone }] : [])
+            ]
+        }
     });
 
     if (existingUser) {
@@ -42,25 +44,20 @@ export async function POST(request: NextRequest) {
     // Create a placeholder password (unusable — student sets their own via reset link)
     const placeholder = `Invite${Date.now()}${Math.random().toString(36).slice(2)}!`;
 
-
-
     // Generate a password-reset token good for 72 hours
     const { token: setupToken, tokenHash: resetTokenHash } = await createTokenPair();
     const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
-    const [student] = await db.insert(userSchema).values({
-        id: crypto.randomUUID(),
-        email: normalizedEmail,
-        fullName,
-        phone: phone || null,
-        bmdcNumber: bmdcNumber || null,
-        profileImage: profileImage || null,
-        passwordHash: sql`crypt(${placeholder}, gen_salt('bf', 12))`,
-        role: 'student',
-        emailVerified: true, // Auto-verify internally added students
-        passwordResetTokenHash: resetTokenHash,
-        passwordResetExpires: resetExpiry.toISOString(),
-    }).returning();
+    const insertResult = await db.$queryRaw<any[]>`
+        INSERT INTO "User" (
+            "id", "email", "fullName", "phone", "bmdcNumber", "profileImage", "passwordHash", "role",
+            "emailVerified", "passwordResetTokenHash", "passwordResetExpires", "updatedAt"
+        ) VALUES (
+            ${crypto.randomUUID()}, ${normalizedEmail}, ${fullName}, ${phone || null}, ${bmdcNumber || null}, ${profileImage || null},
+            crypt(${placeholder}, gen_salt('bf', 12)), 'student', true, ${resetTokenHash}, ${resetExpiry.toISOString()}, NOW()
+        ) RETURNING *;
+    `;
+    const student = insertResult[0];
 
     // Send password setup email
     let emailSent = true;
@@ -101,29 +98,29 @@ export async function PUT(request: NextRequest) {
         if (payload.role !== 'admin' && payload.role !== 'teacher') return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     
         const body = await request.json();
-            const { id, fullName, phone, bmdcNumber, profileImage, emailVerified } = body;
+        const { id, fullName, phone, bmdcNumber, profileImage, emailVerified } = body;
     
         if (!id) return NextResponse.json({ error: 'Missing student ID' }, { status: 400 });
     
-            const data: Record<string, unknown> = {
-                fullName,
-                phone: phone || null,
-                bmdcNumber: bmdcNumber || null,
-                profileImage: profileImage || null,
-            };
+        const data: Record<string, unknown> = {
+            fullName,
+            phone: phone || null,
+            bmdcNumber: bmdcNumber || null,
+            profileImage: profileImage || null,
+        };
 
-            if (typeof emailVerified === 'boolean') {
-                data.emailVerified = emailVerified;
-                if (emailVerified) {
-                    data.emailVerificationTokenHash = null;
-                    data.emailVerificationExpires = null;
-                }
+        if (typeof emailVerified === 'boolean') {
+            data.emailVerified = emailVerified;
+            if (emailVerified) {
+                data.emailVerificationTokenHash = null;
+                data.emailVerificationExpires = null;
             }
+        }
 
-            const [updated] = await db.update(userSchema)
-                .set(data)
-                .where(eq(userSchema.id, id))
-                .returning();
+        const updated = await db.user.update({
+            where: { id },
+            data
+        });
     
         return NextResponse.json({ message: 'Student updated successfully.', student: updated });
     } catch (err: any) {
@@ -149,7 +146,7 @@ export async function DELETE(request: NextRequest) {
     
         if (!id) return NextResponse.json({ error: 'Missing student ID' }, { status: 400 });
     
-        await db.delete(userSchema).where(eq(userSchema.id, id));
+        await db.user.delete({ where: { id } });
     
         return NextResponse.json({ message: 'Student deleted successfully.' });
     } catch (err: any) {

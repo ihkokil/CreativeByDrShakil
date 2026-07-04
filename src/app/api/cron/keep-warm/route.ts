@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { course } from '@/db/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +19,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Run a fast, lightweight query to warm up the serverless database instance
-    const result = await db.select({ id: course.id }).from(course).limit(1);
+    const result = await db.course.findMany({
+      select: { id: true },
+      take: 1
+    });
 
     return NextResponse.json({
       success: true,

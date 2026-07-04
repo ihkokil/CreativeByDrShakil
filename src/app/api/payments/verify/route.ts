@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { order as orderSchema, payment as paymentSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { verifyVerificationToken } from '@/lib/token-utils';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
@@ -21,9 +19,9 @@ export async function GET(request: NextRequest) {
   const { orderId, action } = payload;
 
   try {
-    const order = await db.query.order.findFirst({
-      where: (o, { eq }) => eq(o.id, orderId),
-      with: { payments: true, user: true, course: true },
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: { payment: true, user: true, course: true },
     });
 
     if (!order) {
@@ -36,19 +34,27 @@ export async function GET(request: NextRequest) {
 
     const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-    // neon-http driver does not support transactions — execute sequentially.
-    await db.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
-    if (order.payments?.length) {
-      await db.update(paymentSchema).set({
-          status: nextStatus,
-          approvedAt: action === 'approve' ? new Date().toISOString() : null,
-      }).where(eq(paymentSchema.orderId, orderId));
-    }
+    await db.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: orderId },
+        data: { status: nextStatus }
+      });
+
+      if (order.payment) {
+        await tx.payment.updateMany({
+          where: { orderId },
+          data: {
+            status: nextStatus,
+            approvedAt: action === 'approve' ? new Date() : null,
+          }
+        });
+      }
+    });
 
     // If approved, handle enrollment (including Basics bundle)
     if (action === 'approve') {
       await ensureCourseEnrollment(
-        db,
+        db as any,
         order.userId,
         order.course.id,
         order.course.title,

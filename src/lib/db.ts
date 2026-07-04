@@ -1,35 +1,25 @@
-import postgres from 'postgres';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import * as schema from '@/db/schema';
-import * as relations from '@/db/relations';
+import { PrismaClient } from '@prisma/client'
+import { Pool } from 'pg'
+import { PrismaPg } from '@prisma/adapter-pg'
 
-const schemaAndRelations = { ...schema, ...relations };
-type DbType = ReturnType<typeof drizzle<typeof schemaAndRelations>>;
+let _prisma: PrismaClient;
 
-let client: postgres.Sql;
-let _db: DbType;
-
-export const db = new Proxy({} as DbType, {
-  get(target, prop: keyof typeof _db | symbol) {
+export const db = new Proxy({} as PrismaClient, {
+  get(target, prop: keyof PrismaClient | symbol) {
     if ((prop as string) === 'then' || typeof prop === 'symbol') {
       return Reflect.get(target, prop);
     }
-    if (!_db) {
-      const dbUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
-      if (!dbUrl) {
-        throw new Error("No database URL is defined in process.env. Ensure the environment variable is bound in Cloudflare.");
+    if (!_prisma) {
+      if (!process.env.DATABASE_URL) {
+        throw new Error("DATABASE_URL is not defined in process.env. Ensure the environment variable is bound in Cloudflare.");
       }
-      client = postgres(dbUrl, { 
-          prepare: false, 
-          // Local Node.js rejects self-signed certs (needs 'require' to bypass)
-          // Cloudflare Workers hangs if 'require' is passed due to unsupported TLS options
-          ssl: process.env.NODE_ENV === 'production' ? true : 'require',
-          max: 2,
-          idle_timeout: 10000,
-          connect_timeout: 30, // Increased to 30s to allow Cloudflare Worker cold starts to reach Tokyo
-      });
-      _db = drizzle(client, { schema: schemaAndRelations });
+      const connectionString = process.env.DATABASE_URL;
+      const pool = new Pool({ connectionString });
+      const adapter = new PrismaPg(pool);
+      _prisma = new PrismaClient({ adapter });
     }
-    return _db[prop];
+    return (_prisma as any)[prop];
   }
 });
+
+export default db;

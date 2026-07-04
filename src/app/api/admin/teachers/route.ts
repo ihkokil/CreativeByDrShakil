@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const teachers = await db.query.user.findMany({
-      where: (u, { eq }) => eq(u.role, 'teacher'),
-      columns: {
+    const teachers = await db.user.findMany({
+      where: { role: 'teacher' },
+      select: {
         id: true,
         fullName: true,
         role: true,
@@ -31,22 +31,11 @@ export async function GET(request: NextRequest) {
         profileImage: true,
         canManagePayments: true,
       },
-      orderBy: (u, { desc }) => [desc(u.createdAt)],
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json({
-      teachers: teachers.map((teacher: {
-        id: string;
-        fullName: string;
-        role: string;
-        createdAt: string;
-        email: string;
-        designation: string | null;
-        institution: string | null;
-        degrees: string | null;
-        profileImage: string | null;
-        canManagePayments: boolean;
-      }) => ({
+      teachers: teachers.map((teacher: any) => ({
         id: teacher.id,
         full_name: teacher.fullName,
         role: teacher.role,

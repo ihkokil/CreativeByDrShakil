@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { user as userSchema } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
-
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,16 +26,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Query user and check current password hash in database
-    const results = await db.execute(sql`
+    const results = await db.$queryRaw<any[]>`
       SELECT 
         id, "passwordHash",
         ("passwordHash" = crypt(${currentPassword}, "passwordHash")) as "isCurrentValid"
       FROM "User" 
       WHERE id = ${payload.sub} 
       LIMIT 1
-    `);
+    `;
 
-    const user = results.rows[0] as any;
+    const user = results[0];
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -56,11 +53,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash and update to the new password in DB
-    await db.update(userSchema).set({
-        passwordHash: sql`crypt(${newPassword}, gen_salt('bf', 12))`,
-        passwordResetTokenHash: null,
-        passwordResetExpires: null,
-      }).where(eq(userSchema.id, user.id));
+    await db.$executeRaw`
+      UPDATE "User"
+      SET 
+        "passwordHash" = crypt(${newPassword}, gen_salt('bf', 12)),
+        "passwordResetTokenHash" = NULL,
+        "passwordResetExpires" = NULL
+      WHERE id = ${user.id}
+    `;
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

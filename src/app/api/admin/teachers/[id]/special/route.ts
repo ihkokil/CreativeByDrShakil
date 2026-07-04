@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { user as userSchema } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/admin-auth';
 
 export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -18,20 +16,26 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       return NextResponse.json({ error: 'Invalid payload. canManagePayments must be a boolean.' }, { status: 400 });
     }
 
-    const [updatedTeacher] = await db.update(userSchema)
-      .set({ canManagePayments })
-      .where(and(eq(userSchema.id, params.id), eq(userSchema.role, 'teacher')))
-      .returning({
-        id: userSchema.id,
-        fullName: userSchema.fullName,
-        email: userSchema.email,
-        role: userSchema.role,
-        canManagePayments: userSchema.canManagePayments,
-      });
+    // Check if it's actually a teacher
+    const teacher = await db.user.findFirst({
+        where: { id: params.id, role: 'teacher' }
+    });
 
-    if (!updatedTeacher) {
-      return NextResponse.json({ error: 'Teacher not found.' }, { status: 404 });
+    if (!teacher) {
+        return NextResponse.json({ error: 'Teacher not found.' }, { status: 404 });
     }
+
+    const updatedTeacher = await db.user.update({
+        where: { id: params.id },
+        data: { canManagePayments },
+        select: {
+            id: true,
+            fullName: true,
+            email: true,
+            role: true,
+            canManagePayments: true,
+        }
+    });
 
     return NextResponse.json({ success: true, teacher: updatedTeacher });
   } catch (error: any) {

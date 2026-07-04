@@ -19,16 +19,19 @@ export async function GET() {
       await getCachedOrFetch(
         { key: cacheKey, ttl: 3600 }, // Cache for 1 hour (featured rarely changes)
         async () => {
-          const course = await db.query.course.findFirst({
-            where: (c, { eq, isNotNull, and }) => and(
-              eq(c.status, 'published'),
-              eq(c.isFeatured, true),
-              isNotNull(c.slug)
-            ),
-            orderBy: (c, { desc }) => [desc(c.publishedAt), desc(c.updatedAt)],
-            with: {
+          const course = await db.course.findFirst({
+            where: {
+              status: 'published',
+              isFeatured: true,
+              slug: { not: null }
+            },
+            orderBy: [
+              { publishedAt: 'desc' },
+              { updatedAt: 'desc' }
+            ],
+            include: {
               teacher: {
-                columns: {
+                select: {
                   id: true,
                   fullName: true,
                   designation: true,

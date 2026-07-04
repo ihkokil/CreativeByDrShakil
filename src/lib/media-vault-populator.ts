@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { BuilderCurriculumNode, CurriculumContentType } from '@/lib/teacher-course-builder';
+import { Prisma } from '@prisma/client';
 
 export async function populateMediaVaultNodes(nodes: BuilderCurriculumNode[]): Promise<BuilderCurriculumNode[]> {
   const [populated] = await populateMediaVaultNodesBatch([nodes]);
@@ -26,9 +27,11 @@ export async function populateMediaVaultNodesBatch(allNodes: BuilderCurriculumNo
   }
 
   // Fetch children from DB for all referenced folders ONCE
-  const libraryContents = await db.query.videoLibraryNode.findMany({
-    where: (n, { inArray }) => inArray(n.parentId, Array.from(folderIds)),
-    orderBy: (n, { asc }) => asc(n.sortOrder)
+  const libraryContents = await db.videoLibraryNode.findMany({
+    where: {
+        parentId: { in: Array.from(folderIds) }
+    },
+    orderBy: { sortOrder: 'asc' }
   });
 
   const childrenMap: Record<string, BuilderCurriculumNode[]> = {};
@@ -43,7 +46,7 @@ export async function populateMediaVaultNodesBatch(allNodes: BuilderCurriculumNo
       type: item.type as CurriculumContentType,
       url: item.url,
       duration: item.duration,
-      attachments: item.attachments as any[],
+      attachments: (item.attachments as any[]) || undefined,
       storagePath: null,
       releaseGroupId: null,
       children: [], // Flat list for now

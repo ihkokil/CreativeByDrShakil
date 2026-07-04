@@ -17,8 +17,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }
 
-    const courses = await db.query.course.findMany({
-      columns: {
+    const courses = await db.course.findMany({
+      select: {
         id: true,
         title: true,
         slug: true,
@@ -26,19 +26,13 @@ export async function GET(request: NextRequest) {
         price: true,
         instructor: true,
       },
-      orderBy: (c, { desc }) => [desc(c.updatedAt), desc(c.createdAt)],
+      orderBy: [
+        { updatedAt: 'desc' },
+        { createdAt: 'desc' }
+      ]
     });
 
-    return NextResponse.json({
-      courses: courses.map((course: any) => ({
-        id: course.id,
-        title: course.title,
-        slug: course.slug,
-        status: course.status,
-        price: course.price,
-        instructor: course.instructor,
-      })),
-    });
+    return NextResponse.json({ courses });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }

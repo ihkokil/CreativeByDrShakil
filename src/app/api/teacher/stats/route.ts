@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { eq, inArray, and } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
-import { populateMediaVaultNodes, populateMediaVaultNodesBatch } from '@/lib/media-vault-populator';
+import { populateMediaVaultNodesBatch } from '@/lib/media-vault-populator';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,11 +11,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const teacherId = payload.sub;
-
     // 1. Get all courses in the system
-    const courses = await db.query.course.findMany({
-      columns: {
+    const courses = await db.course.findMany({
+      select: {
         id: true,
         title: true,
         curriculumJson: true,
@@ -37,15 +34,16 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Get approved orders for these courses from users with 'student' role
-    const allOrders = await db.query.order.findMany({
-      where: (o, { inArray, eq, and }) => and(inArray(o.courseId, courseIds), eq(o.status, 'approved')),
-      columns: {
+    const allOrders = await db.order.findMany({
+      where: {
+        courseId: { in: courseIds },
+        status: 'approved',
+      },
+      select: {
         id: true,
         userId: true,
         courseId: true,
-      },
-      with: {
-        user: { columns: { role: true } },
+        user: { select: { role: true } },
       },
     });
     
@@ -55,22 +53,22 @@ export async function GET(request: NextRequest) {
     const totalStudents = uniqueStudentIds.size;
 
     // 3. Get progress entries for these courses (only for students)
-    const allProgressEntries = await db.query.lessonProgress.findMany({
-      where: (lp, { inArray }) => inArray(lp.courseId, courseIds),
-      columns: {
+    const allProgressEntries = await db.lessonProgress.findMany({
+      where: {
+        courseId: { in: courseIds },
+      },
+      select: {
         userId: true,
         courseId: true,
         lessonNodeId: true,
-      },
-      with: {
-        user: { columns: { role: true } },
+        user: { select: { role: true } },
       },
     });
     
     const progressEntries = allProgressEntries.filter(p => p.user?.role === 'student');
 
     // 4. Group data to calculate averages
-    const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson));
+    const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson as string));
     const populatedCurriculums = await populateMediaVaultNodesBatch(rawCurriculums);
 
     const courseStats = courses.map((course, index) => {

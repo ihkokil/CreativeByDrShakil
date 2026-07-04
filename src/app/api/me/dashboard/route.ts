@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { inArray, and, eq } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
-import { parseDbDate } from '@/lib/date-format';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,9 +15,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: {
+    const user = await db.user.findUnique({
+      where: { id: payload.sub },
+      select: {
         id: true,
         email: true,
         phone: true,
@@ -41,11 +39,11 @@ export async function GET(request: NextRequest) {
     const isAdmin = user.role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    const orders = await db.query.order.findMany({
-      where: (o, { eq }) => eq(o.userId, user.id),
-      with: {
+    const orders = await db.order.findMany({
+      where: { userId: user.id },
+      include: {
         course: {
-          columns: {
+          select: {
             id: true,
             slug: true,
             title: true,
@@ -55,8 +53,8 @@ export async function GET(request: NextRequest) {
             curriculumJson: true,
           },
         },
-        payments: {
-          columns: {
+        payment: {
+          select: {
             id: true,
             status: true,
             transactionId: true,
@@ -66,14 +64,14 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: (o, { desc }) => [desc(o.createdAt)],
+      orderBy: { createdAt: 'desc' },
     });
 
     let enrolledCourses: any[] = [];
     
     if (isAdmin) {
-      const allPublishedCourses = await db.query.course.findMany({
-        where: (c, { eq }) => eq(c.status, 'published'),
+      const allPublishedCourses = await db.course.findMany({
+        where: { status: 'published' },
       });
 
       enrolledCourses = await Promise.all(allPublishedCourses.map(async (course: any) => {
@@ -95,7 +93,7 @@ export async function GET(request: NextRequest) {
       const approvedOrders = orders.filter((order: any) => {
         if (order.status !== 'approved') return false;
         if (order.expiresAt) {
-          const parsedExpiry = parseDbDate(order.expiresAt);
+          const parsedExpiry = new Date(order.expiresAt);
           return parsedExpiry ? parsedExpiry >= new Date() : false;
         }
         return new Date(order.updatedAt) >= oneYearAgo;
@@ -119,12 +117,12 @@ export async function GET(request: NextRequest) {
 
     const courseIds = enrolledCourses.map((c) => c.courseId);
     const progressRows = courseIds.length
-      ? await db.query.lessonProgress.findMany({
-          where: (lp, { eq, inArray, and }) => and(
-            eq(lp.userId, user.id),
-            inArray(lp.courseId, courseIds)
-          ),
-          columns: {
+      ? await db.lessonProgress.findMany({
+          where: {
+            userId: user.id,
+            courseId: { in: courseIds }
+          },
+          select: {
             courseId: true,
             lessonNodeId: true,
           },
@@ -185,7 +183,7 @@ export async function GET(request: NextRequest) {
         title: order.course.title,
         slug: order.course.slug,
       },
-      payment: order.payments?.[0] ?? null,
+      payment: order.payment ?? null,
     }));
 
     return NextResponse.json({

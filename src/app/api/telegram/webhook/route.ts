@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import {
-  order as orderSchema,
-  payment as paymentSchema,
-  course as courseSchema,
-  user as userSchema,
-  studentModuleAvailability as smaSchema
-} from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { updateTelegramVerificationMessage, compressUuid, decompressUuid } from '@/lib/telegram';
 
 function getTelegramChatIds() {
@@ -79,9 +71,9 @@ export async function POST(request: NextRequest) {
       // ── Payment verification ──
       if (prefix === 'payment_verify') {
         const [orderId, action] = value.split(':');
-        const order = await db.query.order.findFirst({
-          where: (o, { eq }) => eq(o.id, orderId),
-          with: { payments: true },
+        const order = await db.order.findUnique({
+          where: { id: orderId },
+          include: { payment: true },
         });
 
         if (!order) {
@@ -91,14 +83,22 @@ export async function POST(request: NextRequest) {
         if (order.status === 'pending') {
           const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-          // neon-http driver does not support transactions — execute sequentially.
-          await db.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
-          if (order.payments?.length) {
-            await db.update(paymentSchema).set({
-                status: nextStatus,
-                approvedAt: action === 'approve' ? new Date().toISOString() : null,
-            }).where(eq(paymentSchema.orderId, orderId));
-          }
+          await db.$transaction(async (tx) => {
+            await tx.order.update({
+              where: { id: orderId },
+              data: { status: nextStatus }
+            });
+
+            if (order.payment) {
+              await tx.payment.updateMany({
+                where: { orderId },
+                data: {
+                  status: nextStatus,
+                  approvedAt: action === 'approve' ? new Date() : null,
+                }
+              });
+            }
+          });
 
           await updateTelegramVerificationMessage({
             chatId: message.chat.id,
@@ -121,13 +121,12 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 1: Enroll — show course list ──
-      // callback_data: "en:{compressedUserId}" (max ~28 bytes ✓)
       else if (prefix === 'en') {
         const compressedUserId = value;
 
-        const courses = await db.query.course.findMany({
-          where: (c, { eq }) => eq(c.status, 'published'),
-          columns: { id: true, title: true }
+        const courses = await db.course.findMany({
+          where: { status: 'published' },
+          select: { id: true, title: true }
         });
 
         if (courses.length === 0) {
@@ -135,7 +134,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // callback_data: "sc:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
         const inlineKeyboard = courses.map(c => [
           { text: c.title, callback_data: `sc:${compressedUserId}:${c.id}` }
         ]);
@@ -146,7 +144,6 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 2: Enroll — perform enrollment ──
-      // callback_data: "sc:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
       else if (prefix === 'sc') {
         const parts = value.split(':');
         const compressedUserId = parts[0];
@@ -159,9 +156,9 @@ export async function POST(request: NextRequest) {
 
         const userId = decompressUuid(compressedUserId);
 
-        const student = await db.query.user.findFirst({
-          where: (u, { eq, and }) => and(eq(u.id, userId), eq(u.role, 'student')),
-          columns: { fullName: true, email: true }
+        const student = await db.user.findFirst({
+          where: { id: userId, role: 'student' },
+          select: { fullName: true, email: true }
         });
 
         if (!student) {
@@ -169,9 +166,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const course = await db.query.course.findFirst({
-          where: (c, { eq }) => eq(c.id, courseId),
-          columns: { id: true, title: true }
+        const course = await db.course.findUnique({
+          where: { id: courseId },
+          select: { id: true, title: true }
         });
 
         if (!course) {
@@ -180,43 +177,42 @@ export async function POST(request: NextRequest) {
         }
 
         // Prevent duplicate enrollment
-        const existingOrder = await db.query.order.findFirst({
-          where: (o, { eq, and }) => and(
-            eq(o.userId, userId),
-            eq(o.courseId, courseId),
-            eq(o.status, 'approved')
-          )
+        const existingOrder = await db.order.findFirst({
+          where: {
+            userId: userId,
+            courseId: courseId,
+            status: 'approved'
+          }
         });
 
         if (existingOrder) {
           await sendMsg(callbackChatId, `⚠️ Student is already enrolled in course: <b>${course.title}</b>`);
         } else {
-          // neon-http driver does not support transactions — execute sequentially.
-          // Duplicate check was already done above with `existingOrder`, so we know
-          // no row exists for (userId, courseId, approved). But other statuses may
-          // exist, in which case we update; otherwise we insert.
-          const enrollOrder = await db.query.order.findFirst({
-            where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.courseId, courseId))
+          const enrollOrder = await db.order.findFirst({
+            where: { userId, courseId }
           });
 
           if (enrollOrder) {
-            await db.update(orderSchema)
-              .set({
+            await db.order.update({
+              where: { id: enrollOrder.id },
+              data: {
                 status: 'approved',
-                enrolledAt: new Date().toISOString(),
-                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(orderSchema.id, enrollOrder.id));
+                enrolledAt: new Date(),
+                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+                updatedAt: new Date(),
+              }
+            });
           } else {
-            await db.insert(orderSchema).values({
-              id: crypto.randomUUID(),
-              userId,
-              courseId,
-              status: 'approved',
-              totalAmount: 0,
-              enrolledAt: new Date().toISOString(),
-              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            await db.order.create({
+              data: {
+                id: crypto.randomUUID(),
+                userId,
+                courseId,
+                status: 'approved',
+                totalAmount: 0,
+                enrolledAt: new Date(),
+                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+              }
             });
           }
 
@@ -227,14 +223,13 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 1: Availability — show enrolled courses ──
-      // callback_data: "av:{compressedUserId}" (max ~28 bytes ✓)
       else if (prefix === 'av') {
         const compressedUserId = value;
         const userId = decompressUuid(compressedUserId);
 
-        const enrolledOrders = await db.query.order.findMany({
-          where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.status, 'approved')),
-          with: { course: true }
+        const enrolledOrders = await db.order.findMany({
+          where: { userId, status: 'approved' },
+          include: { course: true }
         });
 
         if (enrolledOrders.length === 0) {
@@ -242,7 +237,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // callback_data: "ac:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
         const inlineKeyboard = enrolledOrders.map(o => [
           { text: o.course.title, callback_data: `ac:${compressedUserId}:${o.courseId}` }
         ]);
@@ -253,7 +247,6 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 2: Availability — select type ──
-      // callback_data: "ac:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
       else if (prefix === 'ac') {
         const parts = value.split(':');
         const compressedUserId = parts[0];
@@ -264,7 +257,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // callback_data: "at:cd:{compressedUserId}:{courseId}" (max ~57 bytes ✓)
         const inlineKeyboard = [
           [{ text: 'Custom Date', callback_data: `at:cd:${compressedUserId}:${courseId}` }]
         ];
@@ -275,7 +267,6 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 3: Availability — prompt for dates ──
-      // callback_data: "at:cd:{compressedUserId}:{courseId}" (max ~57 bytes ✓)
       else if (prefix === 'at') {
         const parts = value.split(':');
         const actionType = parts[0];
@@ -289,8 +280,6 @@ export async function POST(request: NextRequest) {
 
         const userId = decompressUuid(compressedUserId);
 
-        // Send ForceReply message to get Start Date
-        // Embed userId and courseId in the message text for the reply handler
         await sendMsg(callbackChatId,
           `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
           { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
@@ -311,7 +300,6 @@ export async function POST(request: NextRequest) {
         const userId = userMatch ? userMatch[1].trim() : '';
         const courseId = courseMatch ? courseMatch[1].trim() : '';
 
-        // Validate date YYYY-MM-DD
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(responseText)) {
           await sendMsg(messageChatId,
@@ -330,7 +318,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // Ask for End Date
         await sendMsg(messageChatId,
           `Please enter end date (YYYY-MM-DD) or reply 'none' for no expiry:\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${responseText}]`,
           { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
@@ -377,30 +364,31 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const course = await db.query.course.findFirst({
-          where: (c, { eq }) => eq(c.id, courseId),
-          columns: { title: true }
+        const course = await db.course.findUnique({
+          where: { id: courseId },
+          select: { title: true }
         });
 
-        // Update DB
-        await db.update(orderSchema)
-          .set({
-            enrolledAt: start.toISOString(),
-            expiresAt: end ? end.toISOString() : null,
-            updatedAt: new Date().toISOString()
+        await db.$transaction([
+          db.order.updateMany({
+            where: {
+              courseId,
+              userId
+            },
+            data: {
+              enrolledAt: start,
+              expiresAt: end ? end : null,
+              updatedAt: new Date()
+            }
+          }),
+          db.studentModuleAvailability.deleteMany({
+            where: {
+              courseId,
+              userId
+            }
           })
-          .where(and(
-            eq(orderSchema.courseId, courseId),
-            eq(orderSchema.userId, userId)
-          ));
+        ]);
 
-        // Clear custom overrides to follow the general course schedule relative to start date
-        await db.delete(smaSchema).where(and(
-          eq(smaSchema.courseId, courseId),
-          eq(smaSchema.userId, userId)
-        ));
-
-        // Log action in system audit logs
         console.log(`[AUDIT] Student ${userId} module availability updated for course ${courseId} via Telegram Bot (Start: ${startDateStr}, End: ${end ? responseText : 'none'}) by ${from?.first_name || 'Admin'}`);
 
         const endDisplay = end ? responseText : 'No Expiry';
@@ -410,13 +398,10 @@ export async function POST(request: NextRequest) {
     }
 
     // ─── TEXT COMMAND HANDLER ───
-    // Handles /enroll, /availability, /student, /help commands
     if (body.message && body.message.text && !body.message.reply_to_message) {
       const text = (body.message.text || '').trim();
       const messageChatId = body.message.chat.id;
-      const sessionKey = String(messageChatId);
 
-      // /help — show available commands
       if (text === '/help' || text === '/start') {
         await sendMsg(messageChatId, [
           '<b>📋 Available Commands:</b>',
@@ -436,7 +421,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // /student <email> — look up student and show action buttons
       if (text.startsWith('/student')) {
         const email = text.replace('/student', '').trim();
         if (!email) {
@@ -444,9 +428,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.query.user.findFirst({
-          where: (u, { eq }) => eq(u.email, email),
-          columns: { id: true, fullName: true, email: true, role: true, phone: true, createdAt: true }
+        const student = await db.user.findUnique({
+          where: { email },
+          select: { id: true, fullName: true, email: true, role: true, phone: true, createdAt: true }
         });
 
         if (!student) {
@@ -454,10 +438,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // Fetch enrolled courses
-        const enrollments = await db.query.order.findMany({
-          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
-          with: { course: { columns: { title: true } } }
+        const enrollments = await db.order.findMany({
+          where: { userId: student.id, status: 'approved' },
+          include: { course: { select: { title: true } } }
         });
 
         const courseList = enrollments.length > 0
@@ -493,7 +476,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // /enroll <email> — start enrollment flow
       if (text.startsWith('/enroll')) {
         const email = text.replace('/enroll', '').trim();
         if (!email) {
@@ -501,9 +483,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.query.user.findFirst({
-          where: (u, { eq }) => eq(u.email, email),
-          columns: { id: true, fullName: true }
+        const student = await db.user.findUnique({
+          where: { email },
+          select: { id: true, fullName: true }
         });
 
         if (!student) {
@@ -511,9 +493,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const courses = await db.query.course.findMany({
-          where: (c, { eq }) => eq(c.status, 'published'),
-          columns: { id: true, title: true }
+        const courses = await db.course.findMany({
+          where: { status: 'published' },
+          select: { id: true, title: true }
         });
 
         if (courses.length === 0) {
@@ -533,7 +515,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // /availability <email> — start availability change flow
       if (text.startsWith('/availability')) {
         const email = text.replace('/availability', '').trim();
         if (!email) {
@@ -541,9 +522,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.query.user.findFirst({
-          where: (u, { eq }) => eq(u.email, email),
-          columns: { id: true, fullName: true }
+        const student = await db.user.findUnique({
+          where: { email },
+          select: { id: true, fullName: true }
         });
 
         if (!student) {
@@ -551,9 +532,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrolledOrders = await db.query.order.findMany({
-          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
-          with: { course: true }
+        const enrolledOrders = await db.order.findMany({
+          where: { userId: student.id, status: 'approved' },
+          include: { course: true }
         });
 
         if (enrolledOrders.length === 0) {
@@ -597,7 +578,6 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error('Failed to send error message to Telegram:', e);
     }
-    // Return 200 OK so Telegram does not retry the failed webhook
     return NextResponse.json({ ok: true, error: error.message });
   }
 }

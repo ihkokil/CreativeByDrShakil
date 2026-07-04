@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { db } from '@/lib/db';
-import { course as courseSchema, order as orderSchema, studentModuleAvailability as smaSchema } from '@/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -38,8 +36,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId(s), and action are required.' }, { status: 400 });
     }
 
-    const course = await db.query.course.findFirst({
-      where: (c, { eq, and }) => payload.role === 'admin' ? eq(c.id, courseId) : and(eq(c.id, courseId), eq(c.teacherId, payload.sub)),
+    const course = await db.course.findFirst({
+      where: payload.role === 'admin' ? { id: courseId } : { id: courseId, teacherId: payload.sub },
     });
 
     if (!course) {
@@ -48,13 +46,13 @@ export async function POST(request: NextRequest) {
 
     // Check that ALL requested students have an active enrollment
     // If not all are enrolled, we might either fail entirely or just process the valid ones. Let's process the valid ones.
-    const orders = await db.query.order.findMany({
-      where: (o, { eq, and, inArray }) => and(
-        inArray(o.userId, userIds), 
-        eq(o.courseId, courseId), 
-        eq(o.status, 'approved')
-      ),
-      columns: { userId: true },
+    const orders = await db.order.findMany({
+      where: {
+        userId: { in: userIds },
+        courseId,
+        status: 'approved',
+      },
+      select: { userId: true },
     });
 
     const enrolledUserIds = orders.map(o => o.userId);
@@ -64,7 +62,12 @@ export async function POST(request: NextRequest) {
 
     if (action === 'continue_with_batch') {
       // Clear custom overrides to fall back to course schedule
-      await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
+      await db.studentModuleAvailability.deleteMany({
+        where: {
+          courseId,
+          userId: { in: enrolledUserIds },
+        }
+      });
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
 
@@ -98,27 +101,30 @@ export async function POST(request: NextRequest) {
       }
 
       // Update the student enrollment orders
-      await db.update(orderSchema)
-        .set({
-          enrolledAt: start.toISOString(),
-          expiresAt: end ? end.toISOString() : null,
-          updatedAt: new Date().toISOString()
-        })
-        .where(and(
-          eq(orderSchema.courseId, courseId),
-          inArray(orderSchema.userId, enrolledUserIds)
-        ));
+      await db.order.updateMany({
+        where: {
+          courseId,
+          userId: { in: enrolledUserIds },
+        },
+        data: {
+          enrolledAt: start,
+          expiresAt: end,
+          updatedAt: new Date(),
+        }
+      });
 
       // Clear student custom overrides so they follow the course schedule starting from the new enrolledAt date
-      await db.delete(smaSchema).where(and(
-        eq(smaSchema.courseId, courseId),
-        inArray(smaSchema.userId, enrolledUserIds)
-      ));
+      await db.studentModuleAvailability.deleteMany({
+        where: {
+          courseId,
+          userId: { in: enrolledUserIds },
+        }
+      });
 
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
 
-    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
 
@@ -142,21 +148,21 @@ export async function POST(request: NextRequest) {
             lessonNodeId: nodeId,
             availabilityMode: 'available',
             availableAt: null,
-            updatedAt: new Date().toISOString()
           });
         });
       });
 
-      // neon-http driver does not support transactions — execute sequentially.
-      // Delete first, then insert. If insert fails, a follow-up retry will
-      // re-run the delete (idempotent for matching keys) and try the insert again.
-      await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
-      if (dataToInsert.length > 0) {
-        // Chunk inserts to avoid query size limits if many students and modules
-        const chunkSize = 1000;
-        for (let i = 0; i < dataToInsert.length; i += chunkSize) {
-          await db.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
+      await db.studentModuleAvailability.deleteMany({
+        where: {
+          courseId,
+          userId: { in: enrolledUserIds },
         }
+      });
+      
+      if (dataToInsert.length > 0) {
+        await db.studentModuleAvailability.createMany({
+          data: dataToInsert
+        });
       }
 
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
@@ -169,13 +175,13 @@ export async function POST(request: NextRequest) {
     const anchor = new Date(); // Start from today
     let mode: any = course.releaseMode;
     let computedInterval = course.releaseIntervalDays || 7;
-    let computedDaysOfWeek = (course as any).releaseDaysOfWeek as any;
+    let computedDaysOfWeek = typeof course.releaseDaysOfWeek === 'string' ? JSON.parse(course.releaseDaysOfWeek) : course.releaseDaysOfWeek;
 
     if (action === 'start_from_today') {
       // Use course's interval/mode but start from today
       mode = course.releaseMode;
       computedInterval = course.releaseIntervalDays || 7;
-      computedDaysOfWeek = (course as any).releaseDaysOfWeek as any;
+      computedDaysOfWeek = typeof course.releaseDaysOfWeek === 'string' ? JSON.parse(course.releaseDaysOfWeek) : course.releaseDaysOfWeek;
     } else if (action === 'custom_interval') {
       mode = 'fixed_interval';
       computedInterval = intervalDays;
@@ -204,19 +210,22 @@ export async function POST(request: NextRequest) {
           userId: uid,
           lessonNodeId: groupIdToNodeId.get(groupId)!,
           availabilityMode: 'available',
-          availableAt: dateStr ? new Date(dateStr).toISOString() : null,
-          updatedAt: new Date().toISOString()
+          availableAt: dateStr ? new Date(dateStr) : null,
         });
       });
     });
 
-    // neon-http driver does not support transactions — execute sequentially.
-    await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
-    if (dataToInsert.length > 0) {
-      const chunkSize = 1000;
-      for (let i = 0; i < dataToInsert.length; i += chunkSize) {
-        await db.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
+    await db.studentModuleAvailability.deleteMany({
+      where: {
+        courseId,
+        userId: { in: enrolledUserIds },
       }
+    });
+
+    if (dataToInsert.length > 0) {
+      await db.studentModuleAvailability.createMany({
+        data: dataToInsert
+      });
     }
 
     return NextResponse.json({ success: true, count: enrolledUserIds.length });

@@ -15,16 +15,16 @@ export async function GET() {
       await getCachedOrFetch(
         { key: cacheKey, ttl: 3600 }, // Cache for 1 hour (teachers list rarely changes)
         async () => {
-          const teachers = await db.query.user.findMany({
-            where: (u, { eq }) => eq(u.role, 'teacher'),
-            columns: {
+          const teachers = await db.user.findMany({
+            where: { role: 'teacher' },
+            select: {
               id: true,
               fullName: true,
               profileImage: true,
               designation: true,
               institution: true,
             },
-            orderBy: (u, { asc }) => [asc(u.fullName)],
+            orderBy: { fullName: 'asc' },
           });
 
           return {

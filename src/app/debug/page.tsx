@@ -1,5 +1,4 @@
 import { db } from '@/lib/db';
-import { sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,16 +11,16 @@ export default async function DebugPage() {
   let studentCount: number | null = null;
 
   try {
-    const result = await db.execute(sql`SELECT version(), current_timestamp`) as any;
+    const result = await db.$queryRaw<any[]>`SELECT version(), current_timestamp`;
     if (result && result.length > 0) {
       status = 'Connected';
       version = String(result[0].version);
       timestamp = String(result[0].current_timestamp);
       
-      const coursesResult = await db.execute(sql`SELECT count(*) FROM "Course"`) as any;
+      const coursesResult = await db.$queryRaw<any[]>`SELECT count(*) FROM "Course"`;
       courseCount = Number(coursesResult[0]?.count || 0);
 
-      const studentsResult = await db.execute(sql`SELECT count(*) FROM "User" WHERE role = 'student'`) as any;
+      const studentsResult = await db.$queryRaw<any[]>`SELECT count(*) FROM "User" WHERE role = 'student'`;
       studentCount = Number(studentsResult[0]?.count || 0);
     } else {
       status = 'Query failed to return results';

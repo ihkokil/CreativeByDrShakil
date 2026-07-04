@@ -1,8 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
-import { course as courseSchema, order as orderSchema, videoLibraryNode } from '@/db/schema';
-import { eq, sql, ne, count } from 'drizzle-orm';
 import { BuilderCurriculumNode, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { getCachedOrFetch } from '@/lib/kv-cache';
 
@@ -30,17 +28,20 @@ export async function GET(request: NextRequest) {
         { key: cacheKey, ttl: 600 }, // Cache for 10 minutes
         async () => {
           const [courses, orderCountsData] = await Promise.all([
-            db.query.course.findMany({
-              where: (c, { eq, isNotNull, and }) => and(
-                eq(c.status, 'published'),
-                isNotNull(c.slug)
-              ),
-              orderBy: (c, { desc }) => [desc(c.publishedAt), desc(c.updatedAt)],
-              limit: limit,        // FREE TIER: Limit to max 20 courses per page
-              offset: offset,      // FREE TIER: Paginate results
-              with: {
+            db.course.findMany({
+              where: {
+                status: 'published',
+                slug: { not: null }
+              },
+              orderBy: [
+                { publishedAt: 'desc' },
+                { updatedAt: 'desc' }
+              ],
+              take: limit,
+              skip: offset,
+              include: {
                 teacher: {
-                  columns: {
+                  select: {
                     id: true,
                     fullName: true,
                     designation: true,
@@ -48,8 +49,8 @@ export async function GET(request: NextRequest) {
                   },
                 },
                 instructors: {
-                  orderBy: (i, { asc }) => [asc(i.sortOrder)],
-                  columns: {
+                  orderBy: { sortOrder: 'asc' },
+                  select: {
                     id: true,
                     name: true,
                     designation: true,
@@ -59,30 +60,29 @@ export async function GET(request: NextRequest) {
                 },
               },
             }),
-            db.select({
-              courseId: orderSchema.courseId,
-              count: sql<number>`count(${orderSchema.id})`.mapWith(Number),
+            db.order.groupBy({
+              by: ['courseId'],
+              where: { status: 'approved' },
+              _count: { id: true }
             })
-            .from(orderSchema)
-            .where(eq(orderSchema.status, 'approved'))
-            .groupBy(orderSchema.courseId)
           ]);
 
-          const orderCountMap = new Map(orderCountsData.map(row => [row.courseId, row.count]));
+          const orderCountMap = new Map(orderCountsData.map(row => [row.courseId, row._count.id]));
 
-          const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson));
+          const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson as string));
           
-          const countsData = await db.select({
-            parentId: videoLibraryNode.parentId,
-            count: count(videoLibraryNode.id)
-          })
-          .from(videoLibraryNode)
-          .where(ne(videoLibraryNode.type, 'folder'))
-          .groupBy(videoLibraryNode.parentId);
+          const countsData = await db.videoLibraryNode.groupBy({
+            by: ['parentId'],
+            where: {
+              type: { not: 'folder' },
+              parentId: { not: null }
+            },
+            _count: { id: true }
+          });
           
           let folderCounts: Record<string, number> = {};
           for (const row of countsData) {
-            if (row.parentId) folderCounts[row.parentId] = row.count;
+            if (row.parentId) folderCounts[row.parentId] = row._count.id;
           }
 
           const processedCourses = courses.map((course, index) => {

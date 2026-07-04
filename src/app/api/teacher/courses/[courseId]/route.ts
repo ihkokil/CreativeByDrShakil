@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { course as courseSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -12,7 +10,7 @@ import {
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDisplayDateToIso } from '@/lib/date-format';
-
+import { Prisma } from '@prisma/client';
 
 const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   const base = slugify(title) || `course-${Date.now()}`;
@@ -20,8 +18,7 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
   let counter = 2;
 
   while (true) {
-
-    const found = await db.query.course.findFirst({ where: (c, { eq }) => eq(c.slug, slug), columns: { id: true } });
+    const found = await db.course.findUnique({ where: { slug }, select: { id: true } });
     if (!found || found.id === currentCourseId) {
       return slug;
     }
@@ -32,7 +29,7 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
 };
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
+  return db.course.findUnique({ where: { id: courseId } });
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -43,10 +40,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { courseId } = await params;
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: {
-        instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
+    const course = await db.course.findUnique({
+      where: { id: courseId },
+      include: {
+        instructors: { orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -56,16 +53,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Teachers and Admins can see/manage all courses
 
-    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
     const curriculum = await populateMediaVaultNodes(rawCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: course.releaseMode,
-      releaseStartAt: course.releaseStartAt || course.courseStartDate,
+      releaseMode: course.releaseMode as any,
+      releaseStartAt: (course.releaseStartAt || course.courseStartDate) as any,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],
+      releaseDaysOfWeek: typeof course.releaseDaysOfWeek === 'string' ? JSON.parse(course.releaseDaysOfWeek) : course.releaseDaysOfWeek,
       releaseGroupDates,
     });
 
@@ -96,7 +93,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json();
-    const updateData: Record<string, unknown> = {};
+    const updateData: Prisma.CourseUpdateInput = {};
 
     if (typeof body.title === 'string' && body.title.trim()) {
       const normalizedTitle = body.title.trim();
@@ -170,21 +167,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.publishedAt = body.status === 'published' ? new Date() : null;
     }
 
-    if (updateData.courseStartDate instanceof Date) {
-      updateData.courseStartDate = updateData.courseStartDate.toISOString();
-    }
-    if (updateData.publishedAt instanceof Date) {
-      updateData.publishedAt = updateData.publishedAt.toISOString();
-    }
-    if (updateData.releaseStartAt instanceof Date) {
-      updateData.releaseStartAt = updateData.releaseStartAt.toISOString();
-    }
-    // price is already a number for doublePrecision column
-
-    const [course] = await db.update(courseSchema)
-      .set(updateData)
-      .where(eq(courseSchema.id, existingCourse.id))
-      .returning();
+    const course = await db.course.update({
+      where: { id: existingCourse.id },
+      data: updateData,
+    });
 
     return NextResponse.json({ course });
   } catch (error: any) {
@@ -207,8 +193,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // Published courses or courses with orders cannot be deleted
-    const orders = await db.query.order.findMany({ where: (o, { eq }) => eq(o.courseId, existingCourse.id), columns: { id: true } });
-    const orderCount = orders.length;
+    const orderCount = await db.order.count({ where: { courseId: existingCourse.id } });
     if (existingCourse.status === 'published' || orderCount > 0) {
       return NextResponse.json(
         { error: 'Published courses or courses with orders cannot be deleted. Archive the course instead.' },
@@ -216,7 +201,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
 
-    await db.delete(courseSchema).where(eq(courseSchema.id, existingCourse.id));
+    await db.course.delete({ where: { id: existingCourse.id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

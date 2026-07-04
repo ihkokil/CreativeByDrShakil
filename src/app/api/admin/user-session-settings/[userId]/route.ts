@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 import { getAutoLockSetting, setAutoLockSetting } from '@/lib/session-manager';
 import { db } from '@/lib/db';
-import { user } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 
 /**
  * GET /api/admin/user-session-settings/[userId]
@@ -26,8 +24,8 @@ export async function GET(
     }
 
     // Verify user exists
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, userId),
+    const userRecord = await db.user.findUnique({
+      where: { id: userId },
     });
 
     if (!userRecord) {
@@ -71,8 +69,8 @@ export async function PUT(
     }
 
     // Verify user exists
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, userId),
+    const userRecord = await db.user.findUnique({
+      where: { id: userId },
     });
 
     if (!userRecord) {
@@ -90,9 +88,10 @@ export async function PUT(
       if (typeof isSessionLockedExempt !== 'boolean') {
         return NextResponse.json({ error: 'isSessionLockedExempt must be a boolean' }, { status: 400 });
       }
-      await db.update(user)
-        .set({ isSessionLockedExempt })
-        .where(eq(user.id, userId));
+      await db.user.update({
+        where: { id: userId },
+        data: { isSessionLockedExempt }
+      });
     }
 
     return NextResponse.json({

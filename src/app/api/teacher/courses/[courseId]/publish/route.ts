@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { course as courseSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -16,9 +14,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const status = body.status || 'published';
 
     // Verify course exists and belongs to teacher
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      columns: { teacherId: true, title: true },
+    const course = await db.course.findUnique({
+      where: { id: courseId },
+      select: { teacherId: true, title: true },
     });
 
     if (!course) {
@@ -30,9 +28,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Validate course has required fields
-    const fullCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: { instructors: true },
+    const fullCourse = await db.course.findUnique({
+      where: { id: courseId },
+      include: { instructors: true },
     });
 
     if (!fullCourse) {
@@ -58,16 +56,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Update course status
-    await db.update(courseSchema)
-      .set({
+    await db.course.update({
+      where: { id: courseId },
+      data: {
         status,
-        publishedAt: status === 'published' ? new Date().toISOString() : null,
-      })
-      .where(eq(courseSchema.id, courseId));
+        publishedAt: status === 'published' ? new Date() : null,
+      }
+    });
 
-    const publishedCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
+    const publishedCourse = await db.course.findUnique({
+      where: { id: courseId },
+      include: { instructors: { orderBy: { sortOrder: 'asc' } } },
     });
 
     return NextResponse.json({ course: publishedCourse }, { status: 200 });

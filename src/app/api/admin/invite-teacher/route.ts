@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { user as userSchema } from '@/db/schema';
-import { sql } from 'drizzle-orm';
 import {
     extractBearerToken,
     extractCookieToken,
@@ -9,7 +7,6 @@ import {
 } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordResetEmail } from '@/lib/auth-emails';
-
 
 export async function POST(request: NextRequest) {
     try {
@@ -37,8 +34,8 @@ export async function POST(request: NextRequest) {
 
         const normalizedEmail = email.trim().toLowerCase();
 
-        const existingTeacher = await db.query.user.findFirst({
-            where: (u, { eq }) => eq(u.email, normalizedEmail),
+        const existingTeacher = await db.user.findFirst({
+            where: { email: normalizedEmail }
         });
 
         if (existingTeacher) {
@@ -53,20 +50,18 @@ export async function POST(request: NextRequest) {
         const { token: resetToken, tokenHash } = await createTokenPair();
         const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
-        await db.insert(userSchema).values({
-            id: crypto.randomUUID(),
-            email: normalizedEmail,
-            fullName,
-            passwordHash: sql`crypt(${placeholder}, gen_salt('bf', 12))`,
-            role: 'teacher',
-            designation: designation || null,
-            institution: institution || null,
-            degrees: degrees || null,
-            profileImage: profileImage || null,
-            emailVerified: true,
-            passwordResetTokenHash: tokenHash,
-            passwordResetExpires: resetExpiry.toISOString(),
-        });
+        await db.$queryRaw`
+          INSERT INTO "User" (
+            "id", "email", "fullName", "passwordHash", "role",
+            "designation", "institution", "degrees", "profileImage",
+            "emailVerified", "passwordResetTokenHash", "passwordResetExpires", "updatedAt"
+          )
+          VALUES (
+            ${crypto.randomUUID()}, ${normalizedEmail}, ${fullName}, crypt(${placeholder}, gen_salt('bf', 12)), 'teacher',
+            ${designation || null}, ${institution || null}, ${degrees || null}, ${profileImage || null},
+            true, ${tokenHash}, ${resetExpiry}, NOW()
+          )
+        `;
 
         // Send the "Set Your Password" email using the existing reset-password template
         let emailSent = false;

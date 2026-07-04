@@ -3,9 +3,9 @@ import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    const config = await db.query.paymentConfig.findFirst({
-      where: (p, { eq }) => eq(p.id, 'default'),
-      columns: {
+    const config = await db.paymentConfig.findUnique({
+      where: { id: 'default' },
+      select: {
         provider: true,
         sendMoneyNumber: true,
         qrCodeUrl: true,

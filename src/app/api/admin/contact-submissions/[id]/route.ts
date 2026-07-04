@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { contactSubmission as csSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/admin-auth';
 import { sendMail } from '@/lib/email';
 import { type ContactIssueType } from '@/lib/contact-emails';
@@ -41,11 +39,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!adminCheck.ok) return adminCheck.response;
 
     const resolvedParams = await params;
-    const submission = await db.query.contactSubmission.findFirst({
-      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
-      with: {
+    const submission = await db.contactSubmission.findUnique({
+      where: { id: resolvedParams.id },
+      include: {
         repliedByAdmin: {
-          columns: {
+          select: {
             id: true,
             fullName: true,
             email: true,
@@ -79,8 +77,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const adminReply = typeof body?.adminReply === 'string' ? body.adminReply.trim() : '';
     const sendReplyEmail = Boolean(body?.sendReplyEmail ?? true);
 
-    const existing = await db.query.contactSubmission.findFirst({
-      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
+    const existing = await db.contactSubmission.findUnique({
+      where: { id: resolvedParams.id },
     });
 
     if (!existing) {
@@ -103,10 +101,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.status = normalizedStatus || 'responded';
     }
 
-    const [updatedSubmission] = await db.update(csSchema)
-      .set(updateData)
-      .where(eq(csSchema.id, resolvedParams.id))
-      .returning();
+    const updatedSubmission = await db.contactSubmission.update({
+      where: { id: resolvedParams.id },
+      data: updateData,
+    });
 
     let replyEmailSent = false;
 

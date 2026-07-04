@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { user } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest) {
@@ -21,8 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'You cannot ban yourself.' }, { status: 400 });
     }
 
-    const targetUser = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, userId),
+    const targetUser = await db.user.findUnique({
+      where: { id: userId },
     });
 
     if (!targetUser) {
@@ -36,9 +34,10 @@ export async function POST(request: NextRequest) {
 
     const isBanned = action === 'ban';
 
-    await db.update(user)
-      .set({ isBanned })
-      .where(eq(user.id, userId));
+    await db.user.update({
+      where: { id: userId },
+      data: { isBanned },
+    });
 
     return NextResponse.json({ success: true, isBanned });
   } catch (error: any) {

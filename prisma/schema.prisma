@@ -1,11 +1,11 @@
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider  = "postgresql"
-  url       = env("NEON_DATABASE_URL")
-  directUrl = env("NEON_DIRECT_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -28,8 +28,10 @@ model User {
   createdAt                   DateTime                    @default(now())
   updatedAt                   DateTime                    @updatedAt
   canManagePayments           Boolean                     @default(false)
+  isBanned                    Boolean                     @default(false)
   telegramChatId              String?
   image                       String?
+  isSessionLockedExempt       Boolean                     @default(false)
   accounts                    Account[]
   contactReplies              ContactSubmission[]         @relation("ContactSubmissionReplies")
   teacherCourses              Course[]                    @relation("TeacherCourses")
@@ -54,7 +56,7 @@ model Course {
   language                    String?
   imageUrl                    String?
   duration                    String
-  courseStartDate             DateTime?
+  courseStartDate              DateTime?
   learningOutcomes            String?
   teacherId                   String?
   status                      CoursePublishStatus         @default(draft)
@@ -85,7 +87,7 @@ model Course {
 model LessonProgress {
   id           String   @id @default(cuid())
   userId       String
-  courseId     String
+  courseId      String
   lessonNodeId String
   completedAt  DateTime @default(now())
   createdAt    DateTime @default(now())
@@ -131,17 +133,17 @@ model CourseInstructor {
 }
 
 model Order {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  courseId    String
-  status      String   @default("pending")
+  courseId     String
+  status      String    @default("pending")
   totalAmount Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   enrolledAt  DateTime? @default(now())
   expiresAt   DateTime?
-  course      Course   @relation(fields: [courseId], references: [id])
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course    @relation(fields: [courseId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payment     Payment?
 
   @@unique([userId, courseId])
@@ -195,17 +197,21 @@ model ContactSubmission {
 }
 
 model DeviceSession {
-  id             String     @id @default(cuid())
-  userId         String
-  deviceType     DeviceType
-  browserName    String
-  userAgent      String
-  ipAddress      String
-  isLocked       Boolean    @default(false)
-  loggedOutAt    DateTime?
-  createdAt      DateTime   @default(now())
-  lastActivityAt DateTime   @default(now())
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String     @id @default(cuid())
+  userId             String
+  deviceType         DeviceType
+  browserName        String
+  userAgent          String
+  ipAddress          String
+  isLocked           Boolean    @default(false)
+  loggedOutAt        DateTime?
+  createdAt          DateTime   @default(now())
+  lastActivityAt     DateTime   @default(now())
+  deviceHash         String?
+  deviceLabel        String?
+  osInfo             String?
+  lockedByDeviceLabel String?
+  user               User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, deviceType])
@@ -221,24 +227,29 @@ model SessionLockSettings {
 }
 
 model GlobalSessionLockSettings {
-  id                   String   @id @default("global")
-  autoLockFirstBrowser Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                     String   @id @default("global")
+  autoLockFirstBrowser   Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  allowDesktop           Boolean  @default(true)
+  allowTablet            Boolean  @default(true)
+  allowMobile            Boolean  @default(true)
+  maxConcurrentSessions  Int      @default(3)
 }
 
 model VideoLibraryNode {
-  id        String             @id @default(cuid())
-  title     String
-  type      String
-  url       String?
-  duration  String?
-  parentId  String?
-  sortOrder Int                @default(0)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
-  parent    VideoLibraryNode?  @relation("NodeTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children  VideoLibraryNode[] @relation("NodeTree")
+  id          String             @id @default(cuid())
+  title       String
+  type        String
+  url         String?
+  duration    String?
+  parentId    String?
+  attachments Json?
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  parent      VideoLibraryNode?  @relation("NodeTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    VideoLibraryNode[] @relation("NodeTree")
 
   @@index([parentId])
 }
@@ -339,4 +350,5 @@ enum ContactSubmissionStatus {
 enum DeviceType {
   desktop
   mobile
+  tablet
 }

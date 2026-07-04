@@ -3,7 +3,6 @@ import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import { parseCurriculumJson, collectVideoNodes } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
-import { inArray } from 'drizzle-orm';
 
 /**
  * GET /api/students/[id]/progress
@@ -23,13 +22,16 @@ export async function GET(
     const { id: studentId } = await params;
 
     // 1. Find approved enrollments for this student
-    const enrollments = await db.query.order.findMany({
-      where: (o, { eq, and }) => and(eq(o.userId, studentId), eq(o.status, 'approved')),
-      columns: { courseId: true },
-      with: {
+    const enrollments = await db.order.findMany({
+      where: {
+        userId: studentId,
+        status: 'approved'
+      },
+      select: { 
+        courseId: true,
         course: {
-          columns: { id: true, curriculumJson: true },
-        },
+          select: { id: true, curriculumJson: true },
+        }
       },
     });
 
@@ -42,12 +44,12 @@ export async function GET(
     // 2. Fetch all lesson progress for this student in these courses
     let progressRows: { courseId: string; lessonNodeId: string }[] = [];
     try {
-      progressRows = await db.query.lessonProgress.findMany({
-        where: (lp, { eq, and, inArray }) => and(
-          eq(lp.userId, studentId),
-          inArray(lp.courseId, courseIds)
-        ),
-        columns: { courseId: true, lessonNodeId: true },
+      progressRows = await db.lessonProgress.findMany({
+        where: {
+          userId: studentId,
+          courseId: { in: courseIds }
+        },
+        select: { courseId: true, lessonNodeId: true },
       });
     } catch (err) {
       console.warn('LessonProgress query failed', err);
@@ -67,7 +69,7 @@ export async function GET(
 
     for (const enrollment of enrollments) {
       const courseId = enrollment.courseId;
-      const rawCurriculum = parseCurriculumJson(enrollment.course.curriculumJson);
+      const rawCurriculum = parseCurriculumJson(enrollment.course.curriculumJson as string);
       const curriculum = await populateMediaVaultNodes(rawCurriculum);
       const videoNodes = collectVideoNodes(curriculum);
       

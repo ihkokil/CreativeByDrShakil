@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { order as orderSchema, payment as paymentSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
 import { requirePaymentManager } from '@/lib/admin-auth';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
@@ -22,9 +20,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Invalid decision. Use approve or reject.' }, { status: 400 });
     }
 
-    const order = await db.query.order.findFirst({
-      where: (o, { eq }) => eq(o.id, orderId),
-      with: { payments: true, user: true, course: true },
+    const order = await db.order.findUnique({
+      where: { id: orderId },
+      include: { payment: true, user: true, course: true },
     });
 
     if (!order) {
@@ -34,16 +32,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const nextOrderStatus = decision === 'approve' ? 'approved' : 'rejected';
     const nextPaymentStatus = decision === 'approve' ? 'approved' : 'rejected';
 
-    // neon-http driver does not support transactions — execute sequentially.
-    const [updatedOrder] = await db.update(orderSchema).set({
-      status: nextOrderStatus,
-    }).where(eq(orderSchema.id, orderId)).returning();
+    const updatedOrder = await db.order.update({
+      where: { id: orderId },
+      data: { status: nextOrderStatus },
+    });
 
-    if (order.payments?.length) {
-      await db.update(paymentSchema).set({
+    if (order.payment) {
+      await db.payment.update({
+        where: { orderId: orderId },
+        data: {
           status: nextPaymentStatus,
-          approvedAt: decision === 'approve' ? new Date().toISOString() : null,
-      }).where(eq(paymentSchema.orderId, orderId));
+          approvedAt: decision === 'approve' ? new Date() : null,
+        }
+      });
     }
 
     // If approved, handle enrollment (including Basics bundle)

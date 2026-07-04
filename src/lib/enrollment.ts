@@ -1,13 +1,12 @@
 import { sendTelegramEnrollmentNotification } from "./telegram";
-import { order, user } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { Prisma } from "@prisma/client";
 
 /**
  * Ensures a student is enrolled in a specific course.
- * @param tx The Drizzle transaction (or db) instance.
+ * @param tx The Prisma transaction (or db) instance.
  */
 export async function ensureCourseEnrollment(
-  tx: any,
+  tx: any, // Accepts Prisma client or transaction
   userId: string,
   courseId: string,
   courseTitle: string,
@@ -19,37 +18,41 @@ export async function ensureCourseEnrollment(
   const finalEnrolledAt = enrolledAt || new Date();
   const finalExpiresAt = expiresAt || new Date(finalEnrolledAt.getTime() + 365 * 24 * 60 * 60 * 1000);
 
-  // Drizzle doesn't have a direct upsert that matches multiple unique constraints nicely without raw queries
-  // For 'order', the unique constraint is on userId and courseId. Let's check first, then insert or update.
-  const existingOrder = await tx.query.order.findFirst({
-    where: (o: any, { eq, and }: any) => and(eq(o.userId, userId), eq(o.courseId, courseId))
+  const existingOrder = await tx.order.findUnique({
+    where: {
+      userId_courseId: {
+        userId,
+        courseId
+      }
+    }
   });
 
   if (existingOrder) {
-    await tx.update(order)
-      .set({
+    await tx.order.update({
+      where: { id: existingOrder.id },
+      data: {
         status: 'approved',
-        enrolledAt: finalEnrolledAt.toISOString(),
-        expiresAt: finalExpiresAt.toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(order.id, existingOrder.id));
+        enrolledAt: finalEnrolledAt,
+        expiresAt: finalExpiresAt,
+      }
+    });
   } else {
-    await tx.insert(order).values({
-      id: crypto.randomUUID(),
-      userId,
-      courseId,
-      status: 'approved',
-      totalAmount: 0,
-      enrolledAt: finalEnrolledAt.toISOString(),
-      expiresAt: finalExpiresAt.toISOString(),
+    await tx.order.create({
+      data: {
+        userId,
+        courseId,
+        status: 'approved',
+        totalAmount: 0,
+        enrolledAt: finalEnrolledAt,
+        expiresAt: finalExpiresAt,
+      }
     });
   }
 
   try {
-    const userRecord = await tx.query.user.findFirst({
-      where: (u: any, { eq }: any) => eq(u.id, userId),
-      columns: { fullName: true, email: true }
+    const userRecord = await tx.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true, email: true }
     });
 
     if (userRecord) {

@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { db } from "@/lib/db";
-import { user as userSchema } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
 import { hashToken } from "@/lib/token-utils";
-
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Token is required"),
@@ -28,26 +25,27 @@ export async function POST(request: NextRequest) {
 
     const tokenHash = await hashToken(String(token));
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq, and, gt }) => and(
-        eq(u.passwordResetTokenHash, tokenHash),
-        gt(u.passwordResetExpires, new Date().toISOString())
-      ),
+    const user = await db.user.findFirst({
+      where: {
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpires: { gt: new Date() },
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: "Reset link is invalid or expired." }, { status: 400 });
     }
 
-
-
-    await db.update(userSchema)
-      .set({
-        passwordHash: sql`crypt(${String(password)}, gen_salt('bf', 12))`,
-        passwordResetTokenHash: null,
-        passwordResetExpires: null,
-      })
-      .where(eq(userSchema.id, user.id));
+    // Use queryRaw for pgcrypto
+    await db.$queryRaw`
+      UPDATE "User"
+      SET 
+        "passwordHash" = crypt(${String(password)}, gen_salt('bf', 12)),
+        "passwordResetTokenHash" = NULL,
+        "passwordResetExpires" = NULL,
+        "updatedAt" = NOW()
+      WHERE id = ${user.id}
+    `;
 
     return NextResponse.json({ success: true, message: "Password reset successful. Please login." });
   } catch (error: any) {

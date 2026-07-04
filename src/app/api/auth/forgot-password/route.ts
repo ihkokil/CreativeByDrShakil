@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { db } from "@/lib/db";
-import { user as userSchema } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { createTokenPair } from "@/lib/token-utils";
 import { sendPasswordResetEmail } from "@/lib/auth-emails";
 
@@ -25,18 +23,19 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = parsed.data.email.trim().toLowerCase();
 
-    const user = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.email, normalizedEmail) });
+    const user = await db.user.findUnique({ where: { email: normalizedEmail } });
 
     if (user) {
       const { token, tokenHash } = await createTokenPair();
       const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
-      await db.update(userSchema)
-        .set({
+      await db.user.update({
+        where: { id: user.id },
+        data: {
           passwordResetTokenHash: tokenHash,
-          passwordResetExpires: resetExpiry.toISOString(),
-        })
-        .where(eq(userSchema.id, user.id));
+          passwordResetExpires: resetExpiry,
+        }
+      });
 
       try {
         await sendPasswordResetEmail({

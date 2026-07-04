@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { videoLibraryNode as vlnSchema } from '@/db/schema';
-import { eq, max, isNull } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
@@ -33,9 +31,12 @@ export async function GET(request: NextRequest) {
         const authCheck = await requireTeacherOrAdmin(request);
         if (!authCheck.ok) return authCheck.response;
 
-        const nodes = await db.query.videoLibraryNode.findMany({
-            orderBy: (v, { asc }) => [asc(v.sortOrder), asc(v.createdAt)],
-            columns: {
+        const nodes = await db.videoLibraryNode.findMany({
+            orderBy: [
+                { sortOrder: 'asc' },
+                { createdAt: 'asc' }
+            ],
+            select: {
                 id: true,
                 title: true,
                 type: true,
@@ -76,27 +77,30 @@ export async function POST(request: NextRequest) {
         }
 
         if (parentId) {
-            const parent = await db.query.videoLibraryNode.findFirst({ where: (v, { eq }) => eq(v.id, parentId) });
+            const parent = await db.videoLibraryNode.findUnique({ where: { id: parentId } });
             if (!parent) {
                 return NextResponse.json({ error: 'Parent node not found.' }, { status: 404 });
             }
         }
 
-        const result = await db.select({ _max: max(vlnSchema.sortOrder) })
-            .from(vlnSchema)
-            .where(parentId ? eq(vlnSchema.parentId, parentId) : isNull(vlnSchema.parentId));
-        const nextOrder = (result[0]?._max ?? -1) + 1;
+        const maxOrderResult = await db.videoLibraryNode.aggregate({
+            _max: { sortOrder: true },
+            where: { parentId: parentId || null }
+        });
+        const nextOrder = (maxOrderResult._max.sortOrder ?? -1) + 1;
 
-        const [node] = await db.insert(vlnSchema).values({
-            id: crypto.randomUUID(),
-            title,
-            type,
-            url,
-            duration,
-            parentId,
-            attachments,
-            sortOrder: nextOrder,
-        }).returning();
+        const node = await db.videoLibraryNode.create({
+            data: {
+                id: crypto.randomUUID(),
+                title,
+                type,
+                url,
+                duration,
+                parentId,
+                attachments: attachments as any,
+                sortOrder: nextOrder,
+            }
+        });
 
         return NextResponse.json({ node }, { status: 201 });
     } catch (error: any) {

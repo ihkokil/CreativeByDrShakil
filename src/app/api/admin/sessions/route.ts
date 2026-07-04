@@ -22,16 +22,14 @@ export async function GET() {
     }
 
     // Get all students
-    const students = await db.query.user.findMany({
-      where: (u, { eq }) => eq(u.role, 'student'),
-      columns: {
+    const students = await db.user.findMany({
+      where: { role: 'student' },
+      select: {
         id: true,
         fullName: true,
         email: true,
-      },
-      with: {
         deviceSessions: {
-          columns: {
+          select: {
             id: true,
             deviceType: true,
             browserName: true,
@@ -41,10 +39,10 @@ export async function GET() {
             createdAt: true,
             lastActivityAt: true,
           },
-          orderBy: (ds, { desc }) => [desc(ds.createdAt)],
+          orderBy: { createdAt: 'desc' },
         },
-        sessionLockSettings: {
-          columns: {
+        sessionSettings: {
+          select: {
             autoLockFirstBrowser: true,
           },
         },

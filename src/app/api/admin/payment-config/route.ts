@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db';
-import { paymentConfig as pcSchema } from '@/db/schema';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server'
 
 async function requireAdmin(request: NextRequest) {
@@ -25,9 +24,9 @@ export async function GET(request: NextRequest) {
     const adminCheck = await requireAdmin(request)
     if (!adminCheck.ok) return adminCheck.response
 
-    const config = await db.query.paymentConfig.findFirst({
-      where: (pc, { eq }) => eq(pc.id, 'default'),
-      columns: {
+    const config = await db.paymentConfig.findUnique({
+      where: { id: 'default' },
+      select: {
         provider: true,
         sendMoneyNumber: true,
         qrCodeUrl: true,
@@ -59,22 +58,20 @@ export async function POST(request: NextRequest) {
 
     const qrCodeUrl = qrCodeUrlRaw || '/bkash-qr.png'
 
-    const [config] = await db.insert(pcSchema)
-      .values({
+    const config = await db.paymentConfig.upsert({
+      where: { id: 'default' },
+      update: {
+        provider: 'bkash',
+        sendMoneyNumber,
+        qrCodeUrl,
+      },
+      create: {
         id: 'default',
         provider: 'bkash',
         sendMoneyNumber,
         qrCodeUrl,
-      })
-      .onConflictDoUpdate({
-        target: pcSchema.id,
-        set: { provider: 'bkash', sendMoneyNumber, qrCodeUrl }
-      })
-      .returning({
-        provider: pcSchema.provider,
-        sendMoneyNumber: pcSchema.sendMoneyNumber,
-        qrCodeUrl: pcSchema.qrCodeUrl,
-      })
+      }
+    });
 
     return NextResponse.json({ success: true, config })
   } catch (err: any) {

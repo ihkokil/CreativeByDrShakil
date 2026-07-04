@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
-import { user as userSchema, emailOtp } from '@/db/schema';
-import { eq, or, and, gt, sql } from 'drizzle-orm';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendVerificationEmail } from '@/lib/auth-emails';
@@ -43,8 +41,14 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    const existingUser = await db.query.user.findFirst({
-      where: (u, { eq, or }) => or(eq(u.email, normalizedEmail), phone ? eq(u.phone, phone) : undefined),
+    // Check if user already exists
+    const existingUser = await db.user.findFirst({
+      where: {
+        OR: [
+          { email: normalizedEmail },
+          ...(phone ? [{ phone }] : [])
+        ]
+      }
     });
 
     if (existingUser) {
@@ -57,12 +61,12 @@ export async function POST(request: NextRequest) {
     let token = '';
 
     if (otpVerified) {
-      const otpRecord = await db.query.emailOtp.findFirst({
-        where: (e, { eq, and, gt }) => and(
-          eq(e.email, normalizedEmail),
-          eq(e.verified, true),
-          gt(e.expiresAt, new Date().toISOString())
-        ),
+      const otpRecord = await db.emailOtp.findFirst({
+        where: {
+          email: normalizedEmail,
+          verified: true,
+          expiresAt: { gt: new Date() }
+        }
       });
 
       if (!otpRecord) {
@@ -80,18 +84,29 @@ export async function POST(request: NextRequest) {
       verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
 
-    const [user] = await db.insert(userSchema).values({
-      id: crypto.randomUUID(),
-      email: normalizedEmail,
-      passwordHash: sql`crypt(${password}, gen_salt('bf', 12))`,
-      fullName,
-      phone: phone || null,
-      bmdcNumber: bmdc || null,
-      role: 'student',
-      emailVerified,
-      emailVerificationTokenHash: tokenHash,
-      emailVerificationExpires: verifyExpiry?.toISOString() || null,
-    }).returning();
+    // Insert user using $queryRaw to utilize pgcrypto for password hashing
+    const insertResult = await db.$queryRaw<any[]>`
+      INSERT INTO "User" (
+        "id", "email", "passwordHash", "fullName", "phone", "bmdcNumber", "role",
+        "emailVerified", "emailVerificationTokenHash", "emailVerificationExpires", "updatedAt"
+      )
+      VALUES (
+        ${crypto.randomUUID()},
+        ${normalizedEmail},
+        crypt(${password}, gen_salt('bf', 12)),
+        ${fullName},
+        ${phone || null},
+        ${bmdc || null},
+        'student',
+        ${emailVerified},
+        ${tokenHash},
+        ${verifyExpiry},
+        NOW()
+      )
+      RETURNING *;
+    `;
+
+    const user = insertResult[0];
 
     // Send Telegram Notification (fire and forget)
     sendTelegramRegistrationNotification({
@@ -104,7 +119,9 @@ export async function POST(request: NextRequest) {
 
     if (otpVerified) {
       // Clean up OTP record if verified via OTP
-      await db.delete(emailOtp).where(eq(emailOtp.email, normalizedEmail));
+      await db.emailOtp.deleteMany({
+        where: { email: normalizedEmail }
+      });
 
       // Log the user in immediately
       const userAgent = request.headers.get('user-agent') || '';
@@ -230,14 +247,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error: any) {
-    if (error?.code === '23505') {
-      const detail = error.detail || '';
-      if (detail.includes('email')) {
-        return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
-      }
-      if (detail.includes('phone')) {
-        return NextResponse.json({ error: 'An account with this phone number already exists.' }, { status: 409 });
-      }
+    if (error?.code === '23505' || error?.code === 'P2002') { // Prisma unique constraint code
       return NextResponse.json({ error: 'An account with these details already exists.' }, { status: 409 });
     }
     console.error('[Register Error]', error?.message || error);
