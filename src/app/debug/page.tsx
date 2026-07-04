@@ -28,7 +28,18 @@ export default async function DebugPage() {
     }
   } catch (err: any) {
     status = 'Error connecting to database';
-    error = err.message || JSON.stringify(err);
+    
+    // Attempt to extract as much detail as possible from the error object
+    const errorDetails = {
+      message: err.message,
+      cause: err.cause,
+      stack: err.stack,
+      name: err.name,
+      code: err.code, // Common in Postgres errors
+      detail: err.detail,
+    };
+    
+    error = JSON.stringify(errorDetails, null, 2);
   }
 
   return (

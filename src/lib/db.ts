@@ -20,7 +20,7 @@ export const db = new Proxy({} as DbType, {
       }
       client = postgres(process.env.DATABASE_URL, { 
           prepare: false, 
-          ssl: true,
+          ssl: 'require',
           max: 2,
           idle_timeout: 10000,
           connect_timeout: 5,
