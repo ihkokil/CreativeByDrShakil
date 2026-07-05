@@ -222,7 +222,11 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[Login Error]', error?.message || error);
     return NextResponse.json(
-      { error: 'Something went wrong. Please try again later.' },
+      { 
+        error: 'Something went wrong. Please try again later.',
+        debug_message: error?.message,
+        debug_stack: error?.stack 
+      },
       { status: 500 }
     );
   }
