@@ -30,18 +30,15 @@ export async function POST(request: NextRequest) {
 
     const { identifier, password } = parsed.data;
 
-    // Use Prisma to find user by email or phone
-    const userRecords = await db.$queryRaw<any[]>`
-      SELECT 
-        id, email, phone, role, "isBanned", "emailVerified", "passwordHash",
-        "fullName", "bmdcNumber", "profileImage", "canManagePayments", "isSessionLockedExempt",
-        ("passwordHash" = crypt(${password}, "passwordHash")) as "isPasswordValid"
-      FROM "User" 
-      WHERE email = ${identifier} OR phone = ${identifier} 
-      LIMIT 1
-    `;
-
-    const userRecord = userRecords[0];
+    // Use standard Prisma Client to find user by email or phone
+    const userRecord = await db.user.findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { phone: identifier }
+        ]
+      }
+    });
 
     if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
@@ -61,7 +58,7 @@ export async function POST(request: NextRequest) {
         {
           error: 'Your email has not been verified yet. Please check your inbox and verify your email before logging in.',
           code: 'email_not_verified',
-          email: userRecord.email,
+          email: userRecord.email || undefined,
         },
         { status: 403 }
       );
@@ -82,7 +79,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!userRecord.isPasswordValid) {
+    // Offload the CPU-intensive bcrypt comparison to PostgreSQL using a simple queryRaw
+    const verification = await db.$queryRaw<any[]>`
+      SELECT (${userRecord.passwordHash} = crypt(${password}, ${userRecord.passwordHash})) as "isValid"
+    `;
+    const isPasswordValid = verification[0]?.isValid;
+
+    if (!isPasswordValid) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 
