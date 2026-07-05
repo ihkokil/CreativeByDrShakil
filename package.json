@@ -10,7 +10,7 @@
     "dev:webpack": "next dev --webpack",
     "dev:worker": "npm run build:worker && npm run preview",
     "build": "npm run clean && next build --webpack",
-    "build:worker": "npx opennextjs-cloudflare build && node scripts/patch-handler.js",
+    "build:worker": "npx prisma generate && npx opennextjs-cloudflare build && node scripts/patch-handler.js",
     "deploy": "npm run build:worker && wrangler deploy",
     "preview": "npx opennextjs-cloudflare preview",
     "start": "next start",
