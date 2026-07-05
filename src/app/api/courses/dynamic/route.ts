@@ -154,7 +154,11 @@ export async function GET(request: NextRequest) {
       stack: error?.stack,
     });
     return NextResponse.json(
-      { error: 'Failed to load courses. Please try again.' },
+      { 
+        error: 'Failed to load courses. Please try again.',
+        debug_message: error?.message,
+        debug_stack: error?.stack
+      },
       { status: 500 }
     );
   }
