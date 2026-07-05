@@ -32,13 +32,17 @@ export const db = new Proxy({} as PrismaClient, {
         throw new Error("DATABASE_URL is not defined in process.env. Ensure the environment variable is bound in Cloudflare.");
       }
       
+      const connectionString = process.env.DATABASE_URL;
+      const isSupabase = connectionString.includes('supabase.co') || connectionString.includes('supabase.com');
+      
       const pool = new Pool({ 
-        connectionString: process.env.DATABASE_URL,
+        connectionString,
         max: 5,
         connectionTimeoutMillis: 5000,
         idleTimeoutMillis: 30000,
         query_timeout: 10000, // 10s timeout as a failsafe
-        allowExitOnIdle: true
+        allowExitOnIdle: true,
+        ssl: isSupabase ? { rejectUnauthorized: false } : undefined
       });
       
       pool.on('error', (err) => {
