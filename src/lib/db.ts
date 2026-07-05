@@ -3,23 +3,7 @@ import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 
 let _prisma: PrismaClient | undefined;
-let _pool: Pool | undefined;
 let lastQueryTime = Date.now();
-
-function createPool(connectionString: string) {
-  const pool = new Pool({ 
-    connectionString,
-    max: 5,
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 30000,
-    query_timeout: 10000, 
-    allowExitOnIdle: true
-  });
-  pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-  });
-  return pool;
-}
 
 export const db = new Proxy({} as PrismaClient, {
   get(target, prop: keyof PrismaClient | symbol) {
@@ -27,36 +11,39 @@ export const db = new Proxy({} as PrismaClient, {
       return Reflect.get(target, prop);
     }
     
+    const now = Date.now();
+    // In Cloudflare Workers, TCP sockets can be suspended and broken if the worker goes idle.
+    // If it's been more than 15 seconds since the last query, the worker might have been suspended.
+    // We proactively recreate the client and pool to avoid hanging on a dead TCP connection.
+    if (_prisma && (now - lastQueryTime > 15000)) {
+      const oldPrisma = _prisma;
+      _prisma = undefined;
+      // Fire and forget disconnect to clean up old connections gracefully
+      oldPrisma.$disconnect().catch(() => {});
+    }
+    
+    lastQueryTime = now;
+    
     if (!_prisma) {
       if (!process.env.DATABASE_URL) {
         throw new Error("DATABASE_URL is not defined in process.env. Ensure the environment variable is bound in Cloudflare.");
       }
       const connectionString = process.env.DATABASE_URL;
       
-      _pool = createPool(connectionString);
-      
-      // We wrap the pool in a Proxy to seamlessly swap it out if the worker suspends.
-      // This completely avoids the massive CPU cost of recreating PrismaClient (which easily breaks the 10ms Free Tier limit)
-      // while guaranteeing that dead TCP sockets from frozen isolates are safely discarded.
-      const poolProxy = new Proxy({} as Pool, {
-        get(poolTarget, poolProp) {
-          const now = Date.now();
-          if (_pool && (now - lastQueryTime > 15000)) {
-            const oldPool = _pool;
-            _pool = createPool(connectionString);
-            oldPool.end().catch(() => {});
-          }
-          lastQueryTime = now;
-          
-          const value = (_pool as any)[poolProp];
-          if (typeof value === 'function') {
-            return value.bind(_pool);
-          }
-          return value;
-        }
+      const pool = new Pool({ 
+        connectionString,
+        max: 5,
+        connectionTimeoutMillis: 5000,
+        idleTimeoutMillis: 30000,
+        query_timeout: 10000, // 10s timeout as a failsafe to prevent infinite hanging
+        allowExitOnIdle: true
       });
       
-      const adapter = new PrismaPg(poolProxy);
+      pool.on('error', (err) => {
+        console.error('Unexpected error on idle client', err);
+      });
+      
+      const adapter = new PrismaPg(pool);
       _prisma = new PrismaClient({ adapter });
     }
     
