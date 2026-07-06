@@ -12,11 +12,11 @@ import { resolveEmail, validateEmail } from "@/lib/email-resolver";
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess?: () => void;
+    onSuccess?: (role: string) => void;
     defaultMode?: "login" | "register" | "forgot";
 }
 
-type AuthStep = "email" | "password" | "otp" | "register" | "forgot";
+type AuthStep = "email" | "password" | "otp" | "register" | "forgot" | "forgot-otp" | "forgot-reset";
 
 export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: Props) {
     const { refreshSession } = useAuth();
@@ -204,7 +204,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 await refreshSession();
                 setMessage({ type: 'success', text: 'Successfully logged in!' });
                 
-                if (onSuccess) onSuccess();
+                if (onSuccess) onSuccess(data.user?.role || 'student');
                 setTimeout(onClose, 1000);
             }
         } catch (err) {
@@ -323,7 +323,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 await refreshSession();
                 setMessage({ type: 'success', text: 'Account created and logged in!' });
 
-                if (onSuccess) onSuccess();
+                if (onSuccess) onSuccess(data.user?.role || 'student');
                 setTimeout(onClose, 1000);
             }
         } catch (err) {
@@ -333,8 +333,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
         }
     };
 
-    const handleForgotSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleForgotSubmit = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
         const trimmedEmail = email.trim();
         if (!trimmedEmail) {
             setMessage({ type: 'error', text: 'Email address is required.' });
@@ -363,9 +363,90 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const data = await response.json();
 
             if (!response.ok) {
-                setMessage({ type: 'error', text: data.error || 'Failed to send reset instructions.' });
+                setMessage({ type: 'error', text: data.error || 'Failed to send verification code.' });
             } else {
-                setMessage({ type: 'success', text: data.message || 'Check your email for reset instructions.' });
+                setMessage({ type: 'success', text: 'A 6-digit verification code has been sent to ' + email });
+                setStep("forgot-otp");
+                setOtpValues(Array(6).fill(""));
+                setResendTimer(60);
+                setTimeout(() => {
+                    otpInputsRef.current[0]?.focus();
+                }, 100);
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgotOtpSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const otpCode = otpValues.join("");
+        if (otpCode.length !== 6) {
+            setMessage({ type: 'error', text: 'Please enter all 6 digits of the verification code.' });
+            return;
+        }
+
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: resolveEmail(email.trim()), otp: otpCode }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Verification failed.' });
+            } else {
+                setMessage({ type: 'success', text: 'Email verified! Please enter your new password.' });
+                setStep("forgot-reset");
+                setPassword("");
+                setConfirmPassword("");
+            }
+        } catch (err) {
+            setMessage({ type: 'error', text: 'Connection error. Please try again.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleForgotResetSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (password !== confirmPassword) {
+            setMessage({ type: 'error', text: 'Passwords do not match.' });
+            return;
+        }
+        if (strength.score < 50) {
+            setMessage({ type: 'error', text: 'Please use a stronger password.' });
+            return;
+        }
+
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            const response = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: resolveEmail(email.trim()), password }),
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                setMessage({ type: 'error', text: data.error || 'Failed to reset password.' });
+            } else {
+                if (data.token) {
+                    localStorage.setItem('auth_token', data.token);
+                }
+                await refreshSession();
+                setMessage({ type: 'success', text: 'Password reset and logged in!' });
+
+                if (onSuccess) onSuccess(data.user?.role || 'student');
+                setTimeout(onClose, 1000);
             }
         } catch (err) {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
@@ -382,8 +463,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
         } else if (step === "register") {
             setStep("otp");
             setOtpValues(Array(6).fill(""));
-        } else if (step === "forgot") {
+        } else if (step === "forgot" || step === "forgot-otp") {
             setStep("email");
+        } else if (step === "forgot-reset") {
+            setStep("forgot-otp");
+            setOtpValues(Array(6).fill(""));
         }
     };
 
@@ -547,7 +631,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                         </div>
 
                                         <div className={styles.forgotWrap}>
-                                            <button type="button" className={styles.forgotLink} onClick={() => setStep("forgot")}>
+                                            <button type="button" className={styles.forgotLink} onClick={() => handleForgotSubmit()}>
                                                 Forgot password?
                                             </button>
                                         </div>
@@ -761,7 +845,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                         {/* Step: Forgot Password */}
                         {step === "forgot" && (
-                            <form className={styles.form} onSubmit={handleForgotSubmit} noValidate>
+                            <form className={styles.form} onSubmit={(e) => handleForgotSubmit(e)} noValidate>
                                 <div className={styles.inputGroup}>
                                     <Mail className={styles.inputIcon} size={18} />
                                     <input
@@ -780,7 +864,133 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                     </div>
                                 )}
                                 <button className={styles.submitBtn} disabled={loading}>
-                                    {loading ? "Processing..." : "Send Reset Link"}
+                                    {loading ? "Processing..." : "Send Code"}
+                                    {!loading && <ArrowRight size={18} />}
+                                </button>
+                            </form>
+                        )}
+
+                        {/* Step: Forgot Password OTP */}
+                        {step === "forgot-otp" && (
+                            <form className={styles.form} onSubmit={handleForgotOtpSubmit}>
+                                <div className={styles.emailDisplay}>
+                                    <Mail size={16} />
+                                    <span>{email}</span>
+                                </div>
+
+                                <div className={styles.otpContainer}>
+                                    {otpValues.map((val, idx) => (
+                                        <input
+                                            key={idx}
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={1}
+                                            value={val}
+                                            ref={(el) => { otpInputsRef.current[idx] = el; }}
+                                            onChange={(e) => handleOtpChange(e.target.value, idx)}
+                                            onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                                            onPaste={handleOtpPaste}
+                                            className={styles.otpInput}
+                                            autoFocus={idx === 0}
+                                        />
+                                    ))}
+                                </div>
+
+                                <div className={styles.resendContainer}>
+                                    {resendTimer > 0 ? (
+                                        <span>Resend code in <strong>{resendTimer}s</strong></span>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            className={styles.resendBtn}
+                                            onClick={() => handleForgotSubmit()}
+                                            disabled={loading}
+                                        >
+                                            Resend Code
+                                        </button>
+                                    )}
+                                </div>
+
+                                {message && (
+                                    <div className={`${styles.message} ${styles[message.type]}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+                                <button className={styles.submitBtn} disabled={loading}>
+                                    {loading ? "Verifying..." : "Verify Code"}
+                                    {!loading && <ArrowRight size={18} />}
+                                </button>
+                            </form>
+                        )}
+
+                        {/* Step: Forgot Password Reset */}
+                        {step === "forgot-reset" && (
+                            <form className={styles.form} onSubmit={handleForgotResetSubmit}>
+                                <div className={styles.emailDisplay}>
+                                    <Mail size={16} />
+                                    <span>{email}</span>
+                                </div>
+
+                                <div className={styles.inputGroup}>
+                                    <Lock className={styles.inputIcon} size={18} />
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="New Password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        name="password"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.eyeBtn}
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+
+                                {password && (
+                                    <div className={styles.strengthContainer}>
+                                        <div className={styles.strengthMeter}>
+                                            <div
+                                                className={styles.strengthFill}
+                                                style={{ width: `${strength.score}%`, backgroundColor: strength.color }}
+                                            />
+                                        </div>
+                                        <div className={styles.strengthText} style={{ color: strength.color }}>
+                                            {strength.label} Password
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className={styles.inputGroup}>
+                                    <Lock className={styles.inputIcon} size={18} />
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="Retype Password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.eyeBtn}
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                    >
+                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+
+                                {message && (
+                                    <div className={`${styles.message} ${styles[message.type]}`}>
+                                        {message.text}
+                                    </div>
+                                )}
+                                <button className={styles.submitBtn} disabled={loading}>
+                                    {loading ? "Resetting & Logging in..." : "Reset Password"}
                                     {!loading && <ArrowRight size={18} />}
                                 </button>
                             </form>
