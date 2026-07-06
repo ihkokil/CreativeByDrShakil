@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import { getGlobalSessionSettings, resolveAutoLockSetting } from '@/lib/session-manager';
-import { Prisma } from '@prisma/client';
+import { user } from '@/db/schema';
+import { sql, eq, or, ilike, and, count, desc, asc } from 'drizzle-orm';
 
+/**
+ * GET /api/users?page=1&limit=20&search=query
+ * Returns a paginated list of student users with device sessions and enrolled courses.
+ * Accessible by: Admin, Teacher
+ */
 export async function GET(request: NextRequest) {
   try {
     const auth = await getSession();
@@ -19,38 +25,42 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'lastActive';
     const offset = (page - 1) * limit;
 
-    const whereClause: Prisma.UserWhereInput = {
-      role: 'student',
-      ...(search ? {
-        OR: [
-          { fullName: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-        ]
-      } : {})
-    };
+    // Build where conditions: only students, with optional search
+    const conditions = [eq(user.role, 'student')];
+    if (search) {
+      conditions.push(
+        or(
+          ilike(user.fullName, `%${search}%`),
+          ilike(user.email, `%${search}%`)
+        )!
+      );
+    }
+    const whereClause = and(...conditions);
 
+    // Build orderBy based on sortBy param
     const getOrderBy = (): any => {
       switch (sortBy) {
         case 'name_asc':
-          return { fullName: 'asc' };
+          return [asc(user.fullName)];
         case 'name_desc':
-          return { fullName: 'desc' };
+          return [desc(user.fullName)];
         case 'newest':
-          return { createdAt: 'desc' };
+          return [desc(user.createdAt)];
         case 'oldest':
-          return { createdAt: 'asc' };
+          return [asc(user.createdAt)];
         case 'lastActive':
         default:
-          return undefined; // Handled dynamically if possible or in-memory, but since we can't easily order by max relation field in Prisma without aggregations, we'll sort in memory or fall back. For now, we fallback to default sorting or handle it appropriately. If we sort by lastActive, we should use a different query. Let's just fallback to newest for Prisma unless we can do orderBy relation. Prisma does not support ordering by max relation date. We will just sort in memory if lastActive is chosen or default to newest. Let's default to newest here and sort in memory if needed, but pagination would be broken. Let's stick to newest for the DB query.
-          return { createdAt: 'desc' }; 
+          // Subquery: order by most recent device session activity. Note the alias "user" instead of "User"
+          return [sql`(SELECT MAX("lastActivityAt") FROM "DeviceSession" WHERE "userId" = "user"."id") DESC NULLS LAST`];
       }
     };
 
-    const [totalCount, users, globalSettings] = await Promise.all([
-      db.user.count({ where: whereClause }),
-      db.user.findMany({
-        where: whereClause,
-        select: {
+    // Fetch count + paginated users + globalSettings in parallel
+    const [totalResult, users, globalSettings] = await Promise.all([
+      db.select({ total: count() }).from(user).where(whereClause),
+      db.query.user.findMany({
+        where: () => whereClause!,
+        columns: {
           id: true,
           fullName: true,
           email: true,
@@ -60,8 +70,10 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           profileImage: true,
           image: true,
+        },
+        with: {
           deviceSessions: {
-            select: {
+            columns: {
               id: true,
               deviceType: true,
               browserName: true,
@@ -71,46 +83,38 @@ export async function GET(request: NextRequest) {
               createdAt: true,
               lastActivityAt: true,
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: (ds, { desc }) => [desc(ds.createdAt)],
           },
           orders: {
-            where: { status: 'approved' },
-            select: {
+            where: (o, { eq }) => eq(o.status, 'approved'),
+            columns: {
               id: true,
               enrolledAt: true,
               expiresAt: true,
+            },
+            with: {
               course: {
-                select: {
+                columns: {
                   id: true,
                   title: true,
                   slug: true,
-                }
-              }
-            }
-          }
+                },
+              },
+            },
+          },
         },
         orderBy: getOrderBy(),
-        take: limit,
-        skip: offset,
+        limit,
+        offset,
       }),
       getGlobalSessionSettings(),
     ]);
 
+    const totalCount = totalResult[0]?.total ?? 0;
     const totalPages = Math.ceil(totalCount / limit);
 
-    let finalUsers = users;
-    if (sortBy === 'lastActive') {
-      finalUsers = [...users].sort((a, b) => {
-        const latestSessionA = [...a.deviceSessions].sort((s1, s2) => new Date(s2.lastActivityAt).getTime() - new Date(s1.lastActivityAt).getTime())[0];
-        const latestSessionB = [...b.deviceSessions].sort((s1, s2) => new Date(s2.lastActivityAt).getTime() - new Date(s1.lastActivityAt).getTime())[0];
-        const lastActiveA = latestSessionA ? new Date(latestSessionA.lastActivityAt).getTime() : new Date(a.createdAt).getTime();
-        const lastActiveB = latestSessionB ? new Date(latestSessionB.lastActivityAt).getTime() : new Date(b.createdAt).getTime();
-        return lastActiveB - lastActiveA;
-      });
-    }
-
     const formattedUsers = await Promise.all(
-      finalUsers.map(async (u) => {
+      users.map(async (u) => {
         const activeSessions = u.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
 
         const latestSession = [...u.deviceSessions].sort(
@@ -144,9 +148,9 @@ export async function GET(request: NextRequest) {
           userAutoLockSetting,
           enrolledCourses: u.orders.map((order) => ({
             orderId: order.id,
-            courseId: order.course?.id,
-            courseTitle: order.course?.title,
-            courseSlug: order.course?.slug,
+            courseId: order.course.id,
+            courseTitle: order.course.title,
+            courseSlug: order.course.slug,
             enrolledAt: order.enrolledAt,
             expiresAt: order.expiresAt,
           })),

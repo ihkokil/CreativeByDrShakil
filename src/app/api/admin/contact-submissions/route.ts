@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
-import { Prisma } from '@prisma/client';
 
 function normalizeSubmission(submission: any) {
   let parsedImageUrls = [];
@@ -24,12 +23,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || undefined;
 
-    const submissions = await db.contactSubmission.findMany({
-      where: status ? { status: status as any } : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: {
+    const submissions = await db.query.contactSubmission.findMany({
+      where: status ? (cs, { eq }) => eq(cs.status, status as any) : undefined,
+      orderBy: (cs, { desc }) => [desc(cs.createdAt)],
+      with: {
         repliedByAdmin: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
