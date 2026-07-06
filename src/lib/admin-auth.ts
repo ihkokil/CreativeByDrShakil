@@ -52,9 +52,9 @@ export async function requirePaymentManager(request: NextRequest) {
   if (payload.role === 'teacher') {
     // Check database to see if the teacher has the canManagePayments flag
     const { db } = await import('@/lib/db');
-    const user = await db.user.findUnique({
-      where: { id: payload.sub },
-      select: { canManagePayments: true }
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+      columns: { canManagePayments: true }
     });
 
     if (user?.canManagePayments) {

@@ -15,25 +15,25 @@ export async function GET(request: NextRequest) {
     const requestedStatus = (searchParams.get('status') || 'pending').toLowerCase();
     const status = ALLOWED_STATUSES.has(requestedStatus) ? requestedStatus : 'pending';
 
-    const orders = await db.order.findMany({
-      where: { status },
-      include: {
+    const orders = await db.query.order.findMany({
+      where: (o, { eq }) => eq(o.status, status),
+      with: {
         user: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
           },
         },
         course: {
-          select: {
+          columns: {
             id: true,
             title: true,
             slug: true,
           },
         },
-        payment: {
-          select: {
+        payments: {
+          columns: {
             phoneNumber: true,
             transactionId: true,
             amount: true,
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: (o, { desc }) => [desc(o.updatedAt)],
     });
 
     return NextResponse.json({ orders });

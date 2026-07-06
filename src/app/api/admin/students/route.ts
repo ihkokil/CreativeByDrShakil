@@ -17,9 +17,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const students = await db.user.findMany({
-      where: { role: 'student' },
-      select: {
+    const students = await db.query.user.findMany({
+      where: (u, { eq }) => eq(u.role, 'student'),
+      columns: {
         id: true,
         fullName: true,
         role: true,
@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
         bmdcNumber: true,
         emailVerified: true,
       },
-      orderBy: { createdAt: 'desc' },
-      take: 50, // limit for UI performance, can add pagination later
+      orderBy: (u, { desc }) => [desc(u.createdAt)],
+      limit: 50, // limit for UI performance, can add pagination later
     });
 
     return NextResponse.json({
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         phone: student.phone,
         profile_image: student.profileImage,
         bmdcNumber: student.bmdcNumber,
-        emailVerified: student.emailVerified,
+            emailVerified: student.emailVerified,
       })),
     });
   } catch (error: any) {

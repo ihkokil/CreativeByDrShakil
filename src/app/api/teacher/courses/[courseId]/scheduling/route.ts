@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -10,7 +12,7 @@ import {
 } from '@/lib/teacher-course-builder';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.course.findUnique({ where: { id: courseId } });
+  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
 };
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -27,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json();
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
 
     if (body.releaseMode !== undefined) {
       const validModes = ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant', null];
@@ -86,20 +88,30 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.publishedAt = body.status === 'published' ? new Date() : null;
     }
 
-    const updatedCourse = await db.course.update({
-      where: { id: course.id },
-      data: updateData
-    });
+    if (updateData.releaseStartAt instanceof Date) {
+      updateData.releaseStartAt = updateData.releaseStartAt.toISOString();
+    }
+    if (updateData.courseStartDate instanceof Date) {
+      updateData.courseStartDate = updateData.courseStartDate.toISOString();
+    }
+    if (updateData.publishedAt instanceof Date) {
+      updateData.publishedAt = updateData.publishedAt.toISOString();
+    }
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(updatedCourse.curriculumJson as string));
+    const [updatedCourse] = await db.update(courseSchema)
+      .set(updateData)
+      .where(eq(courseSchema.id, course.id))
+      .returning();
+
+    const curriculum = ensureGroupInheritance(parseCurriculumJson(updatedCourse.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);
-    const releaseGroupDates = parseReleaseGroupDateMap(updatedCourse.releaseGroupDates as string);
+    const releaseGroupDates = parseReleaseGroupDateMap(updatedCourse.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,
       releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
       releaseIntervalDays: updatedCourse.releaseIntervalDays,
       releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
-      releaseDaysOfWeek: typeof updatedCourse.releaseDaysOfWeek === 'string' ? JSON.parse(updatedCourse.releaseDaysOfWeek) : updatedCourse.releaseDaysOfWeek,
+      releaseDaysOfWeek: (updatedCourse as any).releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
@@ -111,7 +123,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
         releaseIntervalDays: updatedCourse.releaseIntervalDays,
         releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
-        releaseDaysOfWeek: typeof updatedCourse.releaseDaysOfWeek === 'string' ? JSON.parse(updatedCourse.releaseDaysOfWeek) : updatedCourse.releaseDaysOfWeek,
+        releaseDaysOfWeek: (updatedCourse as any).releaseDaysOfWeek,
         timezone: updatedCourse.timezone,
       },
       groups,

@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { updateTelegramVerificationMessage, compressUuid, decompressUuid } from '@/lib/telegram';
 import {
-  collectSecondChildGroups,
-  computeReleaseGroupDates,
-  ensureGroupInheritance,
-  parseCurriculumJson,
-} from '@/lib/teacher-course-builder';
-import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
-import { randomUUID } from 'crypto';
+  order as orderSchema,
+  payment as paymentSchema,
+  course as courseSchema,
+  user as userSchema,
+  studentModuleAvailability as smaSchema
+} from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { updateTelegramVerificationMessage, compressUuid, decompressUuid } from '@/lib/telegram';
+
 function getTelegramChatIds() {
   const envChatId = process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '') || '';
   return envChatId.split(',').map(id => id.trim()).filter(Boolean);
@@ -78,9 +79,9 @@ export async function POST(request: NextRequest) {
       // ── Payment verification ──
       if (prefix === 'payment_verify') {
         const [orderId, action] = value.split(':');
-        const order = await db.order.findUnique({
-          where: { id: orderId },
-          include: { payment: true },
+        const order = await db.query.order.findFirst({
+          where: (o, { eq }) => eq(o.id, orderId),
+          with: { payments: true },
         });
 
         if (!order) {
@@ -90,22 +91,14 @@ export async function POST(request: NextRequest) {
         if (order.status === 'pending') {
           const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-          await db.$transaction(async (tx) => {
-            await tx.order.update({
-              where: { id: orderId },
-              data: { status: nextStatus }
-            });
-
-            if (order.payment) {
-              await tx.payment.updateMany({
-                where: { orderId },
-                data: {
-                  status: nextStatus,
-                  approvedAt: action === 'approve' ? new Date() : null,
-                }
-              });
-            }
-          });
+          // neon-http driver does not support transactions — execute sequentially.
+          await db.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
+          if (order.payments?.length) {
+            await db.update(paymentSchema).set({
+                status: nextStatus,
+                approvedAt: action === 'approve' ? new Date().toISOString() : null,
+            }).where(eq(paymentSchema.orderId, orderId));
+          }
 
           await updateTelegramVerificationMessage({
             chatId: message.chat.id,
@@ -128,12 +121,13 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 1: Enroll — show course list ──
+      // callback_data: "en:{compressedUserId}" (max ~28 bytes ✓)
       else if (prefix === 'en') {
         const compressedUserId = value;
 
-        const courses = await db.course.findMany({
-          where: { status: 'published' },
-          select: { id: true, title: true }
+        const courses = await db.query.course.findMany({
+          where: (c, { eq }) => eq(c.status, 'published'),
+          columns: { id: true, title: true }
         });
 
         if (courses.length === 0) {
@@ -141,6 +135,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
+        // callback_data: "sc:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
         const inlineKeyboard = courses.map(c => [
           { text: c.title, callback_data: `sc:${compressedUserId}:${c.id}` }
         ]);
@@ -151,6 +146,7 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 2: Enroll — perform enrollment ──
+      // callback_data: "sc:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
       else if (prefix === 'sc') {
         const parts = value.split(':');
         const compressedUserId = parts[0];
@@ -163,9 +159,9 @@ export async function POST(request: NextRequest) {
 
         const userId = decompressUuid(compressedUserId);
 
-        const student = await db.user.findFirst({
-          where: { id: userId, role: 'student' },
-          select: { fullName: true, email: true }
+        const student = await db.query.user.findFirst({
+          where: (u, { eq, and }) => and(eq(u.id, userId), eq(u.role, 'student')),
+          columns: { fullName: true, email: true }
         });
 
         if (!student) {
@@ -173,9 +169,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const course = await db.course.findUnique({
-          where: { id: courseId },
-          select: { id: true, title: true }
+        const course = await db.query.course.findFirst({
+          where: (c, { eq }) => eq(c.id, courseId),
+          columns: { id: true, title: true }
         });
 
         if (!course) {
@@ -184,42 +180,43 @@ export async function POST(request: NextRequest) {
         }
 
         // Prevent duplicate enrollment
-        const existingOrder = await db.order.findFirst({
-          where: {
-            userId: userId,
-            courseId: courseId,
-            status: 'approved'
-          }
+        const existingOrder = await db.query.order.findFirst({
+          where: (o, { eq, and }) => and(
+            eq(o.userId, userId),
+            eq(o.courseId, courseId),
+            eq(o.status, 'approved')
+          )
         });
 
         if (existingOrder) {
           await sendMsg(callbackChatId, `⚠️ Student is already enrolled in course: <b>${course.title}</b>`);
         } else {
-          const enrollOrder = await db.order.findFirst({
-            where: { userId, courseId }
+          // neon-http driver does not support transactions — execute sequentially.
+          // Duplicate check was already done above with `existingOrder`, so we know
+          // no row exists for (userId, courseId, approved). But other statuses may
+          // exist, in which case we update; otherwise we insert.
+          const enrollOrder = await db.query.order.findFirst({
+            where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.courseId, courseId))
           });
 
           if (enrollOrder) {
-            await db.order.update({
-              where: { id: enrollOrder.id },
-              data: {
+            await db.update(orderSchema)
+              .set({
                 status: 'approved',
-                enrolledAt: new Date(),
-                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-                updatedAt: new Date(),
-              }
-            });
+                enrolledAt: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                updatedAt: new Date().toISOString(),
+              })
+              .where(eq(orderSchema.id, enrollOrder.id));
           } else {
-            await db.order.create({
-              data: {
-                id: crypto.randomUUID(),
-                userId,
-                courseId,
-                status: 'approved',
-                totalAmount: 0,
-                enrolledAt: new Date(),
-                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-              }
+            await db.insert(orderSchema).values({
+              id: crypto.randomUUID(),
+              userId,
+              courseId,
+              status: 'approved',
+              totalAmount: 0,
+              enrolledAt: new Date().toISOString(),
+              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
             });
           }
 
@@ -230,13 +227,14 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 1: Availability — show enrolled courses ──
+      // callback_data: "av:{compressedUserId}" (max ~28 bytes ✓)
       else if (prefix === 'av') {
         const compressedUserId = value;
         const userId = decompressUuid(compressedUserId);
 
-        const enrolledOrders = await db.order.findMany({
-          where: { userId, status: 'approved' },
-          include: { course: true }
+        const enrolledOrders = await db.query.order.findMany({
+          where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.status, 'approved')),
+          with: { course: true }
         });
 
         if (enrolledOrders.length === 0) {
@@ -244,6 +242,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
+        // callback_data: "ac:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
         const inlineKeyboard = enrolledOrders.map(o => [
           { text: o.course.title, callback_data: `ac:${compressedUserId}:${o.courseId}` }
         ]);
@@ -254,6 +253,7 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 2: Availability — select type ──
+      // callback_data: "ac:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
       else if (prefix === 'ac') {
         const parts = value.split(':');
         const compressedUserId = parts[0];
@@ -264,12 +264,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
+        // callback_data: "at:cd:{compressedUserId}:{courseId}" (max ~57 bytes ✓)
         const inlineKeyboard = [
-          [{ text: '🗓 Change enrollment date', callback_data: `at:cd:${compressedUserId}:${courseId}` }],
-          [{ text: '🔓 Unlock all modules', callback_data: `at:ua:${compressedUserId}:${courseId}` }],
-          [{ text: '🏁 Start from today (Default)', callback_data: `at:st:${compressedUserId}:${courseId}` }],
-          [{ text: '📅 Select Week Days', callback_data: `at:wd:${compressedUserId}:${courseId}` }],
-          [{ text: '⏳ Set Day Interval', callback_data: `at:ci:${compressedUserId}:${courseId}` }]
+          [{ text: 'Custom Date', callback_data: `at:cd:${compressedUserId}:${courseId}` }]
         ];
 
         await sendMsg(callbackChatId, '<b>Select availability type:</b>', {
@@ -278,100 +275,26 @@ export async function POST(request: NextRequest) {
       }
 
       // ── Step 3: Availability — prompt for dates ──
+      // callback_data: "at:cd:{compressedUserId}:{courseId}" (max ~57 bytes ✓)
       else if (prefix === 'at') {
         const parts = value.split(':');
         const actionType = parts[0];
         const compressedUserId = parts[1];
         const courseId = parts[2];
 
-        if (!compressedUserId || !courseId || !['cd', 'ua', 'st', 'wd', 'ci'].includes(actionType)) {
+        if (!compressedUserId || !courseId || actionType !== 'cd') {
           await sendMsg(callbackChatId, '❌ Invalid callback data.');
           return NextResponse.json({ ok: true });
         }
 
         const userId = decompressUuid(compressedUserId);
-        const course = await db.course.findUnique({ where: { id: courseId } });
-        if (!course) {
-          await sendMsg(callbackChatId, '❌ Course not found.');
-          return NextResponse.json({ ok: true });
-        }
 
-        if (actionType === 'cd') {
-          await sendMsg(callbackChatId,
-            `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
-            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
-          );
-        } else if (actionType === 'wd') {
-          await sendMsg(callbackChatId,
-            `Please enter comma-separated days of the week (e.g. Mon, Wed, Fri):\n\n[Session: enter_week_days]\n[User: ${userId}]\n[Course: ${courseId}]`,
-            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
-          );
-        } else if (actionType === 'ci') {
-          await sendMsg(callbackChatId,
-            `Please enter the day interval as a number (e.g. 7):\n\n[Session: enter_interval]\n[User: ${userId}]\n[Course: ${courseId}]`,
-            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
-          );
-        } else if (actionType === 'ua') {
-          const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
-          const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
-          const curriculum = ensureGroupInheritance(populatedCurriculum);
-          
-          const allNodeIds: string[] = [];
-          const collect = (nodes: any[]) => {
-            nodes.forEach(n => {
-              allNodeIds.push(n.id);
-              if (n.children?.length) collect(n.children);
-            });
-          };
-          collect(curriculum);
-
-          const dataToInsert = allNodeIds.map(nodeId => ({
-            id: randomUUID(),
-            courseId,
-            userId,
-            lessonNodeId: nodeId,
-            availabilityMode: 'available',
-            availableAt: null,
-          }));
-
-          await db.$transaction([
-            db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-            ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-          ]);
-          await sendMsg(callbackChatId, `✅ <b>All modules unlocked successfully</b>\n\n📚 <b>Course:</b> ${course.title}`);
-        } else if (actionType === 'st') {
-          const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
-          const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
-          const curriculum = ensureGroupInheritance(populatedCurriculum);
-          
-          const groups = collectSecondChildGroups(curriculum);
-          const groupIdToNodeId = new Map(groups.map(g => [g.id, g.nodeId]));
-
-          const computedDaysOfWeek = typeof course.releaseDaysOfWeek === 'string' ? JSON.parse(course.releaseDaysOfWeek) : course.releaseDaysOfWeek;
-          const targetDates = computeReleaseGroupDates(groups, {
-            releaseMode: course.releaseMode as any,
-            releaseStartAt: new Date(),
-            releaseIntervalDays: course.releaseIntervalDays || 7,
-            releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-            releaseDaysOfWeek: computedDaysOfWeek,
-            releaseGroupDates: {},
-          });
-
-          const dataToInsert = Object.entries(targetDates).map(([groupId, dateStr]) => ({
-            id: randomUUID(),
-            courseId,
-            userId,
-            lessonNodeId: groupIdToNodeId.get(groupId)!,
-            availabilityMode: 'available',
-            availableAt: dateStr ? new Date(dateStr) : null,
-          }));
-
-          await db.$transaction([
-            db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-            ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-          ]);
-          await sendMsg(callbackChatId, `✅ <b>Module availability set starting from today</b>\n\n📚 <b>Course:</b> ${course.title}`);
-        }
+        // Send ForceReply message to get Start Date
+        // Embed userId and courseId in the message text for the reply handler
+        await sendMsg(callbackChatId,
+          `Please enter start date (YYYY-MM-DD):\n\n[Session: enter_start_date]\n[User: ${userId}]\n[Course: ${courseId}]`,
+          { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+        );
       }
     }
 
@@ -388,6 +311,7 @@ export async function POST(request: NextRequest) {
         const userId = userMatch ? userMatch[1].trim() : '';
         const courseId = courseMatch ? courseMatch[1].trim() : '';
 
+        // Validate date YYYY-MM-DD
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(responseText)) {
           await sendMsg(messageChatId,
@@ -406,152 +330,93 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const end = new Date(start);
-        end.setFullYear(end.getFullYear() + 1);
-
-        const course = await db.course.findUnique({ where: { id: courseId }, select: { title: true } });
-
-        await db.$transaction([
-          db.order.updateMany({
-            where: { courseId, userId },
-            data: { enrolledAt: start, expiresAt: end, updatedAt: new Date() }
-          }),
-          db.studentModuleAvailability.deleteMany({ where: { courseId, userId } })
-        ]);
-
-        console.log(`[AUDIT] Student ${userId} enrollment date updated to ${responseText} via Telegram Bot by ${from?.first_name || 'Admin'}`);
-        await sendMsg(messageChatId, `✅ <b>Enrollment date updated successfully.</b>\n\n📚 <b>Course:</b> ${course?.title || 'Unknown Course'}\n📅 <b>New Start Date:</b> ${responseText}\n⏳ <b>Calculated Expiry:</b> ${end.toISOString().split('T')[0]}`);
+        // Ask for End Date
+        await sendMsg(messageChatId,
+          `Please enter end date (YYYY-MM-DD) or reply 'none' for no expiry:\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${responseText}]`,
+          { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+        );
       }
 
-      else if (replyToText.includes('[Session: enter_week_days]')) {
+      else if (replyToText.includes('[Session: enter_end_date]')) {
         const userMatch = replyToText.match(/\[User:\s*([^\]]+)\]/);
         const courseMatch = replyToText.match(/\[Course:\s*([^\]]+)\]/);
+        const startMatch = replyToText.match(/\[Start:\s*([^\]]+)\]/);
         const userId = userMatch ? userMatch[1].trim() : '';
         const courseId = courseMatch ? courseMatch[1].trim() : '';
+        const startDateStr = startMatch ? startMatch[1].trim() : '';
 
-        // Map text (mon, wed, friday) to numbers
-        const dayMap: Record<string, number> = {
-          'su': 0, 'sun': 0, 'sunday': 0,
-          'mo': 1, 'mon': 1, 'monday': 1,
-          'tu': 2, 'tue': 2, 'tuesday': 2,
-          'we': 3, 'wed': 3, 'wednesday': 3,
-          'th': 4, 'thu': 4, 'thursday': 4,
-          'fr': 5, 'fri': 5, 'friday': 5,
-          'sa': 6, 'sat': 6, 'saturday': 6,
-        };
+        const start = new Date(startDateStr);
+        let end: Date | null = null;
+        const isNone = responseText.toLowerCase() === 'none';
 
-        const parts = responseText.toLowerCase().replace(/[^a-z0-9, ]/g, '').split(',').map((p: string) => p.trim());
-        const days = parts.map((p: string) => {
-          if (!isNaN(parseInt(p)) && parseInt(p) >= 0 && parseInt(p) <= 6) return parseInt(p);
-          return dayMap[p];
-        }).filter((d: number | undefined) => d !== undefined) as number[];
+        if (!isNone) {
+          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+          if (!dateRegex.test(responseText)) {
+            await sendMsg(messageChatId,
+              `❌ Invalid format. Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
+              { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+            );
+            return NextResponse.json({ ok: true });
+          }
 
-        // Unique days
-        const uniqueDays = Array.from(new Set(days)).sort();
+          end = new Date(responseText);
+          if (Number.isNaN(end.getTime())) {
+            await sendMsg(messageChatId,
+              `❌ Invalid date. Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
+              { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+            );
+            return NextResponse.json({ ok: true });
+          }
 
-        if (uniqueDays.length === 0) {
-          await sendMsg(messageChatId,
-            `❌ Could not parse any days. Please enter comma-separated days (e.g. Mon, Wed, Fri):\n\n[Session: enter_week_days]\n[User: ${userId}]\n[Course: ${courseId}]`,
-            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
-          );
-          return NextResponse.json({ ok: true });
+          if (end < start) {
+            await sendMsg(messageChatId,
+              `❌ End date cannot be earlier than start date (${startDateStr}). Please enter end date (YYYY-MM-DD) or reply 'none':\n\n[Session: enter_end_date]\n[User: ${userId}]\n[Course: ${courseId}]\n[Start: ${startDateStr}]`,
+              { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
+            );
+            return NextResponse.json({ ok: true });
+          }
         }
 
-        const course = await db.course.findUnique({ where: { id: courseId } });
-        if (!course) return NextResponse.json({ ok: true });
-
-        const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
-        const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
-        const curriculum = ensureGroupInheritance(populatedCurriculum);
-        const groups = collectSecondChildGroups(curriculum);
-        const groupIdToNodeId = new Map(groups.map(g => [g.id, g.nodeId]));
-
-        const targetDates = computeReleaseGroupDates(groups, {
-          releaseMode: 'day_of_week' as any,
-          releaseStartAt: new Date(),
-          releaseIntervalDays: course.releaseIntervalDays || 7,
-          releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-          releaseDaysOfWeek: uniqueDays,
-          releaseGroupDates: {},
+        const course = await db.query.course.findFirst({
+          where: (c, { eq }) => eq(c.id, courseId),
+          columns: { title: true }
         });
 
-        const dataToInsert = Object.entries(targetDates).map(([groupId, dateStr]) => ({
-          id: randomUUID(),
-          courseId,
-          userId,
-          lessonNodeId: groupIdToNodeId.get(groupId)!,
-          availabilityMode: 'available',
-          availableAt: dateStr ? new Date(dateStr) : null,
-        }));
+        // Update DB
+        await db.update(orderSchema)
+          .set({
+            enrolledAt: start.toISOString(),
+            expiresAt: end ? end.toISOString() : null,
+            updatedAt: new Date().toISOString()
+          })
+          .where(and(
+            eq(orderSchema.courseId, courseId),
+            eq(orderSchema.userId, userId)
+          ));
 
-        await db.$transaction([
-          db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-          ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-        ]);
+        // Clear custom overrides to follow the general course schedule relative to start date
+        await db.delete(smaSchema).where(and(
+          eq(smaSchema.courseId, courseId),
+          eq(smaSchema.userId, userId)
+        ));
 
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        const parsedNames = uniqueDays.map(d => dayNames[d]).join(', ');
-        await sendMsg(messageChatId, `✅ <b>Module availability set to week days</b>\n\n📚 <b>Course:</b> ${course.title}\n📅 <b>Selected Days:</b> ${parsedNames}`);
-      }
+        // Log action in system audit logs
+        console.log(`[AUDIT] Student ${userId} module availability updated for course ${courseId} via Telegram Bot (Start: ${startDateStr}, End: ${end ? responseText : 'none'}) by ${from?.first_name || 'Admin'}`);
 
-      else if (replyToText.includes('[Session: enter_interval]')) {
-        const userMatch = replyToText.match(/\[User:\s*([^\]]+)\]/);
-        const courseMatch = replyToText.match(/\[Course:\s*([^\]]+)\]/);
-        const userId = userMatch ? userMatch[1].trim() : '';
-        const courseId = courseMatch ? courseMatch[1].trim() : '';
+        const endDisplay = end ? responseText : 'No Expiry';
 
-        const interval = parseInt(responseText);
-        if (isNaN(interval) || interval < 1) {
-          await sendMsg(messageChatId,
-            `❌ Invalid number. Please enter the day interval as a positive number (e.g. 7):\n\n[Session: enter_interval]\n[User: ${userId}]\n[Course: ${courseId}]`,
-            { reply_markup: { force_reply: true, selective: true }, parse_mode: undefined }
-          );
-          return NextResponse.json({ ok: true });
-        }
-
-        const course = await db.course.findUnique({ where: { id: courseId } });
-        if (!course) return NextResponse.json({ ok: true });
-
-        const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
-        const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
-        const curriculum = ensureGroupInheritance(populatedCurriculum);
-        const groups = collectSecondChildGroups(curriculum);
-        const groupIdToNodeId = new Map(groups.map(g => [g.id, g.nodeId]));
-
-        const targetDates = computeReleaseGroupDates(groups, {
-          releaseMode: 'fixed_interval',
-          releaseStartAt: new Date(),
-          releaseIntervalDays: interval,
-          releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-          releaseDaysOfWeek: [],
-          releaseGroupDates: {},
-        });
-
-        const dataToInsert = Object.entries(targetDates).map(([groupId, dateStr]) => ({
-          id: randomUUID(),
-          courseId,
-          userId,
-          lessonNodeId: groupIdToNodeId.get(groupId)!,
-          availabilityMode: 'available',
-          availableAt: dateStr ? new Date(dateStr) : null,
-        }));
-
-        await db.$transaction([
-          db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-          ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-        ]);
-
-        await sendMsg(messageChatId, `✅ <b>Module availability set to ${interval} days interval</b>\n\n📚 <b>Course:</b> ${course.title}`);
-
-
+        await sendMsg(messageChatId, `✅ <b>Module availability updated successfully.</b>\n\n📚 <b>Course:</b> ${course?.title || 'Unknown Course'}\n📅 <b>Start Date:</b> ${startDateStr}\n📅 <b>End Date:</b> ${endDisplay}`);
       }
     }
 
     // ─── TEXT COMMAND HANDLER ───
+    // Handles /enroll, /availability, /student, /help commands
     if (body.message && body.message.text && !body.message.reply_to_message) {
       const text = (body.message.text || '').trim();
       const messageChatId = body.message.chat.id;
+      const sessionKey = String(messageChatId);
 
+      // /help — show available commands
       if (text === '/help' || text === '/start') {
         await sendMsg(messageChatId, [
           '<b>📋 Available Commands:</b>',
@@ -571,6 +436,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      // /student <email> — look up student and show action buttons
       if (text.startsWith('/student')) {
         const email = text.replace('/student', '').trim();
         if (!email) {
@@ -578,9 +444,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.user.findUnique({
-          where: { email },
-          select: { id: true, fullName: true, email: true, role: true, phone: true, createdAt: true }
+        const student = await db.query.user.findFirst({
+          where: (u, { eq }) => eq(u.email, email),
+          columns: { id: true, fullName: true, email: true, role: true, phone: true, createdAt: true }
         });
 
         if (!student) {
@@ -588,9 +454,10 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrollments = await db.order.findMany({
-          where: { userId: student.id, status: 'approved' },
-          include: { course: { select: { title: true } } }
+        // Fetch enrolled courses
+        const enrollments = await db.query.order.findMany({
+          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
+          with: { course: { columns: { title: true } } }
         });
 
         const courseList = enrollments.length > 0
@@ -626,6 +493,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      // /enroll <email> — start enrollment flow
       if (text.startsWith('/enroll')) {
         const email = text.replace('/enroll', '').trim();
         if (!email) {
@@ -633,9 +501,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.user.findUnique({
-          where: { email },
-          select: { id: true, fullName: true }
+        const student = await db.query.user.findFirst({
+          where: (u, { eq }) => eq(u.email, email),
+          columns: { id: true, fullName: true }
         });
 
         if (!student) {
@@ -643,9 +511,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const courses = await db.course.findMany({
-          where: { status: 'published' },
-          select: { id: true, title: true }
+        const courses = await db.query.course.findMany({
+          where: (c, { eq }) => eq(c.status, 'published'),
+          columns: { id: true, title: true }
         });
 
         if (courses.length === 0) {
@@ -665,6 +533,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      // /availability <email> — start availability change flow
       if (text.startsWith('/availability')) {
         const email = text.replace('/availability', '').trim();
         if (!email) {
@@ -672,9 +541,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.user.findUnique({
-          where: { email },
-          select: { id: true, fullName: true }
+        const student = await db.query.user.findFirst({
+          where: (u, { eq }) => eq(u.email, email),
+          columns: { id: true, fullName: true }
         });
 
         if (!student) {
@@ -682,9 +551,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrolledOrders = await db.order.findMany({
-          where: { userId: student.id, status: 'approved' },
-          include: { course: true }
+        const enrolledOrders = await db.query.order.findMany({
+          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
+          with: { course: true }
         });
 
         if (enrolledOrders.length === 0) {
@@ -728,6 +597,7 @@ export async function POST(request: NextRequest) {
     } catch (e) {
       console.error('Failed to send error message to Telegram:', e);
     }
+    // Return 200 OK so Telegram does not retry the failed webhook
     return NextResponse.json({ ok: true, error: error.message });
   }
 }

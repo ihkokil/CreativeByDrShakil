@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   BuilderCurriculumNode,
@@ -13,7 +15,7 @@ import {
 import { buildCurriculumFromStarter, getStarterCatalogFromDB } from '@/lib/starter-catalog';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.course.findUnique({ where: { id: courseId } });
+  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
 };
 
 const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {
@@ -103,17 +105,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'At least one main topic must be selected.' }, { status: 400 });
     }
 
-    const existingCurriculum = parseCurriculumJson(course.curriculumJson as string);
+    const existingCurriculum = parseCurriculumJson(course.curriculumJson);
     const importedNodes = topics.length
       ? buildCurriculumFromPayloadTopics(topics, existingCurriculum)
       : buildCurriculumFromStarter(mainTopicIds, await getStarterCatalogFromDB());
 
+    // If topics were provided explicitly (from the wizard), they represent the FULL desired state of selected modules.
+    // If only mainTopicIds were provided (from the standalone builder), they represent NEW modules to append.
     const mergedCurriculum = ensureGroupInheritance(
       topics.length ? importedNodes : [...existingCurriculum, ...importedNodes]
     );
 
     const groups = collectSecondChildGroups(mergedCurriculum);
-    const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates as string);
+    const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     groups.forEach((group) => {
       if (!releaseGroupDates[group.id]) {
         releaseGroupDates[group.id] = '';
@@ -127,13 +131,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return acc;
     }, {});
 
-    const updatedCourse = await db.course.update({
-      where: { id: course.id },
-      data: {
+    const [updatedCourse] = await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(mergedCurriculum),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }
-    });
+      }).where(eq(courseSchema.id, course.id)).returning();
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,

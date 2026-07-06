@@ -3,6 +3,9 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
+import { emailOtp } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { parseDbDate } from '@/lib/date-format';
 
 const verifyOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -29,16 +32,16 @@ export async function POST(request: NextRequest) {
     const { email, otp } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
-    const otpRecord = await db.emailOtp.findFirst({
-      where: { email: normalizedEmail },
-      orderBy: { createdAt: 'desc' },
+    const otpRecord = await db.query.emailOtp.findFirst({
+      where: (e, { eq }) => eq(e.email, normalizedEmail),
+      orderBy: (e, { desc }) => [desc(e.createdAt)],
     });
 
     if (!otpRecord) {
       return NextResponse.json({ error: 'No verification code found for this email.' }, { status: 400 });
     }
 
-    const expiresAt = otpRecord.expiresAt;
+    const expiresAt = parseDbDate(otpRecord.expiresAt);
     if (expiresAt && expiresAt < new Date()) {
       return NextResponse.json({ error: 'Verification code has expired. Please request a new one.' }, { status: 400 });
     }
@@ -49,10 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark as verified so registration API can check it
-    await db.emailOtp.update({
-      where: { id: otpRecord.id },
-      data: { verified: true }
-    });
+    await db.update(emailOtp).set({ verified: true }).where(eq(emailOtp.id, otpRecord.id));
 
     return NextResponse.json({ verified: true, message: 'Email verified successfully.' });
   } catch (error: any) {

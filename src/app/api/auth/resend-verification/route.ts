@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { user as userSchema } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { createTokenPair } from "@/lib/token-utils";
 import { sendVerificationEmail } from "@/lib/auth-emails";
 
@@ -12,19 +14,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email is required." }, { status: 400 });
     }
 
-    const user = await db.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.email, normalizedEmail) });
 
     if (user && !user.emailVerified) {
       const { token, tokenHash } = await createTokenPair();
       const verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-      await db.user.update({
-        where: { id: user.id },
-        data: {
+      await db.update(userSchema)
+        .set({
           emailVerificationTokenHash: tokenHash,
-          emailVerificationExpires: verifyExpiry,
-        }
-      });
+          emailVerificationExpires: verifyExpiry.toISOString(),
+        })
+        .where(eq(userSchema.id, user.id));
 
       try {
         await sendVerificationEmail({

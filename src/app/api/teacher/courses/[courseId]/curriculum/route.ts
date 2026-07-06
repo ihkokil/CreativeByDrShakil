@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   BuilderCurriculumNode,
@@ -17,7 +19,7 @@ import {
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.course.findUnique({ where: { id: courseId } });
+  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -33,11 +35,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
-    const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates as string);
+    const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',
       releaseStartAt: new Date('2026-06-12T16:00:00Z'),
@@ -91,7 +93,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Invalid node type.' }, { status: 400 });
     }
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson as string));
+    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
 
     if (parentId) {
       const parentPath = findNodePath(curriculum, parentId);
@@ -132,7 +134,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const normalizedCurriculum = ensureGroupInheritance(insertedCurriculum);
     const groups = collectSecondChildGroups(normalizedCurriculum);
 
-    const existingReleaseDates = parseReleaseGroupDateMap(course.releaseGroupDates as string);
+    const existingReleaseDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const compactReleaseGroupDates = groups.reduce<Record<string, string>>((acc, group) => {
       if (existingReleaseDates[group.id]) {
         acc[group.id] = existingReleaseDates[group.id];
@@ -142,13 +144,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
 
-    const updatedCourse = await db.course.update({
-      where: { id: course.id },
-      data: {
+    const [updatedCourse] = await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }
-    });
+      }).where(eq(courseSchema.id, course.id)).returning();
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',

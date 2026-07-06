@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { videoLibraryNode as vlnSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
@@ -36,7 +38,7 @@ export async function PATCH(
 
         const { id } = await params;
 
-        const existing = await db.videoLibraryNode.findUnique({ where: { id } });
+        const existing = await db.query.videoLibraryNode.findFirst({ where: (v, { eq }) => eq(v.id, id) });
         if (!existing) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
@@ -61,10 +63,7 @@ export async function PATCH(
             return NextResponse.json({ error: 'No valid fields to update.' }, { status: 400 });
         }
 
-        const node = await db.videoLibraryNode.update({
-            where: { id },
-            data
-        });
+        const [node] = await db.update(vlnSchema).set(data).where(eq(vlnSchema.id, id)).returning();
 
         return NextResponse.json({ node });
     } catch (error: any) {
@@ -83,13 +82,13 @@ export async function DELETE(
 
         const { id } = await params;
 
-        const existing = await db.videoLibraryNode.findUnique({ where: { id } });
+        const existing = await db.query.videoLibraryNode.findFirst({ where: (v, { eq }) => eq(v.id, id) });
         if (!existing) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
 
         // Prisma cascade handles children deletion via the schema relation
-        await db.videoLibraryNode.delete({ where: { id } });
+        await db.delete(vlnSchema).where(eq(vlnSchema.id, id));
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

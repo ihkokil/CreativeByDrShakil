@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { course as courseSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 interface InstructorData {
@@ -24,9 +26,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const instructors = Array.isArray(body.instructors) ? body.instructors : [];
 
     // Verify course exists and belongs to teacher
-    const course = await db.course.findUnique({
-      where: { id: courseId },
-      select: { teacherId: true },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      columns: { teacherId: true },
     });
 
     if (!course) {
@@ -37,59 +39,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
+    // Delete existing instructors
+    await db.delete(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId));
+
+    // Create new instructors
     const validInstructors = instructors.filter(
       (instr: InstructorData) => typeof instr.name === 'string' && instr.name.trim()
     );
 
-    // Update course and instructors transactionally
-    const transactionItems: any[] = [
-      // Delete existing instructors
-      db.courseInstructor.deleteMany({
-        where: { courseId: courseId }
-      })
-    ];
-
-    // Create new instructors
-    if (validInstructors.length > 0) {
-      transactionItems.push(
-        db.courseInstructor.createMany({
-          data: validInstructors.map((instr: InstructorData, index: number) => ({
-            id: crypto.randomUUID(),
-            courseId,
-            name: instr.name.trim(),
-            designation: instr.designation ? instr.designation.trim() : null,
-            imageUrl: instr.imageUrl || null,
-            sortOrder: index,
-          }))
+    await Promise.all(
+      validInstructors.map((instr: InstructorData, index: number) =>
+        db.insert(courseInstructorSchema).values({
+          id: crypto.randomUUID(),
+          courseId,
+          name: instr.name.trim(),
+          designation: instr.designation ? instr.designation.trim() : null,
+          imageUrl: instr.imageUrl || null,
+          sortOrder: index,
         })
-      );
-    }
-
-    // Update course details
-    transactionItems.push(
-      db.course.update({
-        where: { id: courseId },
-        data: {
-          overview,
-          learningOutcomes,
-        }
-      })
+      )
     );
 
-    // Return updated course
-    transactionItems.push(
-      db.course.findUnique({
-        where: { id: courseId },
-        include: {
-          instructors: {
-            orderBy: { sortOrder: 'asc' }
-          }
-        }
-      })
-    );
+    // Update course
+    await db.update(courseSchema).set({
+        overview,
+        learningOutcomes,
+      }).where(eq(courseSchema.id, courseId));
 
-    const results = await db.$transaction(transactionItems);
-    const updatedCourse = results[results.length - 1];
+    const updatedCourse = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
+    });
 
     return NextResponse.json({ course: updatedCourse }, { status: 200 });
   } catch (error: any) {

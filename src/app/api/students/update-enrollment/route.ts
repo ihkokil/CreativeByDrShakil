@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { order as orderSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { getSession } from '@/lib/auth-server';
 
 /**
@@ -34,23 +36,23 @@ export async function POST(request: NextRequest) {
     // Expiry date is exactly 1 year (365 days) later
     const expiresAt = new Date(enrolledAt.getTime() + 365 * 24 * 60 * 60 * 1000);
 
-    const order = await db.order.findUnique({
-      where: { id: orderId },
-      select: { id: true, status: true },
+    const order = await db.query.order.findFirst({
+      where: (o, { eq }) => eq(o.id, orderId),
+      columns: { id: true, status: true },
     });
 
     if (!order) {
       return NextResponse.json({ error: 'Enrollment order not found.' }, { status: 404 });
     }
 
-    const updatedOrder = await db.order.update({
-      where: { id: orderId },
-      data: {
-        enrolledAt: enrolledAt,
-        expiresAt: expiresAt,
-        updatedAt: new Date(),
-      }
-    });
+    const [updatedOrder] = await db.update(orderSchema)
+      .set({
+        enrolledAt: enrolledAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(orderSchema.id, orderId))
+      .returning();
 
     return NextResponse.json({
       success: true,

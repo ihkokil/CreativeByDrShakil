@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { db } from '@/lib/db';
+import { course as courseSchema, order as orderSchema, studentModuleAvailability as smaSchema } from '@/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -36,8 +38,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId(s), and action are required.' }, { status: 400 });
     }
 
-    const course = await db.course.findFirst({
-      where: payload.role === 'admin' ? { id: courseId } : { id: courseId, teacherId: payload.sub },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq, and }) => payload.role === 'admin' ? eq(c.id, courseId) : and(eq(c.id, courseId), eq(c.teacherId, payload.sub)),
     });
 
     if (!course) {
@@ -46,13 +48,13 @@ export async function POST(request: NextRequest) {
 
     // Check that ALL requested students have an active enrollment
     // If not all are enrolled, we might either fail entirely or just process the valid ones. Let's process the valid ones.
-    const orders = await db.order.findMany({
-      where: {
-        userId: { in: userIds },
-        courseId,
-        status: 'approved',
-      },
-      select: { userId: true },
+    const orders = await db.query.order.findMany({
+      where: (o, { eq, and, inArray }) => and(
+        inArray(o.userId, userIds), 
+        eq(o.courseId, courseId), 
+        eq(o.status, 'approved')
+      ),
+      columns: { userId: true },
     });
 
     const enrolledUserIds = orders.map(o => o.userId);
@@ -62,17 +64,14 @@ export async function POST(request: NextRequest) {
 
     if (action === 'continue_with_batch') {
       // Clear custom overrides to fall back to course schedule
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        }
-      });
+      await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
 
     if (action === 'custom_date') {
       const startDate = typeof body.startDate === 'string' ? body.startDate.trim() : '';
+      const endDate = typeof body.endDate === 'string' ? body.endDate.trim() : '';
+
       if (!startDate) {
         return NextResponse.json({ error: 'Start date is required for custom date.' }, { status: 400 });
       }
@@ -81,41 +80,45 @@ export async function POST(request: NextRequest) {
       if (!dateRegex.test(startDate)) {
         return NextResponse.json({ error: 'Start date must be in YYYY-MM-DD format.' }, { status: 400 });
       }
+      if (endDate && !dateRegex.test(endDate)) {
+        return NextResponse.json({ error: 'End date must be in YYYY-MM-DD format.' }, { status: 400 });
+      }
 
       const start = new Date(startDate);
+      const end = endDate ? new Date(endDate) : null;
 
       if (Number.isNaN(start.getTime())) {
         return NextResponse.json({ error: 'Invalid start date.' }, { status: 400 });
       }
-
-      const end = new Date(start);
-      end.setFullYear(end.getFullYear() + 1);
+      if (end && Number.isNaN(end.getTime())) {
+        return NextResponse.json({ error: 'Invalid end date.' }, { status: 400 });
+      }
+      if (end && end < start) {
+        return NextResponse.json({ error: 'End date cannot be earlier than start date.' }, { status: 400 });
+      }
 
       // Update the student enrollment orders
-      await db.order.updateMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        },
-        data: {
-          enrolledAt: start,
-          expiresAt: end,
-          updatedAt: new Date(),
-        }
-      });
+      await db.update(orderSchema)
+        .set({
+          enrolledAt: start.toISOString(),
+          expiresAt: end ? end.toISOString() : null,
+          updatedAt: new Date().toISOString()
+        })
+        .where(and(
+          eq(orderSchema.courseId, courseId),
+          inArray(orderSchema.userId, enrolledUserIds)
+        ));
 
       // Clear student custom overrides so they follow the course schedule starting from the new enrolledAt date
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        }
-      });
+      await db.delete(smaSchema).where(and(
+        eq(smaSchema.courseId, courseId),
+        inArray(smaSchema.userId, enrolledUserIds)
+      ));
 
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
 
-    const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
 
@@ -139,21 +142,21 @@ export async function POST(request: NextRequest) {
             lessonNodeId: nodeId,
             availabilityMode: 'available',
             availableAt: null,
+            updatedAt: new Date().toISOString()
           });
         });
       });
 
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        }
-      });
-      
+      // neon-http driver does not support transactions — execute sequentially.
+      // Delete first, then insert. If insert fails, a follow-up retry will
+      // re-run the delete (idempotent for matching keys) and try the insert again.
+      await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
       if (dataToInsert.length > 0) {
-        await db.studentModuleAvailability.createMany({
-          data: dataToInsert
-        });
+        // Chunk inserts to avoid query size limits if many students and modules
+        const chunkSize = 1000;
+        for (let i = 0; i < dataToInsert.length; i += chunkSize) {
+          await db.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
+        }
       }
 
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
@@ -166,18 +169,18 @@ export async function POST(request: NextRequest) {
     const anchor = new Date(); // Start from today
     let mode: any = course.releaseMode;
     let computedInterval = course.releaseIntervalDays || 7;
-    let computedDaysOfWeek = typeof course.releaseDaysOfWeek === 'string' ? JSON.parse(course.releaseDaysOfWeek) : course.releaseDaysOfWeek;
+    let computedDaysOfWeek = (course as any).releaseDaysOfWeek as any;
 
     if (action === 'start_from_today') {
       // Use course's interval/mode but start from today
       mode = course.releaseMode;
       computedInterval = course.releaseIntervalDays || 7;
-      computedDaysOfWeek = typeof course.releaseDaysOfWeek === 'string' ? JSON.parse(course.releaseDaysOfWeek) : course.releaseDaysOfWeek;
+      computedDaysOfWeek = (course as any).releaseDaysOfWeek as any;
     } else if (action === 'custom_interval') {
       mode = 'fixed_interval';
       computedInterval = intervalDays;
     } else if (action === 'week_days') {
-      mode = 'day_of_week';
+      mode = 'days_of_week';
       computedDaysOfWeek = daysOfWeek;
     } else {
       return NextResponse.json({ error: 'Invalid action.' }, { status: 400 });
@@ -201,22 +204,19 @@ export async function POST(request: NextRequest) {
           userId: uid,
           lessonNodeId: groupIdToNodeId.get(groupId)!,
           availabilityMode: 'available',
-          availableAt: dateStr ? new Date(dateStr) : null,
+          availableAt: dateStr ? new Date(dateStr).toISOString() : null,
+          updatedAt: new Date().toISOString()
         });
       });
     });
 
-    await db.studentModuleAvailability.deleteMany({
-      where: {
-        courseId,
-        userId: { in: enrolledUserIds },
-      }
-    });
-
+    // neon-http driver does not support transactions — execute sequentially.
+    await db.delete(smaSchema).where(and(eq(smaSchema.courseId, courseId), inArray(smaSchema.userId, enrolledUserIds)));
     if (dataToInsert.length > 0) {
-      await db.studentModuleAvailability.createMany({
-        data: dataToInsert
-      });
+      const chunkSize = 1000;
+      for (let i = 0; i < dataToInsert.length; i += chunkSize) {
+        await db.insert(smaSchema).values(dataToInsert.slice(i, i + chunkSize));
+      }
     }
 
     return NextResponse.json({ success: true, count: enrolledUserIds.length });

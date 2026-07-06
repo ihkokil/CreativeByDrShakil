@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { course as courseSchema } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -13,7 +15,7 @@ import {
 } from '@/lib/teacher-course-builder';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.course.findUnique({ where: { id: courseId } });
+  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
 };
 
 export async function PATCH(
@@ -33,7 +35,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson as string));
+    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
 
     let invalidMessage: string | null = null;
 
@@ -113,7 +115,7 @@ export async function PATCH(
 
     const normalizedCurriculum = ensureGroupInheritance(patchedCurriculum);
     const groups = collectSecondChildGroups(normalizedCurriculum);
-    const existingReleaseDates = parseReleaseGroupDateMap(course.releaseGroupDates as string);
+    const existingReleaseDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const compactReleaseGroupDates = groups.reduce<Record<string, string>>((acc, group) => {
       if (existingReleaseDates[group.id]) {
         acc[group.id] = existingReleaseDates[group.id];
@@ -123,13 +125,10 @@ export async function PATCH(
 
     const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
 
-    const updatedCourse = await db.course.update({
-      where: { id: course.id },
-      data: {
+    const [updatedCourse] = await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }
-    });
+      }).where(eq(courseSchema.id, course.id)).returning();
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',
@@ -163,7 +162,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson as string));
+    const curriculum = ensureGroupInheritance(parseCurriculumJson(course.curriculumJson));
     const { nodes: trimmedCurriculum, removed } = removeNodeFromCurriculum(curriculum, resolvedParams.nodeId);
 
     if (!removed) {
@@ -172,7 +171,7 @@ export async function DELETE(
 
     const normalizedCurriculum = ensureGroupInheritance(trimmedCurriculum);
     const groups = collectSecondChildGroups(normalizedCurriculum);
-    const existingReleaseDates = parseReleaseGroupDateMap(course.releaseGroupDates as string);
+    const existingReleaseDates = parseReleaseGroupDateMap(course.releaseGroupDates);
     const compactReleaseGroupDates = groups.reduce<Record<string, string>>((acc, group) => {
       if (existingReleaseDates[group.id]) {
         acc[group.id] = existingReleaseDates[group.id];
@@ -182,13 +181,10 @@ export async function DELETE(
 
     const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
 
-    const updatedCourse = await db.course.update({
-      where: { id: course.id },
-      data: {
+    const [updatedCourse] = await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }
-    });
+      }).where(eq(courseSchema.id, course.id)).returning();
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',

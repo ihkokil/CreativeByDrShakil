@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { db } from '@/lib/db';
+import { course as courseSchema, studentModuleAvailability as smaSchema, order as orderSchema } from '@/db/schema';
+import { eq, inArray, and, gte, desc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -12,6 +15,8 @@ import {
   LessonAvailabilityOverride,
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
+
+const OVERRIDE_TABLE = 'StudentModuleAvailability';
 
 type TeacherCourseSummary = {
   id: string;
@@ -47,22 +52,27 @@ type ProgressRow = {
   lessonNodeId: string;
 };
 
+import { sql } from 'drizzle-orm';
+// ...
+
 const getTeacherCourses = async (teacherId: string, role: string) => {
   const [rawCourses, orderCountsData] = await Promise.all([
-    db.course.findMany({
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        instructors: { orderBy: { sortOrder: 'asc' } },
+    db.query.course.findMany({
+      orderBy: (c, { desc }) => [desc(c.updatedAt)],
+      with: {
+        instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
       },
     }),
-    db.order.groupBy({
-      by: ['courseId'],
-      where: { status: 'approved' },
-      _count: { id: true },
+    db.select({
+      courseId: orderSchema.courseId,
+      count: sql<number>`count(${orderSchema.id})`.mapWith(Number)
     })
+    .from(orderSchema)
+    .where(eq(orderSchema.status, 'approved'))
+    .groupBy(orderSchema.courseId)
   ]);
 
-  const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row._count.id]));
+  const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row.count]));
 
   return rawCourses.map(c => ({
     ...c,
@@ -121,9 +131,9 @@ export async function GET(request: NextRequest) {
       curriculumJson: any;
     }
 
-    const selectedCourse = await db.course.findUnique({
-      where: { id: selectedCourseId },
-      select: {
+    const selectedCourse = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, selectedCourseId),
+      columns: {
         id: true,
         title: true,
         slug: true,
@@ -148,16 +158,16 @@ export async function GET(request: NextRequest) {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    const enrollments = await db.order.findMany({
-      where: {
-        courseId: selectedCourse.id,
-        status: 'approved',
-        updatedAt: { gte: oneYearAgo }
-      },
-      orderBy: { updatedAt: 'desc' },
-      include: {
+    const enrollments = await db.query.order.findMany({
+      where: (o, { eq, and, gte }) => and(
+        eq(o.courseId, selectedCourse.id),
+        eq(o.status, 'approved'),
+        gte(o.updatedAt, oneYearAgo.toISOString())
+      ),
+      orderBy: (o, { desc }) => [desc(o.updatedAt)],
+      with: {
         user: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -171,27 +181,24 @@ export async function GET(request: NextRequest) {
     let progressRows: ProgressRow[] = [];
     let overrideRows: OverrideRow[] = [];
 
+    // Safely query LessonProgress if it exists
     if (userIds.length > 0) {
       try {
-        progressRows = await db.lessonProgress.findMany({
-          where: {
-            courseId: selectedCourse.id,
-            userId: { in: userIds }
-          },
-          select: { userId: true, lessonNodeId: true }
+        const lpResult = await db.query.lessonProgress.findMany({
+          where: (lp, { eq, inArray, and }) => and(eq(lp.courseId, selectedCourse.id), inArray(lp.userId, userIds)),
+          columns: { userId: true, lessonNodeId: true }
         });
+        progressRows = lpResult;
       } catch (err) {
         console.warn('LessonProgress query failed', err);
         progressRows = [];
       }
 
+      // Safely query StudentModuleAvailability if it exists
       try {
-        const smaResult = await db.studentModuleAvailability.findMany({
-          where: {
-            courseId: selectedCourse.id,
-            userId: { in: userIds }
-          },
-          select: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
+        const smaResult = await db.query.studentModuleAvailability.findMany({
+          where: (sma, { eq, inArray, and }) => and(eq(sma.courseId, selectedCourse.id), inArray(sma.userId, userIds)),
+          columns: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
         });
         overrideRows = smaResult as OverrideRow[];
       } catch (err) {
@@ -233,7 +240,7 @@ export async function GET(request: NextRequest) {
         releaseStartAt: studentReleaseStartAt,
         releaseIntervalDays: selectedCourse.releaseIntervalDays,
         releaseGroupsPerWeek: selectedCourse.releaseGroupsPerWeek,
-        releaseDaysOfWeek: typeof selectedCourse.releaseDaysOfWeek === 'string' ? JSON.parse(selectedCourse.releaseDaysOfWeek) : selectedCourse.releaseDaysOfWeek,
+        releaseDaysOfWeek: (selectedCourse as any).releaseDaysOfWeek as number[],
         releaseGroupDates,
       });
 
@@ -255,7 +262,7 @@ export async function GET(request: NextRequest) {
         fullName: enrollment.user.fullName,
         email: enrollment.user.email,
         profileImage: enrollment.user.profileImage || null,
-        enrolledAt: enrollment.updatedAt.toISOString(),
+        enrolledAt: enrollment.updatedAt,
         completedCount,
         totalCount,
         progressPercent: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
@@ -305,9 +312,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId, and lessonNodeId are required.' }, { status: 400 });
     }
 
-    const course = await db.course.findUnique({
-      where: { id: courseId },
-      select: { id: true },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, courseId),
+      columns: { id: true },
     });
 
     if (!course) {
@@ -319,32 +326,22 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (availabilityMode === 'inherit') {
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId,
-          lessonNodeId
-        }
-      });
+      await db.delete(smaSchema).where(
+        and(eq(smaSchema.courseId, courseId), eq(smaSchema.userId, userId), eq(smaSchema.lessonNodeId, lessonNodeId))
+      );
     } else {
       const nextAvailableAt = availableAt && !Number.isNaN(availableAt.getTime()) ? availableAt : null;
 
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId,
-          lessonNodeId
-        }
-      });
-      await db.studentModuleAvailability.create({
-        data: {
-          id: crypto.randomUUID(),
-          courseId,
-          userId,
-          lessonNodeId,
-          availabilityMode,
-          availableAt: nextAvailableAt,
-        }
+      await db.delete(smaSchema).where(
+        and(eq(smaSchema.courseId, courseId), eq(smaSchema.userId, userId), eq(smaSchema.lessonNodeId, lessonNodeId))
+      );
+      await db.insert(smaSchema).values({
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+        lessonNodeId,
+        availabilityMode,
+        availableAt: nextAvailableAt ? nextAvailableAt.toISOString() : null,
       });
     }
 

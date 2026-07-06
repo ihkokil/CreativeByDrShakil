@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { lessonProgress as lpSchema } from '@/db/schema';
+import { eq, and, gte } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -11,11 +13,32 @@ import {
   BuilderNodeWithAvailability,
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
+import { parseDbDate } from '@/lib/date-format';
+
+type OverrideRow = {
+  lessonNodeId: string;
+  availabilityMode: 'inherit' | 'available' | 'locked';
+  availableAt: Date | string | null;
+};
 
 const getCourseWithAccess = async (slug: string, userId: string, role?: string) => {
-  const course = await db.course.findFirst({
-    where: { slug: slug, status: 'published' },
-    select: {
+  interface CourseResult {
+    id: string;
+    title: string;
+    timezone: string;
+    releaseMode: any;
+    releaseStartAt: Date | null;
+    courseStartDate: Date | null;
+    releaseIntervalDays: number | null;
+    releaseGroupsPerWeek: number | null;
+    releaseDaysOfWeek: any;
+    releaseGroupDates: any;
+    curriculumJson: any;
+  }
+
+  const course = await db.query.course.findFirst({
+    where: (c, { eq, and }) => and(eq(c.slug, slug), eq(c.status, 'published')),
+    columns: {
       id: true,
       title: true,
       timezone: true,
@@ -28,7 +51,7 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
       releaseGroupDates: true,
       curriculumJson: true,
     },
-  });
+  }) as CourseResult | undefined;
 
   if (!course) {
     return { error: NextResponse.json({ error: 'Course not found.' }, { status: 404 }) };
@@ -38,12 +61,12 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
     return { course, studentEnrollmentDate: null };
   }
 
-  const order = await db.order.findFirst({
-    where: {
-      userId: userId,
-      courseId: course.id,
-      status: 'approved'
-    },
+  const order = await db.query.order.findFirst({
+    where: (o, { eq, and }) => and(
+      eq(o.userId, userId),
+      eq(o.courseId, course.id),
+      eq(o.status, 'approved')
+    ),
   });
 
   if (!order) {
@@ -51,8 +74,8 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
   }
 
   // Check access date range
-  const enrolledAtDate = order.enrolledAt ? new Date(order.enrolledAt) : null;
-  const expiresAtDate = order.expiresAt ? new Date(order.expiresAt) : null;
+  const enrolledAtDate = order.enrolledAt ? parseDbDate(order.enrolledAt) : null;
+  const expiresAtDate = order.expiresAt ? parseDbDate(order.expiresAt) : null;
   const now = new Date();
 
   if (enrolledAtDate && now < enrolledAtDate) {
@@ -97,10 +120,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const isAdmin = payload.role === 'admin';
 
-    const rawCurriculum = parseCurriculumJson(result.course!.curriculumJson as string);
+    const rawCurriculum = parseCurriculumJson(result.course!.curriculumJson);
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
+    const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const dbReleaseStart = result.course?.releaseStartAt;
     const dbCourseStart = result.course?.courseStartDate;
     const dbEnrollment = result.studentEnrollmentDate;
@@ -108,17 +132,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const courseAnchor = dbReleaseStart || dbCourseStart || null;
     const finalStartAt = courseAnchor || dbEnrollment;
 
-    const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: result.course?.releaseMode as any || 'circular',
-      releaseStartAt: finalStartAt as any,
-      releaseIntervalDays: result.course?.releaseIntervalDays,
-      releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
-      releaseDaysOfWeek: typeof result.course?.releaseDaysOfWeek === 'string' ? JSON.parse(result.course.releaseDaysOfWeek) : result.course?.releaseDaysOfWeek,
+    console.log('[DEBUG] Final Scheduling:', {
+      courseId: result.course?.id,
+      hasRelease: !!dbReleaseStart,
+      hasCourse: !!dbCourseStart,
+      hasEnroll: !!dbEnrollment,
+      chosen: finalStartAt === dbReleaseStart ? 'release' : (finalStartAt === dbCourseStart ? 'course' : 'enroll'),
+      isShifted: finalStartAt === dbEnrollment && (!!dbReleaseStart || !!dbCourseStart)
     });
 
-    const overrideRows = await db.studentModuleAvailability.findMany({
-      where: { courseId: result.course!.id, userId: payload.sub },
-      select: {
+    const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
+      releaseMode: result.course?.releaseMode || 'circular',
+      releaseStartAt: finalStartAt,
+      releaseIntervalDays: result.course?.releaseIntervalDays,
+      releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
+      releaseDaysOfWeek: result.course?.releaseDaysOfWeek,
+    });
+
+    const overrideRows = await db.query.studentModuleAvailability.findMany({
+      where: (sma, { eq, and }) => and(eq(sma.courseId, result.course!.id), eq(sma.userId, payload.sub)),
+      columns: {
         lessonNodeId: true,
         availabilityMode: true,
         availableAt: true,
@@ -136,9 +169,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }))
     );
     const playableNodes = collectPlayableNodes(curriculumWithAvailability);
-    const completedRows = await db.lessonProgress.findMany({
-      where: { userId: payload.sub, courseId: result.course!.id },
-      select: {
+    const completedRows = await db.query.lessonProgress.findMany({
+      where: (lp, { eq, and }) => and(eq(lp.userId, payload.sub), eq(lp.courseId, result.course!.id)),
+      columns: {
         lessonNodeId: true,
       },
     });
@@ -185,10 +218,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'lessonNodeId is required.' }, { status: 400 });
     }
 
-    const rawCurriculum = parseCurriculumJson(result.course!.curriculumJson as string);
+    const rawCurriculum = parseCurriculumJson(result.course!.curriculumJson);
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
+    const releaseGroupDates = parseReleaseGroupDateMap(result.course!.releaseGroupDates);
     const dbReleaseStart = result.course?.releaseStartAt;
     const dbCourseStart = result.course?.courseStartDate;
     const dbEnrollment = result.studentEnrollmentDate;
@@ -197,16 +231,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const finalStartAt = courseAnchor || dbEnrollment;
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: result.course?.releaseMode as any || 'circular',
-      releaseStartAt: finalStartAt as any,
+      releaseMode: result.course?.releaseMode || 'circular',
+      releaseStartAt: finalStartAt,
       releaseIntervalDays: result.course?.releaseIntervalDays,
       releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
-      releaseDaysOfWeek: typeof result.course?.releaseDaysOfWeek === 'string' ? JSON.parse(result.course.releaseDaysOfWeek) : result.course?.releaseDaysOfWeek,
+      releaseDaysOfWeek: result.course?.releaseDaysOfWeek,
     });
 
-    const overrideRows = await db.studentModuleAvailability.findMany({
-      where: { courseId: result.course!.id, userId: payload.sub },
-      select: {
+    const overrideRows = await db.query.studentModuleAvailability.findMany({
+      where: (sma, { eq, and }) => and(eq(sma.courseId, result.course!.id), eq(sma.userId, payload.sub)),
+      columns: {
         lessonNodeId: true,
         availabilityMode: true,
         availableAt: true,
@@ -234,27 +268,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'This lesson is currently locked.' }, { status: 400 });
     }
 
-    await db.lessonProgress.deleteMany({
-      where: {
-        userId: payload.sub,
-        courseId: result.course!.id,
-        lessonNodeId: lessonNodeId
-      }
-    });
-
-    await db.lessonProgress.create({
-      data: {
+    await db.delete(lpSchema).where(
+        and(eq(lpSchema.userId, payload.sub), eq(lpSchema.courseId, result.course!.id), eq(lpSchema.lessonNodeId, lessonNodeId))
+    );
+    await db.insert(lpSchema).values({
         id: crypto.randomUUID(),
         userId: payload.sub,
         courseId: result.course!.id,
         lessonNodeId,
-        completedAt: new Date(),
-      }
+        completedAt: new Date().toISOString(),
     });
 
-    const completedRows = await db.lessonProgress.findMany({
-      where: { userId: payload.sub, courseId: result.course!.id },
-      select: {
+    const completedRows = await db.query.lessonProgress.findMany({
+      where: (lp, { eq, and }) => and(eq(lp.userId, payload.sub), eq(lp.courseId, result.course!.id)),
+      columns: {
         lessonNodeId: true,
       },
     });

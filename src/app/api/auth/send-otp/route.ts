@@ -3,6 +3,8 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
+import { emailOtp } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { sendOtpEmail } from '@/lib/auth-emails';
 
 const sendOtpSchema = z.object({
@@ -30,9 +32,11 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = email.trim().toLowerCase();
 
     // Check if user already exists
-    const userExists = await db.user.findFirst({
-      where: { email: normalizedEmail },
-      select: { id: true }
+    const userExists = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.email, normalizedEmail),
+      columns: {
+        id: true,
+      },
     });
 
     if (userExists) {
@@ -45,17 +49,14 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiry
 
     // Delete any old OTPs for this email to clean up
-    await db.emailOtp.deleteMany({
-      where: { email: normalizedEmail }
-    });
+    await db.delete(emailOtp).where(eq(emailOtp.email, normalizedEmail));
 
     // Store in DB
-    await db.emailOtp.create({
-      data: {
-        email: normalizedEmail,
-        otpHash,
-        expiresAt: expiresAt,
-      }
+    await db.insert(emailOtp).values({
+      id: crypto.randomUUID(),
+      email: normalizedEmail,
+      otpHash,
+      expiresAt: expiresAt.toISOString(),
     });
 
     // Send the email

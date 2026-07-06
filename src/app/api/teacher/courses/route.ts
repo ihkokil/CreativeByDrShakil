@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { course as courseSchema, user as userSchema, order as orderSchema } from '@/db/schema';
+import { eq, sql } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, slugify } from '@/lib/teacher-course-builder';
 import { parseDisplayDateToIso } from '@/lib/date-format';
@@ -10,7 +12,7 @@ const buildUniqueSlug = async (title: string) => {
   let slug = base;
   let counter = 2;
 
-  while (await db.course.findUnique({ where: { slug } })) {
+  while (await db.query.course.findFirst({ where: (c, { eq }) => eq(c.slug, slug) })) {
     slug = `${base}-${counter}`;
     counter += 1;
   }
@@ -40,23 +42,24 @@ export async function GET(request: NextRequest) {
 
     let courses;
     try {
-      const rawCourses = await db.course.findMany({
-        where,
-        orderBy: { updatedAt: 'desc' },
-        include: {
-          instructors: { orderBy: { sortOrder: 'asc' } },
-        },
-      });
+      const [rawCourses, orderCountsData] = await Promise.all([
+        db.query.course.findMany({
+          where: where.teacherId ? (c, { eq }) => eq(c.teacherId, where.teacherId) : undefined,
+          orderBy: (c, { desc }) => [desc(c.updatedAt)],
+          with: {
+            instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
+          },
+        }),
+        db.select({
+          courseId: orderSchema.courseId,
+          count: sql<number>`count(${orderSchema.id})`.mapWith(Number)
+        })
+        .from(orderSchema)
+        .where(eq(orderSchema.status, 'approved'))
+        .groupBy(orderSchema.courseId)
+      ]);
 
-      const orderCountsData = await db.order.groupBy({
-        by: ['courseId'],
-        where: { status: 'approved' },
-        _count: {
-          id: true,
-        },
-      });
-
-      const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row._count.id]));
+      const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row.count]));
 
       courses = rawCourses.map(c => ({
         ...c,
@@ -103,9 +106,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sale price must be a valid positive number.' }, { status: 400 });
     }
 
-    const teacher = await db.user.findUnique({
-      where: { id: payload.sub },
-      select: { fullName: true },
+    const teacher = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+      columns: { fullName: true },
     });
 
     if (!teacher) {
@@ -114,8 +117,7 @@ export async function POST(request: NextRequest) {
 
     const slug = await buildUniqueSlug(title);
 
-    const newCourse = await db.course.create({
-      data: {
+    const [newCourse] = await db.insert(courseSchema).values({
         id: crypto.randomUUID(),
         slug,
         title,
@@ -125,19 +127,18 @@ export async function POST(request: NextRequest) {
         instructor: teacher.fullName,
         imageUrl,
         duration: duration || '1y',
-        courseStartDate: courseStartDate ? new Date(courseStartDate) : null,
+        courseStartDate: courseStartDate ? new Date(courseStartDate).toISOString() : null,
         isFeatured,
         teacherId: payload.sub,
         status: 'draft',
         timezone: 'Asia/Dhaka',
         curriculumJson: '[]',
         releaseGroupDates: '{}',
-      }
-    });
+    }).returning();
 
-    const course = await db.course.findUnique({
-      where: { id: newCourse.id },
-      include: { instructors: { orderBy: { sortOrder: 'asc' } } },
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, newCourse.id),
+      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
     });
 
     return NextResponse.json({

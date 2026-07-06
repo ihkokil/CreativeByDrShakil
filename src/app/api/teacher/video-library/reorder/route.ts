@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { videoLibraryNode as vlnSchema } from '@/db/schema';
+import { eq, isNull } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
@@ -37,17 +39,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid parameters.' }, { status: 400 });
         }
 
-        const node = await db.videoLibraryNode.findUnique({ where: { id } });
+        const node = await db.query.videoLibraryNode.findFirst({ where: (v, { eq }) => eq(v.id, id) });
         if (!node) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
 
-        const siblings = await db.videoLibraryNode.findMany({
-            where: { parentId: node.parentId || null },
-            orderBy: [
-                { sortOrder: 'asc' },
-                { createdAt: 'asc' }
-            ],
+        const siblings = await db.query.videoLibraryNode.findMany({
+            where: (v, { eq, isNull }) => node.parentId ? eq(v.parentId, node.parentId) : isNull(v.parentId),
+            orderBy: (v, { asc }) => [asc(v.sortOrder), asc(v.createdAt)],
         });
 
         const index = siblings.findIndex(s => s.id === id);
@@ -64,14 +63,13 @@ export async function POST(request: NextRequest) {
         }
 
         if (reordered.length > 0) {
-            await db.$transaction(
-                reordered.map((n, idx) => 
-                    db.videoLibraryNode.update({
-                        where: { id: n.id },
-                        data: { sortOrder: idx }
-                    })
-                )
-            );
+            await db.transaction(async (tx) => {
+                for (let idx = 0; idx < reordered.length; idx++) {
+                    await tx.update(vlnSchema)
+                      .set({ sortOrder: idx })
+                      .where(eq(vlnSchema.id, reordered[idx].id));
+                }
+            });
         }
 
         return NextResponse.json({ success: true, changed: true });

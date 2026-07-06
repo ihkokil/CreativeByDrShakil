@@ -17,11 +17,11 @@ export async function GET(
   const { slug } = await params;
   try {
 
-    const course = await db.course.findUnique({
-      where: { slug },
-      include: {
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.slug, slug),
+      with: {
         teacher: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             designation: true,
@@ -29,8 +29,8 @@ export async function GET(
           },
         },
         instructors: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
+          orderBy: (i, { asc }) => [asc(i.sortOrder)],
+          columns: {
             id: true,
             name: true,
             designation: true,
@@ -39,8 +39,8 @@ export async function GET(
           },
         },
         orders: {
-          where: { status: 'approved' },
-          select: {
+          where: (o, { eq }) => eq(o.status, 'approved'),
+          columns: {
             id: true,
           },
         },
@@ -51,7 +51,7 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
+    const rawCurriculum = parseCurriculumJson(course.curriculumJson);
     const curriculum = await populateMediaVaultNodes(rawCurriculum);
 
     return NextResponse.json({

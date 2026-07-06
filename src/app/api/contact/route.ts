@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
+import { contactSubmission as csSchema } from '@/db/schema';
 import {
   sendContactSubmissionAcknowledgement,
   sendContactSubmissionNotification,
@@ -81,8 +82,7 @@ export async function POST(request: NextRequest) {
       imageUrls.push(`/${relativePath}`);
     }
 
-    const submission = await db.contactSubmission.create({
-      data: {
+    const [submission] = await db.insert(csSchema).values({
         id: submissionId,
         fullName,
         phone,
@@ -91,13 +91,13 @@ export async function POST(request: NextRequest) {
         subject,
         message,
         imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
-      }
-    });
+    }).returning();
 
     let parsedImageUrls: string[] = [];
     try {
       if (submission.imageUrls) {
-        const raw = submission.imageUrls;
+        // Cast to any to handle Prisma v6 type inference quirks
+        const raw = submission.imageUrls as any;
         parsedImageUrls = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
       }
     } catch {
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       message: submission.message,
       imageUrls: parsedImageUrls,
       submissionId: submission.id,
-      createdAt: submission.createdAt,
+      createdAt: new Date(submission.createdAt),
     };
 
     await Promise.allSettled([
