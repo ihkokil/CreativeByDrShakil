@@ -42,15 +42,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     );
 
     // Update course and instructors transactionally
-    const updatedCourse = await db.$transaction(async (tx) => {
+    const transactionItems: any[] = [
       // Delete existing instructors
-      await tx.courseInstructor.deleteMany({
+      db.courseInstructor.deleteMany({
         where: { courseId: courseId }
-      });
+      })
+    ];
 
-      // Create new instructors
-      if (validInstructors.length > 0) {
-        await tx.courseInstructor.createMany({
+    // Create new instructors
+    if (validInstructors.length > 0) {
+      transactionItems.push(
+        db.courseInstructor.createMany({
           data: validInstructors.map((instr: InstructorData, index: number) => ({
             id: crypto.randomUUID(),
             courseId,
@@ -59,28 +61,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             imageUrl: instr.imageUrl || null,
             sortOrder: index,
           }))
-        });
-      }
+        })
+      );
+    }
 
-      // Update course details
-      await tx.course.update({
+    // Update course details
+    transactionItems.push(
+      db.course.update({
         where: { id: courseId },
         data: {
           overview,
           learningOutcomes,
         }
-      });
+      })
+    );
 
-      // Return updated course
-      return tx.course.findUnique({
+    // Return updated course
+    transactionItems.push(
+      db.course.findUnique({
         where: { id: courseId },
         include: {
           instructors: {
             orderBy: { sortOrder: 'asc' }
           }
         }
-      });
-    });
+      })
+    );
+
+    const results = await db.$transaction(transactionItems);
+    const updatedCourse = results[results.length - 1];
 
     return NextResponse.json({ course: updatedCourse }, { status: 200 });
   } catch (error: any) {
