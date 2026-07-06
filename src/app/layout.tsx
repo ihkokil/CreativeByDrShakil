@@ -38,7 +38,6 @@ export default function RootLayout({
                     <ContentProtection />
                     {children}
                     <SessionWarningToast />
-
                     <MobileBottomNavWrapper />
                 </AuthProvider>
             </body>

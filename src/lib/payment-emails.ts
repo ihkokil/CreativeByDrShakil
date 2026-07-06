@@ -35,7 +35,7 @@ export async function sendPaymentVerificationEmail({
       <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f7f9; }
         .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .header { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); padding: 30px; text-align: center; color: white; }
+        .header { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 30px; text-align: center; color: white; }
         .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
         .content { padding: 30px; }
         .details-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 30px; }
@@ -53,6 +53,7 @@ export async function sendPaymentVerificationEmail({
     <body>
       <div class="container">
         <div class="header">
+          <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;margin:0 auto 12px;display:block;filter:brightness(0) invert(1);-webkit-filter:brightness(0) invert(1);" />
           <h1>Payment Verification Required</h1>
         </div>
         <div class="content">

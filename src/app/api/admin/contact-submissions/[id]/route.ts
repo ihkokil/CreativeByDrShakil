@@ -114,13 +114,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         const subject = `Response to your CreativeByDrShakil support request: ${updatedSubmission.subject}`;
         const text = `Hi ${updatedSubmission.fullName},\n\n${adminReply}\n\nOriginal request subject: ${updatedSubmission.subject}\nIssue type: ${issue}`;
         const html = `
-          <div style="font-family:Arial,Helvetica,sans-serif;color:#111827;line-height:1.7;">
-            <p style="margin:0 0 12px;">Hi ${updatedSubmission.fullName},</p>
-            <p style="margin:0 0 16px;white-space:pre-wrap;">${adminReply.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</p>
-            <div style="padding:14px 16px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb;">
-              <p style="margin:0 0 6px;font-size:13px;color:#6b7280;font-weight:700;">Original request</p>
-              <p style="margin:0;font-size:14px;font-weight:700;">${updatedSubmission.subject}</p>
-              <p style="margin:4px 0 0;font-size:13px;color:#6b7280;">Issue: ${issue}</p>
+          <div style="font-family:Arial,Helvetica,sans-serif;color:#111827;line-height:1.7;max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+            <div style="padding:24px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#ffffff;text-align:center;">
+              <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);-webkit-filter:brightness(0) invert(1);" />
+              <h1 style="margin:0;font-size:20px;line-height:1.3;font-weight:800;text-align:center;">Support Request Response</h1>
+            </div>
+            <div style="padding:24px;">
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;font-weight:700;">Hi ${updatedSubmission.fullName},</p>
+              <p style="margin:0 0 24px;font-size:14px;line-height:1.7;white-space:pre-wrap;color:#374151;">${adminReply.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</p>
+              
+              <div style="padding:16px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb;">
+                <p style="margin:0 0 8px;font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Original Request</p>
+                <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;">${updatedSubmission.subject}</p>
+                <p style="margin:0;font-size:13px;color:#6b7280;">Issue Type: ${issue}</p>
+              </div>
+            </div>
+            <div style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.7;text-align:center;">
+              This is an automated email from Creative By Dr. Shakil. Please do not reply directly to this message.
             </div>
           </div>
         `;

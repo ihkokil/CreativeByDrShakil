@@ -76,9 +76,9 @@ function buildEmailShell({
             <td align="center">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 10px 24px rgba(15,23,42,0.08);">
                 <tr>
-                  <td style="padding:18px 24px;background:linear-gradient(120deg,#1d4ed8,#2563eb);color:#ffffff;">
-                    <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.9;font-weight:700;">CreativeByDrShakil</div>
-                    <h1 style="margin:8px 0 0;font-size:22px;line-height:1.3;font-weight:800;">${safeTitle}</h1>
+                  <td align="center" style="padding:24px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#ffffff;text-align:center;">
+                    <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);-webkit-filter:brightness(0) invert(1);" />
+                    <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:800;text-align:center;">${safeTitle}</h1>
                   </td>
                 </tr>
                 <tr>
@@ -86,7 +86,7 @@ function buildEmailShell({
                 </tr>
                 <tr>
                   <td style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.7;">
-                    This is an automated email from CreativeByDrShakil. Please do not reply directly to this message.
+                    This is an automated email from Creative By Dr. Shakil. Please do not reply directly to this message.
                   </td>
                 </tr>
               </table>

@@ -56,9 +56,9 @@ function createEmailTemplate({
             <td align="center">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 10px 24px rgba(15,23,42,0.08);">
                 <tr>
-                  <td style="padding:18px 24px;background:linear-gradient(120deg,#1d4ed8,#2563eb);color:#ffffff;">
-                    <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.9;font-weight:700;">CreativeByDrShakil</div>
-                    <h1 style="margin:8px 0 0;font-size:22px;line-height:1.3;font-weight:800;">${safeHeading}</h1>
+                  <td align="center" style="padding:24px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#ffffff;text-align:center;">
+                    <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);-webkit-filter:brightness(0) invert(1);" />
+                    <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:800;text-align:center;">${safeHeading}</h1>
                   </td>
                 </tr>
 
@@ -68,20 +68,20 @@ function createEmailTemplate({
                     <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#374151;">${safeLead}</p>
 
                     ${safeOtpCode ? `
-                    <div style="margin:32px 0;padding:24px;background:#f3f4f6;border-radius:12px;text-align:center;border:2px dashed #cbd5e1;">
-                      <div style="font-size:12px;text-transform:uppercase;color:#6b7280;font-weight:700;margin-bottom:8px;letter-spacing:0.1em;">Your Verification Code</div>
-                      <div style="font-family:monospace;font-size:36px;font-weight:800;letter-spacing:0.25em;color:#111827;">${safeOtpCode}</div>
+                    <div style="margin:32px 0;padding:24px;background:#fef2f2;border-radius:12px;text-align:center;border:2px dashed #fca5a5;">
+                      <div style="font-size:12px;text-transform:uppercase;color:#dc2626;font-weight:700;margin-bottom:8px;letter-spacing:0.1em;">Your Verification Code</div>
+                      <div style="font-family:monospace;font-size:36px;font-weight:800;letter-spacing:0.25em;color:#b91c1c;">${safeOtpCode}</div>
                     </div>
                     ` : safeActionUrl && safeActionLabel ? `
                     <table role="presentation" cellspacing="0" cellpadding="0" style="margin:20px 0 18px;">
                       <tr>
-                        <td style="border-radius:10px;background:#2563eb;">
+                        <td style="border-radius:10px;background:#dc2626;">
                           <a href="${safeActionUrl}" style="display:inline-block;padding:12px 18px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${safeActionLabel}</a>
                         </td>
                       </tr>
                     </table>
 
-                    <p style="margin:0 0 8px;font-size:13px;line-height:1.7;color:#6b7280;"><strong style="color:#111827;">Link:</strong> <a href="${safeActionUrl}" style="color:#1d4ed8;word-break:break-all;">${safeActionUrl}</a></p>
+                    <p style="margin:0 0 8px;font-size:13px;line-height:1.7;color:#6b7280;"><strong style="color:#111827;">Link:</strong> <a href="${safeActionUrl}" style="color:#dc2626;word-break:break-all;">${safeActionUrl}</a></p>
                     ` : ''}
                     <p style="margin:0 0 8px;font-size:13px;line-height:1.7;color:#6b7280;">${safeExpiryText}</p>
                     <p style="margin:0;font-size:13px;line-height:1.7;color:#6b7280;">${safeWarningText}</p>
@@ -90,7 +90,7 @@ function createEmailTemplate({
 
                 <tr>
                   <td style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.7;">
-                    This is an automated email from CreativeByDrShakil. Please do not reply directly to this message.
+                    This is an automated email from Creative By Dr. Shakil. Please do not reply directly to this message.
                   </td>
                 </tr>
               </table>
@@ -208,7 +208,7 @@ export async function sendOtpEmail({
   const safeOtp = escapeHtml(otp);
 
   const html = createEmailTemplate({
-    preheader: "Your OTP verification code for CreativeByDrShakil.",
+    preheader: "Your OTP verification code for Creative By Dr. Shakil.",
     heading: "Verification Code",
     greeting: "Hello,",
     lead: "Use the verification code below to verify your email address. This code will expire in 30 minutes:",
@@ -221,6 +221,31 @@ export async function sendOtpEmail({
     to: email,
     subject: `Your Verification Code: ${otp}`,
     text: `Hello,\n\nYour verification code is: ${otp}\n\nThis code will expire in 30 minutes.\n\nIf you did not request this, you can safely ignore this email.`,
+    html,
+  });
+}
+
+export async function sendForgotPasswordOtpEmail({
+  email,
+  otp,
+}: {
+  email: string;
+  otp: string;
+}) {
+  const html = createEmailTemplate({
+    preheader: "Use the OTP code below to reset your password.",
+    heading: "Reset Your Password",
+    greeting: "Hello,",
+    lead: "We received a request to reset your password. Use the verification code below to confirm your request. This code will expire in 15 minutes:",
+    otpCode: otp,
+    expiryText: "This verification code will expire in 15 minutes.",
+    warningText: "If you did not request a password reset, you can safely ignore this email.",
+  });
+
+  await sendMail({
+    to: email,
+    subject: `Reset Password Verification Code: ${otp}`,
+    text: `Hello,\n\nYour reset verification code is: ${otp}\n\nThis code will expire in 15 minutes.\n\nIf you did not request a password reset, you can safely ignore this email.`,
     html,
   });
 }

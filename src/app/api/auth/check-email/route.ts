@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 
-// FREE TIER OPTIMIZATION: Real-time check (no caching) but optimized for fast execution
 export async function POST(request: NextRequest) {
   try {
     const rateLimitError = await checkRateLimit(request, 10);
@@ -18,14 +18,10 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Use Prisma to find if the user exists
-    // FREE TIER: Only select the ID column (minimal data fetch)
-    const result = await db.user.findFirst({
-      where: { email: normalizedEmail },
-      select: { id: true },
-    });
+    // Use Drizzle execute to bypass schema building overhead while utilizing the pool
+    const result = await db.execute(sql`SELECT id FROM "User" WHERE email = ${normalizedEmail} LIMIT 1`);
 
-    return NextResponse.json({ exists: !!result });
+    return NextResponse.json({ exists: result.length > 0 });
   } catch (error: any) {
     console.error('[Check Email Error]', error?.message || error);
     return NextResponse.json(

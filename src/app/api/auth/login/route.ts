@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
+import { user } from '@/db/schema';
+import { eq, or, sql } from 'drizzle-orm';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
@@ -30,8 +32,8 @@ export async function POST(request: NextRequest) {
 
     const { identifier, password } = parsed.data;
 
-    // Use Prisma to find user by email or phone
-    const userRecords = await db.$queryRaw<any[]>`
+    // Use Drizzle's execute to verify password using pgcrypto on the database level via the pooled connection.
+    const results = await db.execute(sql`
       SELECT 
         id, email, phone, role, "isBanned", "emailVerified", "passwordHash",
         "fullName", "bmdcNumber", "profileImage", "canManagePayments", "isSessionLockedExempt",
@@ -39,9 +41,9 @@ export async function POST(request: NextRequest) {
       FROM "User" 
       WHERE email = ${identifier} OR phone = ${identifier} 
       LIMIT 1
-    `;
+    `);
 
-    const userRecord = userRecords[0];
+    const userRecord = results[0] as any;
 
     if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
     if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
       const { hash } = await import('bcryptjs');
       const newHash = await hash(password, 10);
-      await db.user.update({ where: { id: userRecord.id }, data: { passwordHash: newHash } });
+      await db.update(user).set({ passwordHash: newHash }).where(eq(user.id, userRecord.id));
       userRecord.passwordHash = newHash;
     }
 
@@ -125,13 +127,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Look for a custom device name previously saved for this device/browser hash
-    const existingSessionWithLabel = await db.deviceSession.findFirst({
-      where: {
-        userId: userRecord.id,
-        deviceHash: deviceHash,
-        deviceLabel: { not: null }
-      },
-      orderBy: { createdAt: 'desc' },
+    const existingSessionWithLabel = await db.query.deviceSession.findFirst({
+      where: (ds, { eq, and, isNotNull }) => and(
+        eq(ds.userId, userRecord.id),
+        eq(ds.deviceHash, deviceHash),
+        isNotNull(ds.deviceLabel)
+      ),
+      orderBy: (ds, { desc }) => [desc(ds.createdAt)],
     });
     const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
 
