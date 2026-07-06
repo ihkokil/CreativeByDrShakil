@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractBearerToken, extractCookieToken, verifyAuthToken, type AuthTokenPayload } from '@/lib/auth-server';
+import { eq } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 export async function requireAdmin(request: NextRequest) {
   const bearerToken = extractBearerToken(request);
@@ -52,9 +54,9 @@ export async function requirePaymentManager(request: NextRequest) {
   if (payload.role === 'teacher') {
     // Check database to see if the teacher has the canManagePayments flag
     const { db } = await import('@/lib/db');
-    const user = await db.user.findUnique({
-      where: { id: payload.sub },
-      select: { canManagePayments: true }
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.id, payload.sub),
+      columns: { canManagePayments: true }
     });
 
     if (user?.canManagePayments) {

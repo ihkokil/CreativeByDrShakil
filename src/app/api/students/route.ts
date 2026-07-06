@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, desc, and } from 'drizzle-orm';
 import { getSession } from '@/lib/auth-server';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
@@ -17,17 +19,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const students = await db.user.findMany({
-      where: { role: 'student' },
-      select: {
+    const students = await db.query.users.findMany({
+      where: eq(schema.users.role, 'student'),
+      columns: {
         id: true,
         fullName: true,
         email: true,
         role: true,
         createdAt: true,
         profileImage: true,
+      },
+      with: {
         deviceSessions: {
-          select: {
+          columns: {
             id: true,
             deviceType: true,
             browserName: true,
@@ -37,16 +41,18 @@ export async function GET() {
             createdAt: true,
             lastActivityAt: true,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: [desc(schema.deviceSessions.createdAt)],
         },
         orders: {
-          where: { status: 'approved' },
-          select: {
+          where: eq(schema.orders.status, 'approved'),
+          columns: {
             id: true,
             enrolledAt: true,
             expiresAt: true,
+          },
+          with: {
             course: {
-              select: {
+              columns: {
                 id: true,
                 title: true,
                 slug: true,
@@ -55,7 +61,7 @@ export async function GET() {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [desc(schema.users.createdAt)],
     });
 
     const formattedStudents = students.map((student) => {
@@ -106,9 +112,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId is required.' }, { status: 400 });
     }
 
-    const course = await db.course.findUnique({
-      where: { id: courseId },
-      select: { id: true, title: true, slug: true },
+    const course = await db.query.courses.findFirst({
+      where: eq(schema.courses.id, courseId),
+      columns: { id: true, title: true, slug: true },
     });
 
     if (!course) {
@@ -126,8 +132,8 @@ export async function POST(request: NextRequest) {
 
     for (const studentId of studentIds) {
       try {
-        const student = await db.user.findFirst({
-          where: { id: studentId, role: 'student' },
+        const student = await db.query.users.findFirst({
+          where: and(eq(schema.users.id, studentId), eq(schema.users.role, 'student')),
         });
 
         if (!student) {

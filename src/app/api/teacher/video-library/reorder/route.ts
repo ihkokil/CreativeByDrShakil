@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
     const bearerToken = extractBearerToken(request);
@@ -37,16 +39,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid parameters.' }, { status: 400 });
         }
 
-        const node = await db.videoLibraryNode.findUnique({ where: { id } });
+        const node = await db.query.videoLibraryNodes.findFirst({ where: eq(schema.videoLibraryNodes.id, id) });
         if (!node) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
 
-        const siblings = await db.videoLibraryNode.findMany({
-            where: { parentId: node.parentId || null },
+        const siblings = await db.query.videoLibraryNodes.findMany({
+            where: node.parentId ? eq(schema.videoLibraryNodes.parentId, node.parentId) : isNull(schema.videoLibraryNodes.parentId),
             orderBy: [
-                { sortOrder: 'asc' },
-                { createdAt: 'asc' }
+                asc(schema.videoLibraryNodes.sortOrder),
+                asc(schema.videoLibraryNodes.createdAt)
             ],
         });
 
@@ -64,14 +66,13 @@ export async function POST(request: NextRequest) {
         }
 
         if (reordered.length > 0) {
-            await db.$transaction(
-                reordered.map((n, idx) => 
-                    db.videoLibraryNode.update({
-                        where: { id: n.id },
-                        data: { sortOrder: idx }
-                    })
-                )
-            );
+            await db.transaction(async (tx) => {
+                await Promise.all(reordered.map((n, idx) => 
+                    tx.update(schema.videoLibraryNodes)
+                      .set({ sortOrder: idx })
+                      .where(eq(schema.videoLibraryNodes.id, n.id))
+                ));
+            });
         }
 
         return NextResponse.json({ success: true, changed: true });

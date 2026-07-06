@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function POST(request: NextRequest) {
@@ -19,15 +21,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Full name is required.' }, { status: 400 });
     }
 
-    const user = await db.user.update({
-      where: { id: payload.sub },
-      data: {
+    await db.update(schema.users)
+      .set({
         fullName,
         phone: phone || null,
         bmdcNumber: bmdcNumber || null,
         profileImage: profileImage || null,
-      },
-      select: {
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.users.id, payload.sub));
+
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.id, payload.sub),
+      columns: {
         id: true,
         email: true,
         phone: true,
@@ -37,6 +43,10 @@ export async function POST(request: NextRequest) {
         profileImage: true,
       }
     });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
 
     return NextResponse.json({
       success: true,

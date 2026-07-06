@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import * as schema from '@/db/schema'
+import { eq } from 'drizzle-orm'
 
 export async function GET() {
   try {
-    const config = await db.paymentConfig.findUnique({
-      where: { id: 'default' },
-      select: {
+    const config = await db.query.paymentConfigs.findFirst({
+      where: eq(schema.paymentConfigs.id, 'default'),
+      columns: {
         provider: true,
         sendMoneyNumber: true,
         qrCodeUrl: true,

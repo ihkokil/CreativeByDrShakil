@@ -1,5 +1,8 @@
 import { db } from './db';
 import { DeviceType } from './client-fingerprint';
+import { eq, and, or, desc, inArray, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
+import { createId } from '@paralleldrive/cuid2';
 
 export interface CreateSessionOptions {
   userId: string;
@@ -36,46 +39,48 @@ export interface AutoLockResolution {
 }
 
 export async function createDeviceSession(options: CreateSessionOptions): Promise<SessionInfo> {
-  const session = await db.deviceSession.create({
-    data: {
-      userId: options.userId,
-      deviceType: options.deviceType,
-      browserName: options.browserName,
-      userAgent: options.userAgent,
-      ipAddress: options.ipAddress,
-      deviceHash: options.deviceHash || null,
-      deviceLabel: options.deviceLabel || null,
-      osInfo: options.osInfo || null,
-    }
+  const newId = createId();
+  await db.insert(schema.deviceSessions).values({
+    id: newId,
+    userId: options.userId,
+    deviceType: options.deviceType as any,
+    browserName: options.browserName,
+    userAgent: options.userAgent,
+    ipAddress: options.ipAddress,
+    deviceHash: options.deviceHash || null,
+    deviceLabel: options.deviceLabel || null,
+    osInfo: options.osInfo || null,
+  });
+  
+  const session = await db.query.deviceSessions.findFirst({
+    where: eq(schema.deviceSessions.id, newId)
   });
 
   return {
-    id: session.id,
-    userId: session.userId,
-    deviceType: session.deviceType as DeviceType,
-    browserName: session.browserName,
-    ipAddress: session.ipAddress,
-    isLocked: session.isLocked,
-    loggedOutAt: session.loggedOutAt,
-    createdAt: session.createdAt,
-    lastActivityAt: session.lastActivityAt,
-    deviceHash: session.deviceHash,
-    deviceLabel: session.deviceLabel,
-    osInfo: session.osInfo,
-    lockedByDeviceLabel: session.lockedByDeviceLabel,
+    id: session!.id,
+    userId: session!.userId,
+    deviceType: session!.deviceType as DeviceType,
+    browserName: session!.browserName,
+    ipAddress: session!.ipAddress,
+    isLocked: session!.isLocked,
+    loggedOutAt: session!.loggedOutAt,
+    createdAt: session!.createdAt,
+    lastActivityAt: session!.lastActivityAt,
+    deviceHash: session!.deviceHash,
+    deviceLabel: session!.deviceLabel,
+    osInfo: session!.osInfo,
+    lockedByDeviceLabel: session!.lockedByDeviceLabel,
   };
 }
 
 export async function getActiveSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const sessions = await db.deviceSession.findMany({
-    where: {
-      userId,
-      loggedOutAt: null,
-      isLocked: false,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+  const sessions = await db.query.deviceSessions.findMany({
+    where: and(
+      eq(schema.deviceSessions.userId, userId),
+      isNull(schema.deviceSessions.loggedOutAt),
+      eq(schema.deviceSessions.isLocked, false)
+    ),
+    orderBy: [desc(schema.deviceSessions.createdAt)],
   });
 
   return sessions.map((s) => ({
@@ -96,84 +101,49 @@ export async function getActiveSessionsForUser(userId: string): Promise<SessionI
 }
 
 export async function getAllSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const sessions = await db.deviceSession.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
+  const sessions = await db.query.deviceSessions.findMany({
+    where: eq(schema.deviceSessions.userId, userId),
+    orderBy: [desc(schema.deviceSessions.createdAt)],
   });
 
   return sessions.map((s) => ({
-    id: s.id,
-    userId: s.userId,
+    ...s,
     deviceType: s.deviceType as DeviceType,
-    browserName: s.browserName,
-    ipAddress: s.ipAddress,
-    isLocked: s.isLocked,
-    loggedOutAt: s.loggedOutAt,
-    createdAt: s.createdAt,
-    lastActivityAt: s.lastActivityAt,
-    deviceHash: s.deviceHash,
-    deviceLabel: s.deviceLabel,
-    osInfo: s.osInfo,
-    lockedByDeviceLabel: s.lockedByDeviceLabel,
   }));
 }
 
 export async function getActiveSessionByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo | null> {
-  const session = await db.deviceSession.findFirst({
-    where: {
-      userId,
-      deviceType: deviceType as any,
-      loggedOutAt: null,
-      isLocked: false,
-    },
+  const session = await db.query.deviceSessions.findFirst({
+    where: and(
+      eq(schema.deviceSessions.userId, userId),
+      eq(schema.deviceSessions.deviceType, deviceType as any),
+      isNull(schema.deviceSessions.loggedOutAt),
+      eq(schema.deviceSessions.isLocked, false)
+    ),
   });
 
   if (!session) return null;
 
   return {
-    id: session.id,
-    userId: session.userId,
+    ...session,
     deviceType: session.deviceType as DeviceType,
-    browserName: session.browserName,
-    ipAddress: session.ipAddress,
-    isLocked: session.isLocked,
-    loggedOutAt: session.loggedOutAt,
-    createdAt: session.createdAt,
-    lastActivityAt: session.lastActivityAt,
-    deviceHash: session.deviceHash,
-    deviceLabel: session.deviceLabel,
-    osInfo: session.osInfo,
-    lockedByDeviceLabel: session.lockedByDeviceLabel,
   };
 }
 
 export async function getActiveSessionsByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo[]> {
-  const sessions = await db.deviceSession.findMany({
-    where: {
-      userId,
-      deviceType: deviceType as any,
-      loggedOutAt: null,
-      isLocked: false,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+  const sessions = await db.query.deviceSessions.findMany({
+    where: and(
+      eq(schema.deviceSessions.userId, userId),
+      eq(schema.deviceSessions.deviceType, deviceType as any),
+      isNull(schema.deviceSessions.loggedOutAt),
+      eq(schema.deviceSessions.isLocked, false)
+    ),
+    orderBy: [desc(schema.deviceSessions.createdAt)],
   });
 
   return sessions.map((s) => ({
-    id: s.id,
-    userId: s.userId,
+    ...s,
     deviceType: s.deviceType as DeviceType,
-    browserName: s.browserName,
-    ipAddress: s.ipAddress,
-    isLocked: s.isLocked,
-    loggedOutAt: s.loggedOutAt,
-    createdAt: s.createdAt,
-    lastActivityAt: s.lastActivityAt,
-    deviceHash: s.deviceHash,
-    deviceLabel: s.deviceLabel,
-    osInfo: s.osInfo,
-    lockedByDeviceLabel: s.lockedByDeviceLabel,
   }));
 }
 
@@ -185,73 +155,53 @@ export async function terminateActiveSessionsByDeviceType(userId: string, device
     return [];
   }
 
-  await db.deviceSession.updateMany({
-    where: {
-      id: { in: sessionIds }
-    },
-    data: {
-      loggedOutAt: new Date()
-    }
-  });
+  await db.update(schema.deviceSessions)
+    .set({ loggedOutAt: new Date() })
+    .where(inArray(schema.deviceSessions.id, sessionIds));
 
   return sessionIds;
 }
 
 export async function getSessionById(sessionId: string): Promise<SessionInfo | null> {
-  const session = await db.deviceSession.findUnique({
-    where: { id: sessionId },
+  const session = await db.query.deviceSessions.findFirst({
+    where: eq(schema.deviceSessions.id, sessionId),
   });
 
   if (!session) return null;
 
   return {
-    id: session.id,
-    userId: session.userId,
+    ...session,
     deviceType: session.deviceType as DeviceType,
-    browserName: session.browserName,
-    ipAddress: session.ipAddress,
-    isLocked: session.isLocked,
-    loggedOutAt: session.loggedOutAt,
-    createdAt: session.createdAt,
-    lastActivityAt: session.lastActivityAt,
-    deviceHash: session.deviceHash,
-    deviceLabel: session.deviceLabel,
-    osInfo: session.osInfo,
-    lockedByDeviceLabel: session.lockedByDeviceLabel,
   };
 }
 
 export async function terminateSession(sessionId: string): Promise<void> {
-  await db.deviceSession.update({
-    where: { id: sessionId },
-    data: { loggedOutAt: new Date() }
-  });
+  await db.update(schema.deviceSessions)
+    .set({ loggedOutAt: new Date() })
+    .where(eq(schema.deviceSessions.id, sessionId));
 }
 
 export async function lockSession(sessionId: string, lockedBy: string = 'Administrator'): Promise<void> {
-  await db.deviceSession.update({
-    where: { id: sessionId },
-    data: { isLocked: true, lockedByDeviceLabel: lockedBy }
-  });
+  await db.update(schema.deviceSessions)
+    .set({ isLocked: true, lockedByDeviceLabel: lockedBy })
+    .where(eq(schema.deviceSessions.id, sessionId));
 }
 
 export async function updateSessionDeviceHash(sessionId: string, deviceHash: string): Promise<void> {
-  await db.deviceSession.update({
-    where: { id: sessionId },
-    data: { deviceHash }
-  });
+  await db.update(schema.deviceSessions)
+    .set({ deviceHash })
+    .where(eq(schema.deviceSessions.id, sessionId));
 }
 
 export async function unlockSession(sessionId: string): Promise<void> {
-  await db.deviceSession.update({
-    where: { id: sessionId },
-    data: { isLocked: false }
-  });
+  await db.update(schema.deviceSessions)
+    .set({ isLocked: false })
+    .where(eq(schema.deviceSessions.id, sessionId));
 }
 
 export async function isSessionValid(sessionId: string): Promise<boolean> {
-  const session = await db.deviceSession.findUnique({
-    where: { id: sessionId },
+  const session = await db.query.deviceSessions.findFirst({
+    where: eq(schema.deviceSessions.id, sessionId),
   });
 
   if (!session) return false;
@@ -259,10 +209,9 @@ export async function isSessionValid(sessionId: string): Promise<boolean> {
 }
 
 export async function updateSessionActivity(sessionId: string): Promise<void> {
-  await db.deviceSession.update({
-    where: { id: sessionId },
-    data: { lastActivityAt: new Date() }
-  });
+  await db.update(schema.deviceSessions)
+    .set({ lastActivityAt: new Date() })
+    .where(eq(schema.deviceSessions.id, sessionId));
 }
 
 export async function getAutoLockSetting(userId: string): Promise<boolean> {
@@ -271,11 +220,21 @@ export async function getAutoLockSetting(userId: string): Promise<boolean> {
 }
 
 export async function setAutoLockSetting(userId: string, enabled: boolean): Promise<void> {
-    await db.sessionLockSettings.upsert({
-        where: { userId },
-        update: { autoLockFirstBrowser: enabled },
-        create: { userId, autoLockFirstBrowser: enabled }
+    const existing = await db.query.sessionLockSettings.findFirst({
+      where: eq(schema.sessionLockSettings.userId, userId)
     });
+    
+    if (existing) {
+      await db.update(schema.sessionLockSettings)
+        .set({ autoLockFirstBrowser: enabled })
+        .where(eq(schema.sessionLockSettings.userId, userId));
+    } else {
+      await db.insert(schema.sessionLockSettings).values({
+        id: createId(),
+        userId,
+        autoLockFirstBrowser: enabled,
+      });
+    }
 }
 
 export interface GlobalSessionSettings {
@@ -287,8 +246,8 @@ export interface GlobalSessionSettings {
 }
 
 export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings> {
-  const setting = await db.globalSessionLockSettings.findUnique({
-    where: { id: 'global' },
+  const setting = await db.query.globalSessionLockSettings.findFirst({
+    where: eq(schema.globalSessionLockSettings.id, 'global'),
   });
 
   return {
@@ -301,6 +260,10 @@ export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings>
 }
 
 export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSettings>): Promise<void> {
+  const existing = await db.query.globalSessionLockSettings.findFirst({
+    where: eq(schema.globalSessionLockSettings.id, 'global'),
+  });
+
   const updatedFields: any = {};
   if (settings.autoLockFirstBrowser !== undefined) updatedFields.autoLockFirstBrowser = settings.autoLockFirstBrowser;
   if (settings.allowDesktop !== undefined) updatedFields.allowDesktop = settings.allowDesktop;
@@ -308,18 +271,20 @@ export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSe
   if (settings.allowMobile !== undefined) updatedFields.allowMobile = settings.allowMobile;
   if (settings.maxConcurrentSessions !== undefined) updatedFields.maxConcurrentSessions = settings.maxConcurrentSessions;
 
-  await db.globalSessionLockSettings.upsert({
-      where: { id: 'global' },
-      update: updatedFields,
-      create: {
-          id: 'global',
-          autoLockFirstBrowser: settings.autoLockFirstBrowser ?? true,
-          allowDesktop: settings.allowDesktop ?? true,
-          allowTablet: settings.allowTablet ?? true,
-          allowMobile: settings.allowMobile ?? true,
-          maxConcurrentSessions: settings.maxConcurrentSessions ?? 3,
-      }
-  });
+  if (existing) {
+    await db.update(schema.globalSessionLockSettings)
+      .set(updatedFields)
+      .where(eq(schema.globalSessionLockSettings.id, 'global'));
+  } else {
+    await db.insert(schema.globalSessionLockSettings).values({
+      id: 'global',
+      autoLockFirstBrowser: settings.autoLockFirstBrowser ?? true,
+      allowDesktop: settings.allowDesktop ?? true,
+      allowTablet: settings.allowTablet ?? true,
+      allowMobile: settings.allowMobile ?? true,
+      maxConcurrentSessions: settings.maxConcurrentSessions ?? 3,
+    });
+  }
 }
 
 export async function getGlobalAutoLockSetting(): Promise<boolean> {
@@ -333,7 +298,7 @@ export async function setGlobalAutoLockSetting(enabled: boolean): Promise<void> 
 
 export async function resolveAutoLockSetting(userId: string): Promise<AutoLockResolution> {
   const [userSetting, globalAutoLockFirstBrowser] = await Promise.all([
-    db.sessionLockSettings.findUnique({ where: { userId } }),
+    db.query.sessionLockSettings.findFirst({ where: eq(schema.sessionLockSettings.userId, userId) }),
     getGlobalAutoLockSetting(),
   ]);
 
@@ -351,20 +316,23 @@ export async function resolveAutoLockSetting(userId: string): Promise<AutoLockRe
 }
 
 export async function getAllSessionLockSettings() {
-  return db.sessionLockSettings.findMany();
+  return db.query.sessionLockSettings.findMany();
 }
 
 export async function terminateAllSessions(): Promise<void> {
   // Only terminate sessions belonging to students (not admin/teacher)
-  await db.deviceSession.updateMany({
-    where: {
-      loggedOutAt: null,
-      user: {
-        role: 'student'
-      }
-    },
-    data: {
-      loggedOutAt: new Date()
-    }
-  });
+  const studentSessions = await db.select({ id: schema.deviceSessions.id })
+    .from(schema.deviceSessions)
+    .innerJoin(schema.users, eq(schema.users.id, schema.deviceSessions.userId))
+    .where(and(
+      isNull(schema.deviceSessions.loggedOutAt),
+      eq(schema.users.role, 'student')
+    ));
+    
+  if (studentSessions.length > 0) {
+    const sessionIds = studentSessions.map(s => s.id);
+    await db.update(schema.deviceSessions)
+      .set({ loggedOutAt: new Date() })
+      .where(inArray(schema.deviceSessions.id, sessionIds));
+  }
 }

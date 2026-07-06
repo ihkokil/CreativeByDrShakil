@@ -3,12 +3,13 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import {
   sendContactSubmissionAcknowledgement,
   sendContactSubmissionNotification,
   type ContactIssueType,
 } from '@/lib/contact-emails';
-
 
 export const maxDuration = 60;
 
@@ -81,18 +82,20 @@ export async function POST(request: NextRequest) {
       imageUrls.push(`/${relativePath}`);
     }
 
-    const submission = await db.contactSubmission.create({
-      data: {
-        id: submissionId,
-        fullName,
-        phone,
-        email,
-        issueType,
-        subject,
-        message,
-        imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
-      }
-    });
+    const submissionData = {
+      id: submissionId,
+      fullName,
+      phone,
+      email,
+      issueType,
+      subject,
+      message,
+      imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await db.insert(schema.contactSubmissions).values(submissionData);
+    const submission = submissionData;
 
     let parsedImageUrls: string[] = [];
     try {

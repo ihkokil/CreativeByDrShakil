@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { sendMail } from '@/lib/email';
 import { type ContactIssueType } from '@/lib/contact-emails';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 function normalizeSubmission(submission: any) {
   let parsedImageUrls = [];
@@ -39,11 +41,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!adminCheck.ok) return adminCheck.response;
 
     const resolvedParams = await params;
-    const submission = await db.contactSubmission.findUnique({
-      where: { id: resolvedParams.id },
-      include: {
+    const submission = await db.query.contactSubmissions.findFirst({
+      where: eq(schema.contactSubmissions.id, resolvedParams.id),
+      with: {
         repliedByAdmin: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -77,8 +79,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const adminReply = typeof body?.adminReply === 'string' ? body.adminReply.trim() : '';
     const sendReplyEmail = Boolean(body?.sendReplyEmail ?? true);
 
-    const existing = await db.contactSubmission.findUnique({
-      where: { id: resolvedParams.id },
+    const existing = await db.query.contactSubmissions.findFirst({
+      where: eq(schema.contactSubmissions.id, resolvedParams.id),
     });
 
     if (!existing) {
@@ -101,10 +103,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.status = normalizedStatus || 'responded';
     }
 
-    const updatedSubmission = await db.contactSubmission.update({
-      where: { id: resolvedParams.id },
-      data: updateData,
+    await db.update(schema.contactSubmissions).set(updateData).where(eq(schema.contactSubmissions.id, resolvedParams.id));
+
+    const updatedSubmission = await db.query.contactSubmissions.findFirst({
+      where: eq(schema.contactSubmissions.id, resolvedParams.id),
     });
+
+    if (!updatedSubmission) {
+      return NextResponse.json({ error: 'Failed to update submission.' }, { status: 500 });
+    }
 
     let replyEmailSent = false;
 

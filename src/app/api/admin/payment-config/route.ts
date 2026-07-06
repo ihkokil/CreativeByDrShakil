@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server'
 
 async function requireAdmin(request: NextRequest) {
@@ -24,14 +26,14 @@ export async function GET(request: NextRequest) {
     const adminCheck = await requireAdmin(request)
     if (!adminCheck.ok) return adminCheck.response
 
-    const config = await db.paymentConfig.findUnique({
-      where: { id: 'default' },
-      select: {
+    const config = await db.query.paymentConfigs.findFirst({
+      where: eq(schema.paymentConfigs.id, 'default'),
+      columns: {
         provider: true,
         sendMoneyNumber: true,
         qrCodeUrl: true,
       },
-    })
+    });
 
     return NextResponse.json({
       provider: config?.provider || 'bkash',
@@ -58,20 +60,25 @@ export async function POST(request: NextRequest) {
 
     const qrCodeUrl = qrCodeUrlRaw || '/bkash-qr.png'
 
-    const config = await db.paymentConfig.upsert({
-      where: { id: 'default' },
-      update: {
-        provider: 'bkash',
-        sendMoneyNumber,
-        qrCodeUrl,
-      },
-      create: {
-        id: 'default',
+    await db.insert(schema.paymentConfigs).values({
+      id: 'default',
+      provider: 'bkash',
+      sendMoneyNumber,
+      qrCodeUrl,
+    }).onDuplicateKeyUpdate({
+      set: {
         provider: 'bkash',
         sendMoneyNumber,
         qrCodeUrl,
       }
     });
+
+    const config = {
+      id: 'default',
+      provider: 'bkash',
+      sendMoneyNumber,
+      qrCodeUrl,
+    };
 
     return NextResponse.json({ success: true, config })
   } catch (err: any) {

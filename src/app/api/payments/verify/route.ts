@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { verifyVerificationToken } from '@/lib/token-utils';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
@@ -19,9 +21,9 @@ export async function GET(request: NextRequest) {
   const { orderId, action } = payload;
 
   try {
-    const order = await db.order.findUnique({
-      where: { id: orderId },
-      include: { payment: true, user: true, course: true },
+    const order = await db.query.orders.findFirst({
+      where: eq(schema.orders.id, orderId),
+      with: { payment: true, user: true, course: true },
     });
 
     if (!order) {
@@ -34,20 +36,18 @@ export async function GET(request: NextRequest) {
 
     const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-    await db.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: orderId },
-        data: { status: nextStatus }
-      });
+    await db.transaction(async (tx) => {
+      await tx.update(schema.orders)
+        .set({ status: nextStatus })
+        .where(eq(schema.orders.id, orderId));
 
       if (order.payment) {
-        await tx.payment.updateMany({
-          where: { orderId },
-          data: {
+        await tx.update(schema.payments)
+          .set({
             status: nextStatus,
             approvedAt: action === 'approve' ? new Date() : null,
-          }
-        });
+          })
+          .where(eq(schema.payments.orderId, orderId));
       }
     });
 

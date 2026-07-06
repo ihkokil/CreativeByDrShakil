@@ -58,12 +58,9 @@ function buildSubTree(parentId: string, allNodes: FlatDBNode[]): FlatDBNode[] {
  *   - If the child is a video, it becomes a single-video sub-topic.
  */
 export async function getStarterCatalogFromDB(): Promise<StarterMainTopic[]> {
-  const allNodes = await db.videoLibraryNode.findMany({
-    orderBy: [
-      { sortOrder: 'asc' },
-      { createdAt: 'asc' }
-    ],
-    select: {
+  const allNodes = await db.query.videoLibraryNodes.findMany({
+    orderBy: (nodes, { asc }) => [asc(nodes.sortOrder), asc(nodes.createdAt)],
+    columns: {
       id: true,
       title: true,
       type: true,

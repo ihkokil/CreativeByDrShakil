@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
-import { Prisma } from '@prisma/client';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 function normalizeSubmission(submission: any) {
   let parsedImageUrls = [];
@@ -24,12 +25,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || undefined;
 
-    const submissions = await db.contactSubmission.findMany({
-      where: status ? { status: status as any } : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: {
+    const submissions = await db.query.contactSubmissions.findMany({
+      where: status ? eq(schema.contactSubmissions.status, status as 'open' | 'in_review' | 'responded' | 'closed') : undefined,
+      orderBy: [desc(schema.contactSubmissions.createdAt)],
+      with: {
         repliedByAdmin: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,

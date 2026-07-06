@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +19,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
     }
 
-    const courses = await db.course.findMany({
-      select: {
+    const courses = await db.query.courses.findMany({
+      columns: {
         id: true,
         title: true,
         slug: true,
@@ -27,8 +29,8 @@ export async function GET(request: NextRequest) {
         instructor: true,
       },
       orderBy: [
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' }
+        desc(schema.courses.updatedAt),
+        desc(schema.courses.createdAt)
       ]
     });
 

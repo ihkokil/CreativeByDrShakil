@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, inArray, and } from 'drizzle-orm';
 import { getSession } from '@/lib/auth-server';
 import { parseCurriculumJson, collectVideoNodes } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
@@ -22,15 +24,17 @@ export async function GET(
     const { id: studentId } = await params;
 
     // 1. Find approved enrollments for this student
-    const enrollments = await db.order.findMany({
-      where: {
-        userId: studentId,
-        status: 'approved'
-      },
-      select: { 
+    const enrollments = await db.query.orders.findMany({
+      where: and(
+        eq(schema.orders.userId, studentId),
+        eq(schema.orders.status, 'approved')
+      ),
+      columns: { 
         courseId: true,
+      },
+      with: {
         course: {
-          select: { id: true, curriculumJson: true },
+          columns: { id: true, curriculumJson: true },
         }
       },
     });
@@ -44,12 +48,12 @@ export async function GET(
     // 2. Fetch all lesson progress for this student in these courses
     let progressRows: { courseId: string; lessonNodeId: string }[] = [];
     try {
-      progressRows = await db.lessonProgress.findMany({
-        where: {
-          userId: studentId,
-          courseId: { in: courseIds }
-        },
-        select: { courseId: true, lessonNodeId: true },
+      progressRows = await db.query.lessonProgress.findMany({
+        where: and(
+          eq(schema.lessonProgress.userId, studentId),
+          inArray(schema.lessonProgress.courseId, courseIds)
+        ),
+        columns: { courseId: true, lessonNodeId: true },
       });
     } catch (err) {
       console.warn('LessonProgress query failed', err);

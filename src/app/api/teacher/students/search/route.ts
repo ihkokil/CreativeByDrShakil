@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql, ilike } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,24 +13,27 @@ export async function GET(request: NextRequest) {
 
     const query = request.nextUrl.searchParams.get('q') || '';
     
-    const students = await db.user.findMany({
-      where: {
-        role: 'student',
-        ...(query.length > 0 ? {
-          OR: [
-            { fullName: { contains: query, mode: 'insensitive' } },
-            { email: { contains: query, mode: 'insensitive' } },
-            { phone: { contains: query, mode: 'insensitive' } }
-          ]
-        } : {})
-      },
-      select: {
+    const conditions = [eq(schema.users.role, 'student')];
+    if (query.length > 0) {
+      const searchPattern = `%${query}%`;
+      conditions.push(
+        or(
+          ilike(schema.users.fullName, searchPattern),
+          ilike(schema.users.email, searchPattern),
+          ilike(schema.users.phone, searchPattern)
+        )!
+      );
+    }
+
+    const students = await db.query.users.findMany({
+      where: and(...conditions),
+      columns: {
         id: true,
         fullName: true,
         email: true,
         phone: true,
       },
-      take: 200
+      limit: 200
     });
 
     return NextResponse.json({ students });

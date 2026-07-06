@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
     const bearerToken = extractBearerToken(request);
@@ -36,7 +38,7 @@ export async function PATCH(
 
         const { id } = await params;
 
-        const existing = await db.videoLibraryNode.findUnique({ where: { id } });
+        const existing = await db.query.videoLibraryNodes.findFirst({ where: eq(schema.videoLibraryNodes.id, id) });
         if (!existing) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
@@ -61,9 +63,12 @@ export async function PATCH(
             return NextResponse.json({ error: 'No valid fields to update.' }, { status: 400 });
         }
 
-        const node = await db.videoLibraryNode.update({
-            where: { id },
-            data
+        await db.update(schema.videoLibraryNodes)
+            .set(data)
+            .where(eq(schema.videoLibraryNodes.id, id));
+
+        const node = await db.query.videoLibraryNodes.findFirst({
+            where: eq(schema.videoLibraryNodes.id, id)
         });
 
         return NextResponse.json({ node });
@@ -83,13 +88,13 @@ export async function DELETE(
 
         const { id } = await params;
 
-        const existing = await db.videoLibraryNode.findUnique({ where: { id } });
+        const existing = await db.query.videoLibraryNodes.findFirst({ where: eq(schema.videoLibraryNodes.id, id) });
         if (!existing) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
 
         // Prisma cascade handles children deletion via the schema relation
-        await db.videoLibraryNode.delete({ where: { id } });
+        await db.delete(schema.videoLibraryNodes).where(eq(schema.videoLibraryNodes.id, id));
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

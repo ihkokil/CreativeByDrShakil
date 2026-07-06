@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 // FREE TIER OPTIMIZATION: Real-time check (no caching) but optimized for fast execution
 export async function POST(request: NextRequest) {
@@ -18,11 +20,11 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Use Prisma to find if the user exists
+    // Use Drizzle to find if the user exists
     // FREE TIER: Only select the ID column (minimal data fetch)
-    const result = await db.user.findFirst({
-      where: { email: normalizedEmail },
-      select: { id: true },
+    const result = await db.query.users.findFirst({
+      where: eq(schema.users.email, normalizedEmail),
+      columns: { id: true },
     });
 
     return NextResponse.json({ exists: !!result });

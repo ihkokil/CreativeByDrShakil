@@ -1,4 +1,6 @@
 import { db } from '@/lib/db';
+import { sql, eq } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,16 +13,17 @@ export default async function DebugPage() {
   let studentCount: number | null = null;
 
   try {
-    const result = await db.$queryRaw<any[]>`SELECT version(), current_timestamp`;
-    if (result && result.length > 0) {
+    const result = await db.execute(sql`SELECT version() as version, current_timestamp() as current_timestamp`);
+    if (result && (result as any[])[0] && (result as any[])[0].length > 0) {
+      const rows = (result as any[])[0];
       status = 'Connected';
-      version = String(result[0].version);
-      timestamp = String(result[0].current_timestamp);
+      version = String(rows[0].version);
+      timestamp = String(rows[0].current_timestamp);
       
-      const coursesResult = await db.$queryRaw<any[]>`SELECT count(*) FROM "Course"`;
+      const coursesResult = await db.select({ count: sql<number>`count(*)` }).from(schema.courses);
       courseCount = Number(coursesResult[0]?.count || 0);
 
-      const studentsResult = await db.$queryRaw<any[]>`SELECT count(*) FROM "User" WHERE role = 'student'`;
+      const studentsResult = await db.select({ count: sql<number>`count(*)` }).from(schema.users).where(eq(schema.users.role, 'student'));
       studentCount = Number(studentsResult[0]?.count || 0);
     } else {
       status = 'Query failed to return results';

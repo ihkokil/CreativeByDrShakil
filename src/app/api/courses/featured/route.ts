@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, and, isNotNull, desc } from 'drizzle-orm';
 import { getCachedOrFetch } from '@/lib/kv-cache';
-
 const formatPrice = (price: number) => {
   if (price <= 0) {
     return 'Free';
@@ -19,19 +20,19 @@ export async function GET() {
       await getCachedOrFetch(
         { key: cacheKey, ttl: 3600 }, // Cache for 1 hour (featured rarely changes)
         async () => {
-          const course = await db.course.findFirst({
-            where: {
-              status: 'published',
-              isFeatured: true,
-              slug: { not: null }
-            },
+          const course = await db.query.courses.findFirst({
+            where: and(
+              eq(schema.courses.status, 'published'),
+              eq(schema.courses.isFeatured, true),
+              isNotNull(schema.courses.slug)
+            ),
             orderBy: [
-              { publishedAt: 'desc' },
-              { updatedAt: 'desc' }
+              desc(schema.courses.publishedAt),
+              desc(schema.courses.updatedAt)
             ],
-            include: {
+            with: {
               teacher: {
-                select: {
+                columns: {
                   id: true,
                   fullName: true,
                   designation: true,

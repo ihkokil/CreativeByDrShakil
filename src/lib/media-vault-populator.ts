@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { BuilderCurriculumNode, CurriculumContentType } from '@/lib/teacher-course-builder';
-import { Prisma } from '@prisma/client';
+import { inArray } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 export async function populateMediaVaultNodes(nodes: BuilderCurriculumNode[]): Promise<BuilderCurriculumNode[]> {
   const [populated] = await populateMediaVaultNodesBatch([nodes]);
@@ -27,11 +28,9 @@ export async function populateMediaVaultNodesBatch(allNodes: BuilderCurriculumNo
   }
 
   // Fetch children from DB for all referenced folders ONCE
-  const libraryContents = await db.videoLibraryNode.findMany({
-    where: {
-        parentId: { in: Array.from(folderIds) }
-    },
-    orderBy: { sortOrder: 'asc' }
+  const libraryContents = await db.query.videoLibraryNodes.findMany({
+    where: inArray(schema.videoLibraryNodes.parentId, Array.from(folderIds)),
+    orderBy: (nodes, { asc }) => [asc(nodes.sortOrder)]
   });
 
   const childrenMap: Record<string, BuilderCurriculumNode[]> = {};

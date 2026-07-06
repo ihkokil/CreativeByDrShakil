@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, asc, desc, ilike, or, and, count } from 'drizzle-orm';
 import { getSession } from '@/lib/auth-server';
 import { getGlobalSessionSettings, resolveAutoLockSetting } from '@/lib/session-manager';
-import { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,38 +20,39 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'lastActive';
     const offset = (page - 1) * limit;
 
-    const whereClause: Prisma.UserWhereInput = {
-      role: 'student',
-      ...(search ? {
-        OR: [
-          { fullName: { contains: search, mode: 'insensitive' } },
-          { email: { contains: search, mode: 'insensitive' } },
-        ]
-      } : {})
-    };
+    const whereClause = search
+      ? and(
+          eq(schema.users.role, 'student'),
+          or(
+            ilike(schema.users.fullName, `%${search}%`),
+            ilike(schema.users.email, `%${search}%`)
+          )
+        )
+      : eq(schema.users.role, 'student');
 
     const getOrderBy = (): any => {
       switch (sortBy) {
         case 'name_asc':
-          return { fullName: 'asc' };
+          return asc(schema.users.fullName);
         case 'name_desc':
-          return { fullName: 'desc' };
+          return desc(schema.users.fullName);
         case 'newest':
-          return { createdAt: 'desc' };
+          return desc(schema.users.createdAt);
         case 'oldest':
-          return { createdAt: 'asc' };
+          return asc(schema.users.createdAt);
         case 'lastActive':
         default:
-          return undefined; // Handled dynamically if possible or in-memory, but since we can't easily order by max relation field in Prisma without aggregations, we'll sort in memory or fall back. For now, we fallback to default sorting or handle it appropriately. If we sort by lastActive, we should use a different query. Let's just fallback to newest for Prisma unless we can do orderBy relation. Prisma does not support ordering by max relation date. We will just sort in memory if lastActive is chosen or default to newest. Let's default to newest here and sort in memory if needed, but pagination would be broken. Let's stick to newest for the DB query.
-          return { createdAt: 'desc' }; 
+          return desc(schema.users.createdAt);
       }
     };
 
-    const [totalCount, users, globalSettings] = await Promise.all([
-      db.user.count({ where: whereClause }),
-      db.user.findMany({
+    const countResult = await db.select({ count: count() }).from(schema.users).where(whereClause);
+    const totalCount = countResult[0].count;
+
+    const [users, globalSettings] = await Promise.all([
+      db.query.users.findMany({
         where: whereClause,
-        select: {
+        columns: {
           id: true,
           fullName: true,
           email: true,
@@ -60,8 +62,10 @@ export async function GET(request: NextRequest) {
           createdAt: true,
           profileImage: true,
           image: true,
+        },
+        with: {
           deviceSessions: {
-            select: {
+            columns: {
               id: true,
               deviceType: true,
               browserName: true,
@@ -71,16 +75,18 @@ export async function GET(request: NextRequest) {
               createdAt: true,
               lastActivityAt: true,
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [desc(schema.deviceSessions.createdAt)],
           },
           orders: {
-            where: { status: 'approved' },
-            select: {
+            where: eq(schema.orders.status, 'approved'),
+            columns: {
               id: true,
               enrolledAt: true,
               expiresAt: true,
+            },
+            with: {
               course: {
-                select: {
+                columns: {
                   id: true,
                   title: true,
                   slug: true,
@@ -89,9 +95,9 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: getOrderBy(),
-        take: limit,
-        skip: offset,
+        orderBy: [getOrderBy()],
+        limit: limit,
+        offset: offset,
       }),
       getGlobalSessionSettings(),
     ]);

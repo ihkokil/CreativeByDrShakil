@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, inArray, and, desc } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
@@ -15,9 +17,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { id: payload.sub },
-      select: {
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.id, payload.sub),
+      columns: {
         id: true,
         email: true,
         phone: true,
@@ -39,11 +41,11 @@ export async function GET(request: NextRequest) {
     const isAdmin = user.role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    const orders = await db.order.findMany({
-      where: { userId: user.id },
-      include: {
+    const orders = await db.query.orders.findMany({
+      where: eq(schema.orders.userId, user.id),
+      with: {
         course: {
-          select: {
+          columns: {
             id: true,
             slug: true,
             title: true,
@@ -54,7 +56,7 @@ export async function GET(request: NextRequest) {
           },
         },
         payment: {
-          select: {
+          columns: {
             id: true,
             status: true,
             transactionId: true,
@@ -64,14 +66,14 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [desc(schema.orders.createdAt)],
     });
 
     let enrolledCourses: any[] = [];
     
     if (isAdmin) {
-      const allPublishedCourses = await db.course.findMany({
-        where: { status: 'published' },
+      const allPublishedCourses = await db.query.courses.findMany({
+        where: eq(schema.courses.status, 'published'),
       });
 
       enrolledCourses = await Promise.all(allPublishedCourses.map(async (course: any) => {
@@ -117,12 +119,12 @@ export async function GET(request: NextRequest) {
 
     const courseIds = enrolledCourses.map((c) => c.courseId);
     const progressRows = courseIds.length
-      ? await db.lessonProgress.findMany({
-          where: {
-            userId: user.id,
-            courseId: { in: courseIds }
-          },
-          select: {
+      ? await db.query.lessonProgress.findMany({
+          where: and(
+            eq(schema.lessonProgress.userId, user.id),
+            inArray(schema.lessonProgress.courseId, courseIds)
+          ),
+          columns: {
             courseId: true,
             lessonNodeId: true,
           },

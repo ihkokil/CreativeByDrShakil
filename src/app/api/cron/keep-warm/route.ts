@@ -19,9 +19,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Run a fast, lightweight query to warm up the serverless database instance
-    const result = await db.course.findMany({
-      select: { id: true },
-      take: 1
+    const result = await db.query.courses.findMany({
+      columns: { id: true },
+      limit: 1
     });
 
     return NextResponse.json({

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -36,8 +38,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId(s), and action are required.' }, { status: 400 });
     }
 
-    const course = await db.course.findFirst({
-      where: payload.role === 'admin' ? { id: courseId } : { id: courseId, teacherId: payload.sub },
+    const course = await db.query.courses.findFirst({
+      where: payload.role === 'admin' ? eq(schema.courses.id, courseId) : and(eq(schema.courses.id, courseId), eq(schema.courses.teacherId, payload.sub)),
     });
 
     if (!course) {
@@ -46,13 +48,13 @@ export async function POST(request: NextRequest) {
 
     // Check that ALL requested students have an active enrollment
     // If not all are enrolled, we might either fail entirely or just process the valid ones. Let's process the valid ones.
-    const orders = await db.order.findMany({
-      where: {
-        userId: { in: userIds },
-        courseId,
-        status: 'approved',
-      },
-      select: { userId: true },
+    const orders = await db.query.orders.findMany({
+      where: and(
+        inArray(schema.orders.userId, userIds),
+        eq(schema.orders.courseId, courseId),
+        eq(schema.orders.status, 'approved')
+      ),
+      columns: { userId: true },
     });
 
     const enrolledUserIds = orders.map(o => o.userId);
@@ -62,12 +64,10 @@ export async function POST(request: NextRequest) {
 
     if (action === 'continue_with_batch') {
       // Clear custom overrides to fall back to course schedule
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        }
-      });
+      await db.delete(schema.studentModuleAvailability).where(and(
+        eq(schema.studentModuleAvailability.courseId, courseId),
+        inArray(schema.studentModuleAvailability.userId, enrolledUserIds)
+      ));
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
 
@@ -92,25 +92,20 @@ export async function POST(request: NextRequest) {
       end.setFullYear(end.getFullYear() + 1);
 
       // Update the student enrollment orders
-      await db.order.updateMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        },
-        data: {
-          enrolledAt: start,
-          expiresAt: end,
-          updatedAt: new Date(),
-        }
-      });
+      await db.update(schema.orders).set({
+        enrolledAt: start,
+        expiresAt: end,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(schema.orders.courseId, courseId),
+        inArray(schema.orders.userId, enrolledUserIds)
+      ));
 
       // Clear student custom overrides so they follow the course schedule starting from the new enrolledAt date
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        }
-      });
+      await db.delete(schema.studentModuleAvailability).where(and(
+        eq(schema.studentModuleAvailability.courseId, courseId),
+        inArray(schema.studentModuleAvailability.userId, enrolledUserIds)
+      ));
 
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
     }
@@ -143,17 +138,13 @@ export async function POST(request: NextRequest) {
         });
       });
 
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId: { in: enrolledUserIds },
-        }
-      });
+      await db.delete(schema.studentModuleAvailability).where(and(
+        eq(schema.studentModuleAvailability.courseId, courseId),
+        inArray(schema.studentModuleAvailability.userId, enrolledUserIds)
+      ));
       
       if (dataToInsert.length > 0) {
-        await db.studentModuleAvailability.createMany({
-          data: dataToInsert
-        });
+        await db.insert(schema.studentModuleAvailability).values(dataToInsert);
       }
 
       return NextResponse.json({ success: true, count: enrolledUserIds.length });
@@ -206,17 +197,13 @@ export async function POST(request: NextRequest) {
       });
     });
 
-    await db.studentModuleAvailability.deleteMany({
-      where: {
-        courseId,
-        userId: { in: enrolledUserIds },
-      }
-    });
+    await db.delete(schema.studentModuleAvailability).where(and(
+      eq(schema.studentModuleAvailability.courseId, courseId),
+      inArray(schema.studentModuleAvailability.userId, enrolledUserIds)
+    ));
 
     if (dataToInsert.length > 0) {
-      await db.studentModuleAvailability.createMany({
-        data: dataToInsert
-      });
+      await db.insert(schema.studentModuleAvailability).values(dataToInsert);
     }
 
     return NextResponse.json({ success: true, count: enrolledUserIds.length });

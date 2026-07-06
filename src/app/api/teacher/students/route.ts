@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { eq, and, or, inArray, desc, asc, isNull, sql, gte } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import {
   annotateCurriculumAvailability,
   collectSecondChildGroups,
@@ -49,20 +51,22 @@ type ProgressRow = {
 
 const getTeacherCourses = async (teacherId: string, role: string) => {
   const [rawCourses, orderCountsData] = await Promise.all([
-    db.course.findMany({
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        instructors: { orderBy: { sortOrder: 'asc' } },
+    db.query.courses.findMany({
+      orderBy: [desc(schema.courses.updatedAt)],
+      with: {
+        instructors: { orderBy: [asc(schema.courseInstructors.sortOrder)] },
       },
     }),
-    db.order.groupBy({
-      by: ['courseId'],
-      where: { status: 'approved' },
-      _count: { id: true },
+    db.select({
+      courseId: schema.orders.courseId,
+      count: sql<number>`count(${schema.orders.id})`
     })
+    .from(schema.orders)
+    .where(eq(schema.orders.status, 'approved'))
+    .groupBy(schema.orders.courseId)
   ]);
 
-  const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row._count.id]));
+  const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, Number(row.count)]));
 
   return rawCourses.map(c => ({
     ...c,
@@ -121,9 +125,9 @@ export async function GET(request: NextRequest) {
       curriculumJson: any;
     }
 
-    const selectedCourse = await db.course.findUnique({
-      where: { id: selectedCourseId },
-      select: {
+    const selectedCourse = await db.query.courses.findFirst({
+      where: eq(schema.courses.id, selectedCourseId),
+      columns: {
         id: true,
         title: true,
         slug: true,
@@ -148,16 +152,16 @@ export async function GET(request: NextRequest) {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    const enrollments = await db.order.findMany({
-      where: {
-        courseId: selectedCourse.id,
-        status: 'approved',
-        updatedAt: { gte: oneYearAgo }
-      },
-      orderBy: { updatedAt: 'desc' },
-      include: {
+    const enrollments = await db.query.orders.findMany({
+      where: and(
+        eq(schema.orders.courseId, selectedCourse.id),
+        eq(schema.orders.status, 'approved'),
+        gte(schema.orders.updatedAt, oneYearAgo)
+      ),
+      orderBy: [desc(schema.orders.updatedAt)],
+      with: {
         user: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -173,12 +177,12 @@ export async function GET(request: NextRequest) {
 
     if (userIds.length > 0) {
       try {
-        progressRows = await db.lessonProgress.findMany({
-          where: {
-            courseId: selectedCourse.id,
-            userId: { in: userIds }
-          },
-          select: { userId: true, lessonNodeId: true }
+        progressRows = await db.query.lessonProgress.findMany({
+          where: and(
+            eq(schema.lessonProgress.courseId, selectedCourse.id),
+            inArray(schema.lessonProgress.userId, userIds)
+          ),
+          columns: { userId: true, lessonNodeId: true }
         });
       } catch (err) {
         console.warn('LessonProgress query failed', err);
@@ -186,12 +190,12 @@ export async function GET(request: NextRequest) {
       }
 
       try {
-        const smaResult = await db.studentModuleAvailability.findMany({
-          where: {
-            courseId: selectedCourse.id,
-            userId: { in: userIds }
-          },
-          select: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
+        const smaResult = await db.query.studentModuleAvailability.findMany({
+          where: and(
+            eq(schema.studentModuleAvailability.courseId, selectedCourse.id),
+            inArray(schema.studentModuleAvailability.userId, userIds)
+          ),
+          columns: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
         });
         overrideRows = smaResult as OverrideRow[];
       } catch (err) {
@@ -305,9 +309,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId, and lessonNodeId are required.' }, { status: 400 });
     }
 
-    const course = await db.course.findUnique({
-      where: { id: courseId },
-      select: { id: true },
+    const course = await db.query.courses.findFirst({
+      where: eq(schema.courses.id, courseId),
+      columns: { id: true },
     });
 
     if (!course) {
@@ -319,32 +323,30 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (availabilityMode === 'inherit') {
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId,
-          lessonNodeId
-        }
-      });
+      await db.delete(schema.studentModuleAvailability).where(
+        and(
+          eq(schema.studentModuleAvailability.courseId, courseId),
+          eq(schema.studentModuleAvailability.userId, userId),
+          eq(schema.studentModuleAvailability.lessonNodeId, lessonNodeId)
+        )
+      );
     } else {
       const nextAvailableAt = availableAt && !Number.isNaN(availableAt.getTime()) ? availableAt : null;
 
-      await db.studentModuleAvailability.deleteMany({
-        where: {
-          courseId,
-          userId,
-          lessonNodeId
-        }
-      });
-      await db.studentModuleAvailability.create({
-        data: {
-          id: crypto.randomUUID(),
-          courseId,
-          userId,
-          lessonNodeId,
-          availabilityMode,
-          availableAt: nextAvailableAt,
-        }
+      await db.delete(schema.studentModuleAvailability).where(
+        and(
+          eq(schema.studentModuleAvailability.courseId, courseId),
+          eq(schema.studentModuleAvailability.userId, userId),
+          eq(schema.studentModuleAvailability.lessonNodeId, lessonNodeId)
+        )
+      );
+      await db.insert(schema.studentModuleAvailability).values({
+        id: crypto.randomUUID(),
+        courseId,
+        userId,
+        lessonNodeId,
+        availabilityMode,
+        availableAt: nextAvailableAt,
       });
     }
 

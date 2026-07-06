@@ -7,6 +7,9 @@ import {
 } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordResetEmail } from '@/lib/auth-emails';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
     try {
@@ -34,8 +37,8 @@ export async function POST(request: NextRequest) {
 
         const normalizedEmail = email.trim().toLowerCase();
 
-        const existingTeacher = await db.user.findFirst({
-            where: { email: normalizedEmail }
+        const existingTeacher = await db.query.users.findFirst({
+            where: eq(schema.users.email, normalizedEmail)
         });
 
         if (existingTeacher) {
@@ -44,24 +47,29 @@ export async function POST(request: NextRequest) {
 
         // Create a placeholder password (unusable — teacher sets their own via reset link)
         const placeholder = `Invite${Date.now()}${Math.random().toString(36).slice(2)}!`;
+        const hashedPlaceholder = await bcrypt.hash(placeholder, 12);
 
 
         // Generate a password-reset token good for 72 hours (longer than normal resets)
         const { token: resetToken, tokenHash } = await createTokenPair();
         const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
-        await db.$queryRaw`
-          INSERT INTO "User" (
-            "id", "email", "fullName", "passwordHash", "role",
-            "designation", "institution", "degrees", "profileImage",
-            "emailVerified", "passwordResetTokenHash", "passwordResetExpires", "updatedAt"
-          )
-          VALUES (
-            ${crypto.randomUUID()}, ${normalizedEmail}, ${fullName}, crypt(${placeholder}, gen_salt('bf', 12)), 'teacher',
-            ${designation || null}, ${institution || null}, ${degrees || null}, ${profileImage || null},
-            true, ${tokenHash}, ${resetExpiry}, NOW()
-          )
-        `;
+        const newTeacherId = crypto.randomUUID();
+        await db.insert(schema.users).values({
+            id: newTeacherId,
+            email: normalizedEmail,
+            fullName: fullName,
+            passwordHash: hashedPlaceholder,
+            role: 'teacher',
+            designation: designation || null,
+            institution: institution || null,
+            degrees: degrees || null,
+            profileImage: profileImage || null,
+            emailVerified: true,
+            passwordResetTokenHash: tokenHash,
+            passwordResetExpires: resetExpiry,
+            updatedAt: new Date(),
+        });
 
         // Send the "Set Your Password" email using the existing reset-password template
         let emailSent = false;

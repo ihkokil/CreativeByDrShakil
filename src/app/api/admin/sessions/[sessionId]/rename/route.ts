@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { db } from '@/lib/db';
 
 /**
@@ -28,10 +30,7 @@ export async function PUT(
       return NextResponse.json({ error: 'deviceLabel is required and must be a string' }, { status: 400 });
     }
 
-    await db.deviceSession.update({
-      where: { id: sessionId },
-      data: { deviceLabel }
-    });
+    await db.update(schema.deviceSessions).set({ deviceLabel }).where(eq(schema.deviceSessions.id, sessionId));
 
     return NextResponse.json({
       success: true,

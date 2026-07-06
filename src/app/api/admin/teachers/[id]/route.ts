@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -20,17 +22,16 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
         const { fullName, email, designation, institution, degrees, profileImage } = await request.json();
 
-        const updatedTeacher = await db.user.update({
-            where: { id: params.id },
-            data: {
-                fullName,
-                email,
-                designation: designation || null,
-                institution: institution || null,
-                degrees: degrees || null,
-                profileImage: profileImage || null
-            }
-        });
+        await db.update(schema.users).set({
+            fullName,
+            email,
+            designation: designation || null,
+            institution: institution || null,
+            degrees: degrees || null,
+            profileImage: profileImage || null
+        }).where(eq(schema.users.id, params.id));
+
+        const updatedTeacher = await db.query.users.findFirst({ where: eq(schema.users.id, params.id) });
 
         return NextResponse.json({ success: true, teacher: updatedTeacher });
     } catch (error: any) {
@@ -56,31 +57,29 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
 
         const { reassignToId } = await request.json();
 
-        const teacherToDelete = await db.user.findUnique({ where: { id: params.id } });
+        const teacherToDelete = await db.query.users.findFirst({ where: eq(schema.users.id, params.id) });
         if (!teacherToDelete) {
             return NextResponse.json({ error: 'Teacher not found.' }, { status: 404 });
         }
 
         if (reassignToId) {
-            const replacementTeacher = await db.user.findUnique({ where: { id: reassignToId } });
+            const replacementTeacher = await db.query.users.findFirst({ where: eq(schema.users.id, reassignToId) });
             if (!replacementTeacher) {
                 return NextResponse.json({ error: 'Replacement teacher not found.' }, { status: 404 });
             }
 
-            await db.course.updateMany({
-                where: { instructor: teacherToDelete.id },
-                data: { instructor: replacementTeacher.id }
-            });
+            await db.update(schema.courses).set({
+                instructor: replacementTeacher.id
+            }).where(eq(schema.courses.instructor, teacherToDelete.id));
 
             if (teacherToDelete.fullName && replacementTeacher.fullName) {
-                await db.course.updateMany({
-                    where: { instructor: teacherToDelete.fullName },
-                    data: { instructor: replacementTeacher.fullName }
-                });
+                await db.update(schema.courses).set({
+                    instructor: replacementTeacher.fullName
+                }).where(eq(schema.courses.instructor, teacherToDelete.fullName));
             }
         }
 
-        await db.user.delete({ where: { id: params.id } });
+        await db.delete(schema.users).where(eq(schema.users.id, params.id));
 
         return NextResponse.json({ success: true, message: 'Teacher deleted successfully.' });
     } catch (error: any) {

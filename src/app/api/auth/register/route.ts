@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { eq, and, or, inArray, desc, asc, isNull, isNotNull, not, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { db } from '@/lib/db';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
@@ -8,7 +10,6 @@ import { sendVerificationEmail } from '@/lib/auth-emails';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import { createDeviceSession } from '@/lib/session-manager';
 import { sendTelegramRegistrationNotification } from '@/lib/telegram';
-
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -42,13 +43,11 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = String(email).trim().toLowerCase();
 
     // Check if user already exists
-    const existingUser = await db.user.findFirst({
-      where: {
-        OR: [
-          { email: normalizedEmail },
-          ...(phone ? [{ phone }] : [])
-        ]
-      }
+    const existingUser = await db.query.users.findFirst({
+      where: or(
+        eq(schema.users.email, normalizedEmail),
+        ...(phone ? [eq(schema.users.phone, phone)] : [])
+      )
     });
 
     if (existingUser) {
@@ -61,12 +60,12 @@ export async function POST(request: NextRequest) {
     let token = '';
 
     if (otpVerified) {
-      const otpRecord = await db.emailOtp.findFirst({
-        where: {
-          email: normalizedEmail,
-          verified: true,
-          expiresAt: { gt: new Date() }
-        }
+      const otpRecord = await db.query.emailOtps.findFirst({
+        where: and(
+          eq(schema.emailOtps.email, normalizedEmail),
+          eq(schema.emailOtps.verified, true),
+          sql`${schema.emailOtps.expiresAt} > NOW()`
+        )
       });
 
       if (!otpRecord) {
@@ -84,29 +83,27 @@ export async function POST(request: NextRequest) {
       verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
 
-    // Insert user using $queryRaw to utilize pgcrypto for password hashing
-    const insertResult = await db.$queryRaw<any[]>`
-      INSERT INTO "User" (
-        "id", "email", "passwordHash", "fullName", "phone", "bmdcNumber", "role",
-        "emailVerified", "emailVerificationTokenHash", "emailVerificationExpires", "updatedAt"
-      )
-      VALUES (
-        ${crypto.randomUUID()},
-        ${normalizedEmail},
-        crypt(${password}, gen_salt('bf', 12)),
-        ${fullName},
-        ${phone || null},
-        ${bmdc || null},
-        'student',
-        ${emailVerified},
-        ${tokenHash},
-        ${verifyExpiry},
-        NOW()
-      )
-      RETURNING *;
-    `;
+    const { hash } = await import('bcryptjs');
+    const passwordHash = await hash(password, 10);
+    const userId = crypto.randomUUID();
 
-    const user = insertResult[0];
+    await db.insert(schema.users).values({
+      id: userId,
+      email: normalizedEmail,
+      passwordHash,
+      fullName,
+      phone: phone || null,
+      bmdcNumber: bmdc || null,
+      role: 'student',
+      emailVerified,
+      emailVerificationTokenHash: tokenHash,
+      emailVerificationExpires: verifyExpiry,
+      updatedAt: new Date()
+    });
+
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.id, userId)
+    }) as NonNullable<Awaited<ReturnType<typeof db.query.users.findFirst>>>;
 
     // Send Telegram Notification (fire and forget)
     sendTelegramRegistrationNotification({
@@ -114,14 +111,12 @@ export async function POST(request: NextRequest) {
       userName: user.fullName,
       userEmail: user.email,
       phoneNumber: user.phone || undefined,
-      createdAt: user.createdAt,
+      createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
     }).catch(err => console.error('[Register] Telegram notification failed:', err));
 
     if (otpVerified) {
       // Clean up OTP record if verified via OTP
-      await db.emailOtp.deleteMany({
-        where: { email: normalizedEmail }
-      });
+      await db.delete(schema.emailOtps).where(eq(schema.emailOtps.email, normalizedEmail));
 
       // Log the user in immediately
       const userAgent = request.headers.get('user-agent') || '';

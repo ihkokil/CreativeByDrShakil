@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { getSession } from '@/lib/auth-server';
 import {
   resolveAutoLockSetting,
@@ -22,14 +24,16 @@ export async function GET() {
     }
 
     // Get all students
-    const students = await db.user.findMany({
-      where: { role: 'student' },
-      select: {
+    const students = await db.query.users.findMany({
+      where: eq(schema.users.role, 'student'),
+      columns: {
         id: true,
         fullName: true,
         email: true,
+      },
+      with: {
         deviceSessions: {
-          select: {
+          columns: {
             id: true,
             deviceType: true,
             browserName: true,
@@ -39,10 +43,10 @@ export async function GET() {
             createdAt: true,
             lastActivityAt: true,
           },
-          orderBy: { createdAt: 'desc' },
+          orderBy: [desc(schema.deviceSessions.createdAt)],
         },
         sessionSettings: {
-          select: {
+          columns: {
             autoLockFirstBrowser: true,
           },
         },

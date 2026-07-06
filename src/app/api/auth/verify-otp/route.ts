@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { eq, and, or, inArray, desc, asc, isNull, isNotNull, not, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { db } from '@/lib/db';
 
 const verifyOtpSchema = z.object({
@@ -29,9 +31,9 @@ export async function POST(request: NextRequest) {
     const { email, otp } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
 
-    const otpRecord = await db.emailOtp.findFirst({
-      where: { email: normalizedEmail },
-      orderBy: { createdAt: 'desc' },
+    const otpRecord = await db.query.emailOtps.findFirst({
+      where: eq(schema.emailOtps.email, normalizedEmail),
+      orderBy: [desc(schema.emailOtps.createdAt)],
     });
 
     if (!otpRecord) {
@@ -49,10 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark as verified so registration API can check it
-    await db.emailOtp.update({
-      where: { id: otpRecord.id },
-      data: { verified: true }
-    });
+    await db.update(schema.emailOtps).set({ verified: true }).where(eq(schema.emailOtps.id, otpRecord.id));
 
     return NextResponse.json({ verified: true, message: 'Email verified successfully.' });
   } catch (error: any) {

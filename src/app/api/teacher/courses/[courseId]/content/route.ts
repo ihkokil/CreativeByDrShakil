@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 interface InstructorData {
   id?: string;
@@ -24,9 +26,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const instructors = Array.isArray(body.instructors) ? body.instructors : [];
 
     // Verify course exists and belongs to teacher
-    const course = await db.course.findUnique({
-      where: { id: courseId },
-      select: { teacherId: true },
+    const course = await db.query.courses.findFirst({
+      where: eq(schema.courses.id, courseId),
+      columns: { teacherId: true },
     });
 
     if (!course) {
@@ -42,16 +44,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     );
 
     // Update course and instructors transactionally
-    const updatedCourse = await db.$transaction(async (tx) => {
+    const updatedCourse = await db.transaction(async (tx) => {
       // Delete existing instructors
-      await tx.courseInstructor.deleteMany({
-        where: { courseId: courseId }
-      });
+      await tx.delete(schema.courseInstructors).where(eq(schema.courseInstructors.courseId, courseId));
 
       // Create new instructors
       if (validInstructors.length > 0) {
-        await tx.courseInstructor.createMany({
-          data: validInstructors.map((instr: InstructorData, index: number) => ({
+        await tx.insert(schema.courseInstructors).values(
+          validInstructors.map((instr: InstructorData, index: number) => ({
             id: crypto.randomUUID(),
             courseId,
             name: instr.name.trim(),
@@ -59,24 +59,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             imageUrl: instr.imageUrl || null,
             sortOrder: index,
           }))
-        });
+        );
       }
 
       // Update course details
-      await tx.course.update({
-        where: { id: courseId },
-        data: {
+      await tx.update(schema.courses)
+        .set({
           overview,
           learningOutcomes,
-        }
-      });
+        })
+        .where(eq(schema.courses.id, courseId));
 
       // Return updated course
-      return tx.course.findUnique({
-        where: { id: courseId },
-        include: {
+      return tx.query.courses.findFirst({
+        where: eq(schema.courses.id, courseId),
+        with: {
           instructors: {
-            orderBy: { sortOrder: 'asc' }
+            orderBy: [asc(schema.courseInstructors.sortOrder)]
           }
         }
       });

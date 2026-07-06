@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
+import { createId } from '@paralleldrive/cuid2';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
     const bearerToken = extractBearerToken(request);
@@ -31,12 +34,12 @@ export async function GET(request: NextRequest) {
         const authCheck = await requireTeacherOrAdmin(request);
         if (!authCheck.ok) return authCheck.response;
 
-        const nodes = await db.videoLibraryNode.findMany({
+        const nodes = await db.query.videoLibraryNodes.findMany({
             orderBy: [
-                { sortOrder: 'asc' },
-                { createdAt: 'asc' }
+                asc(schema.videoLibraryNodes.sortOrder),
+                asc(schema.videoLibraryNodes.createdAt)
             ],
-            select: {
+            columns: {
                 id: true,
                 title: true,
                 type: true,
@@ -77,29 +80,31 @@ export async function POST(request: NextRequest) {
         }
 
         if (parentId) {
-            const parent = await db.videoLibraryNode.findUnique({ where: { id: parentId } });
+            const parent = await db.query.videoLibraryNodes.findFirst({ where: eq(schema.videoLibraryNodes.id, parentId) });
             if (!parent) {
                 return NextResponse.json({ error: 'Parent node not found.' }, { status: 404 });
             }
         }
 
-        const maxOrderResult = await db.videoLibraryNode.aggregate({
-            _max: { sortOrder: true },
-            where: { parentId: parentId || null }
-        });
-        const nextOrder = (maxOrderResult._max.sortOrder ?? -1) + 1;
+        const maxOrderResult = await db.select({ maxOrder: sql<number>`max(${schema.videoLibraryNodes.sortOrder})` })
+            .from(schema.videoLibraryNodes)
+            .where(parentId ? eq(schema.videoLibraryNodes.parentId, parentId) : isNull(schema.videoLibraryNodes.parentId));
+        const nextOrder = (maxOrderResult[0]?.maxOrder ?? -1) + 1;
 
-        const node = await db.videoLibraryNode.create({
-            data: {
-                id: crypto.randomUUID(),
-                title,
-                type,
-                url,
-                duration,
-                parentId,
-                attachments: attachments as any,
-                sortOrder: nextOrder,
-            }
+        const id = createId();
+        await db.insert(schema.videoLibraryNodes).values({
+            id,
+            title,
+            type,
+            url,
+            duration,
+            parentId,
+            attachments: attachments as any,
+            sortOrder: nextOrder,
+        });
+
+        const node = await db.query.videoLibraryNodes.findFirst({
+            where: eq(schema.videoLibraryNodes.id, id)
         });
 
         return NextResponse.json({ node }, { status: 201 });

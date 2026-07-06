@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,17 +28,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New password must be different from current password.' }, { status: 400 });
     }
 
-    // Query user and check current password hash in database
-    const results = await db.$queryRaw<any[]>`
-      SELECT 
-        id, "passwordHash",
-        ("passwordHash" = crypt(${currentPassword}, "passwordHash")) as "isCurrentValid"
-      FROM "User" 
-      WHERE id = ${payload.sub} 
-      LIMIT 1
-    `;
-
-    const user = results[0];
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.id, payload.sub),
+      columns: { id: true, passwordHash: true }
+    });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -48,19 +44,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user.isCurrentValid) {
+    const isCurrentValid = await bcrypt.compare(currentPassword, user.passwordHash);
+
+    if (!isCurrentValid) {
       return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 });
     }
 
-    // Hash and update to the new password in DB
-    await db.$executeRaw`
-      UPDATE "User"
-      SET 
-        "passwordHash" = crypt(${newPassword}, gen_salt('bf', 12)),
-        "passwordResetTokenHash" = NULL,
-        "passwordResetExpires" = NULL
-      WHERE id = ${user.id}
-    `;
+    const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
+    await db.update(schema.users)
+      .set({
+        passwordHash: newPasswordHash,
+        passwordResetTokenHash: null,
+        passwordResetExpires: null,
+      })
+      .where(eq(schema.users.id, user.id));
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

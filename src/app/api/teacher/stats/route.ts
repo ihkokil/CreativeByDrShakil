@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodesBatch } from '@/lib/media-vault-populator';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,8 +14,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 1. Get all courses in the system
-    const courses = await db.course.findMany({
-      select: {
+    const courses = await db.query.courses.findMany({
+      columns: {
         id: true,
         title: true,
         curriculumJson: true,
@@ -34,17 +36,17 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Get approved orders for these courses from users with 'student' role
-    const allOrders = await db.order.findMany({
-      where: {
-        courseId: { in: courseIds },
-        status: 'approved',
-      },
-      select: {
+    const allOrders = await db.query.orders.findMany({
+      where: and(
+        inArray(schema.orders.courseId, courseIds),
+        eq(schema.orders.status, 'approved')
+      ),
+      columns: {
         id: true,
         userId: true,
         courseId: true,
-        user: { select: { role: true } },
       },
+      with: { user: { columns: { role: true } } },
     });
     
     const approvedOrders = allOrders.filter(o => o.user?.role === 'student');
@@ -53,16 +55,14 @@ export async function GET(request: NextRequest) {
     const totalStudents = uniqueStudentIds.size;
 
     // 3. Get progress entries for these courses (only for students)
-    const allProgressEntries = await db.lessonProgress.findMany({
-      where: {
-        courseId: { in: courseIds },
-      },
-      select: {
+    const allProgressEntries = await db.query.lessonProgress.findMany({
+      where: inArray(schema.lessonProgress.courseId, courseIds),
+      columns: {
         userId: true,
         courseId: true,
         lessonNodeId: true,
-        user: { select: { role: true } },
       },
+      with: { user: { columns: { role: true } } },
     });
     
     const progressEntries = allProgressEntries.filter(p => p.user?.role === 'student');

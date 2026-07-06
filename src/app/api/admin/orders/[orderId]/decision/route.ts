@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requirePaymentManager } from '@/lib/admin-auth';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 type Decision = 'approve' | 'reject';
 
@@ -20,9 +22,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Invalid decision. Use approve or reject.' }, { status: 400 });
     }
 
-    const order = await db.order.findUnique({
-      where: { id: orderId },
-      include: { payment: true, user: true, course: true },
+    const order = await db.query.orders.findFirst({
+      where: eq(schema.orders.id, orderId),
+      with: { payment: true, user: true, course: true },
     });
 
     if (!order) {
@@ -32,19 +34,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const nextOrderStatus = decision === 'approve' ? 'approved' : 'rejected';
     const nextPaymentStatus = decision === 'approve' ? 'approved' : 'rejected';
 
-    const updatedOrder = await db.order.update({
-      where: { id: orderId },
-      data: { status: nextOrderStatus },
-    });
+    await db.update(schema.orders).set({ status: nextOrderStatus }).where(eq(schema.orders.id, orderId));
+    const updatedOrder = await db.query.orders.findFirst({ where: eq(schema.orders.id, orderId) });
 
     if (order.payment) {
-      await db.payment.update({
-        where: { orderId: orderId },
-        data: {
-          status: nextPaymentStatus,
-          approvedAt: decision === 'approve' ? new Date() : null,
-        }
-      });
+      await db.update(schema.payments).set({
+        status: nextPaymentStatus,
+        approvedAt: decision === 'approve' ? new Date() : null,
+      }).where(eq(schema.payments.orderId, orderId));
     }
 
     // If approved, handle enrollment (including Basics bundle)

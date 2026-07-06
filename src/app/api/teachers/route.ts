@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
 import { getCachedOrFetch } from '@/lib/kv-cache';
 
 const normalizeOptionalText = (value: unknown) =>
@@ -15,16 +17,16 @@ export async function GET() {
       await getCachedOrFetch(
         { key: cacheKey, ttl: 3600 }, // Cache for 1 hour (teachers list rarely changes)
         async () => {
-          const teachers = await db.user.findMany({
-            where: { role: 'teacher' },
-            select: {
+          const teachers = await db.query.users.findMany({
+            where: eq(schema.users.role, 'teacher'),
+            columns: {
               id: true,
               fullName: true,
               profileImage: true,
               designation: true,
               institution: true,
             },
-            orderBy: { fullName: 'asc' },
+            orderBy: [asc(schema.users.fullName)],
           });
 
           return {

@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1783316818940,
+      "tag": "0000_mature_wild_pack",
+      "breakpoints": true
+    }
+  ]
+}

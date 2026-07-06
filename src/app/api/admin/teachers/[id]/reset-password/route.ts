@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordResetEmail } from '@/lib/auth-emails';
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
         }
 
-        const teacher = await db.user.findUnique({ where: { id: params.id } });
+        const teacher = await db.query.users.findFirst({ where: eq(schema.users.id, params.id) });
         if (!teacher) {
             return NextResponse.json({ error: 'Teacher not found.' }, { status: 404 });
         }
@@ -28,13 +30,10 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
         const { token: resetToken, tokenHash } = await createTokenPair();
         const resetExpiry = new Date(Date.now() + 60 * 60 * 1000);
 
-        await db.user.update({
-            where: { id: teacher.id },
-            data: {
-                passwordResetTokenHash: tokenHash,
-                passwordResetExpires: resetExpiry,
-            }
-        });
+        await db.update(schema.users).set({
+            passwordResetTokenHash: tokenHash,
+            passwordResetExpires: resetExpiry,
+        }).where(eq(schema.users.id, teacher.id));
 
         await sendPasswordResetEmail({
             email: teacher.email,

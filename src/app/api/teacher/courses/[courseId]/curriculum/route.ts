@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   BuilderCurriculumNode,
@@ -17,7 +19,7 @@ import {
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.course.findUnique({ where: { id: courseId } });
+  return db.query.courses.findFirst({ where: eq(schema.courses.id, courseId) });
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -141,13 +143,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
 
-    const updatedCourse = await db.course.update({
-      where: { id: course.id },
-      data: {
-        curriculumJson: JSON.stringify(rawCurriculumToSave),
-        releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }
-    });
+    const updatedCourse = await db.update(schema.courses).set({
+      curriculumJson: JSON.stringify(rawCurriculumToSave),
+      releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
+    }).where(eq(schema.courses.id, course.id));
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',

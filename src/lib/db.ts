@@ -1,61 +1,31 @@
-import { PrismaClient } from '@prisma/client/wasm'
-import { Pool } from 'pg'
-import { PrismaPg } from '@prisma/adapter-pg'
+import { drizzle } from 'drizzle-orm/mysql2';
+import mysql from 'mysql2/promise';
+import * as schema from '@/db/schema';
 
-let _prisma: PrismaClient | undefined;
-let _pool: Pool | undefined;
-let lastQueryTime = Date.now();
+// Connection string from env
+const connectionString = process.env.MYSQL_DATABASE_URL || process.env.MYSQL_DIRECT_URL;
 
-export const db = new Proxy({} as PrismaClient, {
-  get(target, prop: keyof PrismaClient | symbol) {
-    if ((prop as string) === 'then' || typeof prop === 'symbol') {
-      return Reflect.get(target, prop);
-    }
-    
-    const now = Date.now();
-    if (_prisma && (now - lastQueryTime > 15000)) {
-      const oldPrisma = _prisma;
-      const oldPool = _pool;
-      _prisma = undefined;
-      _pool = undefined;
-      
-      oldPrisma.$disconnect().catch(() => {});
-      if (oldPool) {
-        oldPool.end().catch(() => {});
-      }
-    }
-    
-    lastQueryTime = now;
-    
-    if (!_prisma) {
-      if (!process.env.DATABASE_URL) {
-        throw new Error("DATABASE_URL is not defined in process.env. Ensure the environment variable is bound in Cloudflare.");
-      }
-      
-      const connectionString = process.env.DATABASE_URL;
-      const isSupabase = connectionString.includes('supabase.co') || connectionString.includes('supabase.com');
-      
-      const pool = new Pool({ 
-        connectionString,
-        max: 5,
-        connectionTimeoutMillis: 5000,
-        idleTimeoutMillis: 30000,
-        query_timeout: 10000, // 10s timeout as a failsafe
-        allowExitOnIdle: true,
-        ssl: isSupabase ? { rejectUnauthorized: false } : undefined
-      });
-      
-      pool.on('error', (err) => {
-        console.error('Unexpected error on idle client', err);
-      });
-      
-      _pool = pool;
-      const adapter = new PrismaPg(pool);
-      _prisma = new PrismaClient({ adapter });
-    }
-    
-    return (_prisma as any)[prop];
-  }
+if (!connectionString) {
+  throw new Error("MYSQL_DATABASE_URL is not defined in process.env.");
+}
+
+// Global caching for the connection pool in development
+// This prevents exhausting connections on hot reloads
+const globalForDb = globalThis as unknown as {
+  pool: mysql.Pool | undefined;
+};
+
+const pool = globalForDb.pool ?? mysql.createPool({
+  uri: connectionString,
+  connectionLimit: 5,
+  maxIdle: 5, 
+  idleTimeout: 30000, 
+  enableKeepAlive: true,
 });
 
+if (process.env.NODE_ENV !== 'production') {
+  globalForDb.pool = pool;
+}
+
+export const db = drizzle(pool, { schema, mode: 'default' });
 export default db;

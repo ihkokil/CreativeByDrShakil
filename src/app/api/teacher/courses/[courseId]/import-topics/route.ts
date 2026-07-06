@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   BuilderCurriculumNode,
@@ -13,7 +15,7 @@ import {
 import { buildCurriculumFromStarter, getStarterCatalogFromDB } from '@/lib/starter-catalog';
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.course.findUnique({ where: { id: courseId } });
+  return db.query.courses.findFirst({ where: eq(schema.courses.id, courseId) });
 };
 
 const buildNodeFromPayload = (raw: any): BuilderCurriculumNode | null => {
@@ -127,13 +129,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return acc;
     }, {});
 
-    const updatedCourse = await db.course.update({
-      where: { id: course.id },
-      data: {
-        curriculumJson: JSON.stringify(mergedCurriculum),
-        releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }
-    });
+    await db.update(schema.courses).set({
+      curriculumJson: JSON.stringify(mergedCurriculum),
+      releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
+    }).where(eq(schema.courses.id, course.id));
+
+    const updatedCourse = await db.query.courses.findFirst({ where: eq(schema.courses.id, course.id) });
+    if (!updatedCourse) {
+      return NextResponse.json({ error: 'Course not found after update.' }, { status: 404 });
+    }
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: updatedCourse.releaseMode,

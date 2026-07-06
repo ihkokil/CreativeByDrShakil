@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { eq, and, or, inArray, desc, asc, isNull, isNotNull, not, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { db } from '@/lib/db';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
@@ -30,14 +32,12 @@ export async function POST(request: NextRequest) {
 
     const { identifier, password } = parsed.data;
 
-    // Use standard Prisma Client to find user by email or phone
-    const userRecord = await db.user.findFirst({
-      where: {
-        OR: [
-          { email: identifier },
-          { phone: identifier }
-        ]
-      }
+    // Use Drizzle to find user by email or phone
+    const userRecord = await db.query.users.findFirst({
+      where: or(
+        eq(schema.users.email, identifier),
+        eq(schema.users.phone, identifier)
+      )
     });
 
     if (!userRecord) {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
       const { hash } = await import('bcryptjs');
       const newHash = await hash(password, 10);
-      await db.user.update({ where: { id: userRecord.id }, data: { passwordHash: newHash } });
+      await db.update(schema.users).set({ passwordHash: newHash }).where(eq(schema.users.id, userRecord.id));
       userRecord.passwordHash = newHash;
     }
 
@@ -79,11 +79,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Offload the CPU-intensive bcrypt comparison to PostgreSQL using a simple queryRaw
-    const verification = await db.$queryRaw<any[]>`
-      SELECT (${userRecord.passwordHash} = crypt(${password}, ${userRecord.passwordHash})) as "isValid"
-    `;
-    const isPasswordValid = verification[0]?.isValid;
+    const { compare } = await import('bcryptjs');
+    const isPasswordValid = await compare(password, userRecord.passwordHash);
 
     if (!isPasswordValid) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
@@ -128,13 +125,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Look for a custom device name previously saved for this device/browser hash
-    const existingSessionWithLabel = await db.deviceSession.findFirst({
-      where: {
-        userId: userRecord.id,
-        deviceHash: deviceHash,
-        deviceLabel: { not: null }
-      },
-      orderBy: { createdAt: 'desc' },
+    const existingSessionWithLabel = await db.query.deviceSessions.findFirst({
+      where: and(
+        eq(schema.deviceSessions.userId, userRecord.id),
+        eq(schema.deviceSessions.deviceHash, deviceHash),
+        isNotNull(schema.deviceSessions.deviceLabel)
+      ),
+      orderBy: [desc(schema.deviceSessions.createdAt)],
     });
     const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
 

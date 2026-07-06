@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth-server'
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { sendPaymentVerificationEmail } from '@/lib/payment-emails'
 import { sendTelegramVerification } from '@/lib/telegram'
 
@@ -35,38 +37,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid payment amount' }, { status: 400 })
     }
 
-    const order = await db.order.findUnique({ where: { id: orderId } })
+    const order = await db.query.orders.findFirst({ where: eq(schema.orders.id, orderId) })
     if (!order || order.userId !== session.user.id) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    await db.$transaction([
-      db.payment.deleteMany({ where: { orderId } }),
-      db.payment.create({
-        data: {
-          id: crypto.randomUUID(),
-          orderId,
-          phoneNumber,
-          transactionId,
-          amount: paymentAmount,
-          status: 'pending',
-        }
-      }),
-      db.order.update({
-        where: { id: orderId },
-        data: { status: 'pending' }
-      })
-    ]);
+    await db.transaction(async (tx) => {
+      await tx.delete(schema.payments).where(eq(schema.payments.orderId, orderId));
+      await tx.insert(schema.payments).values({
+        id: crypto.randomUUID(),
+        orderId,
+        phoneNumber,
+        transactionId,
+        amount: paymentAmount,
+        status: 'pending',
+      });
+      await tx.update(schema.orders)
+        .set({ status: 'pending' })
+        .where(eq(schema.orders.id, orderId));
+    });
 
-    const fullOrder = await db.order.findUnique({
-      where: { id: orderId },
-      include: {
-        user: { select: { fullName: true } },
+    const fullOrder = await db.query.orders.findFirst({
+      where: eq(schema.orders.id, orderId),
+      with: {
+        user: { columns: { fullName: true } },
         course: {
-          select: { title: true },
-          include: {
+          columns: { title: true },
+          with: {
             teacher: {
-              select: {
+              columns: {
                 email: true,
                 telegramChatId: true,
               },
@@ -77,9 +76,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (fullOrder) {
-      const managers = await db.user.findMany({
-        where: { canManagePayments: true },
-        select: { email: true, telegramChatId: true },
+      const managers = await db.query.users.findMany({
+        where: eq(schema.users.canManagePayments, true),
+        columns: { email: true, telegramChatId: true },
       });
 
       const recipientEmails = new Set<string>();
@@ -124,7 +123,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const newPayment = await db.payment.findFirst({ where: { orderId } });
+    const newPayment = await db.query.payments.findFirst({ where: eq(schema.payments.orderId, orderId) });
 
     return NextResponse.json({ payment: newPayment })
   } catch (error: any) {

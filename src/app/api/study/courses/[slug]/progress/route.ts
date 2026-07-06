@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -13,9 +15,9 @@ import {
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
 const getCourseWithAccess = async (slug: string, userId: string, role?: string) => {
-  const course = await db.course.findFirst({
-    where: { slug: slug, status: 'published' },
-    select: {
+  const course = await db.query.courses.findFirst({
+    where: and(eq(schema.courses.slug, slug), eq(schema.courses.status, 'published')),
+    columns: {
       id: true,
       title: true,
       timezone: true,
@@ -38,12 +40,12 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
     return { course, studentEnrollmentDate: null };
   }
 
-  const order = await db.order.findFirst({
-    where: {
-      userId: userId,
-      courseId: course.id,
-      status: 'approved'
-    },
+  const order = await db.query.orders.findFirst({
+    where: and(
+      eq(schema.orders.userId, userId),
+      eq(schema.orders.courseId, course.id),
+      eq(schema.orders.status, 'approved')
+    ),
   });
 
   if (!order) {
@@ -116,9 +118,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseDaysOfWeek: typeof result.course?.releaseDaysOfWeek === 'string' ? JSON.parse(result.course.releaseDaysOfWeek) : result.course?.releaseDaysOfWeek,
     });
 
-    const overrideRows = await db.studentModuleAvailability.findMany({
-      where: { courseId: result.course!.id, userId: payload.sub },
-      select: {
+    const overrideRows = await db.query.studentModuleAvailability.findMany({
+      where: and(eq(schema.studentModuleAvailability.courseId, result.course!.id), eq(schema.studentModuleAvailability.userId, payload.sub)),
+      columns: {
         lessonNodeId: true,
         availabilityMode: true,
         availableAt: true,
@@ -136,9 +138,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }))
     );
     const playableNodes = collectPlayableNodes(curriculumWithAvailability);
-    const completedRows = await db.lessonProgress.findMany({
-      where: { userId: payload.sub, courseId: result.course!.id },
-      select: {
+    const completedRows = await db.query.lessonProgress.findMany({
+      where: and(eq(schema.lessonProgress.userId, payload.sub), eq(schema.lessonProgress.courseId, result.course!.id)),
+      columns: {
         lessonNodeId: true,
       },
     });
@@ -204,9 +206,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       releaseDaysOfWeek: typeof result.course?.releaseDaysOfWeek === 'string' ? JSON.parse(result.course.releaseDaysOfWeek) : result.course?.releaseDaysOfWeek,
     });
 
-    const overrideRows = await db.studentModuleAvailability.findMany({
-      where: { courseId: result.course!.id, userId: payload.sub },
-      select: {
+    const overrideRows = await db.query.studentModuleAvailability.findMany({
+      where: and(eq(schema.studentModuleAvailability.courseId, result.course!.id), eq(schema.studentModuleAvailability.userId, payload.sub)),
+      columns: {
         lessonNodeId: true,
         availabilityMode: true,
         availableAt: true,
@@ -234,27 +236,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'This lesson is currently locked.' }, { status: 400 });
     }
 
-    await db.lessonProgress.deleteMany({
-      where: {
-        userId: payload.sub,
-        courseId: result.course!.id,
-        lessonNodeId: lessonNodeId
-      }
+    await db.delete(schema.lessonProgress).where(and(
+      eq(schema.lessonProgress.userId, payload.sub),
+      eq(schema.lessonProgress.courseId, result.course!.id),
+      eq(schema.lessonProgress.lessonNodeId, lessonNodeId)
+    ));
+
+    await db.insert(schema.lessonProgress).values({
+      id: crypto.randomUUID(),
+      userId: payload.sub,
+      courseId: result.course!.id,
+      lessonNodeId,
+      completedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
-    await db.lessonProgress.create({
-      data: {
-        id: crypto.randomUUID(),
-        userId: payload.sub,
-        courseId: result.course!.id,
-        lessonNodeId,
-        completedAt: new Date(),
-      }
-    });
-
-    const completedRows = await db.lessonProgress.findMany({
-      where: { userId: payload.sub, courseId: result.course!.id },
-      select: {
+    const completedRows = await db.query.lessonProgress.findMany({
+      where: and(eq(schema.lessonProgress.userId, payload.sub), eq(schema.lessonProgress.courseId, result.course!.id)),
+      columns: {
         lessonNodeId: true,
       },
     });

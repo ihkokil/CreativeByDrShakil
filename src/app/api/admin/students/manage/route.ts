@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
+import bcrypt from 'bcryptjs';
 
 // Add a new student via invitation
 export async function POST(request: NextRequest) {
@@ -28,13 +31,11 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await db.user.findFirst({
-        where: {
-            OR: [
-                { email: normalizedEmail },
-                ...(phone ? [{ phone }] : [])
-            ]
-        }
+    const existingUser = await db.query.users.findFirst({
+        where: or(
+            eq(schema.users.email, normalizedEmail),
+            phone ? eq(schema.users.phone, phone) : undefined
+        )
     });
 
     if (existingUser) {
@@ -48,16 +49,27 @@ export async function POST(request: NextRequest) {
     const { token: setupToken, tokenHash: resetTokenHash } = await createTokenPair();
     const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
-    const insertResult = await db.$queryRaw<any[]>`
-        INSERT INTO "User" (
-            "id", "email", "fullName", "phone", "bmdcNumber", "profileImage", "passwordHash", "role",
-            "emailVerified", "passwordResetTokenHash", "passwordResetExpires", "updatedAt"
-        ) VALUES (
-            ${crypto.randomUUID()}, ${normalizedEmail}, ${fullName}, ${phone || null}, ${bmdcNumber || null}, ${profileImage || null},
-            crypt(${placeholder}, gen_salt('bf', 12)), 'student', true, ${resetTokenHash}, ${resetExpiry.toISOString()}, NOW()
-        ) RETURNING *;
-    `;
-    const student = insertResult[0];
+    const passwordHash = await bcrypt.hash(placeholder, 12);
+    const studentId = crypto.randomUUID();
+    await db.insert(schema.users).values({
+        id: studentId,
+        email: normalizedEmail,
+        fullName,
+        phone: phone || null,
+        bmdcNumber: bmdcNumber || null,
+        profileImage: profileImage || null,
+        passwordHash,
+        role: 'student',
+        emailVerified: true,
+        passwordResetTokenHash: resetTokenHash,
+        passwordResetExpires: resetExpiry,
+    });
+    const student = await db.query.users.findFirst({
+        where: eq(schema.users.id, studentId)
+    });
+    if (!student) {
+        return NextResponse.json({ error: 'Failed to retrieve created student.' }, { status: 500 });
+    }
 
     // Send password setup email
     let emailSent = true;
@@ -117,10 +129,8 @@ export async function PUT(request: NextRequest) {
             }
         }
 
-        const updated = await db.user.update({
-            where: { id },
-            data
-        });
+        await db.update(schema.users).set(data).where(eq(schema.users.id, id));
+        const updated = await db.query.users.findFirst({ where: eq(schema.users.id, id) });
     
         return NextResponse.json({ message: 'Student updated successfully.', student: updated });
     } catch (err: any) {
@@ -146,7 +156,7 @@ export async function DELETE(request: NextRequest) {
     
         if (!id) return NextResponse.json({ error: 'Missing student ID' }, { status: 400 });
     
-        await db.user.delete({ where: { id } });
+        await db.delete(schema.users).where(eq(schema.users.id, id));
     
         return NextResponse.json({ message: 'Student deleted successfully.' });
     } catch (err: any) {

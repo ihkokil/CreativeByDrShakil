@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, slugify } from '@/lib/teacher-course-builder';
 import { parseDisplayDateToIso } from '@/lib/date-format';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 
 const buildUniqueSlug = async (title: string) => {
@@ -10,7 +12,7 @@ const buildUniqueSlug = async (title: string) => {
   let slug = base;
   let counter = 2;
 
-  while (await db.course.findUnique({ where: { slug } })) {
+  while (await db.query.courses.findFirst({ where: eq(schema.courses.slug, slug) })) {
     slug = `${base}-${counter}`;
     counter += 1;
   }
@@ -33,30 +35,30 @@ export async function GET(request: NextRequest) {
     }
 
     const requestedTeacherId = request.nextUrl.searchParams.get('teacherId');
-    const where =
+    const whereClause =
       payload.role === 'admin' && requestedTeacherId
-        ? { teacherId: requestedTeacherId }
-        : {};
+        ? eq(schema.courses.teacherId, requestedTeacherId)
+        : undefined;
 
     let courses;
     try {
-      const rawCourses = await db.course.findMany({
-        where,
-        orderBy: { updatedAt: 'desc' },
-        include: {
-          instructors: { orderBy: { sortOrder: 'asc' } },
+      const rawCourses = await db.query.courses.findMany({
+        where: whereClause,
+        orderBy: [desc(schema.courses.updatedAt)],
+        with: {
+          instructors: { orderBy: [asc(schema.courseInstructors.sortOrder)] },
         },
       });
 
-      const orderCountsData = await db.order.groupBy({
-        by: ['courseId'],
-        where: { status: 'approved' },
-        _count: {
-          id: true,
-        },
-      });
+      const orderCountsData = await db.select({
+        courseId: schema.orders.courseId,
+        count: sql`count(${schema.orders.id})`.mapWith(Number)
+      })
+      .from(schema.orders)
+      .where(eq(schema.orders.status, 'approved'))
+      .groupBy(schema.orders.courseId);
 
-      const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row._count.id]));
+      const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row.count]));
 
       courses = rawCourses.map(c => ({
         ...c,
@@ -103,9 +105,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sale price must be a valid positive number.' }, { status: 400 });
     }
 
-    const teacher = await db.user.findUnique({
-      where: { id: payload.sub },
-      select: { fullName: true },
+    const teacher = await db.query.users.findFirst({
+      where: eq(schema.users.id, payload.sub),
+      columns: { fullName: true },
     });
 
     if (!teacher) {
@@ -114,30 +116,29 @@ export async function POST(request: NextRequest) {
 
     const slug = await buildUniqueSlug(title);
 
-    const newCourse = await db.course.create({
-      data: {
-        id: crypto.randomUUID(),
-        slug,
-        title,
-        description: 'Course description will be added soon.',
-        price: numericPrice,
-        salePrice: numericSalePrice,
-        instructor: teacher.fullName,
-        imageUrl,
-        duration: duration || '1y',
-        courseStartDate: courseStartDate ? new Date(courseStartDate) : null,
-        isFeatured,
-        teacherId: payload.sub,
-        status: 'draft',
-        timezone: 'Asia/Dhaka',
-        curriculumJson: '[]',
-        releaseGroupDates: '{}',
-      }
+    const newCourseId = crypto.randomUUID();
+    await db.insert(schema.courses).values({
+      id: newCourseId,
+      slug,
+      title,
+      description: 'Course description will be added soon.',
+      price: numericPrice,
+      salePrice: numericSalePrice,
+      instructor: teacher.fullName,
+      imageUrl,
+      duration: duration || '1y',
+      courseStartDate: courseStartDate ? new Date(courseStartDate) : null,
+      isFeatured,
+      teacherId: payload.sub,
+      status: 'draft',
+      timezone: 'Asia/Dhaka',
+      curriculumJson: '[]',
+      releaseGroupDates: '{}',
     });
 
-    const course = await db.course.findUnique({
-      where: { id: newCourse.id },
-      include: { instructors: { orderBy: { sortOrder: 'asc' } } },
+    const course = await db.query.courses.findFirst({
+      where: eq(schema.courses.id, newCourseId),
+      with: { instructors: { orderBy: [asc(schema.courseInstructors.sortOrder)] } },
     });
 
     return NextResponse.json({

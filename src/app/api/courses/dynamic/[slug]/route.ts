@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { formatLastUpdated } from '@/lib/date-format';
@@ -17,11 +19,11 @@ export async function GET(
   const { slug } = await params;
   try {
 
-    const course = await db.course.findUnique({
-      where: { slug },
-      include: {
+    const course = await db.query.courses.findFirst({
+      where: eq(schema.courses.slug, slug),
+      with: {
         teacher: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             designation: true,
@@ -29,8 +31,8 @@ export async function GET(
           },
         },
         instructors: {
-          orderBy: { sortOrder: 'asc' },
-          select: {
+          orderBy: [asc(schema.courseInstructors.sortOrder)],
+          columns: {
             id: true,
             name: true,
             designation: true,
@@ -39,8 +41,8 @@ export async function GET(
           },
         },
         orders: {
-          where: { status: 'approved' },
-          select: {
+          where: eq(schema.orders.status, 'approved'),
+          columns: {
             id: true,
           },
         },

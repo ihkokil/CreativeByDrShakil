@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
@@ -17,9 +19,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const teachers = await db.user.findMany({
-      where: { role: 'teacher' },
-      select: {
+    const teachers = await db.query.users.findMany({
+      where: eq(schema.users.role, 'teacher'),
+      columns: {
         id: true,
         fullName: true,
         role: true,
@@ -31,7 +33,7 @@ export async function GET(request: NextRequest) {
         profileImage: true,
         canManagePayments: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [desc(schema.users.createdAt)],
     });
 
     return NextResponse.json({

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { eq, and, or, inArray, desc, asc, isNull, isNotNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
@@ -111,29 +113,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 3: Find or create user in database
-    let user = await db.user.findFirst({
-      where: { email: googleUser.email },
+    let user = await db.query.users.findFirst({
+      where: eq(schema.users.email, googleUser.email),
     });
 
     if (!user) {
       // Create new user
-      const newUser = await db.user.create({
-        data: {
-          email: googleUser.email,
-          fullName: googleUser.name || 'Google User',
-          emailVerified: true, // Google emails are already verified
-          profileImage: googleUser.picture || null,
-          role: 'student',
-        }
+      await db.insert(schema.users).values({
+        email: googleUser.email,
+        fullName: googleUser.name || 'Google User',
+        emailVerified: true, // Google emails are already verified
+        profileImage: googleUser.picture || null,
+        role: 'student',
       });
-      user = newUser;
+      user = (await db.query.users.findFirst({ where: eq(schema.users.email, googleUser.email) }))!;
     } else {
       // Update profile image from Google if not already set
       if (!user.profileImage && googleUser.picture) {
-        await db.user.update({
-          where: { id: user.id },
-          data: { profileImage: googleUser.picture }
-        });
+        await db.update(schema.users).set({ profileImage: googleUser.picture }).where(eq(schema.users.id, user.id));
       }
     }
 
@@ -180,13 +177,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Look for a custom device name previously saved for this device/browser hash
-    const existingSessionWithLabel = await db.deviceSession.findFirst({
-      where: {
-        userId: user.id,
-        deviceHash: deviceHash,
-        deviceLabel: { not: null }
-      },
-      orderBy: { createdAt: 'desc' },
+    const existingSessionWithLabel = await db.query.deviceSessions.findFirst({
+      where: and(
+        eq(schema.deviceSessions.userId, user.id),
+        eq(schema.deviceSessions.deviceHash, deviceHash),
+        isNotNull(schema.deviceSessions.deviceLabel)
+      ),
+      orderBy: [desc(schema.deviceSessions.createdAt)],
     });
     const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
 

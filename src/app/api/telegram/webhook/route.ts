@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { updateTelegramVerificationMessage, compressUuid, decompressUuid } from '@/lib/telegram';
 import {
   collectSecondChildGroups,
@@ -78,9 +80,9 @@ export async function POST(request: NextRequest) {
       // ── Payment verification ──
       if (prefix === 'payment_verify') {
         const [orderId, action] = value.split(':');
-        const order = await db.order.findUnique({
-          where: { id: orderId },
-          include: { payment: true },
+        const order = await db.query.orders.findFirst({
+          where: eq(schema.orders.id, orderId),
+          with: { payment: true },
         });
 
         if (!order) {
@@ -90,20 +92,18 @@ export async function POST(request: NextRequest) {
         if (order.status === 'pending') {
           const nextStatus = action === 'approve' ? 'approved' : 'rejected';
 
-          await db.$transaction(async (tx) => {
-            await tx.order.update({
-              where: { id: orderId },
-              data: { status: nextStatus }
-            });
+          await db.transaction(async (tx) => {
+            await tx.update(schema.orders)
+              .set({ status: nextStatus })
+              .where(eq(schema.orders.id, orderId));
 
             if (order.payment) {
-              await tx.payment.updateMany({
-                where: { orderId },
-                data: {
+              await tx.update(schema.payments)
+                .set({
                   status: nextStatus,
                   approvedAt: action === 'approve' ? new Date() : null,
-                }
-              });
+                })
+                .where(eq(schema.payments.orderId, orderId));
             }
           });
 
@@ -131,9 +131,9 @@ export async function POST(request: NextRequest) {
       else if (prefix === 'en') {
         const compressedUserId = value;
 
-        const courses = await db.course.findMany({
-          where: { status: 'published' },
-          select: { id: true, title: true }
+        const courses = await db.query.courses.findMany({
+          where: eq(schema.courses.status, 'published'),
+          columns: { id: true, title: true }
         });
 
         if (courses.length === 0) {
@@ -163,9 +163,9 @@ export async function POST(request: NextRequest) {
 
         const userId = decompressUuid(compressedUserId);
 
-        const student = await db.user.findFirst({
-          where: { id: userId, role: 'student' },
-          select: { fullName: true, email: true }
+        const student = await db.query.users.findFirst({
+          where: and(eq(schema.users.id, userId), eq(schema.users.role, 'student')),
+          columns: { fullName: true, email: true }
         });
 
         if (!student) {
@@ -173,9 +173,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const course = await db.course.findUnique({
-          where: { id: courseId },
-          select: { id: true, title: true }
+        const course = await db.query.courses.findFirst({
+          where: eq(schema.courses.id, courseId),
+          columns: { id: true, title: true }
         });
 
         if (!course) {
@@ -184,42 +184,41 @@ export async function POST(request: NextRequest) {
         }
 
         // Prevent duplicate enrollment
-        const existingOrder = await db.order.findFirst({
-          where: {
-            userId: userId,
-            courseId: courseId,
-            status: 'approved'
-          }
+        const existingOrder = await db.query.orders.findFirst({
+          where: and(
+            eq(schema.orders.userId, userId),
+            eq(schema.orders.courseId, courseId),
+            eq(schema.orders.status, 'approved')
+          )
         });
 
         if (existingOrder) {
           await sendMsg(callbackChatId, `⚠️ Student is already enrolled in course: <b>${course.title}</b>`);
         } else {
-          const enrollOrder = await db.order.findFirst({
-            where: { userId, courseId }
+          const enrollOrder = await db.query.orders.findFirst({
+            where: and(eq(schema.orders.userId, userId), eq(schema.orders.courseId, courseId))
           });
 
           if (enrollOrder) {
-            await db.order.update({
-              where: { id: enrollOrder.id },
-              data: {
+            await db.update(schema.orders)
+              .set({
                 status: 'approved',
                 enrolledAt: new Date(),
                 expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
                 updatedAt: new Date(),
-              }
-            });
+              })
+              .where(eq(schema.orders.id, enrollOrder.id));
           } else {
-            await db.order.create({
-              data: {
-                id: crypto.randomUUID(),
-                userId,
-                courseId,
-                status: 'approved',
-                totalAmount: 0,
-                enrolledAt: new Date(),
-                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-              }
+            await db.insert(schema.orders).values({
+              id: crypto.randomUUID(),
+              userId,
+              courseId,
+              status: 'approved',
+              totalAmount: 0,
+              enrolledAt: new Date(),
+              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+              createdAt: new Date(),
+              updatedAt: new Date(),
             });
           }
 
@@ -234,9 +233,9 @@ export async function POST(request: NextRequest) {
         const compressedUserId = value;
         const userId = decompressUuid(compressedUserId);
 
-        const enrolledOrders = await db.order.findMany({
-          where: { userId, status: 'approved' },
-          include: { course: true }
+        const enrolledOrders = await db.query.orders.findMany({
+          where: and(eq(schema.orders.userId, userId), eq(schema.orders.status, 'approved')),
+          with: { course: true }
         });
 
         if (enrolledOrders.length === 0) {
@@ -290,7 +289,7 @@ export async function POST(request: NextRequest) {
         }
 
         const userId = decompressUuid(compressedUserId);
-        const course = await db.course.findUnique({ where: { id: courseId } });
+        const course = await db.query.courses.findFirst({ where: eq(schema.courses.id, courseId) });
         if (!course) {
           await sendMsg(callbackChatId, '❌ Course not found.');
           return NextResponse.json({ ok: true });
@@ -334,10 +333,12 @@ export async function POST(request: NextRequest) {
             availableAt: null,
           }));
 
-          await db.$transaction([
-            db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-            ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-          ]);
+          await db.transaction(async (tx) => {
+            await tx.delete(schema.studentModuleAvailability).where(and(eq(schema.studentModuleAvailability.courseId, courseId), eq(schema.studentModuleAvailability.userId, userId)));
+            if (dataToInsert.length > 0) {
+              await tx.insert(schema.studentModuleAvailability).values(dataToInsert as any);
+            }
+          });
           await sendMsg(callbackChatId, `✅ <b>All modules unlocked successfully</b>\n\n📚 <b>Course:</b> ${course.title}`);
         } else if (actionType === 'st') {
           const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
@@ -366,10 +367,12 @@ export async function POST(request: NextRequest) {
             availableAt: dateStr ? new Date(dateStr) : null,
           }));
 
-          await db.$transaction([
-            db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-            ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-          ]);
+          await db.transaction(async (tx) => {
+            await tx.delete(schema.studentModuleAvailability).where(and(eq(schema.studentModuleAvailability.courseId, courseId), eq(schema.studentModuleAvailability.userId, userId)));
+            if (dataToInsert.length > 0) {
+              await tx.insert(schema.studentModuleAvailability).values(dataToInsert as any);
+            }
+          });
           await sendMsg(callbackChatId, `✅ <b>Module availability set starting from today</b>\n\n📚 <b>Course:</b> ${course.title}`);
         }
       }
@@ -409,15 +412,15 @@ export async function POST(request: NextRequest) {
         const end = new Date(start);
         end.setFullYear(end.getFullYear() + 1);
 
-        const course = await db.course.findUnique({ where: { id: courseId }, select: { title: true } });
+        const course = await db.query.courses.findFirst({ where: eq(schema.courses.id, courseId), columns: { title: true } });
 
-        await db.$transaction([
-          db.order.updateMany({
-            where: { courseId, userId },
-            data: { enrolledAt: start, expiresAt: end, updatedAt: new Date() }
-          }),
-          db.studentModuleAvailability.deleteMany({ where: { courseId, userId } })
-        ]);
+        await db.transaction(async (tx) => {
+          await tx.update(schema.orders)
+            .set({ enrolledAt: start, expiresAt: end, updatedAt: new Date() })
+            .where(and(eq(schema.orders.courseId, courseId), eq(schema.orders.userId, userId)));
+            
+          await tx.delete(schema.studentModuleAvailability).where(and(eq(schema.studentModuleAvailability.courseId, courseId), eq(schema.studentModuleAvailability.userId, userId)));
+        });
 
         console.log(`[AUDIT] Student ${userId} enrollment date updated to ${responseText} via Telegram Bot by ${from?.first_name || 'Admin'}`);
         await sendMsg(messageChatId, `✅ <b>Enrollment date updated successfully.</b>\n\n📚 <b>Course:</b> ${course?.title || 'Unknown Course'}\n📅 <b>New Start Date:</b> ${responseText}\n⏳ <b>Calculated Expiry:</b> ${end.toISOString().split('T')[0]}`);
@@ -457,7 +460,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const course = await db.course.findUnique({ where: { id: courseId } });
+        const course = await db.query.courses.findFirst({ where: eq(schema.courses.id, courseId) });
         if (!course) return NextResponse.json({ ok: true });
 
         const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
@@ -484,10 +487,12 @@ export async function POST(request: NextRequest) {
           availableAt: dateStr ? new Date(dateStr) : null,
         }));
 
-        await db.$transaction([
-          db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-          ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-        ]);
+        await db.transaction(async (tx) => {
+          await tx.delete(schema.studentModuleAvailability).where(and(eq(schema.studentModuleAvailability.courseId, courseId), eq(schema.studentModuleAvailability.userId, userId)));
+          if (dataToInsert.length > 0) {
+            await tx.insert(schema.studentModuleAvailability).values(dataToInsert as any);
+          }
+        });
 
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const parsedNames = uniqueDays.map(d => dayNames[d]).join(', ');
@@ -509,7 +514,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const course = await db.course.findUnique({ where: { id: courseId } });
+        const course = await db.query.courses.findFirst({ where: eq(schema.courses.id, courseId) });
         if (!course) return NextResponse.json({ ok: true });
 
         const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
@@ -536,10 +541,12 @@ export async function POST(request: NextRequest) {
           availableAt: dateStr ? new Date(dateStr) : null,
         }));
 
-        await db.$transaction([
-          db.studentModuleAvailability.deleteMany({ where: { courseId, userId } }),
-          ...(dataToInsert.length > 0 ? [db.studentModuleAvailability.createMany({ data: dataToInsert })] : [])
-        ]);
+        await db.transaction(async (tx) => {
+          await tx.delete(schema.studentModuleAvailability).where(and(eq(schema.studentModuleAvailability.courseId, courseId), eq(schema.studentModuleAvailability.userId, userId)));
+          if (dataToInsert.length > 0) {
+            await tx.insert(schema.studentModuleAvailability).values(dataToInsert as any);
+          }
+        });
 
         await sendMsg(messageChatId, `✅ <b>Module availability set to ${interval} days interval</b>\n\n📚 <b>Course:</b> ${course.title}`);
 
@@ -578,9 +585,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.user.findUnique({
-          where: { email },
-          select: { id: true, fullName: true, email: true, role: true, phone: true, createdAt: true }
+        const student = await db.query.users.findFirst({
+          where: eq(schema.users.email, email),
+          columns: { id: true, fullName: true, email: true, role: true, phone: true, createdAt: true }
         });
 
         if (!student) {
@@ -588,9 +595,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrollments = await db.order.findMany({
-          where: { userId: student.id, status: 'approved' },
-          include: { course: { select: { title: true } } }
+        const enrollments = await db.query.orders.findMany({
+          where: and(eq(schema.orders.userId, student.id), eq(schema.orders.status, 'approved')),
+          with: { course: { columns: { title: true } } }
         });
 
         const courseList = enrollments.length > 0
@@ -633,9 +640,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.user.findUnique({
-          where: { email },
-          select: { id: true, fullName: true }
+        const student = await db.query.users.findFirst({
+          where: eq(schema.users.email, email),
+          columns: { id: true, fullName: true }
         });
 
         if (!student) {
@@ -643,9 +650,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const courses = await db.course.findMany({
-          where: { status: 'published' },
-          select: { id: true, title: true }
+        const courses = await db.query.courses.findMany({
+          where: eq(schema.courses.status, 'published'),
+          columns: { id: true, title: true }
         });
 
         if (courses.length === 0) {
@@ -672,9 +679,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const student = await db.user.findUnique({
-          where: { email },
-          select: { id: true, fullName: true }
+        const student = await db.query.users.findFirst({
+          where: eq(schema.users.email, email),
+          columns: { id: true, fullName: true }
         });
 
         if (!student) {
@@ -682,9 +689,9 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrolledOrders = await db.order.findMany({
-          where: { userId: student.id, status: 'approved' },
-          include: { course: true }
+        const enrolledOrders = await db.query.orders.findMany({
+          where: and(eq(schema.orders.userId, student.id), eq(schema.orders.status, 'approved')),
+          with: { course: true }
         });
 
         if (enrolledOrders.length === 0) {

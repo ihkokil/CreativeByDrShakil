@@ -4,6 +4,9 @@ import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/a
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
+import bcrypt from 'bcryptjs';
 
 
 // GET - List all enrollments with student and course info
@@ -22,11 +25,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const enrollments = await db.order.findMany({
-      where: { status: 'approved' },
-      include: {
+    const enrollments = await db.query.orders.findMany({
+      where: eq(schema.orders.status, 'approved'),
+      with: {
         user: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -34,15 +37,15 @@ export async function GET(request: NextRequest) {
           },
         },
         course: {
-          select: {
+          columns: {
             id: true,
             title: true,
             slug: true,
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
+      orderBy: [desc(schema.orders.createdAt)],
+      limit: 100,
     });
 
     return NextResponse.json({
@@ -89,8 +92,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify course exists
-    const course = await db.course.findUnique({
-      where: { id: courseId },
+    const course = await db.query.courses.findFirst({
+      where: eq(schema.courses.id, courseId),
     });
 
     if (!course) {
@@ -109,13 +112,11 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = String(email).trim().toLowerCase();
 
-      const existingUser = await db.user.findFirst({
-        where: {
-          OR: [
-            { email: normalizedEmail },
-            ...(phone ? [{ phone }] : [])
-          ]
-        }
+      const existingUser = await db.query.users.findFirst({
+        where: or(
+          eq(schema.users.email, normalizedEmail),
+          ...(phone ? [eq(schema.users.phone, phone)] : [])
+        )
       });
 
       if (existingUser) {
@@ -127,20 +128,26 @@ export async function POST(request: NextRequest) {
       const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
+      const hashedTempPassword = await bcrypt.hash(tempPassword, 12);
       
 
-      const insertResult = await db.$queryRaw<any[]>`
-        INSERT INTO "User" (
-          "id", "email", "fullName", "phone", "passwordHash", "role", 
-          "emailVerified", "passwordResetTokenHash", "passwordResetExpires", "updatedAt"
-        )
-        VALUES (
-          ${crypto.randomUUID()}, ${normalizedEmail}, ${fullName}, ${phone || null}, 
-          crypt(${tempPassword}, gen_salt('bf', 12)), 'student', true, 
-          ${tokenHash}, ${resetExpiry}, NOW()
-        ) RETURNING *;
-      `;
-      const newUser = insertResult[0];
+      const newUserId = crypto.randomUUID();
+      await db.insert(schema.users).values({
+        id: newUserId,
+        email: normalizedEmail,
+        fullName: fullName,
+        phone: phone || null,
+        passwordHash: hashedTempPassword,
+        role: 'student',
+        emailVerified: true,
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpires: resetExpiry,
+        updatedAt: new Date(),
+      });
+      const newUser = await db.query.users.findFirst({ where: eq(schema.users.id, newUserId) });
+      if (!newUser) {
+        return NextResponse.json({ error: 'Failed to create student.' }, { status: 500 });
+      }
 
       finalStudent = newUser;
       newlyCreatedUserId = newUser.id;
@@ -150,8 +157,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Student ID is required for existing students.' }, { status: 400 });
       }
 
-      finalStudent = await db.user.findFirst({
-        where: { id: studentId, role: 'student' }
+      finalStudent = await db.query.users.findFirst({
+        where: and(eq(schema.users.id, studentId), eq(schema.users.role, 'student'))
       });
 
       if (!finalStudent) {
@@ -160,17 +167,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Pre-check duplicate approved enrollment to fail fast with a clear error.
-    const existingApproved = await db.order.findFirst({
-      where: {
-        userId: finalStudent.id,
-        courseId: courseId,
-        status: 'approved'
-      }
+    const existingApproved = await db.query.orders.findFirst({
+      where: and(
+        eq(schema.orders.userId, finalStudent.id),
+        eq(schema.orders.courseId, courseId),
+        eq(schema.orders.status, 'approved')
+      )
     });
     if (existingApproved) {
       // Compensate: if we just created a new user, delete it to avoid orphan.
       if (newlyCreatedUserId) {
-        await db.user.delete({ where: { id: newlyCreatedUserId } });
+        await db.delete(schema.users).where(eq(schema.users.id, newlyCreatedUserId));
       }
       return NextResponse.json({ error: 'Student is already enrolled in this course.' }, { status: 409 });
     }
@@ -188,7 +195,7 @@ export async function POST(request: NextRequest) {
       // Compensate: if we just created a new user, delete it to avoid orphan.
       if (newlyCreatedUserId) {
         try {
-          await db.user.delete({ where: { id: newlyCreatedUserId } });
+          await db.delete(schema.users).where(eq(schema.users.id, newlyCreatedUserId));
         } catch (cleanupErr) {
           console.error('[admin/enrollments] Compensation delete failed:', cleanupErr);
         }
@@ -196,21 +203,19 @@ export async function POST(request: NextRequest) {
       throw enrollErr;
     }
 
-    const finalOrder = await db.order.findUnique({
-      where: {
-        userId_courseId: {
-          userId: finalStudent.id,
-          courseId: course.id
-        }
-      },
-      include: { course: true, user: true },
+    const finalOrder = await db.query.orders.findFirst({
+      where: and(
+        eq(schema.orders.userId, finalStudent.id),
+        eq(schema.orders.courseId, course.id)
+      ),
+      with: { course: true, user: true },
     });
 
     if (!finalOrder) {
       // Compensate: if we just created a new user, delete it.
       if (newlyCreatedUserId) {
         try {
-          await db.user.delete({ where: { id: newlyCreatedUserId } });
+          await db.delete(schema.users).where(eq(schema.users.id, newlyCreatedUserId));
         } catch (cleanupErr) {
           console.error('[admin/enrollments] Compensation delete failed:', cleanupErr);
         }
@@ -283,7 +288,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Order ID is required.' }, { status: 400 });
     }
 
-    await db.order.delete({ where: { id: orderId } });
+    await db.delete(schema.orders).where(eq(schema.orders.id, orderId));
 
     return NextResponse.json({
       success: true,

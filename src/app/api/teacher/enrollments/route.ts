@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { eq, and, or, inArray, desc, asc, isNull, sql } from 'drizzle-orm';
+import * as schema from '@/db/schema';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,11 +28,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify course belongs to this teacher
-    const course = await db.course.findFirst({
-      where: {
-        id: courseId,
-        teacherId: payload.sub,
-      },
+    const course = await db.query.courses.findFirst({
+      where: and(eq(schema.courses.id, courseId), eq(schema.courses.teacherId, payload.sub)),
     });
 
     if (!course) {
@@ -47,15 +46,10 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = String(email).trim().toLowerCase();
 
-      const existingUser = await db.user.findFirst({
-        where: {
-          OR: phone ? [
-            { email: normalizedEmail },
-            { phone: phone }
-          ] : [
-            { email: normalizedEmail }
-          ]
-        },
+      const existingUser = await db.query.users.findFirst({
+        where: phone 
+          ? or(eq(schema.users.email, normalizedEmail), eq(schema.users.phone, phone))
+          : eq(schema.users.email, normalizedEmail)
       });
 
       if (existingUser) {
@@ -66,26 +60,23 @@ export async function POST(request: NextRequest) {
       const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
 
-      // Use raw query for pgcrypto gen_salt and crypt
-      const result = await db.$queryRaw`
-        INSERT INTO "User" (
-          id, email, "fullName", phone, "passwordHash", role, "emailVerified", "passwordResetTokenHash", "passwordResetExpires", "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid(),
-          ${normalizedEmail},
-          ${fullName},
-          ${phone || null},
-          crypt(${tempPassword}, gen_salt('bf', 12)),
-          'student',
-          true,
-          ${tokenHash},
-          ${resetExpiry.toISOString()}::timestamp(3),
-          NOW(),
-          NOW()
-        ) RETURNING *;
-      `;
-      
-      student = (result as any[])[0];
+      const studentId = crypto.randomUUID();
+      await db.insert(schema.users).values({
+        id: studentId,
+        email: normalizedEmail,
+        fullName: fullName,
+        phone: phone || null,
+        passwordHash: sql`crypt(${tempPassword}, gen_salt('bf', 12))`,
+        role: 'student',
+        emailVerified: true,
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpires: resetExpiry,
+      });
+      const newStudent = await db.query.users.findFirst({ where: eq(schema.users.id, studentId) });
+      if (!newStudent) {
+        return NextResponse.json({ error: 'Failed to create student.' }, { status: 500 });
+      }
+      student = newStudent;
       isNewRegistration = true;
 
       try {
@@ -102,11 +93,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Student ID is required for existing students.' }, { status: 400 });
       }
 
-      student = await db.user.findFirst({
-        where: {
-          id: studentId,
-          role: 'student',
-        },
+      student = await db.query.users.findFirst({
+        where: and(eq(schema.users.id, studentId), eq(schema.users.role, 'student')),
       });
 
       if (!student) {
@@ -114,11 +102,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const existingOrder = await db.order.findFirst({
-      where: {
-        userId: student.id,
-        courseId: courseId,
-      },
+    const existingOrder = await db.query.orders.findFirst({
+      where: and(eq(schema.orders.userId, student.id), eq(schema.orders.courseId, courseId)),
     });
 
     if (existingOrder?.status === 'approved') {
@@ -127,25 +112,28 @@ export async function POST(request: NextRequest) {
 
     let order;
     if (existingOrder) {
-      order = await db.order.update({
-        where: { id: existingOrder.id },
-        data: {
+      await db.update(schema.orders)
+        .set({
           status: 'approved',
           totalAmount: 0,
-        },
-        include: { course: true, user: true },
-      });
+        })
+        .where(eq(schema.orders.id, existingOrder.id));
+      order = await db.query.orders.findFirst({ where: eq(schema.orders.id, existingOrder.id) });
     } else {
-      order = await db.order.create({
-        data: {
-          id: crypto.randomUUID(),
+      const newOrderId = crypto.randomUUID();
+      await db.insert(schema.orders)
+        .values({
+          id: newOrderId,
           userId: student.id,
           courseId,
           status: 'approved',
           totalAmount: 0,
-        },
-        include: { course: true, user: true },
-      });
+        });
+      const newOrder = await db.query.orders.findFirst({ where: eq(schema.orders.id, newOrderId) });
+      if (!newOrder) {
+         return NextResponse.json({ error: 'Failed to create enrollment.' }, { status: 500 });
+      }
+      order = newOrder;
     }
 
     return NextResponse.json({
@@ -181,11 +169,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const enrollments = await db.order.findMany({
-      where: { status: 'approved' },
-      include: {
+    const enrollments = await db.query.orders.findMany({
+      where: eq(schema.orders.status, 'approved'),
+      with: {
         user: {
-          select: {
+          columns: {
             id: true,
             fullName: true,
             email: true,
@@ -193,7 +181,7 @@ export async function GET(request: NextRequest) {
           },
         },
         course: {
-          select: {
+          columns: {
             id: true,
             title: true,
             slug: true,
@@ -201,8 +189,8 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
+      orderBy: [desc(schema.orders.createdAt)],
+      limit: 100,
     });
 
     // Filter to only include enrollments for courses this teacher owns or manages (if needed, but platform seems to give full access)
@@ -241,9 +229,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // A teacher might only be allowed to delete enrollments for their own course
-    const existingOrder = await db.order.findUnique({
-        where: { id: orderId },
-        include: { course: true }
+    const existingOrder = await db.query.orders.findFirst({
+        where: eq(schema.orders.id, orderId),
+        with: { course: true }
     });
     
     if (!existingOrder) {
@@ -254,7 +242,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden: You do not own this course.' }, { status: 403 });
     }
 
-    await db.order.delete({ where: { id: orderId } });
+    await db.delete(schema.orders).where(eq(schema.orders.id, orderId));
 
     return NextResponse.json({
       success: true,

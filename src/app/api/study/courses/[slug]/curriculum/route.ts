@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import * as schema from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -37,9 +39,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const course = await db.course.findFirst({
-      where: { slug: resolvedParams.slug, status: 'published' },
-      select: {
+    const course = await db.query.courses.findFirst({
+      where: and(eq(schema.courses.slug, resolvedParams.slug), eq(schema.courses.status, 'published')),
+      columns: {
         id: true,
         title: true,
         timezone: true,
@@ -62,12 +64,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     let studentEnrollmentDate: string | Date | null = null;
     if (!isAdmin) {
-      const order = await db.order.findFirst({
-        where: {
-          userId: payload.sub,
-          courseId: course.id,
-          status: 'approved'
-        },
+      const order = await db.query.orders.findFirst({
+        where: and(
+          eq(schema.orders.userId, payload.sub),
+          eq(schema.orders.courseId, course.id),
+          eq(schema.orders.status, 'approved')
+        ),
       });
 
       if (!order) {
@@ -106,9 +108,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseDaysOfWeek: typeof course.releaseDaysOfWeek === 'string' ? JSON.parse(course.releaseDaysOfWeek) : course.releaseDaysOfWeek,
     });
 
-    const overrideRows = await db.studentModuleAvailability.findMany({
-      where: { courseId: course.id, userId: payload.sub },
-      select: {
+    const overrideRows = await db.query.studentModuleAvailability.findMany({
+      where: and(eq(schema.studentModuleAvailability.courseId, course.id), eq(schema.studentModuleAvailability.userId, payload.sub)),
+      columns: {
         lessonNodeId: true,
         availabilityMode: true,
         availableAt: true,
@@ -126,9 +128,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }))
     );
 
-    const completedRows = await db.lessonProgress.findMany({
-      where: { userId: payload.sub, courseId: course.id },
-      select: {
+    const completedRows = await db.query.lessonProgress.findMany({
+      where: and(eq(schema.lessonProgress.userId, payload.sub), eq(schema.lessonProgress.courseId, course.id)),
+      columns: {
         lessonNodeId: true,
       },
     });
