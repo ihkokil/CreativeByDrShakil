@@ -114,7 +114,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         const html = `
           <div style="font-family:Arial,Helvetica,sans-serif;color:#111827;line-height:1.7;max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
             <div style="padding:24px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#ffffff;text-align:center;">
-              <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);-webkit-filter:brightness(0) invert(1);" />
+              <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;" />
               <h1 style="margin:0;font-size:20px;line-height:1.3;font-weight:800;text-align:center;">Support Request Response</h1>
             </div>
             <div style="padding:24px;">

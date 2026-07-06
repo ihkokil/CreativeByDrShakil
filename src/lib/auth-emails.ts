@@ -57,7 +57,7 @@ function createEmailTemplate({
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 10px 24px rgba(15,23,42,0.08);">
                 <tr>
                   <td align="center" style="padding:24px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#ffffff;text-align:center;">
-                    <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);-webkit-filter:brightness(0) invert(1);" />
+                    <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;" />
                     <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:800;text-align:center;">${safeHeading}</h1>
                   </td>
                 </tr>

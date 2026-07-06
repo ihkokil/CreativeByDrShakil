@@ -53,7 +53,7 @@ export async function sendPaymentVerificationEmail({
     <body>
       <div class="container">
         <div class="header">
-          <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;margin:0 auto 12px;display:block;filter:brightness(0) invert(1);-webkit-filter:brightness(0) invert(1);" />
+          <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:36px;margin:0 auto 12px;display:block;" />
           <h1>Payment Verification Required</h1>
         </div>
         <div class="content">
