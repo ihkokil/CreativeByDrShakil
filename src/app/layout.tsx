@@ -6,7 +6,6 @@ import SessionWarningToast from "@/components/SessionWarning/SessionWarning";
 import ContentProtection from "@/components/ContentProtection/ContentProtection";
 
 import MobileBottomNavWrapper from "@/components/Navbar/MobileBottomNavWrapper";
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 
 const outfit = Outfit({ subsets: ["latin"], display: 'swap', adjustFontFallback: false });
 
@@ -25,12 +24,6 @@ export const metadata: Metadata = {
         icon: "/favicon.ico",
         apple: "/icons/apple-touch-icon.png",
     },
-    manifest: "/manifest.json",
-    appleWebApp: {
-        capable: true,
-        statusBarStyle: "default",
-        title: "Creative",
-    },
 };
 
 export default function RootLayout({
@@ -45,7 +38,6 @@ export default function RootLayout({
                     <ContentProtection />
                     {children}
                     <SessionWarningToast />
-                    <PWAInstallPrompt />
                     <MobileBottomNavWrapper />
                 </AuthProvider>
             </body>
