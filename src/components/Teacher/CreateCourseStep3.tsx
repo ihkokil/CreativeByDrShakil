@@ -148,46 +148,9 @@ function CreateCourseStep3Content() {
           setPreviewDate(defaultDate);
         }
 
-        const topicsResponse = await fetch("/api/teacher/starter-catalog?verbose=1", { headers });
         const allTopics: StarterMainTopic[] = [];
         const seenIds = new Set<string>();
-        
-        if (topicsResponse.ok) {
-          const topicData = await topicsResponse.json();
-          const topics = Array.isArray(topicData.topics) ? topicData.topics : [];
-          topics.forEach((t: any) => {
-            if (!seenIds.has(t.id)) {
-              const mappedSubTopics: StarterItem[] = (t.subTopics || []).flatMap((st: any) => {
-                const videos = Array.isArray(st.videos) ? st.videos : [];
-                const shouldBeFolder = Boolean(st.forceFolder);
-
-                if (!shouldBeFolder) {
-                  return videos.map((v: any, vIdx: number) => ({
-                    id: `${st.id}_video_${vIdx}`,
-                    type: v.type || "youtube",
-                    title: v.title || st.title,
-                    url: v.url,
-                  }));
-                }
-
-                return [{
-                  id: st.id,
-                  type: "folder",
-                  title: st.title,
-                  items: videos.map((v: any, vIdx: number) => ({
-                    id: `${st.id}_video_${vIdx}`,
-                    type: v.type || "youtube",
-                    title: v.title,
-                    url: v.url,
-                  })),
-                }];
-              });
-
-              allTopics.push({ ...t, subTopics: mappedSubTopics, source: "starter" });
-              seenIds.add(t.id);
-            }
-          });
-        }
+        const seenTitles = new Set<string>();
 
         const videoResponse = await fetch("/api/teacher/video-library", { headers });
         if (videoResponse.ok) {
@@ -195,9 +158,11 @@ function CreateCourseStep3Content() {
           const nodes: LibraryNode[] = Array.isArray(videoData.nodes) ? videoData.nodes : [];
           const libraryTopics = buildHierarchyFromLibraryNodes(nodes);
           libraryTopics.forEach(lt => {
-            if (!seenIds.has(lt.id)) {
+            const normTitle = lt.title ? lt.title.trim().toLowerCase() : '';
+            if (!seenIds.has(lt.id) && !seenTitles.has(normTitle)) {
               allTopics.push(lt);
               seenIds.add(lt.id);
+              if (normTitle) seenTitles.add(normTitle);
             }
           });
         }
@@ -212,10 +177,11 @@ function CreateCourseStep3Content() {
             // Reconstruct chronological order from saved JSON
             curriculum.forEach((topicNode: any) => {
               let matchedId = topicNode.mediaVaultFolderId || topicNode.id;
+              const normTitle = topicNode.title ? topicNode.title.trim().toLowerCase() : '';
               
-              // Fallback for previously corrupted saves where mediaVaultFolderId was lost
+              // Fallback: match by title if the ID isn't found in our topic list
               if (!seenIds.has(matchedId)) {
-                  const matchedByTitle = allTopics.find(t => t.source === 'library' && t.title === topicNode.title);
+                  const matchedByTitle = allTopics.find(t => t.title.trim().toLowerCase() === normTitle);
                   if (matchedByTitle) {
                       matchedId = matchedByTitle.id;
                   }
@@ -223,7 +189,7 @@ function CreateCourseStep3Content() {
 
               if (seenIds.has(matchedId)) {
                 initialSelectedOrder.push(matchedId);
-              } else {
+              } else if (!seenTitles.has(normTitle)) {
                  const convertNodeToItem = (node: any): StarterItem => ({
                   id: node.id,
                   type: node.type,
@@ -239,6 +205,7 @@ function CreateCourseStep3Content() {
                  };
                  allTopics.push(customTopic);
                  seenIds.add(topicNode.id);
+                 if (normTitle) seenTitles.add(normTitle);
                  initialSelectedOrder.push(topicNode.id);
               }
             });
@@ -396,8 +363,9 @@ function CreateCourseStep3Content() {
             type="button"
             onClick={() => router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}`)}
             style={{
-              padding: "8px 16px", background: "var(--primary)", color: "white", border: "none",
-              borderRadius: "8px", cursor: "pointer", fontWeight: "600"
+              padding: "12px 32px", background: "var(--primary)", color: "white", border: "none",
+              borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "1.05rem",
+              letterSpacing: "0.3px"
             }}
           >
             Done

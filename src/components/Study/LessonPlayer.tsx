@@ -65,35 +65,52 @@ export default function LessonPlayer({ lesson, nextLesson, onComplete }: LessonP
         e.preventDefault();
     };
 
-    if (lesson.type === 'document') {
+    const lType = (lesson.type || '').toLowerCase();
+    const isDocumentType = lType === 'document' || lType === 'slide' || (lesson.attachments && lesson.attachments.length > 0);
+    
+    const docExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.zip', '.rar'];
+    const lowerUrl = lesson.url?.toLowerCase() || '';
+    const isDocUrl = docExtensions.some(ext => lowerUrl.includes(ext));
+    
+    // Unconditionally catch if they accidentally created it as a video but named it slides
+    const isSlideTitle = lesson.title.toLowerCase().includes('slide') || lesson.title.toLowerCase().includes('pdf');
+    
+    if (isDocumentType || isDocUrl || isSlideTitle) {
         const atts = lesson.attachments && lesson.attachments.length > 0 
             ? lesson.attachments 
-            : lesson.url ? [{ name: 'Document', url: lesson.url }] : [];
+            : lesson.url ? [{ name: lesson.title || 'Download File', url: lesson.url }] : [];
             
         return (
             <div className={styles.documentContainer}>
                 <div className={styles.documentHeader}>
                     <FileText size={40} style={{ color: 'var(--primary, #3b82f6)', marginBottom: '10px' }} />
                     <h2>{lesson.title}</h2>
-                    <p>Documents & Resources</p>
+                    <p>{lesson.type === 'slide' ? 'Slides & Presentations' : 'Documents & Resources'}</p>
                 </div>
                 <div className={styles.attachmentsList}>
-                    {atts.map((att, idx) => {
-                        const fullUrl = att.url ? (att.url.startsWith('/') ? `${process.env.NEXT_PUBLIC_UPLOADS_URL || ''}${att.url}` : att.url) : '';
-                        return (
-                            <a key={idx} href={fullUrl} target="_blank" rel="noopener noreferrer" className={styles.attachmentCard} onClick={() => onComplete?.()}>
-                                <div className={styles.attIcon}>
-                                    <FileText size={24} />
-                                </div>
-                                <div className={styles.attInfo}>
-                                    <span className={styles.attName}>{att.name}</span>
-                                </div>
-                                <div className={styles.attAction}>
-                                    Download / View
-                                </div>
-                            </a>
-                        );
-                    })}
+                    {atts.length === 0 ? (
+                        <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No files or attachments have been uploaded for this document yet. Please update the course curriculum to include a file URL or attachments.
+                        </div>
+                    ) : (
+                        atts.map((att, idx) => {
+                            const fullUrl = att.url ? (att.url.startsWith('/') ? `${process.env.NEXT_PUBLIC_UPLOADS_URL || ''}${att.url}` : att.url) : '';
+                            const downloadHref = `/api/download?url=${encodeURIComponent(fullUrl)}&name=${encodeURIComponent(att.name || 'document')}`;
+                            return (
+                                <a key={idx} href={downloadHref} className={styles.attachmentCard} onClick={() => onComplete?.()}>
+                                    <div className={styles.attIcon}>
+                                        <FileText size={24} />
+                                    </div>
+                                    <div className={styles.attInfo}>
+                                        <span className={styles.attName}>{att.name}</span>
+                                    </div>
+                                    <div className={styles.attAction}>
+                                        Download
+                                    </div>
+                                </a>
+                            );
+                        })
+                    )}
                 </div>
             </div>
         );

@@ -114,13 +114,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       duration: typeof body.duration === 'string' && body.duration.trim() ? body.duration.trim() : null,
       url: typeof body.url === 'string' && body.url.trim() ? body.url.trim() : null,
       storagePath: typeof body.storagePath === 'string' && body.storagePath.trim() ? body.storagePath.trim() : null,
+      attachments: Array.isArray(body.attachments) ? body.attachments : undefined,
       releaseAt: typeof body.releaseAt === 'string' && body.releaseAt.trim() ? new Date(body.releaseAt).toISOString() : null,
       releaseGroupId: null,
       children: [],
     };
 
-    if (newNode.type !== 'folder' && !newNode.url) {
-      return NextResponse.json({ error: 'Video or document URL is required.' }, { status: 400 });
+    if (newNode.type !== 'folder' && !newNode.url && (!newNode.attachments || newNode.attachments.length === 0)) {
+      return NextResponse.json({ error: 'Video or document URL/attachment is required.' }, { status: 400 });
     }
 
     const nodeWithGroup = assignReleaseGroupForInsertion(curriculum, parentId, newNode);

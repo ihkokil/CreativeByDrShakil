@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       LIMIT 1
     `);
 
-    const userRecord = results.rows[0] as any;
+    const userRecord = results[0] as any;
 
     if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });

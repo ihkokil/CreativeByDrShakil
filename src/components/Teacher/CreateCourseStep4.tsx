@@ -208,13 +208,12 @@ function CreateCourseStep4Content() {
           <div className={styles.instructorsGrid}>
             {course.instructors.map((instructor, index) => (
               <div key={index} className={styles.instructorCard} style={{ alignItems: 'center' }}>
-                <div className={styles.instructorIndex}>{index + 1}</div>
                 {instructor.imageUrl ? (
-                  <div style={{ position: 'relative', width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
                     <Image src={instructor.imageUrl} alt={instructor.name} fill style={{ objectFit: 'cover' }} unoptimized />
                   </div>
                 ) : (
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 'bold', flexShrink: 0 }}>
+                  <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.2rem', flexShrink: 0 }}>
                     {instructor.name.charAt(0).toUpperCase()}
                   </div>
                 )}

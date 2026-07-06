@@ -15,6 +15,7 @@ export interface CurriculumNode {
     locked?: boolean;
     completed?: boolean;
     availableAt?: string | null;
+    attachments?: { name: string; url: string; type?: string; size?: number }[];
     children?: CurriculumNode[];
 }
 

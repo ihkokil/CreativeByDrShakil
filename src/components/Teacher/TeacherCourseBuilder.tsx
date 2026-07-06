@@ -354,7 +354,7 @@ export default function TeacherCourseBuilder() {
         try {
             const response = await fetch(`/api/teacher/courses/${selectedCourseId}/curriculum`, {
                 method: "POST", headers: authHeaders(),
-                body: JSON.stringify({ parentId: copyTargetParentId === "root" ? null : copyTargetParentId, title: source.title, type: source.type, url: source.url, duration: source.duration, storagePath: source.storagePath }),
+                body: JSON.stringify({ parentId: copyTargetParentId === "root" ? null : copyTargetParentId, title: source.title, type: source.type, url: source.url, duration: source.duration, storagePath: source.storagePath, attachments: source.attachments }),
             });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to reuse video.");

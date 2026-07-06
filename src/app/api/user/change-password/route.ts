@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       LIMIT 1
     `);
 
-    const user = results.rows[0] as any;
+    const user = results[0] as any;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });

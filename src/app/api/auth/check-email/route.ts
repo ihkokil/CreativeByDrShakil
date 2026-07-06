@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // Use Drizzle execute to bypass schema building overhead while utilizing the pool
     const result = await db.execute(sql`SELECT id FROM "User" WHERE email = ${normalizedEmail} LIMIT 1`);
 
-    return NextResponse.json({ exists: result.rows.length > 0 });
+    return NextResponse.json({ exists: result.length > 0 });
   } catch (error: any) {
     console.error('[Check Email Error]', error?.message || error);
     return NextResponse.json(

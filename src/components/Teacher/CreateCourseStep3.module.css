@@ -5,7 +5,11 @@
 }
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 40px;
+  gap: 16px;
 }
 
 .title {
@@ -217,30 +221,36 @@
 
 
 .courseMeta {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  padding: 20px 0;
   border-top: 1px solid var(--glass-border);
   border-bottom: 1px solid var(--glass-border);
 }
 
 .metaItem {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--glass);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
 }
 
 .metaLabel {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .metaValue {
   color: var(--foreground);
   font-weight: 700;
+  font-size: 1.1rem;
 }
 
 .pricingRow {
@@ -396,7 +406,7 @@
 
 .instructorsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
 }
 
@@ -513,6 +523,11 @@
 @media (max-width: 768px) {
   .container {
     padding: 20px 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .title {
