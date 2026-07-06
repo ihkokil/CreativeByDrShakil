@@ -22,14 +22,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Invalid decision. Use approve or reject.' }, { status: 400 });
     }
 
-    const order = await db.query.orders.findFirst({
+    const orderBase = await db.query.orders.findFirst({
       where: eq(schema.orders.id, orderId),
-      with: { payment: true, user: true, course: true },
     });
 
-    if (!order) {
+    if (!orderBase) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
+
+    // Flat lookups for related data (MariaDB-compatible)
+    const [payment, user, course] = await Promise.all([
+      db.query.payments.findFirst({ where: eq(schema.payments.orderId, orderBase.id) }),
+      db.query.users.findFirst({ where: eq(schema.users.id, orderBase.userId) }),
+      db.query.courses.findFirst({ where: eq(schema.courses.id, orderBase.courseId) }),
+    ]);
+    const order = { ...orderBase, payment: payment ?? null, user: user ?? null, course: course ?? null };
 
     const nextOrderStatus = decision === 'approve' ? 'approved' : 'rejected';
     const nextPaymentStatus = decision === 'approve' ? 'approved' : 'rejected';

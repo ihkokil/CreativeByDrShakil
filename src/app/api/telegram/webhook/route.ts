@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import * as schema from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { updateTelegramVerificationMessage, compressUuid, decompressUuid } from '@/lib/telegram';
 import {
   collectSecondChildGroups,
@@ -80,10 +80,13 @@ export async function POST(request: NextRequest) {
       // ── Payment verification ──
       if (prefix === 'payment_verify') {
         const [orderId, action] = value.split(':');
-        const order = await db.query.orders.findFirst({
+        const orderRecord = await db.query.orders.findFirst({
           where: eq(schema.orders.id, orderId),
-          with: { payment: true },
         });
+        const payment = orderRecord
+          ? await db.query.payments.findFirst({ where: eq(schema.payments.orderId, orderRecord.id) })
+          : null;
+        const order = orderRecord ? { ...orderRecord, payment } : null;
 
         if (!order) {
           return NextResponse.json({ ok: true });
@@ -233,10 +236,20 @@ export async function POST(request: NextRequest) {
         const compressedUserId = value;
         const userId = decompressUuid(compressedUserId);
 
-        const enrolledOrders = await db.query.orders.findMany({
+        const rawEnrolledOrders = await db.query.orders.findMany({
           where: and(eq(schema.orders.userId, userId), eq(schema.orders.status, 'approved')),
-          with: { course: true }
         });
+
+        const courseIds = [...new Set(rawEnrolledOrders.map(o => o.courseId).filter(Boolean))] as string[];
+        const courses = courseIds.length > 0
+          ? await db.query.courses.findMany({ where: inArray(schema.courses.id, courseIds) })
+          : [];
+        const courseMap = new Map(courses.map(c => [c.id, c]));
+
+        const enrolledOrders = rawEnrolledOrders.map((o) => ({
+          ...o,
+          course: courseMap.get(o.courseId) || null,
+        })).filter(o => o.course !== null) as any[];
 
         if (enrolledOrders.length === 0) {
           await sendMsg(callbackChatId, '❌ Student is not enrolled in any courses.');
@@ -595,10 +608,23 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrollments = await db.query.orders.findMany({
+        const rawEnrollments = await db.query.orders.findMany({
           where: and(eq(schema.orders.userId, student.id), eq(schema.orders.status, 'approved')),
-          with: { course: { columns: { title: true } } }
         });
+
+        const courseIds = [...new Set(rawEnrollments.map(o => o.courseId).filter(Boolean))] as string[];
+        const courses = courseIds.length > 0
+          ? await db.query.courses.findMany({
+              where: inArray(schema.courses.id, courseIds),
+              columns: { id: true, title: true }
+            })
+          : [];
+        const courseMap = new Map(courses.map(c => [c.id, c]));
+
+        const enrollments = rawEnrollments.map((o) => ({
+          ...o,
+          course: courseMap.get(o.courseId) || null,
+        })).filter(o => o.course !== null) as any[];
 
         const courseList = enrollments.length > 0
           ? enrollments.map(e => `  • ${e.course.title}`).join('\n')
@@ -689,10 +715,20 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrolledOrders = await db.query.orders.findMany({
+        const rawEnrolledOrders = await db.query.orders.findMany({
           where: and(eq(schema.orders.userId, student.id), eq(schema.orders.status, 'approved')),
-          with: { course: true }
         });
+
+        const courseIds = [...new Set(rawEnrolledOrders.map(o => o.courseId).filter(Boolean))] as string[];
+        const courses = courseIds.length > 0
+          ? await db.query.courses.findMany({ where: inArray(schema.courses.id, courseIds) })
+          : [];
+        const courseMap = new Map(courses.map(c => [c.id, c]));
+
+        const enrolledOrders = rawEnrolledOrders.map((o) => ({
+          ...o,
+          course: courseMap.get(o.courseId) || null,
+        })).filter(o => o.course !== null) as any[];
 
         if (enrolledOrders.length === 0) {
           await sendMsg(messageChatId, `❌ <b>${student.fullName}</b> is not enrolled in any courses.`);

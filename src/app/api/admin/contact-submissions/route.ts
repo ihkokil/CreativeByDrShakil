@@ -28,18 +28,21 @@ export async function GET(request: NextRequest) {
     const submissions = await db.query.contactSubmissions.findMany({
       where: status ? eq(schema.contactSubmissions.status, status as 'open' | 'in_review' | 'responded' | 'closed') : undefined,
       orderBy: [desc(schema.contactSubmissions.createdAt)],
-      with: {
-        repliedByAdmin: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
     });
 
-    return NextResponse.json({ submissions: submissions.map(normalizeSubmission) });
+    // Batch-fetch admins who replied (MariaDB-compatible flat query)
+    const adminIds = [...new Set(submissions.map(s => s.repliedByAdminId).filter(Boolean))] as string[];
+    const admins = adminIds.length > 0
+      ? await db.query.users.findMany({ where: inArray(schema.users.id, adminIds), columns: { id: true, fullName: true, email: true } })
+      : [];
+    const adminMap = new Map(admins.map(a => [a.id, a]));
+
+    const submissionsWithAdmin = submissions.map(s => ({
+      ...s,
+      repliedByAdmin: s.repliedByAdminId ? adminMap.get(s.repliedByAdminId) ?? null : null,
+    }));
+
+    return NextResponse.json({ submissions: submissionsWithAdmin.map(normalizeSubmission) });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }

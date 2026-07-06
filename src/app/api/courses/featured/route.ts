@@ -30,21 +30,23 @@ export async function GET() {
               desc(schema.courses.publishedAt),
               desc(schema.courses.updatedAt)
             ],
-            with: {
-              teacher: {
+          });
+
+          if (!course) {
+            return { course: null };
+          }
+
+          const teacher = course.teacherId
+            ? await db.query.users.findFirst({
+                where: eq(schema.users.id, course.teacherId),
                 columns: {
                   id: true,
                   fullName: true,
                   designation: true,
                   profileImage: true,
                 },
-              },
-            },
-          });
-
-          if (!course) {
-            return { course: null };
-          }
+              })
+            : null;
 
           return {
             course: {
@@ -58,10 +60,10 @@ export async function GET() {
               image: course.imageUrl,
               isFeatured: course.isFeatured,
               mainInstructor: {
-                id: course.teacher?.id || `teacher-${course.id}`,
-                name: course.teacher?.fullName || course.instructor,
-                role: course.teacher?.designation || 'Course Instructor',
-                image: course.teacher?.profileImage || '/placeholder-square.svg',
+                id: teacher?.id || `teacher-${course.id}`,
+                name: teacher?.fullName || course.instructor,
+                role: teacher?.designation || 'Course Instructor',
+                image: teacher?.profileImage || '/placeholder-square.svg',
               },
             },
           };

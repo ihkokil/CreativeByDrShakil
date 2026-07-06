@@ -70,15 +70,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         })
         .where(eq(schema.courses.id, courseId));
 
-      // Return updated course
-      return tx.query.courses.findFirst({
+      // Return updated course (flat queries for MariaDB compatibility)
+      const updatedCourseFlat = await tx.query.courses.findFirst({
         where: eq(schema.courses.id, courseId),
-        with: {
-          instructors: {
-            orderBy: [asc(schema.courseInstructors.sortOrder)]
-          }
-        }
       });
+      const updatedInstructors = await tx.query.courseInstructors.findMany({
+        where: eq(schema.courseInstructors.courseId, courseId),
+        orderBy: [asc(schema.courseInstructors.sortOrder)],
+      });
+      return updatedCourseFlat ? { ...updatedCourseFlat, instructors: updatedInstructors } : null;
     });
 
     return NextResponse.json({ course: updatedCourse }, { status: 200 });

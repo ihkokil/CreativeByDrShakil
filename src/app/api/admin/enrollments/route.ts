@@ -27,32 +27,31 @@ export async function GET(request: NextRequest) {
 
     const enrollments = await db.query.orders.findMany({
       where: eq(schema.orders.status, 'approved'),
-      with: {
-        user: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-            phone: true,
-          },
-        },
-        course: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-          },
-        },
-      },
       orderBy: [desc(schema.orders.createdAt)],
       limit: 100,
     });
 
+    // Batch-fetch related users and courses (MariaDB-compatible flat queries)
+    const userIds = [...new Set(enrollments.map(e => e.userId).filter(Boolean))] as string[];
+    const courseIds = [...new Set(enrollments.map(e => e.courseId).filter(Boolean))] as string[];
+
+    const [usersData, coursesData] = await Promise.all([
+      userIds.length > 0
+        ? db.query.users.findMany({ where: inArray(schema.users.id, userIds), columns: { id: true, fullName: true, email: true, phone: true } })
+        : [],
+      courseIds.length > 0
+        ? db.query.courses.findMany({ where: inArray(schema.courses.id, courseIds), columns: { id: true, title: true, slug: true } })
+        : [],
+    ]);
+
+    const userMap = new Map(usersData.map(u => [u.id, u]));
+    const courseMap = new Map(coursesData.map(c => [c.id, c]));
+
     return NextResponse.json({
       enrollments: enrollments.map((e) => ({
         id: e.id,
-        student: e.user,
-        course: e.course,
+        student: userMap.get(e.userId) ?? null,
+        course: courseMap.get(e.courseId) ?? null,
         createdAt: e.createdAt,
       })),
     });
@@ -208,7 +207,6 @@ export async function POST(request: NextRequest) {
         eq(schema.orders.userId, finalStudent.id),
         eq(schema.orders.courseId, course.id)
       ),
-      with: { course: true, user: true },
     });
 
     if (!finalOrder) {
@@ -223,7 +221,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create enrollment.' }, { status: 500 });
     }
 
-    const result = { student: finalStudent, isNewRegistration: isNewReg, order: finalOrder, setupToken };
+    // Flat lookups for related data (MariaDB-compatible)
+    const [orderCourse, orderUser] = await Promise.all([
+      db.query.courses.findFirst({ where: eq(schema.courses.id, finalOrder.courseId) }),
+      db.query.users.findFirst({ where: eq(schema.users.id, finalOrder.userId) }),
+    ]);
+    const finalOrderWithRelations = { ...finalOrder, course: orderCourse ?? null, user: orderUser ?? null };
+
+    const result = { student: finalStudent, isNewRegistration: isNewReg, order: finalOrderWithRelations, setupToken };
 
     const { student: studentResult, isNewRegistration: finalIsNewReg, order, setupToken: resultSetupToken } = result;
 

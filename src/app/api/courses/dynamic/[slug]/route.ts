@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
 import * as schema from '@/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { formatLastUpdated } from '@/lib/date-format';
@@ -21,37 +21,45 @@ export async function GET(
 
     const course = await db.query.courses.findFirst({
       where: eq(schema.courses.slug, slug),
-      with: {
-        teacher: {
-          columns: {
-            id: true,
-            fullName: true,
-            designation: true,
-            profileImage: true,
-          },
-        },
-        instructors: {
-          orderBy: [asc(schema.courseInstructors.sortOrder)],
-          columns: {
-            id: true,
-            name: true,
-            designation: true,
-            imageUrl: true,
-            sortOrder: true,
-          },
-        },
-        orders: {
-          where: eq(schema.orders.status, 'approved'),
-          columns: {
-            id: true,
-          },
-        },
-      },
     });
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
+
+    const [teacher, instructors, orders] = await Promise.all([
+      course.teacherId
+        ? db.query.users.findFirst({
+            where: eq(schema.users.id, course.teacherId),
+            columns: {
+              id: true,
+              fullName: true,
+              designation: true,
+              profileImage: true,
+            },
+          })
+        : Promise.resolve(null),
+      db.query.courseInstructors.findMany({
+        where: eq(schema.courseInstructors.courseId, course.id),
+        orderBy: [asc(schema.courseInstructors.sortOrder)],
+        columns: {
+          id: true,
+          name: true,
+          designation: true,
+          imageUrl: true,
+          sortOrder: true,
+        },
+      }),
+      db.query.orders.findMany({
+        where: and(
+          eq(schema.orders.courseId, course.id),
+          eq(schema.orders.status, 'approved')
+        ),
+        columns: {
+          id: true,
+        },
+      }),
+    ]);
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson as string);
     const curriculum = await populateMediaVaultNodes(rawCurriculum);
@@ -73,14 +81,14 @@ export async function GET(
         image: course.imageUrl || '/placeholder.svg',
         status: course.status,
         lastUpdated: formatLastUpdated(course.updatedAt),
-        enrolledCount: course.orders.length,
+        enrolledCount: orders.length,
         publishedAt: course.publishedAt,
-        instructors: course.instructors,
+        instructors: instructors,
         mainInstructor: {
-          id: course.teacher?.id || `teacher-${course.id}`,
-          name: course.teacher?.fullName || course.instructor,
-          role: course.teacher?.designation || 'Course Instructor',
-          image: course.teacher?.profileImage || '/placeholder-square.svg',
+          id: teacher?.id || `teacher-${course.id}`,
+          name: teacher?.fullName || course.instructor,
+          role: teacher?.designation || 'Course Instructor',
+          image: teacher?.profileImage || '/placeholder-square.svg',
         },
       },
       curriculum: curriculum,

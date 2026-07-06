@@ -50,12 +50,9 @@ type ProgressRow = {
 };
 
 const getTeacherCourses = async (teacherId: string, role: string) => {
-  const [rawCourses, orderCountsData] = await Promise.all([
+  const [rawCoursesFlat, orderCountsData] = await Promise.all([
     db.query.courses.findMany({
       orderBy: [desc(schema.courses.updatedAt)],
-      with: {
-        instructors: { orderBy: [asc(schema.courseInstructors.sortOrder)] },
-      },
     }),
     db.select({
       courseId: schema.orders.courseId,
@@ -66,10 +63,26 @@ const getTeacherCourses = async (teacherId: string, role: string) => {
     .groupBy(schema.orders.courseId)
   ]);
 
+  // Fetch instructors separately for MariaDB compatibility
+  const allCourseIds = rawCoursesFlat.map(c => c.id);
+  const allInstructors = allCourseIds.length > 0
+    ? await db.query.courseInstructors.findMany({
+        where: inArray(schema.courseInstructors.courseId, allCourseIds),
+        orderBy: [asc(schema.courseInstructors.sortOrder)],
+      })
+    : [];
+  const instructorsByCourse = new Map<string, typeof allInstructors>();
+  allInstructors.forEach(inst => {
+    const list = instructorsByCourse.get(inst.courseId) || [];
+    list.push(inst);
+    instructorsByCourse.set(inst.courseId, list);
+  });
+
   const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, Number(row.count)]));
 
-  return rawCourses.map(c => ({
+  return rawCoursesFlat.map(c => ({
     ...c,
+    instructors: instructorsByCourse.get(c.id) || [],
     _count: { orders: orderCountMap.get(c.id) || 0 },
   })) as unknown as TeacherCourseSummary[];
 };
@@ -152,24 +165,29 @@ export async function GET(request: NextRequest) {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    const enrollments = await db.query.orders.findMany({
+    const rawEnrollments = await db.query.orders.findMany({
       where: and(
         eq(schema.orders.courseId, selectedCourse.id),
         eq(schema.orders.status, 'approved'),
         gte(schema.orders.updatedAt, oneYearAgo)
       ),
       orderBy: [desc(schema.orders.updatedAt)],
-      with: {
-        user: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-            profileImage: true,
-          },
-        },
-      },
     });
+
+    // Fetch enrolled users separately for MariaDB compatibility
+    const enrolledUserIds = [...new Set(rawEnrollments.map(e => e.userId))] as string[];
+    const enrolledUsers = enrolledUserIds.length > 0
+      ? await db.query.users.findMany({
+          where: inArray(schema.users.id, enrolledUserIds),
+          columns: { id: true, fullName: true, email: true, profileImage: true },
+        })
+      : [];
+    const enrolledUserMap = new Map(enrolledUsers.map(u => [u.id, u]));
+
+    const enrollments = rawEnrollments.map(e => ({
+      ...e,
+      user: enrolledUserMap.get(e.userId)!,
+    }));
 
     const userIds = enrollments.map((enrollment) => enrollment.user.id);
     let progressRows: ProgressRow[] = [];

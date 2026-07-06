@@ -43,22 +43,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const resolvedParams = await params;
     const submission = await db.query.contactSubmissions.findFirst({
       where: eq(schema.contactSubmissions.id, resolvedParams.id),
-      with: {
-        repliedByAdmin: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
     });
 
     if (!submission) {
       return NextResponse.json({ error: 'Contact submission not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ submission: normalizeSubmission(submission) });
+    // Flat lookup for the admin who replied (MariaDB-compatible)
+    const repliedByAdmin = submission.repliedByAdminId
+      ? await db.query.users.findFirst({ where: eq(schema.users.id, submission.repliedByAdminId), columns: { id: true, fullName: true, email: true } })
+      : null;
+
+    return NextResponse.json({ submission: normalizeSubmission({ ...submission, repliedByAdmin: repliedByAdmin ?? null }) });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }

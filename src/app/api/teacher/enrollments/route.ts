@@ -169,29 +169,39 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const enrollments = await db.query.orders.findMany({
+    const rawEnrollments = await db.query.orders.findMany({
       where: eq(schema.orders.status, 'approved'),
-      with: {
-        user: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-            phone: true,
-          },
-        },
-        course: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-            teacherId: true,
-          },
-        },
-      },
       orderBy: [desc(schema.orders.createdAt)],
       limit: 100,
     });
+
+    // Fetch related users and courses separately for MariaDB compatibility
+    const userIds = [...new Set(rawEnrollments.map(e => e.userId))] as string[];
+    const courseIds = [...new Set(rawEnrollments.map(e => e.courseId))] as string[];
+
+    const [relatedUsers, relatedCourses] = await Promise.all([
+      userIds.length > 0
+        ? db.query.users.findMany({
+            where: inArray(schema.users.id, userIds),
+            columns: { id: true, fullName: true, email: true, phone: true },
+          })
+        : [],
+      courseIds.length > 0
+        ? db.query.courses.findMany({
+            where: inArray(schema.courses.id, courseIds),
+            columns: { id: true, title: true, slug: true, teacherId: true },
+          })
+        : [],
+    ]);
+
+    const userMap = new Map(relatedUsers.map(u => [u.id, u]));
+    const courseMap = new Map(relatedCourses.map(c => [c.id, c]));
+
+    const enrollments = rawEnrollments.map(e => ({
+      ...e,
+      user: userMap.get(e.userId) || null,
+      course: courseMap.get(e.courseId) || null,
+    }));
 
     // Filter to only include enrollments for courses this teacher owns or manages (if needed, but platform seems to give full access)
     // Actually, teacher has full view of students usually, but we'll just filter by teacherId if they are not admin.
@@ -231,14 +241,18 @@ export async function DELETE(request: NextRequest) {
     // A teacher might only be allowed to delete enrollments for their own course
     const existingOrder = await db.query.orders.findFirst({
         where: eq(schema.orders.id, orderId),
-        with: { course: true }
     });
     
     if (!existingOrder) {
         return NextResponse.json({ error: 'Enrollment not found.' }, { status: 404 });
     }
+
+    // Fetch course separately for MariaDB compatibility
+    const orderCourse = await db.query.courses.findFirst({
+        where: eq(schema.courses.id, existingOrder.courseId),
+    });
     
-    if (payload.role !== 'admin' && existingOrder.course?.teacherId !== payload.sub) {
+    if (payload.role !== 'admin' && orderCourse?.teacherId !== payload.sub) {
         return NextResponse.json({ error: 'Forbidden: You do not own this course.' }, { status: 403 });
     }
 

@@ -23,7 +23,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all students
+    // Flat queries for MariaDB compatibility (no relational `with:`)
     const students = await db.query.users.findMany({
       where: eq(schema.users.role, 'student'),
       columns: {
@@ -31,27 +31,47 @@ export async function GET() {
         fullName: true,
         email: true,
       },
-      with: {
-        deviceSessions: {
-          columns: {
-            id: true,
-            deviceType: true,
-            browserName: true,
-            ipAddress: true,
-            isLocked: true,
-            loggedOutAt: true,
-            createdAt: true,
-            lastActivityAt: true,
-          },
-          orderBy: [desc(schema.deviceSessions.createdAt)],
-        },
-        sessionSettings: {
-          columns: {
-            autoLockFirstBrowser: true,
-          },
-        },
-      },
     });
+
+    const studentIds = students.map(s => s.id);
+
+    const [allDeviceSessions, allSessionSettings] = await Promise.all([
+      studentIds.length > 0
+        ? db.query.deviceSessions.findMany({
+            where: inArray(schema.deviceSessions.userId, studentIds),
+            columns: {
+              id: true,
+              userId: true,
+              deviceType: true,
+              browserName: true,
+              ipAddress: true,
+              isLocked: true,
+              loggedOutAt: true,
+              createdAt: true,
+              lastActivityAt: true,
+            },
+            orderBy: [desc(schema.deviceSessions.createdAt)],
+          })
+        : [],
+      studentIds.length > 0
+        ? db.query.sessionLockSettings.findMany({
+            where: inArray(schema.sessionLockSettings.userId, studentIds),
+            columns: {
+              userId: true,
+              autoLockFirstBrowser: true,
+            },
+          })
+        : [],
+    ]);
+
+    // Group device sessions by userId
+    const deviceSessionsByUser = new Map<string, typeof allDeviceSessions>();
+    for (const ds of allDeviceSessions) {
+      const arr = deviceSessionsByUser.get(ds.userId) || [];
+      arr.push(ds);
+      deviceSessionsByUser.set(ds.userId, arr);
+    }
+    const settingsByUser = new Map(allSessionSettings.map(s => [s.userId, s]));
 
     const globalAutoLockSetting = await getGlobalAutoLockSetting();
 
@@ -61,7 +81,8 @@ export async function GET() {
       students: await Promise.all(
         students.map(async (student) => {
           const resolved = await resolveAutoLockSetting(student.id);
-          const activeSessions = student.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+          const deviceSessions = deviceSessionsByUser.get(student.id) || [];
+          const activeSessions = deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
 
           return {
             id: student.id,

@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
 import * as schema from '@/db/schema';
-import { eq, and, ne, isNotNull, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, ne, isNotNull, desc, asc, sql, inArray } from 'drizzle-orm';
 import { BuilderCurriculumNode, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { getCachedOrFetch } from '@/lib/kv-cache';
 const formatPrice = (price: number) => {
@@ -40,26 +40,6 @@ export async function GET(request: NextRequest) {
               ],
               limit: limit,
               offset: offset,
-              with: {
-                teacher: {
-                  columns: {
-                    id: true,
-                    fullName: true,
-                    designation: true,
-                    profileImage: true,
-                  },
-                },
-                instructors: {
-                  orderBy: [asc(schema.courseInstructors.sortOrder)],
-                  columns: {
-                    id: true,
-                    name: true,
-                    designation: true,
-                    imageUrl: true,
-                    sortOrder: true,
-                  },
-                },
-              },
             }),
             db.select({
               courseId: schema.orders.courseId,
@@ -69,6 +49,45 @@ export async function GET(request: NextRequest) {
             .where(eq(schema.orders.status, 'approved'))
             .groupBy(schema.orders.courseId)
           ]);
+
+          const courseIds = courses.map(c => c.id);
+          const teacherIds = [...new Set(courses.map(c => c.teacherId).filter(Boolean))] as string[];
+
+          const [teachers, allInstructors] = await Promise.all([
+            teacherIds.length > 0
+              ? db.query.users.findMany({
+                  where: inArray(schema.users.id, teacherIds),
+                  columns: {
+                    id: true,
+                    fullName: true,
+                    designation: true,
+                    profileImage: true,
+                  }
+                })
+              : Promise.resolve([]),
+            courseIds.length > 0
+              ? db.query.courseInstructors.findMany({
+                  where: inArray(schema.courseInstructors.courseId, courseIds),
+                  orderBy: [asc(schema.courseInstructors.sortOrder)],
+                  columns: {
+                    id: true,
+                    courseId: true,
+                    name: true,
+                    designation: true,
+                    imageUrl: true,
+                    sortOrder: true,
+                  }
+                })
+              : Promise.resolve([]),
+          ]);
+
+          const teacherMap = new Map(teachers.map(t => [t.id, t]));
+          const instructorsMap = new Map<string, typeof allInstructors>();
+          for (const inst of allInstructors) {
+            const list = instructorsMap.get(inst.courseId) || [];
+            list.push(inst);
+            instructorsMap.set(inst.courseId, list);
+          }
 
           const orderCountMap = new Map(orderCountsData.map(row => [row.courseId, row.count]));
 
@@ -110,35 +129,37 @@ export async function GET(request: NextRequest) {
             };
             countNodes(curriculum);
 
-            const enrolledCount = orderCountMap.get(course.id) || 0;
+             const enrolledCount = orderCountMap.get(course.id) || 0;
+             const teacher = course.teacherId ? teacherMap.get(course.teacherId) : null;
+             const instructors = instructorsMap.get(course.id) || [];
 
-            return {
-              id: course.id,
-              slug: course.slug,
-              title: course.title,
-              price: formatPrice(course.price),
-              salePrice: course.salePrice ? formatPrice(course.salePrice) : null,
-              priceValue: course.price,
-              duration: course.duration,
-              lessonCount,
-              enrolledCount,
-              isFeatured: course.isFeatured,
-              description: course.overview || course.description,
-              overview: course.overview,
-              learningOutcomes: course.learningOutcomes,
-              language: course.language || 'English / Bengali',
-              image: course.imageUrl,
-              status: course.status,
-              publishedAt: course.publishedAt,
-              instructors: course.instructors,
-              mainInstructor: {
-                id: course.teacher?.id || `teacher-${course.id}`,
-                name: course.teacher?.fullName || course.instructor,
-                role: course.teacher?.designation || 'Course Instructor',
-                image: course.teacher?.profileImage || '/placeholder-square.svg',
-              },
-            };
-          });
+             return {
+               id: course.id,
+               slug: course.slug,
+               title: course.title,
+               price: formatPrice(course.price),
+               salePrice: course.salePrice ? formatPrice(course.salePrice) : null,
+               priceValue: course.price,
+               duration: course.duration,
+               lessonCount,
+               enrolledCount,
+               isFeatured: course.isFeatured,
+               description: course.overview || course.description,
+               overview: course.overview,
+               learningOutcomes: course.learningOutcomes,
+               language: course.language || 'English / Bengali',
+               image: course.imageUrl,
+               status: course.status,
+               publishedAt: course.publishedAt,
+               instructors,
+               mainInstructor: {
+                 id: teacher?.id || `teacher-${course.id}`,
+                 name: teacher?.fullName || course.instructor,
+                 role: teacher?.designation || 'Course Instructor',
+                 image: teacher?.profileImage || '/placeholder-square.svg',
+               },
+             };
+           });
 
           return {
             courses: processedCourses,

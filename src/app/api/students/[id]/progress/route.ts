@@ -24,7 +24,7 @@ export async function GET(
     const { id: studentId } = await params;
 
     // 1. Find approved enrollments for this student
-    const enrollments = await db.query.orders.findMany({
+    const rawEnrollments = await db.query.orders.findMany({
       where: and(
         eq(schema.orders.userId, studentId),
         eq(schema.orders.status, 'approved')
@@ -32,12 +32,26 @@ export async function GET(
       columns: { 
         courseId: true,
       },
-      with: {
-        course: {
-          columns: { id: true, curriculumJson: true },
-        }
-      },
     });
+
+    const enrolledCourseIds = [...new Set(rawEnrollments.map(e => e.courseId).filter(Boolean))] as string[];
+
+    const courses = enrolledCourseIds.length > 0
+      ? await db.query.courses.findMany({
+          where: inArray(schema.courses.id, enrolledCourseIds),
+          columns: { id: true, curriculumJson: true },
+        })
+      : [];
+
+    const courseMap = new Map(courses.map(c => [c.id, c]));
+
+    const enrollments = rawEnrollments.map((e) => {
+      const course = courseMap.get(e.courseId);
+      return {
+        ...e,
+        course: course || null,
+      };
+    }).filter(e => e.course !== null) as any[];
 
     if (enrollments.length === 0) {
       return NextResponse.json({ progress: {} });

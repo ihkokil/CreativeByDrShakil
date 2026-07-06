@@ -21,14 +21,30 @@ export async function GET(request: NextRequest) {
   const { orderId, action } = payload;
 
   try {
-    const order = await db.query.orders.findFirst({
+    const orderRecord = await db.query.orders.findFirst({
       where: eq(schema.orders.id, orderId),
-      with: { payment: true, user: true, course: true },
     });
 
-    if (!order) {
+    if (!orderRecord) {
       return NextResponse.redirect(new URL('/verify-payment?status=error&message=Order not found', request.url));
     }
+
+    const [payment, user, course] = await Promise.all([
+      db.query.payments.findFirst({ where: eq(schema.payments.orderId, orderRecord.id) }),
+      db.query.users.findFirst({ where: eq(schema.users.id, orderRecord.userId) }),
+      db.query.courses.findFirst({ where: eq(schema.courses.id, orderRecord.courseId) }),
+    ]);
+
+    if (!user || !course) {
+      return NextResponse.redirect(new URL('/verify-payment?status=error&message=Order relations not found', request.url));
+    }
+
+    const order = {
+      ...orderRecord,
+      payment: payment || null,
+      user,
+      course,
+    };
 
     if (order.status !== 'pending') {
       return NextResponse.redirect(new URL(`/verify-payment?status=info&message=This order is already ${order.status}`, request.url));

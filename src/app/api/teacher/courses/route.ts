@@ -42,13 +42,29 @@ export async function GET(request: NextRequest) {
 
     let courses;
     try {
-      const rawCourses = await db.query.courses.findMany({
+      const rawCoursesFlat = await db.query.courses.findMany({
         where: whereClause,
         orderBy: [desc(schema.courses.updatedAt)],
-        with: {
-          instructors: { orderBy: [asc(schema.courseInstructors.sortOrder)] },
-        },
       });
+
+      // Fetch instructors separately for MariaDB compatibility
+      const courseIds = rawCoursesFlat.map(c => c.id);
+      const allInstructors = courseIds.length > 0
+        ? await db.query.courseInstructors.findMany({
+            where: inArray(schema.courseInstructors.courseId, courseIds),
+            orderBy: [asc(schema.courseInstructors.sortOrder)],
+          })
+        : [];
+      const instructorsByCourse = new Map<string, typeof allInstructors>();
+      allInstructors.forEach(inst => {
+        const list = instructorsByCourse.get(inst.courseId) || [];
+        list.push(inst);
+        instructorsByCourse.set(inst.courseId, list);
+      });
+      const rawCourses = rawCoursesFlat.map(c => ({
+        ...c,
+        instructors: instructorsByCourse.get(c.id) || [],
+      }));
 
       const orderCountsData = await db.select({
         courseId: schema.orders.courseId,
@@ -136,10 +152,14 @@ export async function POST(request: NextRequest) {
       releaseGroupDates: '{}',
     });
 
-    const course = await db.query.courses.findFirst({
+    const courseFlat = await db.query.courses.findFirst({
       where: eq(schema.courses.id, newCourseId),
-      with: { instructors: { orderBy: [asc(schema.courseInstructors.sortOrder)] } },
     });
+    const courseInstructorsList = await db.query.courseInstructors.findMany({
+      where: eq(schema.courseInstructors.courseId, newCourseId),
+      orderBy: [asc(schema.courseInstructors.sortOrder)],
+    });
+    const course = courseFlat ? { ...courseFlat, instructors: courseInstructorsList } : null;
 
     return NextResponse.json({
       course,

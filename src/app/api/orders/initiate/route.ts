@@ -40,10 +40,10 @@ export async function POST(request: NextRequest) {
         })
         .where(eq(schema.orders.id, existingOrder.id));
       
-      order = await db.query.orders.findFirst({
+      const ord = await db.query.orders.findFirst({
         where: eq(schema.orders.id, existingOrder.id),
-        with: { course: true }
       });
+      order = ord ? { ...ord, course } : null;
     } else {
       const newOrderId = crypto.randomUUID();
       await db.insert(schema.orders).values({
@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date()
       });
-      order = await db.query.orders.findFirst({
+      const ord = await db.query.orders.findFirst({
         where: eq(schema.orders.id, newOrderId),
-        with: { course: true }
       });
+      order = ord ? { ...ord, course } : null;
     }
     return NextResponse.json({ order })
   } catch (error: any) {

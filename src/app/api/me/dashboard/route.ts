@@ -41,33 +41,57 @@ export async function GET(request: NextRequest) {
     const isAdmin = user.role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    const orders = await db.query.orders.findMany({
+    const rawOrders = await db.query.orders.findMany({
       where: eq(schema.orders.userId, user.id),
-      with: {
-        course: {
-          columns: {
-            id: true,
-            slug: true,
-            title: true,
-            imageUrl: true,
-            duration: true,
-            status: true,
-            curriculumJson: true,
-          },
-        },
-        payment: {
-          columns: {
-            id: true,
-            status: true,
-            transactionId: true,
-            phoneNumber: true,
-            submittedAt: true,
-            approvedAt: true,
-          },
-        },
-      },
       orderBy: [desc(schema.orders.createdAt)],
     });
+
+    const orderCourseIds = [...new Set(rawOrders.map(o => o.courseId).filter(Boolean))] as string[];
+    const orderIds = rawOrders.map(o => o.id);
+
+    const [orderCourses, orderPayments] = await Promise.all([
+      orderCourseIds.length > 0
+        ? db.query.courses.findMany({
+            where: inArray(schema.courses.id, orderCourseIds),
+            columns: {
+              id: true,
+              slug: true,
+              title: true,
+              imageUrl: true,
+              duration: true,
+              status: true,
+              curriculumJson: true,
+            },
+          })
+        : Promise.resolve([]),
+      orderIds.length > 0
+        ? db.query.payments.findMany({
+            where: inArray(schema.payments.orderId, orderIds),
+            columns: {
+              id: true,
+              orderId: true,
+              status: true,
+              transactionId: true,
+              phoneNumber: true,
+              submittedAt: true,
+              approvedAt: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const courseMap = new Map(orderCourses.map(c => [c.id, c]));
+    const paymentMap = new Map(orderPayments.map(p => [p.orderId, p]));
+
+    const orders = rawOrders.map((order) => {
+      const course = courseMap.get(order.courseId);
+      const payment = paymentMap.get(order.id);
+      return {
+        ...order,
+        course: course || null,
+        payment: payment || null,
+      };
+    }).filter(order => order.course !== null) as any[];
 
     let enrolledCourses: any[] = [];
     

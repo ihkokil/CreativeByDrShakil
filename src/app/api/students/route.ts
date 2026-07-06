@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import * as schema from '@/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, inArray } from 'drizzle-orm';
 import { getSession } from '@/lib/auth-server';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
@@ -29,43 +29,79 @@ export async function GET() {
         createdAt: true,
         profileImage: true,
       },
-      with: {
-        deviceSessions: {
-          columns: {
-            id: true,
-            deviceType: true,
-            browserName: true,
-            ipAddress: true,
-            isLocked: true,
-            loggedOutAt: true,
-            createdAt: true,
-            lastActivityAt: true,
-          },
-          orderBy: [desc(schema.deviceSessions.createdAt)],
-        },
-        orders: {
-          where: eq(schema.orders.status, 'approved'),
-          columns: {
-            id: true,
-            enrolledAt: true,
-            expiresAt: true,
-          },
-          with: {
-            course: {
-              columns: {
-                id: true,
-                title: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
       orderBy: [desc(schema.users.createdAt)],
     });
 
+    const studentIds = students.map(s => s.id);
+
+    const [deviceSessions, orders] = await Promise.all([
+      studentIds.length > 0
+        ? db.query.deviceSessions.findMany({
+            where: inArray(schema.deviceSessions.userId, studentIds),
+            columns: {
+              id: true,
+              userId: true,
+              deviceType: true,
+              browserName: true,
+              ipAddress: true,
+              isLocked: true,
+              loggedOutAt: true,
+              createdAt: true,
+              lastActivityAt: true,
+            },
+            orderBy: [desc(schema.deviceSessions.createdAt)],
+          })
+        : Promise.resolve([]),
+      studentIds.length > 0
+        ? db.query.orders.findMany({
+            where: and(
+              inArray(schema.orders.userId, studentIds),
+              eq(schema.orders.status, 'approved')
+            ),
+            columns: {
+              id: true,
+              userId: true,
+              courseId: true,
+              enrolledAt: true,
+              expiresAt: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const courseIds = [...new Set(orders.map(o => o.courseId).filter(Boolean))] as string[];
+
+    const courses = courseIds.length > 0
+      ? await db.query.courses.findMany({
+          where: inArray(schema.courses.id, courseIds),
+          columns: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        })
+      : [];
+
+    const courseMap = new Map(courses.map(c => [c.id, c]));
+
+    const deviceSessionsByUser = new Map<string, typeof deviceSessions>();
+    for (const session of deviceSessions) {
+      const list = deviceSessionsByUser.get(session.userId) || [];
+      list.push(session);
+      deviceSessionsByUser.set(session.userId, list);
+    }
+
+    const ordersByUser = new Map<string, typeof orders>();
+    for (const order of orders) {
+      const list = ordersByUser.get(order.userId) || [];
+      list.push(order);
+      ordersByUser.set(order.userId, list);
+    }
+
     const formattedStudents = students.map((student) => {
-      const activeSessions = student.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+      const userSessions = deviceSessionsByUser.get(student.id) || [];
+      const activeSessions = userSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+      const userOrders = ordersByUser.get(student.id) || [];
 
       return {
         id: student.id,
@@ -76,14 +112,17 @@ export async function GET() {
         profileImage: student.profileImage,
         activeSessions,
         sessions: activeSessions, // compatibility
-        enrolledCourses: student.orders.map((order) => ({
-          orderId: order.id,
-          courseId: order.course?.id,
-          courseTitle: order.course?.title,
-          courseSlug: order.course?.slug,
-          enrolledAt: order.enrolledAt,
-          expiresAt: order.expiresAt,
-        })),
+        enrolledCourses: userOrders.map((order) => {
+          const course = courseMap.get(order.courseId);
+          return {
+            orderId: order.id,
+            courseId: course?.id,
+            courseTitle: course?.title,
+            courseSlug: course?.slug,
+            enrolledAt: order.enrolledAt,
+            expiresAt: order.expiresAt,
+          };
+        }),
       };
     });
 

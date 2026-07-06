@@ -30,10 +30,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Validate course has required fields
-    const fullCourse = await db.query.courses.findFirst({
+    const fullCourseFlat = await db.query.courses.findFirst({
       where: eq(schema.courses.id, courseId),
-      with: { instructors: true },
     });
+    const fullCourseInstructors = await db.query.courseInstructors.findMany({
+      where: eq(schema.courseInstructors.courseId, courseId),
+    });
+    const fullCourse = fullCourseFlat ? { ...fullCourseFlat, instructors: fullCourseInstructors } : null;
 
     if (!fullCourse) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -63,10 +66,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       publishedAt: status === 'published' ? new Date() : null,
     }).where(eq(schema.courses.id, courseId));
 
-    const publishedCourse = await db.query.courses.findFirst({
+    const publishedCourseFlat = await db.query.courses.findFirst({
       where: eq(schema.courses.id, courseId),
-      with: { instructors: { orderBy: (instructors, { asc }) => [asc(instructors.sortOrder)] } },
     });
+    const publishedInstructors = await db.query.courseInstructors.findMany({
+      where: eq(schema.courseInstructors.courseId, courseId),
+      orderBy: [asc(schema.courseInstructors.sortOrder)],
+    });
+    const publishedCourse = publishedCourseFlat ? { ...publishedCourseFlat, instructors: publishedInstructors } : null;
 
     return NextResponse.json({ course: publishedCourse }, { status: 200 });
   } catch (error: any) {

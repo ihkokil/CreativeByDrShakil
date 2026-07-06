@@ -57,23 +57,44 @@ export async function POST(request: NextRequest) {
         .where(eq(schema.orders.id, orderId));
     });
 
-    const fullOrder = await db.query.orders.findFirst({
+    const orderRecord = await db.query.orders.findFirst({
       where: eq(schema.orders.id, orderId),
-      with: {
-        user: { columns: { fullName: true } },
-        course: {
-          columns: { title: true },
-          with: {
-            teacher: {
+    });
+
+    let fullOrder = null;
+    if (orderRecord) {
+      const [orderUser, orderCourse] = await Promise.all([
+        db.query.users.findFirst({
+          where: eq(schema.users.id, orderRecord.userId),
+          columns: { fullName: true }
+        }),
+        db.query.courses.findFirst({
+          where: eq(schema.courses.id, orderRecord.courseId),
+          columns: { id: true, title: true, teacherId: true }
+        })
+      ]);
+
+      if (orderUser && orderCourse) {
+        const teacher = orderCourse.teacherId
+          ? await db.query.users.findFirst({
+              where: eq(schema.users.id, orderCourse.teacherId),
               columns: {
                 email: true,
-                telegramChatId: true,
-              },
-            },
-          },
-        },
-      },
-    });
+                telegramChatId: true
+              }
+            })
+          : null;
+
+        fullOrder = {
+          ...orderRecord,
+          user: orderUser,
+          course: {
+            ...orderCourse,
+            teacher
+          }
+        };
+      }
+    }
 
     if (fullOrder) {
       const managers = await db.query.users.findMany({

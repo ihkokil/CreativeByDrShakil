@@ -41,12 +41,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { courseId } = await params;
-    const course = await db.query.courses.findFirst({
+    const courseFlat = await db.query.courses.findFirst({
       where: eq(schema.courses.id, courseId),
-      with: {
-        instructors: { orderBy: [asc(schema.courseInstructors.sortOrder)] },
-      },
     });
+    const courseInstructorsList = await db.query.courseInstructors.findMany({
+      where: eq(schema.courseInstructors.courseId, courseId),
+      orderBy: [asc(schema.courseInstructors.sortOrder)],
+    });
+    const course = courseFlat ? { ...courseFlat, instructors: courseInstructorsList } : null;
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });

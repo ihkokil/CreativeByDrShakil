@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Get approved orders for these courses from users with 'student' role
-    const allOrders = await db.query.orders.findMany({
+    const allOrdersFlat = await db.query.orders.findMany({
       where: and(
         inArray(schema.orders.courseId, courseIds),
         eq(schema.orders.status, 'approved')
@@ -46,8 +46,18 @@ export async function GET(request: NextRequest) {
         userId: true,
         courseId: true,
       },
-      with: { user: { columns: { role: true } } },
     });
+
+    // Fetch users separately for MariaDB compatibility
+    const orderUserIds = [...new Set(allOrdersFlat.map(o => o.userId))] as string[];
+    const orderUsers = orderUserIds.length > 0
+      ? await db.query.users.findMany({
+          where: inArray(schema.users.id, orderUserIds),
+          columns: { id: true, role: true },
+        })
+      : [];
+    const orderUserMap = new Map(orderUsers.map(u => [u.id, u]));
+    const allOrders = allOrdersFlat.map(o => ({ ...o, user: orderUserMap.get(o.userId) || null }));
     
     const approvedOrders = allOrders.filter(o => o.user?.role === 'student');
 
@@ -55,15 +65,25 @@ export async function GET(request: NextRequest) {
     const totalStudents = uniqueStudentIds.size;
 
     // 3. Get progress entries for these courses (only for students)
-    const allProgressEntries = await db.query.lessonProgress.findMany({
+    const allProgressFlat = await db.query.lessonProgress.findMany({
       where: inArray(schema.lessonProgress.courseId, courseIds),
       columns: {
         userId: true,
         courseId: true,
         lessonNodeId: true,
       },
-      with: { user: { columns: { role: true } } },
     });
+
+    // Fetch users separately for MariaDB compatibility
+    const progressUserIds = [...new Set(allProgressFlat.map(p => p.userId))] as string[];
+    const progressUsers = progressUserIds.length > 0
+      ? await db.query.users.findMany({
+          where: inArray(schema.users.id, progressUserIds),
+          columns: { id: true, role: true },
+        })
+      : [];
+    const progressUserMap = new Map(progressUsers.map(u => [u.id, u]));
+    const allProgressEntries = allProgressFlat.map(p => ({ ...p, user: progressUserMap.get(p.userId) || null }));
     
     const progressEntries = allProgressEntries.filter(p => p.user?.role === 'student');
 
