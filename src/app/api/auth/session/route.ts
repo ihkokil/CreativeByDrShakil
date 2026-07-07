@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { extractBearerToken, extractCookieToken, verifyAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
@@ -16,7 +16,20 @@ export async function GET(request: NextRequest) {
     payload = await verifyAuthToken(token);
   } catch {
     // Token is expired or invalid — treat as unauthenticated, not a server error
-    return NextResponse.json({ user: null, role: null }, { status: 200 });
+    const response = NextResponse.json({ user: null, role: null }, { status: 200 });
+    response.cookies.delete(AUTH_COOKIE_NAME);
+    return response;
+  }
+
+  if (payload.sessionId) {
+    const { isSessionValid } = await import('@/lib/session-manager');
+    const sessionValid = await isSessionValid(payload.sessionId);
+    if (!sessionValid) {
+      // Session has been revoked or logged out
+      const response = NextResponse.json({ user: null, role: null }, { status: 200 });
+      response.cookies.delete(AUTH_COOKIE_NAME);
+      return response;
+    }
   }
 
   try {

@@ -103,7 +103,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
                 
                 newInit.headers = headers;
-                return originalFetch(input, newInit);
+                const response = await originalFetch(input, newInit);
+
+                if (response.status === 401) {
+                    const isLoginOrAuth = url.includes('/api/auth/login') ||
+                                          url.includes('/api/auth/register') ||
+                                          url.includes('/api/auth/reset-password') ||
+                                          url.includes('/api/auth/session');
+
+                    if (!isLoginOrAuth && localStorage.getItem('auth_token')) {
+                        setUser(null);
+                        setRole(null);
+                        setSession(null);
+                        setSessionId(null);
+                        localStorage.removeItem('auth_token');
+                        window.location.href = '/?auth=login';
+                    }
+                }
+
+                return response;
             } catch (err) {
                 console.error('[Fetch Interceptor Error]', err);
                 return originalFetch(input, init);
@@ -168,6 +186,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 );
             } else {
                 setSession((current) => (current ? null : current));
+                if (localStorage.getItem('auth_token')) {
+                    localStorage.removeItem('auth_token');
+                }
             }
         } catch {
             // Keep current auth state on transient client-side fetch failures.
