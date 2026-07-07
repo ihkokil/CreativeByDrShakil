@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Global Middleware for CreativeByDrShakil
+ * Global Proxy for CreativeByDrShakil
  * Handles central route protection and authentication redirects.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
     
     // 1. Specify protected routes
