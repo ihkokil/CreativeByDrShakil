@@ -33,37 +33,36 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // We are skipping `getSessionById` and `updateSessionActivity` to save 
-    // Cloudflare Edge CPU and DB writes on every request. 
-    // This makes the JWT purely stateless. Session termination will only apply on login/logout.
-    
-    // Fetch the latest profile image from the database to support base64 images 
-    // that are excluded from the JWT token to prevent cookie size overflow.
     const userRecord = await db.query.user.findFirst({
       where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: {
-        profileImage: true,
-      },
     });
 
-    const profileImage = userRecord?.profileImage || payload.user_metadata?.profile_image || null;
+    if (!userRecord || userRecord.isBanned) {
+      const response = NextResponse.json({ user: null, role: null }, { status: 200 });
+      response.cookies.delete(AUTH_COOKIE_NAME);
+      return response;
+    }
 
-    // Build the user response entirely from the JWT payload to avoid a DB read
+    if (payload.sessionId) {
+      const { updateSessionActivity } = await import('@/lib/session-manager');
+      await updateSessionActivity(payload.sessionId);
+    }
+
     return NextResponse.json({
       user: {
-        id: payload.sub,
-        email: payload.email,
-        phone: payload.user_metadata?.phone || null,
-        role: payload.role,
+        id: userRecord.id,
+        email: userRecord.email,
+        phone: userRecord.phone || null,
+        role: userRecord.role,
         user_metadata: {
-          full_name: payload.user_metadata?.full_name || null,
-          phone: payload.user_metadata?.phone || null,
-          bmdc_number: payload.user_metadata?.bmdc_number || null,
-          profile_image: profileImage,
-          canManagePayments: payload.user_metadata?.canManagePayments || false,
+          full_name: userRecord.fullName || null,
+          phone: userRecord.phone || null,
+          bmdc_number: userRecord.bmdcNumber || null,
+          profile_image: userRecord.profileImage || null,
+          canManagePayments: userRecord.canManagePayments || false,
         },
       },
-      role: payload.role,
+      role: userRecord.role,
       token,
       sessionId: payload.sessionId,
     });

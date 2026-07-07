@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+import { db } from './db';
 
 export const AUTH_COOKIE_NAME = 'session_token';
 
@@ -64,22 +65,30 @@ export async function getSession() {
   try {
     const payload = await verifyAuthToken(token);
     
-    // We are intentionally skipping the DB checks (`getSessionById` and `db.query.user.findFirst`)
-    // here as well to ensure Cloudflare edge rendering doesn't exceed the 10ms CPU limit.
-    // The session is completely stateless and relies purely on the JWT validity.
+    if (payload.sessionId) {
+      const { isSessionValid } = await import('@/lib/session-manager');
+      const sessionValid = await isSessionValid(payload.sessionId);
+      if (!sessionValid) return null;
+    }
+
+    const userRecord = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+    });
+
+    if (!userRecord || userRecord.isBanned) return null;
 
     return {
       user: {
-        id: payload.sub,
-        role: payload.role,
-        email: payload.email,
-        phone: payload.user_metadata?.phone || null,
+        id: userRecord.id,
+        role: userRecord.role,
+        email: userRecord.email,
+        phone: userRecord.phone || null,
         user_metadata: {
-          full_name: payload.user_metadata?.full_name || null,
-          phone: payload.user_metadata?.phone || null,
-          bmdc_number: payload.user_metadata?.bmdc_number || null,
-          profile_image: payload.user_metadata?.profile_image || null,
-          canManagePayments: payload.user_metadata?.canManagePayments || false,
+          full_name: userRecord.fullName || null,
+          phone: userRecord.phone || null,
+          bmdc_number: userRecord.bmdcNumber || null,
+          profile_image: userRecord.profileImage || null,
+          canManagePayments: userRecord.canManagePayments || false,
         },
       },
       sessionId: payload.sessionId,
