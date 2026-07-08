@@ -132,15 +132,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const courseAnchor = dbReleaseStart || dbCourseStart || null;
     const finalStartAt = courseAnchor || dbEnrollment;
 
-    console.log('[DEBUG] Final Scheduling:', {
-      courseId: result.course?.id,
-      hasRelease: !!dbReleaseStart,
-      hasCourse: !!dbCourseStart,
-      hasEnroll: !!dbEnrollment,
-      chosen: finalStartAt === dbReleaseStart ? 'release' : (finalStartAt === dbCourseStart ? 'course' : 'enroll'),
-      isShifted: finalStartAt === dbEnrollment && (!!dbReleaseStart || !!dbCourseStart)
-    });
-
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course?.releaseMode || 'circular',
       releaseStartAt: finalStartAt,

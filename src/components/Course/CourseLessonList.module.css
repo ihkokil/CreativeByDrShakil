@@ -1,8 +1,8 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 8px; /* Reduced from 12px */
-  margin-top: 16px; /* Reduced from 24px */
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .emptyState {
@@ -15,185 +15,201 @@
   border: 1px dashed var(--glass-border);
 }
 
-.lessonCard {
-  display: flex;
-  align-items: center;
-  background: var(--glass);
+/* ── Folder Accordion ── */
+.folderAccordion {
   border: 1px solid var(--glass-border);
-  border-radius: var(--radius-md); /* Slightly more compact radius */
-  padding: 10px 16px; /* Reduced padding from 16px 20px */
-  transition: all 0.2s var(--ease-premium);
-  backdrop-filter: blur(8px);
-  position: relative;
+  border-radius: var(--radius-md);
   overflow: hidden;
-}
-
-.lessonCard::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
-  background: linear-gradient(to bottom, var(--primary), var(--accent));
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.lessonCard:hover {
-  background: var(--surface-soft);
-  border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
-  transform: translateX(4px);
-  box-shadow: var(--shadow-soft);
-}
-
-.lessonCard.lockedCard {
-  opacity: 0.7;
-  filter: grayscale(0.2);
-}
-
-.lessonCard.lockedCard:hover {
-  transform: none;
   background: var(--glass);
-  border-color: var(--glass-border);
-  box-shadow: none;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s ease;
 }
 
-.lessonCard.lockedCard .playButton {
-  opacity: 0.2;
+.folderAccordion:hover {
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+}
+
+.folderHeader {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  background: var(--surface-soft);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s ease;
+}
+
+.folderHeader:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface-soft));
+}
+
+.folderHeader:disabled {
   cursor: not-allowed;
 }
 
-.lessonCard.lockedCard::before {
-  background: var(--text-muted);
+.folderLocked {
+  opacity: 0.7;
 }
 
-.lessonCard:hover::before {
-  opacity: 1;
+.folderLocked:hover {
+  background: var(--surface-soft);
 }
 
-.indexColumn {
-  flex: 0 0 32px; /* Reduced from 40px */
+.folderHeaderLeft {
   display: flex;
-  justify-content: center;
   align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
-.indexNumber {
-  font-size: 1rem; /* Reduced from 1.25rem */
-  font-weight: 700;
-  color: var(--text-muted);
-  opacity: 0.5;
-  transition: all 0.2s ease;
-}
-
-.lessonCard:hover .indexNumber {
+.folderIconOpen {
   color: var(--primary);
-  opacity: 1;
-  transform: scale(1.1);
+  flex-shrink: 0;
 }
 
-.contentColumn {
-  flex: 1 1 auto;
-  padding-left: 12px;
+.folderIconClosed {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.folderName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lockIcon {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.folderHeaderRight {
   display: flex;
-  flex-direction: row; /* Changed to row for compactness */
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
+  margin-left: 12px;
 }
 
-.title {
-  font-size: 0.95rem; /* Slightly smaller */
-  font-weight: 500;
-  color: var(--foreground);
-  margin: 0;
-  line-height: 1.4;
-  flex: 1;
-}
-
-.metaRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.metaBadge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.7rem;
+.itemCount {
+  font-size: 0.75rem;
   color: var(--text-muted);
-  background: var(--surface-soft);
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-weight: 500;
-  border: 1px solid var(--glass-border);
+  white-space: nowrap;
 }
 
-.availableBadge {
-  color: #22c55e !important;
-  border-color: color-mix(in srgb, #22c55e 30%, transparent) !important;
-  background: color-mix(in srgb, #22c55e 10%, transparent) !important;
-}
-
-.durationColumn {
-  flex: 0 0 auto;
-  padding-left: 12px;
-}
-
-.durationBadge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8rem;
+.chevron {
   color: var(--text-muted);
-  font-weight: 500;
-}
-
-.actionColumn {
-  flex: 0 0 auto;
   display: flex;
-  justify-content: center;
   align-items: center;
-  margin-left: 10px;
 }
 
-.playButton {
-  background: none;
-  border: none;
+/* ── Folder Content ── */
+.folderContent {
+  overflow: hidden;
+  border-top: 1px solid var(--glass-border);
+}
+
+.folderLockedHint {
+  padding: 8px 18px 10px;
+  font-size: 0.72rem;
   color: var(--text-muted);
-  opacity: 0.4;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
+  font-style: italic;
+  opacity: 0.8;
+  border-top: 1px solid var(--glass-border);
 }
 
-.lessonCard:hover .playButton {
+/* ── Lesson Row (inside accordion or flat) ── */
+.lessonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 10px 42px;
+  border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 40%, transparent);
+  transition: background 0.15s ease;
+}
+
+.lessonRow:last-child {
+  border-bottom: none;
+}
+
+.lessonRow:hover {
+  background: color-mix(in srgb, var(--primary) 5%, var(--background));
+}
+
+.lessonRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.playIcon {
   color: var(--primary);
-  opacity: 1;
-  transform: scale(1.1);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.docIcon {
+  color: #6366f1;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.lessonTitle {
+  font-size: 0.88rem;
+  font-weight: 450;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.completedBadge {
+  font-size: 0.68rem;
+  color: #22c55e;
+  background: color-mix(in srgb, #22c55e 12%, transparent);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.duration {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* ── Flat lesson card (no folder) ── */
+.lessonRow:first-child:last-child {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
 }
 
 @media (max-width: 640px) {
-  .lessonCard {
-    padding: 8px 12px;
-  }
-  
-  .contentColumn {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+  .lessonRow {
+    padding: 8px 14px 8px 28px;
   }
 
-  .durationColumn {
+  .lessonTitle {
+    font-size: 0.82rem;
+  }
+
+  .itemCount {
     display: none;
   }
-  
-  .title {
-    font-size: 0.9rem;
+
+  .folderHeader {
+    padding: 12px 14px;
   }
 }

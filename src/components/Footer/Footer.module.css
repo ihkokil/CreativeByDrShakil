@@ -82,7 +82,7 @@
   gap: 12px;
 }
 
-.linkColumn a {
+.linkColumn ul a {
   color: var(--text-muted);
   font-weight: var(--weight-medium);
   transition: all var(--duration-fast) var(--ease-premium);
@@ -110,7 +110,7 @@
 .socialButton {
   display: flex;
   align-items: center;
-  gap: 14px;
+  justify-content: center; /* center the inner group */
   padding: 14px 22px;
   border-radius: var(--radius-lg);
   background: var(--surface-soft);
@@ -127,14 +127,17 @@
   min-height: 48px;
 }
 
-.socialButton span {
-  letter-spacing: 0.5px;
-  font-size: var(--text-small);
+.socialButtonContent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
 }
 
 .socialButton svg {
   width: 22px;
   height: 22px;
+  flex-shrink: 0;
   transition: transform var(--duration-fast);
 }
 

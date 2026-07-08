@@ -22,7 +22,7 @@ export default function Footer() {
                     <div className={styles.contactInfo}>
                         <div className={styles.contactItem}>
                             <Mail size={18} />
-                            <span>contact@drshakil.com</span>
+                            <span>support@creativebydrshakil.com</span>
                         </div>
                     </div>
                 </div>
@@ -50,13 +50,28 @@ export default function Footer() {
                     <div className={styles.linkColumn}>
                         <h4>Follow Us</h4>
                         <div className={styles.socialGrid}>
-                            <a href="https://www.facebook.com/groups/419870195107263" target="_blank" rel="noopener noreferrer" className={`${styles.socialButton} ${styles.facebookBtn}`}>
+                            <a
+                            href="https://www.facebook.com/groups/419870195107263"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${styles.socialButton} ${styles.facebookBtn}`}
+                            >
+                            <span className={styles.socialButtonContent}>
                                 <Facebook />
                                 <span>Facebook</span>
+                            </span>
                             </a>
-                            <a href="https://www.youtube.com/@nahidshakil5927" target="_blank" rel="noopener noreferrer" className={`${styles.socialButton} ${styles.youtubeBtn}`}>
+
+                            <a
+                            href="https://www.youtube.com/@nahidshakil5927"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${styles.socialButton} ${styles.youtubeBtn}`}
+                            >
+                            <span className={styles.socialButtonContent}>
                                 <Youtube />
                                 <span>YouTube</span>
+                            </span>
                             </a>
                         </div>
                     </div>

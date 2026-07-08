@@ -276,7 +276,7 @@ export default function CourseDetailPage() {
                     {dynamicCurriculum.length > 0 && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
-                            <CourseLessonList curriculum={dynamicCurriculum} />
+                            <CourseLessonList curriculum={dynamicCurriculum} hasAccess={userEnrolled} />
                         </section>
                     )}
 
@@ -285,6 +285,7 @@ export default function CourseDetailPage() {
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
                             <CourseLessonList
+                                hasAccess={userEnrolled}
                                 curriculum={displayCourse.curriculum.flatMap(module => 
                                     module.lessons.map(lesson => ({
                                         id: lesson.title,
