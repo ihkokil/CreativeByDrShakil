@@ -12,13 +12,11 @@ export default function FloatingThemeToggle() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setMounted(true);
-
         const savedTheme = localStorage.getItem("theme");
         const resolvedTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
         setTheme(resolvedTheme);
         document.documentElement.setAttribute("data-theme", resolvedTheme);
+        setMounted(true);
     }, []);
 
     useEffect(() => {

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { X, Loader2, Check } from "lucide-react";
 import styles from "./StudentRulesModal.module.css";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface StudentRulesModalProps {
     courseId: string;

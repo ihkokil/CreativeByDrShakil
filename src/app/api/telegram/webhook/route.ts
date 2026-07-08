@@ -228,8 +228,6 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          console.log(`[AUDIT] Student ${student.fullName} (${userId}) enrolled in course ${course.title} (${courseId}) via Telegram Bot by ${from.first_name || 'Admin'}`);
-
           await sendMsg(callbackChatId, `✅ Student successfully enrolled in:\n📚 <b>${course.title}</b>`);
         }
       }
@@ -460,7 +458,6 @@ export async function POST(request: NextRequest) {
           eq(smaSchema.userId, userId)
         ));
 
-        console.log(`[AUDIT] Student ${userId} enrollment date updated to ${responseText} via Telegram Bot by ${from?.first_name || 'Admin'}`);
         await sendMsg(messageChatId, `✅ <b>Enrollment date updated successfully.</b>\n\n📚 <b>Course:</b> ${course?.title || 'Unknown Course'}\n📅 <b>New Start Date:</b> ${responseText}\n⏳ <b>Calculated Expiry:</b> ${end.toISOString().split('T')[0]}`);
       }
 

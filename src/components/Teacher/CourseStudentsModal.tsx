@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { X, Search, Users, Loader2 } from "lucide-react";
+import { X, Search, Users, Loader2, UserPlus } from "lucide-react";
 import Image from "next/image";
 import styles from "./CourseStudentsModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentRulesModal from "./StudentRulesModal";
 import StudentIndividualOverridesModal from "./StudentIndividualOverridesModal";
 import EnrollStudentModal from "./EnrollStudentModal";
-import { UserPlus } from "lucide-react";
 interface CourseStudentsModalProps {
     courseId: string;
     courseTitle: string;

@@ -60,9 +60,7 @@ export default function Navbar() {
             : null;
 
         if (authParam === "login" || authParam === "register") {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setAuthMode(authParam);
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsAuthOpen(true);
         }
     }, [pathname]);

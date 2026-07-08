@@ -14,7 +14,7 @@ import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-director
 import AuthModal from "@/components/Auth/AuthModal";
 import { useAuth } from "@/context/AuthContext";
 
-// New Premium Components
+// Premium Components
 import CourseHero from "@/components/Course/CourseHero";
 import CourseStats from "@/components/Course/CourseStats";
 import CourseSidebar from "@/components/Course/CourseSidebar";

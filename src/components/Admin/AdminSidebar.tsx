@@ -21,7 +21,7 @@ import {
     UserCog
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 

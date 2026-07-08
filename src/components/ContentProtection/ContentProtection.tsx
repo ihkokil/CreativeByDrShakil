@@ -58,7 +58,6 @@ export default function ContentProtection() {
 
             if (widthDiff || heightDiff) {
                 if (!devToolsOpen) {
-                    console.log("%cSecurity Alert%c: Debugging detected.", "color: red; font-size: 20px; font-weight: bold;", "color: black;");
                     devToolsOpen = true;
                 }
             } else {

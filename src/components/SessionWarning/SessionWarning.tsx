@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import styles from "./SessionWarning.module.css";
@@ -28,21 +28,20 @@ export default function SessionWarningToast() {
     setClosing(false);
   }, [hasSessionTerminated]);
 
-  // Auto-close after 3 seconds
-  useEffect(() => {
-    if (!visible) return;
-    const timer = setTimeout(() => dismiss(), 5000); // 5 seconds is better for reading custom messages
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
-
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     setClosing(true);
     setTimeout(() => {
       setVisible(false);
       router.push("/");
     }, 300);
-  };
+  }, [router]);
+
+  // Auto-close after 5 seconds
+  useEffect(() => {
+    if (!visible) return;
+    const timer = setTimeout(() => dismiss(), 5000);
+    return () => clearTimeout(timer);
+  }, [visible, dismiss]);
 
   if (!visible) return null;
 
