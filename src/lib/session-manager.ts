@@ -191,6 +191,33 @@ export async function terminateActiveSessionsByDeviceType(userId: string, device
   return sessionIds;
 }
 
+export async function getFirstDeviceForCategory(userId: string, deviceType: DeviceType): Promise<SessionInfo | null> {
+  const session = await db.query.deviceSession.findFirst({
+    where: (ds, { eq, and, isNotNull }) => and(
+      eq(ds.userId, userId),
+      eq(ds.deviceType, deviceType),
+      isNotNull(ds.deviceHash)
+    ),
+    orderBy: (ds, { asc }) => [asc(ds.createdAt)],
+  });
+  if (!session) return null;
+  return {
+    id: session.id,
+    userId: session.userId,
+    deviceType: session.deviceType as DeviceType,
+    browserName: session.browserName,
+    ipAddress: session.ipAddress,
+    isLocked: session.isLocked,
+    loggedOutAt: mapDate(session.loggedOutAt),
+    createdAt: new Date(session.createdAt),
+    lastActivityAt: new Date(session.lastActivityAt),
+    deviceHash: session.deviceHash,
+    deviceLabel: session.deviceLabel,
+    osInfo: session.osInfo,
+    lockedByDeviceLabel: session.lockedByDeviceLabel,
+  };
+}
+
 export async function getSessionById(sessionId: string): Promise<SessionInfo | null> {
   const session = await db.query.deviceSession.findFirst({
     where: (ds, { eq }) => eq(ds.id, sessionId),

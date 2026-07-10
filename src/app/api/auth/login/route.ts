@@ -11,6 +11,7 @@ import {
   getActiveSessionsByDeviceType,
   terminateActiveSessionsByDeviceType,
   getAutoLockSetting,
+  getFirstDeviceForCategory,
 } from '@/lib/session-manager';
 
 const loginSchema = z.object({
@@ -148,6 +149,22 @@ export async function POST(request: NextRequest) {
       const index = activeSessions.findIndex(s => s.id === existingActiveSameDevice.id);
       if (index > -1) {
         activeSessions.splice(index, 1);
+      }
+    }
+
+    // Auto-lock first-browser per device category (students only)
+    if (!isSessionRestrictionExempt) {
+      const autoLockSetting = await getAutoLockSetting(userRecord.id);
+      if (autoLockSetting) {
+        const firstDevice = await getFirstDeviceForCategory(userRecord.id, deviceType);
+        if (firstDevice && firstDevice.deviceHash && firstDevice.deviceHash !== deviceHash) {
+          const categoryName = deviceType === 'desktop' ? 'Desktop/Laptop' :
+                               deviceType === 'tablet' ? 'Tablet' : 'Mobile';
+          return NextResponse.json({
+            error: `This account is already linked to a different ${categoryName.toLowerCase()} device. Only the original device in this category can log in.`,
+            code: 'device_category_locked',
+          }, { status: 403 });
+        }
       }
     }
 
