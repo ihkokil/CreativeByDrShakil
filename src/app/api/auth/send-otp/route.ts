@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { emailOtp } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { sendOtpEmail } from '@/lib/auth-emails';
+import { isPhoneNumber } from '@/lib/login-validator';
 
 const sendOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -30,6 +31,11 @@ export async function POST(request: NextRequest) {
 
     const { email } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
+
+    // Reject phone-number-like emails to protect Resend quota
+    if (isPhoneNumber(normalizedEmail.split("@")[0])) {
+      return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+    }
 
     // Check if user already exists
     const userExists = await db.query.user.findFirst({

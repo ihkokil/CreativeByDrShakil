@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "../AuthPages.module.css";
-import { resolveEmail, validateEmail } from "@/lib/email-resolver";
+import { resolveEmail } from "@/lib/email-resolver";
+import { normalizeLoginIdentifier } from "@/lib/login-validator";
 import { useAuth } from "@/context/AuthContext";
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 
@@ -41,21 +42,12 @@ export default function ForgotPasswordPage() {
 
     const handleEmailSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
-        const trimmedEmail = email.trim();
-        if (!trimmedEmail) {
-            setMessage({ type: "error", text: "Email address is required." });
+        const result = normalizeLoginIdentifier(email);
+        if (!result.valid) {
+            setMessage({ type: "error", text: result.reason });
             return;
         }
-
-        const resolved = resolveEmail(trimmedEmail);
-        if (!validateEmail(resolved)) {
-            if (trimmedEmail.includes("@")) {
-                setMessage({ type: "error", text: "Please enter a valid email address." });
-            } else {
-                setMessage({ type: "error", text: "Please enter a valid username." });
-            }
-            return;
-        }
+        const resolved = result.email;
 
         setLoading(true);
         setMessage(null);
