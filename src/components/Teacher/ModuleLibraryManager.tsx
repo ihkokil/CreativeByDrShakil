@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, GripVertical, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type ContentType = 'youtube' | 'vimeo' | 'self-hosted' | 'document';
@@ -60,9 +60,18 @@ interface NodeProps {
     onDelete: (id: string) => void;
     onEdit: (node: CurriculumNode) => void;
     onMove: (id: string, direction: 'up' | 'down') => void;
+    siblingIds: string[];
+    dragNodeId: string | null;
+    dragOverNodeId: string | null;
+    dragOverPosition: 'above' | 'below' | null;
+    onDragStart: (id: string) => void;
+    onDragEnd: () => void;
+    onDragOver: (targetId: string, e: React.DragEvent) => void;
+    onDragLeave: (targetId: string) => void;
+    onDrop: (draggedId: string, targetId: string, position: 'above' | 'below', siblingIds: string[]) => void;
 }
 
-const LibraryItem = ({ node, depth, onDelete, onEdit, onMove }: NodeProps) => {
+const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNodeId, dragOverNodeId, dragOverPosition, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop }: NodeProps) => {
     const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
 
@@ -71,14 +80,50 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove }: NodeProps) => {
         if (isFolder) setIsOpen(!isOpen);
     };
 
+    const isThisDragging = dragNodeId === node.id;
+    const isDropTarget = dragNodeId && dragNodeId !== node.id && dragOverNodeId === node.id;
+    let rowClass = `${styles.nodeRow} ${isFolder ? styles.folderRow : styles.videoRow}`;
+    if (isThisDragging) rowClass += ` ${styles.dragging}`;
+    if (isDropTarget && dragOverPosition === 'above') rowClass += ` ${styles.dragOverAbove}`;
+    if (isDropTarget && dragOverPosition === 'below') rowClass += ` ${styles.dragOverBelow}`;
+
+    const handleRowDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDragOver(node.id, e);
+    };
+
+    const handleRowDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!dragNodeId || dragNodeId === node.id) return;
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const position: 'above' | 'below' = y < rect.height / 2 ? 'above' : 'below';
+        onDrop(dragNodeId, node.id, position, siblingIds);
+    };
+
     return (
         <div className={styles.nodeContainer}>
             <div
-                className={`${styles.nodeRow} ${isFolder ? styles.folderRow : styles.videoRow}`}
+                className={rowClass}
                 style={{ paddingLeft: `${depth * 25 + 15}px` }}
                 onClick={handleToggle}
+                onDragOver={handleRowDragOver}
+                onDragLeave={() => onDragLeave(node.id)}
+                onDrop={handleRowDrop}
             >
                 <div className={styles.nodeLabel}>
+                    <div
+                        className={styles.dragHandle}
+                        draggable
+                        onDragStart={(e) => { e.stopPropagation(); onDragStart(node.id); }}
+                        onDragEnd={(e) => { e.stopPropagation(); onDragEnd(); }}
+                        title="Drag to reorder"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <GripVertical size={14} />
+                    </div>
                     {isFolder ? (
                         <>
                             {isOpen ? <FolderOpen size={18} className={styles.folderIcon} /> : <Folder size={18} className={styles.folderIcon} />}
@@ -131,6 +176,15 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove }: NodeProps) => {
                                 onDelete={onDelete}
                                 onEdit={onEdit}
                                 onMove={onMove}
+                                siblingIds={node.children!.map(c => c.id)}
+                                dragNodeId={dragNodeId}
+                                dragOverNodeId={dragOverNodeId}
+                                dragOverPosition={dragOverPosition}
+                                onDragStart={onDragStart}
+                                onDragEnd={onDragEnd}
+                                onDragOver={onDragOver}
+                                onDragLeave={onDragLeave}
+                                onDrop={onDrop}
                             />
                         ))}
                     </motion.div>
@@ -166,6 +220,59 @@ export default function ModuleLibraryManager() {
     const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [dragNodeId, setDragNodeId] = useState<string | null>(null);
+    const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null);
+    const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
+
+    const handleDragStart = (id: string) => { setDragNodeId(id); };
+    const handleDragEnd = () => { setDragNodeId(null); setDragOverNodeId(null); setDragOverPosition(null); };
+
+    const handleDragOver = (targetId: string, e: React.DragEvent) => {
+        e.preventDefault();
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        setDragOverNodeId(targetId);
+        setDragOverPosition(y < rect.height / 2 ? 'above' : 'below');
+    };
+
+    const handleDragLeave = (targetId: string) => {
+        setDragOverNodeId(prev => prev === targetId ? null : prev);
+        setDragOverPosition(null);
+    };
+
+    const handleDrop = async (draggedId: string, targetId: string, position: 'above' | 'below', ids: string[]) => {
+        setDragNodeId(null);
+        setDragOverNodeId(null);
+        setDragOverPosition(null);
+
+        if (draggedId === targetId) return;
+
+        const targetIdx = ids.indexOf(targetId);
+        if (targetIdx === -1) return;
+
+        const draggedIdx = ids.indexOf(draggedId);
+        let newIndex: number;
+        if (draggedIdx === -1) {
+            newIndex = position === 'above' ? targetIdx : targetIdx + 1;
+        } else {
+            newIndex = position === 'above'
+                ? (draggedIdx < targetIdx ? targetIdx - 1 : targetIdx)
+                : (draggedIdx < targetIdx ? targetIdx : targetIdx + 1);
+        }
+
+        try {
+            const res = await fetch('/api/teacher/video-library/reorder', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id: draggedId, targetIndex: newIndex }),
+            });
+            if (!res.ok) throw new Error("Failed to reorder.");
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to move item.');
+        }
+    };
 
     const getAuthHeaders = useCallback((): HeadersInit => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -571,7 +678,23 @@ export default function ModuleLibraryManager() {
                         </div>
                     ) : (
                         activeRootNode?.children?.map(node => (
-                            <LibraryItem key={node.id} node={node} depth={0} onDelete={handleDeleteClick} onEdit={handleEditClick} onMove={handleMoveItem} />
+                            <LibraryItem
+                                key={node.id}
+                                node={node}
+                                depth={0}
+                                onDelete={handleDeleteClick}
+                                onEdit={handleEditClick}
+                                onMove={handleMoveItem}
+                                siblingIds={activeRootNode!.children!.map(c => c.id)}
+                                dragNodeId={dragNodeId}
+                                dragOverNodeId={dragOverNodeId}
+                                dragOverPosition={dragOverPosition}
+                                onDragStart={handleDragStart}
+                                onDragEnd={handleDragEnd}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                            />
                         ))
                     )}
                 </motion.div>

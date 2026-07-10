@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
         if (!authCheck.ok) return authCheck.response;
 
         const body = await request.json();
-        const { id, direction } = body;
+        const { id, direction, targetIndex } = body;
 
-        if (!id || (direction !== 'up' && direction !== 'down')) {
-            return NextResponse.json({ error: 'Invalid parameters.' }, { status: 400 });
+        if (!id || (direction !== 'up' && direction !== 'down' && typeof targetIndex !== 'number')) {
+            return NextResponse.json({ error: 'Invalid parameters. Provide id + direction or id + targetIndex.' }, { status: 400 });
         }
 
         const node = await db.query.videoLibraryNode.findFirst({ where: (v, { eq }) => eq(v.id, id) });
@@ -52,25 +52,36 @@ export async function POST(request: NextRequest) {
         const index = siblings.findIndex(s => s.id === id);
         if (index === -1) return NextResponse.json({ error: 'Node context missing.' }, { status: 500 });
 
-        const reordered = [...siblings];
+        let reordered: typeof siblings;
 
-        if (direction === 'up' && index > 0) {
-            [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
-        } else if (direction === 'down' && index < reordered.length - 1) {
-            [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+        if (typeof targetIndex === 'number') {
+            reordered = siblings.filter(s => s.id !== id);
+            const insertAt = Math.min(targetIndex, reordered.length);
+            const moved = siblings[index];
+            reordered.splice(insertAt, 0, moved);
+
+            if (insertAt === index) {
+                return NextResponse.json({ success: true, changed: false });
+            }
         } else {
-            return NextResponse.json({ success: true, changed: false });
+            reordered = [...siblings];
+
+            if (direction === 'up' && index > 0) {
+                [reordered[index - 1], reordered[index]] = [reordered[index], reordered[index - 1]];
+            } else if (direction === 'down' && index < reordered.length - 1) {
+                [reordered[index], reordered[index + 1]] = [reordered[index + 1], reordered[index]];
+            } else {
+                return NextResponse.json({ success: true, changed: false });
+            }
         }
 
-        if (reordered.length > 0) {
-            await db.transaction(async (tx) => {
-                for (let idx = 0; idx < reordered.length; idx++) {
-                    await tx.update(vlnSchema)
-                      .set({ sortOrder: idx })
-                      .where(eq(vlnSchema.id, reordered[idx].id));
-                }
-            });
-        }
+        await db.transaction(async (tx) => {
+            for (let idx = 0; idx < reordered.length; idx++) {
+                await tx.update(vlnSchema)
+                  .set({ sortOrder: idx })
+                  .where(eq(vlnSchema.id, reordered[idx].id));
+            }
+        });
 
         return NextResponse.json({ success: true, changed: true });
     } catch (error: any) {

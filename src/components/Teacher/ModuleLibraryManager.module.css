@@ -999,3 +999,36 @@
     color: white;
     text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+
+.dragHandle {
+    cursor: grab;
+    color: var(--text-muted);
+    opacity: 0.25;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.2s;
+    padding: 0 6px 0 2px;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.nodeRow:hover .dragHandle {
+    opacity: 0.8;
+}
+
+.dragHandle:active {
+    cursor: grabbing;
+    opacity: 1;
+}
+
+.dragging {
+    opacity: 0.35;
+}
+
+.dragOverAbove {
+    border-top: 2px solid var(--primary) !important;
+}
+
+.dragOverBelow {
+    border-bottom: 2px solid var(--primary) !important;
+}
