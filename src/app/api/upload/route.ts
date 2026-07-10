@@ -5,8 +5,13 @@ import { uploadFileToStorage } from '@/utils/storage';
 
 
 
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
+
+const SIZE_LIMITS: Record<string, number> = {
+  'profiles': 5 * 1024 * 1024,
+  'course-thumbnails': 10 * 1024 * 1024,
+};
+const DEFAULT_SIZE_LIMIT = 10 * 1024 * 1024;
 
 const sanitizeFileName = (fileName: string) =>
   fileName
@@ -33,6 +38,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const targetFolder = formData.get('folder') as string;
+    const sanitizedFolder = targetFolder ? sanitizeFileName(targetFolder) : 'course-thumbnails';
+    const maxSize = SIZE_LIMITS[sanitizedFolder] || DEFAULT_SIZE_LIMIT;
+
     // Validate file type
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
       return NextResponse.json(
@@ -41,16 +50,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    // Validate file size
+    if (file.size > maxSize) {
+      const limitMB = maxSize / (1024 * 1024);
       return NextResponse.json(
-        { error: 'File size exceeds 5MB limit' },
+        { error: `File size exceeds ${limitMB}MB limit` },
         { status: 400 }
       );
     }
 
-    const targetFolder = formData.get('folder') as string;
-    const sanitizedFolder = targetFolder ? sanitizeFileName(targetFolder) : 'course-thumbnails';
     const safeName = sanitizeFileName(file.name || 'thumbnail.jpg');
     const ext = path.extname(safeName) || '.jpg';
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
