@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
-import { Search, Loader2, Edit, Trash2, MailCheck, GraduationCap, X, User, Mail, Phone, FileText, ImagePlus, Send } from "lucide-react";
+import { Search, Loader2, Edit, Trash2, GraduationCap, X, User, Mail, Phone, FileText, ImagePlus, Send } from "lucide-react";
 import dashStyles from "@/app/admin/dashboard/AdminDashboard.module.css";
 import localStyles from "./StudentsList.module.css";
 
@@ -15,7 +15,7 @@ interface StudentProfile {
     role: string;
     created_at: string;
     profile_image?: string;
-    emailVerified?: boolean;
+
 }
 
 export default function StudentsList() {
@@ -61,7 +61,7 @@ export default function StudentsList() {
                     role: s.role,
                     created_at: s.created_at,
                     profile_image: s.profile_image,
-                    emailVerified: s.emailVerified,
+
                 }));
                 setStudents(mappedStudents);
             }
@@ -174,30 +174,7 @@ export default function StudentsList() {
         } finally { setIsSubmitting(false); }
     };
 
-    const handleConfirmEmail = async (student: StudentProfile) => {
-        setIsSubmitting(true);
-        setMessage(null);
-        try {
-            const token = localStorage.getItem("auth_token");
-            const res = await fetch("/api/admin/students/manage", {
-                method: "PUT",
-                headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-                body: JSON.stringify({ id: student.id, emailVerified: true }),
-            });
-            const data = await res.json();
 
-            if (res.ok) {
-                showMessage({ type: 'success', text: data.message || `${student.full_name}'s email has been confirmed.` });
-                fetchStudents();
-            } else {
-                showMessage({ type: 'error', text: data.error || 'Failed to confirm email.' });
-            }
-        } catch (err) {
-            showMessage({ type: 'error', text: 'Network error. Please try again.' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     return (
         <div className={localStyles.wrapper}>
@@ -251,18 +228,7 @@ export default function StudentsList() {
                                             <FileText size={14} /> BM&DC: {student.bmdcNumber}
                                         </p>
                                     )}
-                                    <div style={{ marginTop: '8px' }}>
-                                        <span
-                                            className={dashStyles.rolePill}
-                                            style={{
-                                                width: 'max-content',
-                                                background: student.emailVerified ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                                                color: student.emailVerified ? '#10b981' : '#f59e0b',
-                                            }}
-                                        >
-                                            {student.emailVerified ? 'Email confirmed' : 'Email unconfirmed'}
-                                        </span>
-                                    </div>
+
                                 </div>
                                 <div className={dashStyles.cardFooter}>
                                     <div className={dashStyles.listCol}>
@@ -274,9 +240,7 @@ export default function StudentsList() {
                                         </span>
                                     </div>
                                     <div className={dashStyles.cardActions}>
-                                        {!student.emailVerified && (
-                                            <button className={dashStyles.actionBtn} onClick={() => handleConfirmEmail(student)} title="Confirm email" disabled={isSubmitting}><MailCheck size={16} /></button>
-                                        )}
+
                                         <button className={dashStyles.actionBtn} onClick={() => { setFormData({ fullName: student.full_name, email: student.email, phone: student.phone || '', bmdcNumber: student.bmdcNumber || '', profileImage: student.profile_image || '' }); setEditStudent(student); setMessage(null); }} title="Edit Profile"><Edit size={16} /></button>
                                         <button className={`${dashStyles.actionBtn} ${dashStyles.danger}`} onClick={() => setDeleteStudent(student)} title="Delete"><Trash2 size={16} /></button>
                                     </div>

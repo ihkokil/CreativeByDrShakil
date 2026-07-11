@@ -9,6 +9,8 @@ import { ensureCourseEnrollment } from '@/lib/enrollment';
  * Accessible by: Admin, Teacher
  */
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const auth = await getSession();
@@ -23,6 +25,8 @@ export async function GET() {
         id: true,
         fullName: true,
         email: true,
+        phone: true,
+        bmdcNumber: true,
         role: true,
         createdAt: true,
         profileImage: true,
@@ -69,6 +73,8 @@ export async function GET() {
         id: student.id,
         fullName: student.fullName,
         email: student.email,
+        phone: student.phone,
+        bmdcNumber: student.bmdcNumber,
         role: student.role,
         createdAt: student.createdAt,
         profileImage: student.profileImage,

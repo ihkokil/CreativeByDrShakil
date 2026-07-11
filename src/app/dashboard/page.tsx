@@ -562,7 +562,7 @@ function StudentDashboardContent() {
               <p className={profileStyles.userEmail}>{data.profile.email}</p>
               
               <div className={profileStyles.roleBadge}>
-                {data.profile.role} Student
+                {data.profile.role.toUpperCase()}
               </div>
 
               <div className={profileStyles.statsRow}>

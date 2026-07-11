@@ -128,10 +128,10 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                         >
                             <div className={styles.optionHeader}>
                                 <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Start from today (Default)</span>
+                                <span className={styles.optionTitle}>Start from Enrollment date (Default)</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                All are locked & each module will be available following the module rule, starting from today.
+                                All are locked & each module will be available following the module rule, starting from the enrollment date.
                             </div>
                         </div>
 

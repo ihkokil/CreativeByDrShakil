@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
         const inlineKeyboard = [
           [{ text: '🗓 Change enrollment date', callback_data: `at:cd:${compressedUserId}:${courseId}` }],
           [{ text: '🔓 Unlock all modules', callback_data: `at:ua:${compressedUserId}:${courseId}` }],
-          [{ text: '🏁 Start from today (Default)', callback_data: `at:st:${compressedUserId}:${courseId}` }],
+          [{ text: '🏁 Start from Enrollment date (Default)', callback_data: `at:st:${compressedUserId}:${courseId}` }],
           [{ text: '📅 Select Week Days', callback_data: `at:wd:${compressedUserId}:${courseId}` }],
           [{ text: '⏳ Set Day Interval', callback_data: `at:ci:${compressedUserId}:${courseId}` }]
         ];

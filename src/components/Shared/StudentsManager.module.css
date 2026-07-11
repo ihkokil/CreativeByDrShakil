@@ -1,7 +1,8 @@
+/* ===== Wrapper & Header ===== */
 .wrapper {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .header {
@@ -9,7 +10,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .searchBar {
@@ -49,7 +50,68 @@
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent);
 }
 
-/* Checkbox and batch bar */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ===== Table Styles ===== */
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
+}
+
+.table th, .table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.table th {
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.table tbody tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.table tbody tr:hover {
+  background: color-mix(in srgb, var(--primary) 4%, transparent);
+}
+
+.table tbody tr.selectedRow {
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Checkbox */
 .checkbox {
   width: 18px;
   height: 18px;
@@ -57,89 +119,509 @@
   accent-color: var(--primary);
 }
 
+/* Course mini-cards inside table */
+.courseCards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.courseCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  width: fit-content;
+  max-width: 100%;
+  transition: all 0.2s;
+}
+
+.courseCard:hover {
+  background: var(--surface-strong);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--glass-border));
+}
+
+.courseCardBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.courseCardTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.courseCardDate {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coursePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 15%, transparent);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.coursePillMore {
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  border-color: var(--glass-border);
+}
+
+.noCoursesPill {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Action buttons in table */
+.rowActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.rowActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 110px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rowActionBtn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+
+/* Select All Bar */
+.selectAllBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.selectAllBar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.studentCount {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ===== Multi-Select Course Dropdown ===== */
+.multiSelectWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.multiSelectTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--foreground);
+  transition: all 0.2s ease;
+  min-height: 42px;
+  gap: 8px;
+}
+
+.multiSelectTrigger:hover {
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.multiSelectTrigger.open {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent);
+  border-radius: 10px 10px 0 0;
+}
+
+.triggerPlaceholder {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.triggerPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+}
+
+.triggerPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.triggerPillRemove {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.triggerPillRemove:hover {
+  opacity: 1;
+}
+
+.chevronIcon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.chevronIcon.rotated {
+  transform: rotate(180deg);
+}
+
+.multiSelectDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--primary);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: dropdownSlide 0.15s ease-out;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdownOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--foreground);
+  transition: background 0.15s;
+  border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 40%, transparent);
+}
+
+.dropdownOption:last-child {
+  border-bottom: none;
+}
+
+.dropdownOption:hover {
+  background: color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+.dropdownOption.checked {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.dropdownOption input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ===== Enhanced Batch Action Bar ===== */
+.batchContainer {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 12px;
+  width: 90%;
+  max-width: 800px;
+}
+
 .batchBar {
-  position: sticky;
-  bottom: 20px;
-  background: rgba(30, 41, 59, 0.85);
-  backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 16px 24px;
+  padding: 14px 20px;
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  z-index: 100;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-  margin-top: 16px;
+  width: 100%;
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: batchSlideUp 0.3s ease-out;
 }
 
-.batchGroup {
+@keyframes batchSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.batchLeft {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.batchText {
-  font-weight: 600;
-  font-size: 0.9rem;
+.batchCount {
+  font-weight: 700;
+  font-size: 0.88rem;
   color: #f1f5f9;
+  white-space: nowrap;
 }
 
-.select {
-  padding: 8px 12px;
-  background: var(--surface-strong);
-  border: 1px solid var(--glass-border);
+.batchClear {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.batchClear:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.batchActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.batchActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
   border-radius: 10px;
-  color: var(--foreground);
-  font-size: 0.85rem;
-  outline: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  white-space: nowrap;
 }
 
-.select:focus {
+.batchActionBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.batchActionBtn.primary {
+  background: var(--primary);
+  color: white;
   border-color: var(--primary);
 }
 
-.dateInput {
-  padding: 8px 12px;
-  background: var(--surface-strong);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  color: var(--foreground);
-  font-size: 0.85rem;
-  outline: none;
+.batchActionBtn.primary:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 40%, transparent);
 }
 
-.dateInput:focus {
+.batchActionBtn.danger {
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.batchActionBtn.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.batchActionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ===== Batch Enrollment Panel ===== */
+.enrollPanel {
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  animation: panelSlide 0.3s ease-out;
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes panelSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.enrollPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.enrollPanelTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enrollPanelClose {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.enrollPanelClose:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.enrollPanelBody {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.enrollPanelField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 180px;
+  position: relative;
+}
+
+.enrollPanelField label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.enrollPanelField select,
+.enrollPanelField input[type="date"] {
+  padding: 0 12px;
+  height: 42px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-size: 0.82rem;
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.enrollPanelField select:focus,
+.enrollPanelField input[type="date"]:focus {
   border-color: var(--primary);
 }
 
 .expiryPreview {
-  font-size: 0.75rem;
-  color: #94a3b8;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  font-size: 0.72rem;
+  color: #64748b;
   font-weight: 500;
+  margin-top: 4px;
 }
 
-.editDateBtn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 6px;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  margin-left: 6px;
-}
-
-.editDateBtn:hover {
-  color: var(--primary);
-  background: var(--surface-soft);
-}
-
-/* Modal Styles */
+/* ===== Modal Styles ===== */
 .modalBackdrop {
   position: fixed;
   inset: 0;
@@ -235,36 +717,6 @@
   object-fit: cover;
 }
 
-.formHelp {
-  margin: 4px 0 0 0;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.viewDetailsBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--primary);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.viewDetailsBtn:hover {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-}
-
 .imagePlaceholder {
   font-size: 0.7rem;
   color: var(--text-muted);
@@ -334,6 +786,81 @@
   border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
+/* Legacy compat */
+.select {
+  padding: 8px 12px;
+  background: var(--surface-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--foreground);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.select:focus {
+  border-color: var(--primary);
+}
+
+.dateInput {
+  padding: 8px 12px;
+  background: var(--surface-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--foreground);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.dateInput:focus {
+  border-color: var(--primary);
+}
+
+.editDateBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.editDateBtn:hover {
+  color: var(--primary);
+  background: var(--surface-soft);
+}
+
+.viewDetailsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.viewDetailsBtn svg {
+  flex-shrink: 0;
+}
+
+.viewDetailsBtn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -344,49 +871,21 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Table Responsive Styles */
-.tableContainer {
-  width: 100%;
-  overflow-x: auto;
-  border-radius: 16px;
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
-  -webkit-overflow-scrolling: touch;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 600px;
-}
-
-.table th, .table td {
-  padding: 14px 16px;
-  text-align: left;
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.table th {
-  background: var(--surface-soft);
-  color: var(--text-muted);
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.table tr {
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.table tr:hover {
-  background: var(--surface-soft);
-}
-
+/* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .batchBar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
     bottom: 80px;
+  }
+
+  .batchActions {
+    justify-content: flex-end;
+  }
+
+  .enrollPanelBody {
+    flex-direction: column;
   }
 }
 
@@ -395,7 +894,7 @@
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .searchBar {
     max-width: none;
   }
@@ -403,5 +902,23 @@
   .row {
     flex-direction: column;
     gap: 16px;
+  }
+
+  .batchActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .batchActionBtn {
+    justify-content: center;
+  }
+
+  .headerActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filterBar {
+    flex-direction: column;
   }
 }

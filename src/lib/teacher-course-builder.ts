@@ -339,14 +339,14 @@ const normalizeDate = (value: string | Date | null | undefined): Date | null => 
 /**
  * Pin a date to 10:00 PM GMT+6 (Bangladesh Standard Time) on the same calendar day.
  * 10:00 PM GMT+6 = 16:00 UTC.
- * We use the UTC date components so the calendar day stays consistent
- * regardless of the server's local timezone.
+ * We shift by 6 hours so we pin to the calendar day in Dhaka, not the calendar day in UTC.
  */
 const pinTo10pmBST = (date: Date): Date => {
+  const dhakaTime = new Date(date.getTime() + 6 * 60 * 60 * 1000);
   const pinned = new Date(Date.UTC(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate(),
+    dhakaTime.getUTCFullYear(),
+    dhakaTime.getUTCMonth(),
+    dhakaTime.getUTCDate(),
     16, // 16:00 UTC = 22:00 GMT+6
     0,
     0,
@@ -412,6 +412,11 @@ export function computeReleaseGroupDates(
     });
   }
 
+  const getDhakaDay = (d: Date) => {
+    const dhakaTime = new Date(d.getTime() + 6 * 60 * 60 * 1000);
+    return dhakaTime.getUTCDay();
+  };
+
   if (mode === 'day_of_week') {
     let selectedDays = config.releaseDaysOfWeek || [0];
     if (typeof selectedDays === 'string') {
@@ -429,7 +434,7 @@ export function computeReleaseGroupDates(
       let validDaysHit = 0;
       const currentCheckDate = new Date(startDate);
 
-      if (selectedDays.includes(currentCheckDate.getDay())) {
+      if (selectedDays.includes(getDhakaDay(currentCheckDate))) {
         if (group.index === 0) {
           dates[group.id] = currentCheckDate.toISOString();
           return;
@@ -439,7 +444,7 @@ export function computeReleaseGroupDates(
 
       while (validDaysHit <= group.index) {
         currentCheckDate.setDate(currentCheckDate.getDate() + 1);
-        if (selectedDays.includes(currentCheckDate.getDay())) {
+        if (selectedDays.includes(getDhakaDay(currentCheckDate))) {
           if (validDaysHit === group.index) {
             dates[group.id] = currentCheckDate.toISOString();
             return;

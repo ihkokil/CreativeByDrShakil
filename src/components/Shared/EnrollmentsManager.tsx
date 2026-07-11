@@ -389,10 +389,10 @@ export default function EnrollmentsManager() {
                 >
                   <div className={styles.optionHeader}>
                     <div className={styles.radio}></div>
-                    <span className={styles.optionTitle}>Start from today (Default)</span>
+                    <span className={styles.optionTitle}>Start from Enrollment date (Default)</span>
                   </div>
                   <div className={styles.optionDesc}>
-                    Modules unlock following rules, relative to today.
+                    All are locked & each module will be available following the module rule, starting from the enrollment date.
                   </div>
                 </div>
 
