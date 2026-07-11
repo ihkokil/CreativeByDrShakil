@@ -355,12 +355,28 @@ const pinTo10pmBST = (date: Date): Date => {
   return pinned;
 };
 
+const getNextFridayDhaka = (date: Date): Date => {
+  const dhaka = new Date(date.getTime() + 6 * 60 * 60 * 1000);
+  const day = dhaka.getUTCDay(); // 0 = Sunday, ..., 5 = Friday, 6 = Saturday
+  const diff = (5 - day + 7) % 7;
+  dhaka.setUTCDate(dhaka.getUTCDate() + diff);
+  return new Date(Date.UTC(
+    dhaka.getUTCFullYear(),
+    dhaka.getUTCMonth(),
+    dhaka.getUTCDate(),
+    12, // noon Dhaka time
+    0,
+    0,
+    0
+  ));
+};
+
 export function computeReleaseGroupDates(
   groups: ReleaseGroupSummary[],
   config: CourseScheduleConfig
 ): Record<string, string> {
   const dates: Record<string, string> = {};
-  const mode = config.releaseMode || null;
+  const mode = config.releaseMode || 'circular';
   const startDate = normalizeDate(config.releaseStartAt) || new Date();
   const overrideDates = config.releaseGroupDates || {};
 
@@ -376,10 +392,12 @@ export function computeReleaseGroupDates(
     const GLOBAL_START_DATE = new Date(Date.UTC(2026, 5, 12, 16, 0, 0));
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     
-    let weeksSinceGlobalStart = 0;
-    if (startDate.getTime() > GLOBAL_START_DATE.getTime()) {
-      weeksSinceGlobalStart = Math.floor((startDate.getTime() - GLOBAL_START_DATE.getTime()) / ONE_WEEK_MS);
-    }
+    const startSnapped = getNextFridayDhaka(startDate);
+    const globalSnapped = getNextFridayDhaka(GLOBAL_START_DATE);
+    
+    const diffMs = startSnapped.getTime() - globalSnapped.getTime();
+    let weeksSinceGlobalStart = Math.round(diffMs / ONE_WEEK_MS);
+    if (weeksSinceGlobalStart < 0) weeksSinceGlobalStart = 0;
     
     const studentStartWeekIndex = weeksSinceGlobalStart;
     
@@ -563,4 +581,27 @@ export function collectVideoNodes(nodes: BuilderCurriculumNode[]): BuilderCurric
 
 export function countLessons(nodes: BuilderCurriculumNode[]): number {
   return collectVideoNodes(nodes).length;
+}
+
+export function stripLockedChildren(nodes: any[]): any[] {
+  return nodes.map((node) => {
+    if (node.locked) {
+      return {
+        ...node,
+        children: [],
+      };
+    }
+    return {
+      ...node,
+      children: node.children ? stripLockedChildren(node.children) : undefined,
+    };
+  });
+}
+
+export function sortCurriculumByAvailability(nodes: any[]): any[] {
+  return [...nodes].sort((a, b) => {
+    const dateA = a.availableAt ? new Date(a.availableAt).getTime() : 0;
+    const dateB = b.availableAt ? new Date(b.availableAt).getTime() : 0;
+    return dateA - dateB;
+  });
 }

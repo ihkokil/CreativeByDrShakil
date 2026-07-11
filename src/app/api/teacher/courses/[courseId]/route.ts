@@ -127,11 +127,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (body.releaseMode !== undefined) {
-      const validModes = ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant', null];
+      const validModes = ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant', 'circular', null];
       if (!validModes.includes(body.releaseMode)) {
         return NextResponse.json({ error: 'Invalid release mode.' }, { status: 400 });
       }
-      updateData.releaseMode = body.releaseMode;
+      updateData.releaseMode = body.releaseMode === 'circular' ? null : body.releaseMode;
     }
 
     if (body.releaseStartAt !== undefined) {

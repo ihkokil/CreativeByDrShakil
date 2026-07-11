@@ -233,7 +233,7 @@ export async function GET(request: NextRequest) {
       const studentOverrides = overridesByUser.get(enrollment.user.id) || [];
       
       const courseAnchor = selectedCourse.releaseStartAt || selectedCourse.courseStartDate || null;
-      const studentReleaseStartAt = courseAnchor || enrollment.updatedAt;
+      const studentReleaseStartAt = courseAnchor || enrollment.enrolledAt || enrollment.updatedAt;
 
       const studentComputedDates = computeReleaseGroupDates(groups, {
         releaseMode: selectedCourse.releaseMode as any,
@@ -262,7 +262,7 @@ export async function GET(request: NextRequest) {
         fullName: enrollment.user.fullName,
         email: enrollment.user.email,
         profileImage: enrollment.user.profileImage || null,
-        enrolledAt: enrollment.updatedAt,
+        enrolledAt: enrollment.enrolledAt || enrollment.updatedAt,
         completedCount,
         totalCount,
         progressPercent: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,

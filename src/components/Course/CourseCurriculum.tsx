@@ -28,16 +28,34 @@ interface NodeProps {
 
 const formatAvailability = (dateValue?: string | null) => {
     if (!dateValue) return "";
-    return `Available: ${formatDisplayDate(dateValue)}, 10:00 PM`;
+    return `${formatDisplayDate(dateValue)} - 10:00 PM`;
+};
+
+const areAllChildrenCompleted = (item: CurriculumNode): boolean => {
+    if (!item.children || item.children.length === 0) return false;
+    
+    const check = (list: CurriculumNode[]): boolean => {
+        for (const child of list) {
+            if (child.type === 'folder') {
+                if (child.children && !check(child.children)) return false;
+            } else {
+                if (!child.completed) return false;
+            }
+        }
+        return true;
+    };
+    
+    return check(item.children);
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(!node.locked);
     const isFolder = node.type === 'folder';
     const isActive = node.id === activeNodeId;
 
     const handleClick = () => {
         if (isFolder) {
+            if (node.locked) return;
             setIsOpen(!isOpen);
         } else {
             if (node.locked) {
@@ -60,6 +78,21 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                         <>
                             {isOpen ? <FolderOpen size={16} className={styles.folderIcon} /> : <Folder size={16} className={styles.folderIcon} />}
                             <span className={styles.title}>{node.title}</span>
+                            {node.locked ? (
+                                <>
+                                    <Lock size={14} className={styles.lockIcon} style={{ marginLeft: '6px' }} />
+                                    {node.availableAt && (
+                                        <div className={styles.availableAt} style={{ marginLeft: 'auto', fontSize: '0.80rem', textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+                                            <span>{formatDisplayDate(node.availableAt)}</span>
+                                            <span style={{ fontSize: '0.70rem', opacity: 0.8 }}>10:00 PM</span>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <span className={areAllChildrenCompleted(node) ? styles.completedBadge : styles.availableNow} style={{ marginLeft: 'auto', fontSize: '0.8rem' }}>
+                                    {areAllChildrenCompleted(node) ? "Completed" : "Available"}
+                                </span>
+                            )}
                         </>
                     ) : (
                         <>
@@ -69,17 +102,12 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                                 <PlayCircle size={16} className={styles.playIcon} />
                             )}
                             <span className={styles.title}>{node.title}</span>
-                            {node.completed && <CheckCircle2 size={14} className={styles.completedIcon} />}
-                            {node.locked && <Lock size={14} className={styles.lockIcon} />}
-                            {node.availableAt && (
-                                <span className={node.locked ? styles.availableAt : node.completed ? styles.completedBadge : styles.availableNow}>
-                                    {node.locked ? formatAvailability(node.availableAt) : node.completed ? "Completed" : "Available"}
-                                </span>
-                            )}
+                            {node.completed && <CheckCircle2 size={14} className={styles.completedIcon} style={{ marginLeft: 'auto' }} />}
+                            {node.locked && <Lock size={14} className={styles.lockIcon} style={{ marginLeft: 'auto' }} />}
                         </>
                     )}
                 </div>
-                {isFolder && (
+                {isFolder && !node.locked && (
                     <div className={styles.chevron}>
                         {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </div>

@@ -277,6 +277,33 @@ export default function StudentsManager() {
     studentName: string;
   } | null>(null);
 
+  // Sync selected single course when students change
+  useEffect(() => {
+    if (selectedSingleCourse) {
+      const updatedStudent = students.find(s => s.id === selectedSingleCourse.student.id);
+      if (updatedStudent) {
+        const courseEnrollment = updatedStudent.enrolledCourses.find(c => c.courseId === selectedSingleCourse.courseId);
+        if (courseEnrollment) {
+          if (
+            courseEnrollment.enrolledAt !== selectedSingleCourse.enrolledAt ||
+            courseEnrollment.expiresAt !== selectedSingleCourse.expiresAt ||
+            updatedStudent !== selectedSingleCourse.student
+          ) {
+            setSelectedSingleCourse({
+              student: updatedStudent,
+              courseId: selectedSingleCourse.courseId,
+              courseTitle: selectedSingleCourse.courseTitle,
+              enrolledAt: courseEnrollment.enrolledAt,
+              expiresAt: courseEnrollment.expiresAt,
+            });
+          }
+        } else {
+          setSelectedSingleCourse(null);
+        }
+      }
+    }
+  }, [students]);
+
   // Form states
   const [formData, setFormData] = useState({ 
     fullName: '', 
@@ -1326,7 +1353,7 @@ export default function StudentsManager() {
               <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
                 <button type="button" className={dashStyles.confirmCancelBtn} style={{ flex: 1 }} onClick={() => setEditingEnrollment(null)} disabled={isSubmitting}>Cancel</button>
                 <button type="submit" className={dashStyles.primaryBtn} style={{ flex: 1, justifyContent: 'center' }} disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save Dates'}
+                  {isSubmitting ? 'Saving...' : 'Save Date'}
                 </button>
               </div>
             </form>

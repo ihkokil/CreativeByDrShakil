@@ -276,7 +276,7 @@ export default function CourseDetailPage() {
                     {dynamicCurriculum.length > 0 && (
                         <section className={styles.section}>
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
-                            <CourseLessonList curriculum={dynamicCurriculum} hasAccess={userEnrolled} />
+                            <CourseLessonList curriculum={dynamicCurriculum} hasAccess={userEnrolled} courseSlug={params.slug as string} />
                         </section>
                     )}
 

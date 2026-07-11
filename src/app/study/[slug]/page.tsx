@@ -13,11 +13,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import LessonPlayer from "@/components/Study/LessonPlayer";
 import Loader from "@/components/UI/Loader";
 import { getStudentModuleView } from "@/lib/module-scheduling";
+import AuthModal from "@/components/Auth/AuthModal";
 
 const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
     for (const node of nodes) {
@@ -54,6 +55,8 @@ const collectLessonNodes = (nodes: CurriculumNode[]): CurriculumNode[] => {
 export default function StudyCoursePage() {
     const params = useParams<{ slug: string }>();
     const slug = params?.slug;
+    const searchParams = useSearchParams();
+    const lessonParam = searchParams ? searchParams.get("lesson") : null;
 
     const [courseTitle, setCourseTitle] = useState("Study Course");
     const [curriculum, setCurriculum] = useState<CurriculumNode[]>([]);
@@ -65,6 +68,18 @@ export default function StudyCoursePage() {
     const [markingComplete, setMarkingComplete] = useState(false);
     const [progressError, setProgressError] = useState<string | null>(null);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [authMode, setAuthMode] = useState<"login" | "register">("login");
+
+    useEffect(() => {
+        if (error === "Unauthorized.") {
+            const timer = setTimeout(() => {
+                setAuthMode("login");
+                setIsAuthOpen(true);
+            }, 3500);
+            return () => clearTimeout(timer);
+        }
+    }, [error]);
 
     useEffect(() => {
         let cancelled = false;
@@ -118,7 +133,10 @@ export default function StudyCoursePage() {
                 const firstIncompletePlayable = collectLessonNodes(sortedNextCurriculum).find(
                     (node: CurriculumNode) => node.type !== "folder" && !node.locked && !initialCompleted.includes(node.id)
                 );
-                setActiveLesson(firstIncompletePlayable || firstPlayable);
+                const targetLesson = lessonParam 
+                    ? collectLessonNodes(sortedNextCurriculum).find((node) => node.id === lessonParam && !node.locked)
+                    : null;
+                setActiveLesson(targetLesson || firstIncompletePlayable || firstPlayable);
             } catch (err: any) {
                 if (!cancelled) {
                     setError(err.message || "Failed to load study curriculum.");
@@ -237,17 +255,48 @@ export default function StudyCoursePage() {
     }
 
     if (error) {
+        const isUnauthorized = error === "Unauthorized.";
         return (
-            <div className={styles.layout}>
-                <main className={styles.main}>
-                    <div className={styles.contentArea}>
-                        <div className={styles.mockVideo}>
-                            <Lock size={60} />
-                            <span>{error}</span>
-                            <Link href="/courses" className={styles.completeBtn}>Browse Courses</Link>
-                        </div>
+            <div className={styles.unauthorizedLayout}>
+                <div className={styles.unauthorizedCard}>
+                    <div className={styles.lockGlowContainer}>
+                        <Lock size={40} className={styles.unauthorizedLockIcon} />
                     </div>
-                </main>
+                    <h2 className={styles.unauthorizedTitle}>
+                        {isUnauthorized ? "Access Locked" : "An Error Occurred"}
+                    </h2>
+                    <p className={styles.unauthorizedDescription}>
+                        {isUnauthorized
+                            ? "You need to be logged in to access the student study workspace."
+                            : error}
+                    </p>
+                    <div className={styles.unauthorizedBtnGroup}>
+                        {isUnauthorized && (
+                            <button
+                                className={styles.unauthorizedLoginBtn}
+                                onClick={() => {
+                                    setAuthMode("login");
+                                    setIsAuthOpen(true);
+                                }}
+                            >
+                                Sign In Now
+                            </button>
+                        )}
+                        <Link href="/courses" className={styles.unauthorizedBrowseBtn}>
+                            Browse Courses
+                        </Link>
+                    </div>
+                </div>
+
+                <AuthModal
+                    isOpen={isAuthOpen}
+                    onClose={() => setIsAuthOpen(false)}
+                    defaultMode={authMode}
+                    onSuccess={() => {
+                        setIsAuthOpen(false);
+                        window.location.reload();
+                    }}
+                />
             </div>
         );
     }

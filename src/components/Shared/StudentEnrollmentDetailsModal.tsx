@@ -23,6 +23,7 @@ interface StudentProfile {
   role: string;
   createdAt: string;
   phone?: string;
+  bmdcNumber?: string | null;
   profileImage?: string;
   enrolledCourses: EnrolledCourse[];
 }

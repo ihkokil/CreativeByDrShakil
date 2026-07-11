@@ -9,6 +9,8 @@ import {
   ensureGroupInheritance,
   parseCurriculumJson,
   parseReleaseGroupDateMap,
+  stripLockedChildren,
+  sortCurriculumByAvailability,
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
@@ -91,7 +93,9 @@ export async function GET(
       releaseStartAt: studentEnrollmentDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: course.releaseDaysOfWeek,
+      releaseDaysOfWeek: typeof course.releaseDaysOfWeek === 'string'
+        ? JSON.parse(course.releaseDaysOfWeek)
+        : course.releaseDaysOfWeek as any,
     });
 
     const overrideRows = await db.query.studentModuleAvailability.findMany({
@@ -130,7 +134,7 @@ export async function GET(
         title: course.title,
         timezone: course.timezone,
       },
-      curriculum: curriculumWithProgress,
+      curriculum: sortCurriculumByAvailability(stripLockedChildren(curriculumWithProgress)),
       groups,
       computedReleaseGroupDates,
       enrollmentDate: studentEnrollmentDate,

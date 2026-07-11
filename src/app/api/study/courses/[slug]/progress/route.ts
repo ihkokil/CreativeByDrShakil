@@ -11,6 +11,8 @@ import {
   parseCurriculumJson,
   parseReleaseGroupDateMap,
   BuilderNodeWithAvailability,
+  stripLockedChildren,
+  sortCurriculumByAvailability,
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
@@ -78,14 +80,19 @@ const getCourseWithAccess = async (slug: string, userId: string, role?: string) 
   const expiresAtDate = order.expiresAt ? parseDbDate(order.expiresAt) : null;
   const now = new Date();
 
+  let isEnrolledAndNotStarted = false;
   if (enrolledAtDate && now < enrolledAtDate) {
-    return { error: NextResponse.json({ error: 'Course access has not started yet.' }, { status: 403 }) };
+    isEnrolledAndNotStarted = true;
   }
   if (expiresAtDate && now > expiresAtDate) {
     return { error: NextResponse.json({ error: 'Course access has expired.' }, { status: 403 }) };
   }
 
-  return { course, studentEnrollmentDate: order.enrolledAt || order.updatedAt };
+  return {
+    course,
+    studentEnrollmentDate: order.enrolledAt || order.updatedAt,
+    isEnrolledAndNotStarted,
+  };
 };
 
 const collectPlayableNodes = (nodes: BuilderNodeWithAvailability[]) => {
@@ -134,10 +141,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: result.course?.releaseMode || 'circular',
-      releaseStartAt: finalStartAt,
+      releaseStartAt: dbEnrollment,
       releaseIntervalDays: result.course?.releaseIntervalDays,
       releaseGroupsPerWeek: result.course?.releaseGroupsPerWeek,
-      releaseDaysOfWeek: result.course?.releaseDaysOfWeek,
+      releaseDaysOfWeek: typeof result.course?.releaseDaysOfWeek === 'string'
+        ? JSON.parse(result.course.releaseDaysOfWeek)
+        : result.course?.releaseDaysOfWeek as any,
     });
 
     const overrideRows = await db.query.studentModuleAvailability.findMany({
@@ -152,7 +161,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
       computedReleaseGroupDates,
-      isAdmin ? new Date('9999-12-31') : new Date(),
+      result.isEnrolledAndNotStarted ? new Date(0) : (isAdmin ? new Date('9999-12-31') : new Date()),
       isAdmin ? [] : overrideRows.map((row: any) => ({
         lessonNodeId: row.lessonNodeId,
         availabilityMode: row.availabilityMode,
@@ -176,7 +185,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         id: result.course!.id,
         title: result.course!.title,
       },
-      curriculum: curriculumWithAvailability,
+      curriculum: sortCurriculumByAvailability(stripLockedChildren(curriculumWithAvailability)),
       progress: {
         completedLessonIds,
         completedCount: completedLessonIds.length,
@@ -199,6 +208,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const result = await getCourseWithAccess(resolvedParams.slug, payload.sub, payload.role);
     if (result.error) {
       return result.error;
+    }
+
+    if (result.isEnrolledAndNotStarted) {
+      return NextResponse.json({ error: 'Course access has not started yet.' }, { status: 403 });
     }
 
     const isAdmin = payload.role === 'admin';

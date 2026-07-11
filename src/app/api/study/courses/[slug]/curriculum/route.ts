@@ -9,6 +9,8 @@ import {
   ensureGroupInheritance,
   parseCurriculumJson,
   parseReleaseGroupDateMap,
+  stripLockedChildren,
+  sortCurriculumByAvailability,
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
@@ -75,8 +77,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const isAdmin = payload.role === 'admin';
 
-    let studentEnrollmentDate: string | Date | null = null;
-    if (!isAdmin) {
+    let studentEnrollmentDate = null;
+    let isEnrolledAndNotStarted = false;
+
+    if (payload.role !== 'admin') {
       const order = await db.query.order.findFirst({
         where: (o, { eq, and }) => and(
           eq(o.userId, payload.sub),
@@ -95,7 +99,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       const now = new Date();
 
       if (enrolledAtDate && now < enrolledAtDate) {
-        return NextResponse.json({ error: 'Course access has not started yet.' }, { status: 403 });
+        isEnrolledAndNotStarted = true;
       }
       if (expiresAtDate && now > expiresAtDate) {
         return NextResponse.json({ error: 'Course access has expired.' }, { status: 403 });
@@ -118,7 +122,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseStartAt: studentEnrollmentDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: course.releaseDaysOfWeek,
+      releaseDaysOfWeek: typeof course.releaseDaysOfWeek === 'string'
+        ? JSON.parse(course.releaseDaysOfWeek)
+        : course.releaseDaysOfWeek as any,
     });
 
     const overrideRows = await db.query.studentModuleAvailability.findMany({
@@ -136,7 +142,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const curriculumWithAvailability = annotateCurriculumAvailability(
       curriculum,
       computedReleaseGroupDates,
-      isAdmin ? new Date('9999-12-31') : new Date(),
+      isEnrolledAndNotStarted ? new Date(0) : (isAdmin ? new Date('9999-12-31') : new Date()),
       isAdmin ? [] : overrideRows.map((row: any) => ({
         lessonNodeId: row.lessonNodeId,
         availabilityMode: row.availabilityMode,
@@ -159,7 +165,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         title: course.title,
         timezone: course.timezone,
       },
-      curriculum: curriculumWithProgress,
+      curriculum: sortCurriculumByAvailability(stripLockedChildren(curriculumWithProgress)),
       groups,
       computedReleaseGroupDates,
       enrollmentDate: studentEnrollmentDate,
