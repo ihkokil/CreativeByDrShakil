@@ -9,6 +9,7 @@ import styles from "./TeacherDashboard.module.css";
 import { Loader2, LayoutDashboard, BookOpen, Users, Video, FileText, MoreHorizontal } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Loader from "@/components/UI/Loader";
 
 function TeacherDashboardLayoutContent({
     children,
@@ -53,12 +54,7 @@ function TeacherDashboardLayoutContent({
     ];
 
     if (loading || !user) {
-        return (
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Authenticating...</span>
-            </div>
-        );
+        return <Loader text="Authenticating..." />;
     }
 
     return (
@@ -121,12 +117,7 @@ export default function TeacherDashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <Suspense fallback={
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Syncing Instructor Profile...</span>
-            </div>
-        }>
+        <Suspense fallback={<Loader text="Syncing Instructor Profile..." />}>
             <TeacherDashboardLayoutContent>
                 {children}
             </TeacherDashboardLayoutContent>

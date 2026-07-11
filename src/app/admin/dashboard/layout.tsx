@@ -60,12 +60,7 @@ function AdminDashboardLayoutContent({
     ];
 
     if (loading || !user || role !== "admin") {
-        return (
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Authenticating Admin...</span>
-            </div>
-        );
+        return <Loader text="Authenticating Admin..." />;
     }
 
     return (

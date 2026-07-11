@@ -7,6 +7,7 @@ import StudentSidebar from "@/components/Student/StudentSidebar";
 import StudentHeader from "@/components/Student/StudentHeader";
 import styles from "./StudentDashboard.module.css";
 import { Loader2, LayoutDashboard, UserCog, TrendingUp, ClipboardList, BookOpen, MoreHorizontal, ShieldCheck, ReceiptText } from "lucide-react";
+import Loader from "@/components/UI/Loader";
 
 function StudentDashboardLayoutContent({
     children,
@@ -47,12 +48,7 @@ function StudentDashboardLayoutContent({
     ];
 
     if (loading || !user) {
-        return (
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Entering Learning Hub...</span>
-            </div>
-        );
+        return <Loader text="Entering Learning Hub..." />;
     }
 
     return (
@@ -109,12 +105,7 @@ export default function StudentDashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <Suspense fallback={
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Preparing Student Workspace...</span>
-            </div>
-        }>
+        <Suspense fallback={<Loader text="Preparing Student Workspace..." />}>
             <StudentDashboardLayoutContent>
                 {children}
             </StudentDashboardLayoutContent>

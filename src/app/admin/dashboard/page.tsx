@@ -40,6 +40,7 @@ import AdminOverview from "@/components/Admin/AdminOverview";
 import PaymentsManager from "@/components/Admin/PaymentsManager";
 import ProfileTab from "@/components/Shared/ProfileTab";
 import styles from "./AdminDashboard.module.css";
+import Loader from "@/components/UI/Loader";
 
 interface TeacherProfile {
     id: string;
@@ -278,12 +279,7 @@ function AdminDashboardContent() {
     }, [user, role, activeTab, paymentStatus, fetchEnrollments, fetchCoursesList, fetchOrders]);
     
     if (loading || !user) {
-        return (
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Authenticating Admin...</span>
-            </div>
-        );
+        return <Loader text="Authenticating Admin..." />;
     }
 
     return (

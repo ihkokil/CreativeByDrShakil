@@ -70,12 +70,7 @@ function TeacherDashboardContent() {
     }, [user, loading, router, fetchStats, activeTab]);
 
     if (loading || !user) {
-        return (
-            <div className={styles.loadingOverlay}>
-                <Loader2 className={styles.spinner} />
-                <span>Authenticating Instructor...</span>
-            </div>
-        );
+        return <Loader text="Authenticating Instructor..." />;
     }
 
     return (
@@ -83,7 +78,7 @@ function TeacherDashboardContent() {
             {activeTab === "overview" && (
                 <>
                     {statsLoading ? (
-                        <div className={styles.loader}>Syncing performance data...</div>
+                        <Loader text="Syncing performance data..." fullScreen={false} />
                     ) : (
                         <TeacherOverview 
                             totalCourses={stats?.totalCourses || 0}

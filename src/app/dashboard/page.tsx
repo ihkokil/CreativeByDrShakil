@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import styles from "./Dashboard.module.css";
+import Loader from "@/components/UI/Loader";
 import {
     LayoutDashboard,
     UserCog,
@@ -24,7 +25,6 @@ import StudentOverview from "@/components/Student/StudentOverview";
 import profileStyles from "./ProfileTab.module.css";
 import { Camera, Mail, Stethoscope, Save, Trash2, KeyRound, Lock, ShieldCheck, Clock } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
-import Loader from "@/components/UI/Loader";
 import ImageCropper from "@/components/Shared/ImageCropper";
 
 interface DashboardCourse {
@@ -255,12 +255,7 @@ function StudentDashboardContent() {
   };
 
   if (loading || !user) {
-    return (
-        <div className={styles.loadingOverlay}>
-            <Loader2 className={styles.spinner} />
-            <span>Syncing Workspace...</span>
-        </div>
-    );
+    return <Loader text="Syncing Workspace..." />;
   }
 
   return (
