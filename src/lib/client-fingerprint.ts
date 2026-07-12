@@ -35,10 +35,12 @@ export async function getDeviceHash(): Promise<string> {
       properties.deviceMemory
     ].join('|');
 
-    if (window.crypto && window.crypto.subtle) {
+    const cryptoApi = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+
+    if (cryptoApi && cryptoApi.subtle) {
       const encoder = new TextEncoder();
       const data = encoder.encode(rawString);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashBuffer = await cryptoApi.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
       cachedHash = hashHex;

@@ -88,22 +88,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 );
                 const label = getDeviceLabel(userAgent, category);
 
-                const newInit: RequestInit = { ...init };
-                const headers = new Headers(newInit.headers || {});
-                
-                const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
-                const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
-                const isSameOrigin = url.startsWith(window.location.origin);
-                
-                if (isRelative || isSameOrigin) {
-                    headers.set('X-Device-Hash', hash);
-                    headers.set('X-Device-Label', label);
-                    headers.set('X-Device-OS', os);
-                    headers.set('X-Device-Category', category);
+                let response;
+                let url: string;
+
+                if (input instanceof Request) {
+                    url = input.url;
+                    const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
+                    const isSameOrigin = url.startsWith(window.location.origin);
+
+                    if (isRelative || isSameOrigin) {
+                        const headers = new Headers(input.headers);
+                        headers.set('X-Device-Hash', hash);
+                        headers.set('X-Device-Label', label);
+                        headers.set('X-Device-OS', os);
+                        headers.set('X-Device-Category', category);
+                        
+                        const clonedRequest = new Request(input, { headers });
+                        response = await originalFetch(clonedRequest, init);
+                    } else {
+                        response = await originalFetch(input, init);
+                    }
+                } else {
+                    url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as any).url || '');
+                    const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
+                    const isSameOrigin = url.startsWith(window.location.origin);
+
+                    if (isRelative || isSameOrigin) {
+                        const headers = new Headers(init?.headers);
+                        headers.set('X-Device-Hash', hash);
+                        headers.set('X-Device-Label', label);
+                        headers.set('X-Device-OS', os);
+                        headers.set('X-Device-Category', category);
+                        
+                        response = await originalFetch(input, {
+                            ...init,
+                            headers
+                        });
+                    } else {
+                        response = await originalFetch(input, init);
+                    }
                 }
-                
-                newInit.headers = headers;
-                const response = await originalFetch(input, newInit);
 
                 if (response.status === 401) {
                     const isLoginOrAuth = url.includes('/api/auth/login') ||
