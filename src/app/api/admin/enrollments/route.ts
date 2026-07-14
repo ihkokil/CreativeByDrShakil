@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { order as orderSchema, user as userSchema } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { order as orderSchema, user as userSchema, course as courseSchema } from '@/db/schema';
+import { eq, sql, or, and, asc, desc, inArray } from 'drizzle-orm';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
@@ -24,28 +24,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const enrollments = await db.query.order.findMany({
-      where: (o, { eq }) => eq(o.status, 'approved'),
-      with: {
-        user: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-            phone: true,
-          },
-        },
-        course: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-          },
-        },
-      },
-      orderBy: (o, { desc }) => [desc(o.createdAt)],
-      limit: 100,
-    });
+    const enrollmentsData = await db.select().from(orderSchema).where(eq(orderSchema.status, 'approved')).orderBy(desc(orderSchema.createdAt)).limit(100);
+
+    const orderUserIds = [...new Set(enrollmentsData.map(o => o.userId).filter(Boolean))];
+    const orderCourseIds = [...new Set(enrollmentsData.map(o => o.courseId).filter(Boolean))];
+    const [users, courses] = await Promise.all([
+      orderUserIds.length > 0 ? db.select({ id: userSchema.id, fullName: userSchema.fullName, email: userSchema.email, phone: userSchema.phone }).from(userSchema).where(inArray(userSchema.id, orderUserIds)) : Promise.resolve([]),
+      orderCourseIds.length > 0 ? db.select({ id: courseSchema.id, title: courseSchema.title, slug: courseSchema.slug }).from(courseSchema).where(inArray(courseSchema.id, orderCourseIds)) : Promise.resolve([]),
+    ]);
+    const usersMap = new Map(users.map(u => [u.id, u]));
+    const coursesMap = new Map(courses.map(c => [c.id, c]));
+    const enrollments = enrollmentsData.map(o => ({ ...o, user: usersMap.get(o.userId) || null, course: coursesMap.get(o.courseId) || null }));
 
     return NextResponse.json({
       enrollments: enrollments.map((e) => ({
@@ -91,9 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify course exists
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-    });
+    const [course] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -115,9 +102,7 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = String(email).trim().toLowerCase();
 
-      const existingUser = await db.query.user.findFirst({
-        where: (u, { eq, or }) => or(eq(u.email, normalizedEmail), phone ? eq(u.phone, phone) : undefined),
-      });
+      const [existingUser] = await db.select().from(userSchema).where(or(eq(userSchema.email, normalizedEmail), phone ? eq(userSchema.phone, phone) : undefined)).limit(1);
 
       if (existingUser) {
         return NextResponse.json({ error: 'A user with this email or phone already exists.' }, { status: 409 });
@@ -171,9 +156,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Student ID is required for existing students.' }, { status: 400 });
       }
 
-      finalStudent = await db.query.user.findFirst({
-        where: (u, { eq, and }) => and(eq(u.id, studentId), eq(u.role, 'student')),
-      });
+      const [foundFinalStudent] = await db.select().from(userSchema).where(and(eq(userSchema.id, studentId), eq(userSchema.role, 'student'))).limit(1);
+      finalStudent = foundFinalStudent;
 
       if (!finalStudent) {
         return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
@@ -181,13 +165,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Pre-check duplicate approved enrollment to fail fast with a clear error.
-    const existingApproved = await db.query.order.findFirst({
-      where: (o, { eq, and }) => and(
-        eq(o.userId, finalStudent.id),
-        eq(o.courseId, courseId),
-        eq(o.status, 'approved')
-      ),
-    });
+    const [existingApproved] = await db.select().from(orderSchema).where(and(eq(orderSchema.userId, finalStudent.id), eq(orderSchema.courseId, courseId), eq(orderSchema.status, 'approved'))).limit(1);
     if (existingApproved) {
       // Compensate: if we just created a new user, delete it to avoid orphan.
       if (newlyCreatedUserId) {
@@ -217,10 +195,13 @@ export async function POST(request: NextRequest) {
       throw enrollErr;
     }
 
-    const finalOrder = await db.query.order.findFirst({
-      where: (o, { eq, and }) => and(eq(o.userId, finalStudent.id), eq(o.courseId, course.id)),
-      with: { course: true, user: true },
-    });
+    const [finalOrderRow] = await db.select().from(orderSchema).where(and(eq(orderSchema.userId, finalStudent.id), eq(orderSchema.courseId, course.id))).limit(1);
+    let finalOrderCourse = null, finalOrderUser = null;
+    if (finalOrderRow) {
+      [finalOrderCourse] = finalOrderRow.courseId ? await db.select().from(courseSchema).where(eq(courseSchema.id, finalOrderRow.courseId)).limit(1) : [null];
+      [finalOrderUser] = finalOrderRow.userId ? await db.select().from(userSchema).where(eq(userSchema.id, finalOrderRow.userId)).limit(1) : [null];
+    }
+    const finalOrder = finalOrderRow ? { ...finalOrderRow, course: finalOrderCourse, user: finalOrderUser } : null;
 
     if (!finalOrder) {
       // Compensate: if we just created a new user, delete it.

@@ -12,9 +12,7 @@ export async function GET(
     const { id } = await params;
     const payload = await getAuthPayload(request);
     
-    const quizData = await db.query.quiz.findFirst({
-      where: eq(quiz.id, id),
-    });
+    const [quizData] = await db.select().from(quiz).where(eq(quiz.id, id)).limit(1);
     
     if (!quizData) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
@@ -32,33 +30,45 @@ export async function GET(
     }
     
     if (isStudent) {
-      const attempt = await db.query.quizAttempt.findFirst({
-        where: and(
-          eq(quizAttempt.quizId, id),
-          eq(quizAttempt.studentId, payload.sub),
-          or(
-            eq(quizAttempt.status, 'submitted'),
-            eq(quizAttempt.status, 'auto_submitted')
-          )
-        ),
-        orderBy: (a, { desc }) => [desc(a.submittedAt)],
-        with: {
-          answers: true,
-          questionMappings: { with: { question: true } },
-          student: { columns: { id: true, fullName: true } },
-        },
-      });
+      const [attempt] = await db.select().from(quizAttempt).where(and(
+        eq(quizAttempt.quizId, id),
+        eq(quizAttempt.studentId, payload.sub),
+        or(
+          eq(quizAttempt.status, 'submitted'),
+          eq(quizAttempt.status, 'auto_submitted')
+        )
+      )).orderBy(desc(quizAttempt.submittedAt)).limit(1);
       
       if (!attempt) {
         return NextResponse.json({ error: 'No completed attempt found.' }, { status: 404 });
       }
       
-      const answerMap = new Map(attempt.answers.map(a => [a.questionId, a]));
+      const [attemptAnswers, attemptMappings] = await Promise.all([
+        db.select().from(attemptAnswer).where(eq(attemptAnswer.attemptId, attempt.id)),
+        db.select().from(quizQuestionMapping).where(eq(quizQuestionMapping.attemptId, attempt.id)),
+      ]);
       
-      const questionsReview = attempt.questionMappings
+      const mappingQuestionIds = attemptMappings.map(m => m.questionId);
+      const mappingQuestions = mappingQuestionIds.length > 0
+        ? await db.select().from(question).where(inArray(question.id, mappingQuestionIds))
+        : [];
+      const mappingQuestionMap = new Map(mappingQuestions.map(q => [q.id, q]));
+      
+      const attemptWithRelations = {
+        ...attempt,
+        answers: attemptAnswers,
+        questionMappings: attemptMappings.map(m => ({
+          ...m,
+          question: mappingQuestionMap.get(m.questionId)!,
+        })),
+      };
+      
+      const answerMap = new Map(attemptWithRelations.answers.map(a => [a.questionId, a]));
+      
+      const questionsReview = attemptWithRelations.questionMappings
         .sort((a, b) => a.displayOrder - b.displayOrder)
         .map(m => {
-          const q = m.question;
+          const q = m.question!;
           const answer = answerMap.get(q.id);
           const options = [
             { letter: 'A', text: q.optionA },
@@ -80,18 +90,23 @@ export async function GET(
           };
         });
       
-      const allAttempts = await db.query.quizAttempt.findMany({
-        where: and(
-          eq(quizAttempt.quizId, id),
-          or(eq(quizAttempt.status, 'submitted'), eq(quizAttempt.status, 'auto_submitted'))
-        ),
-        with: {
-          student: { columns: { fullName: true } }
-        },
-      });
+      const allAttempts = await db.select().from(quizAttempt).where(and(
+        eq(quizAttempt.quizId, id),
+        or(eq(quizAttempt.status, 'submitted'), eq(quizAttempt.status, 'auto_submitted'))
+      ));
+      
+      const allAttemptStudentIds = [...new Set(allAttempts.map(a => a.studentId))];
+      const allAttemptStudents = allAttemptStudentIds.length > 0
+        ? await db.select({ id: user.id, fullName: user.fullName }).from(user).where(inArray(user.id, allAttemptStudentIds))
+        : [];
+      const allAttemptStudentMap = new Map(allAttemptStudents.map(s => [s.id, s]));
+      const allAttemptsWithStudent = allAttempts.map(a => ({
+        ...a,
+        student: allAttemptStudentMap.get(a.studentId) || null,
+      }));
       
       const attemptsByStudent = new Map<string, any[]>();
-      for (const att of allAttempts) {
+      for (const att of allAttemptsWithStudent) {
         if (!attemptsByStudent.has(att.studentId)) {
           attemptsByStudent.set(att.studentId, []);
         }
@@ -138,16 +153,16 @@ export async function GET(
       
       return NextResponse.json({
         attempt: {
-          id: attempt.id,
-          netScore: attempt.netScore,
-          percentageScore: attempt.percentageScore,
-          correctCount: attempt.correctCount,
-          wrongCount: attempt.wrongCount,
-          skippedCount: attempt.skippedCount,
-          negativeMarks: attempt.negativeMarks,
-          timeTakenSeconds: attempt.timeTakenSeconds,
-          submittedAt: attempt.submittedAt,
-          attemptNumber: attempt.attemptNumber,
+          id: attemptWithRelations.id,
+          netScore: attemptWithRelations.netScore,
+          percentageScore: attemptWithRelations.percentageScore,
+          correctCount: attemptWithRelations.correctCount,
+          wrongCount: attemptWithRelations.wrongCount,
+          skippedCount: attemptWithRelations.skippedCount,
+          negativeMarks: attemptWithRelations.negativeMarks,
+          timeTakenSeconds: attemptWithRelations.timeTakenSeconds,
+          submittedAt: attemptWithRelations.submittedAt,
+          attemptNumber: attemptWithRelations.attemptNumber,
           rank,
         },
         quiz: {
@@ -165,20 +180,57 @@ export async function GET(
       });
     }
     
-    const attempts = await db.query.quizAttempt.findMany({
-      where: and(
-        eq(quizAttempt.quizId, id),
-        or(eq(quizAttempt.status, 'submitted'), eq(quizAttempt.status, 'auto_submitted'))
-      ),
-      with: {
-        student: { columns: { id: true, fullName: true } },
-        answers: true,
-        questionMappings: { with: { question: true } },
-      },
-    });
+    const attempts = await db.select().from(quizAttempt).where(and(
+      eq(quizAttempt.quizId, id),
+      or(eq(quizAttempt.status, 'submitted'), eq(quizAttempt.status, 'auto_submitted'))
+    ));
+    
+    const attemptIds = attempts.map(a => a.id);
+    const attemptStudentIds = [...new Set(attempts.map(a => a.studentId))];
+    
+    const [attemptStudents, attemptAnswers, attemptMappings] = await Promise.all([
+      attemptStudentIds.length > 0
+        ? db.select({ id: user.id, fullName: user.fullName }).from(user).where(inArray(user.id, attemptStudentIds))
+        : [],
+      attemptIds.length > 0
+        ? db.select().from(attemptAnswer).where(inArray(attemptAnswer.attemptId, attemptIds))
+        : [],
+      attemptIds.length > 0
+        ? db.select().from(quizQuestionMapping).where(inArray(quizQuestionMapping.attemptId, attemptIds))
+        : [],
+    ]);
+    
+    const attemptStudentMap = new Map(attemptStudents.map(s => [s.id, s]));
+    
+    const mappingQuestionIds = [...new Set(attemptMappings.map(m => m.questionId))];
+    const mappingQuestions = mappingQuestionIds.length > 0
+      ? await db.select().from(question).where(inArray(question.id, mappingQuestionIds))
+      : [];
+    const mappingQuestionMap = new Map(mappingQuestions.map(q => [q.id, q]));
+    
+    const attemptsAnswerMap = new Map<string, any[]>();
+    for (const a of attemptAnswers) {
+      const list = attemptsAnswerMap.get(a.attemptId) || [];
+      list.push(a);
+      attemptsAnswerMap.set(a.attemptId, list);
+    }
+    
+    const attemptsMappingMap = new Map<string, any[]>();
+    for (const m of attemptMappings) {
+      const list = attemptsMappingMap.get(m.attemptId) || [];
+      list.push({ ...m, question: mappingQuestionMap.get(m.questionId)! });
+      attemptsMappingMap.set(m.attemptId, list);
+    }
+    
+    const attemptsWithRelations = attempts.map(a => ({
+      ...a,
+      student: attemptStudentMap.get(a.studentId) || null,
+      answers: attemptsAnswerMap.get(a.id) || [],
+      questionMappings: attemptsMappingMap.get(a.id) || [],
+    }));
     
     const teacherAttemptsByStudent = new Map<string, any[]>();
-    for (const att of attempts) {
+    for (const att of attemptsWithRelations) {
       if (!teacherAttemptsByStudent.has(att.studentId)) {
         teacherAttemptsByStudent.set(att.studentId, []);
       }
@@ -227,28 +279,36 @@ export async function GET(
       isAutoSubmitted: a.status === 'auto_submitted',
     }));
     
-    const totalAttempts = attempts.length;
+    const totalAttempts = attemptsWithRelations.length;
     const avgScore = totalAttempts > 0 
-      ? attempts.reduce((sum, a) => sum + a.netScore, 0) / totalAttempts 
+      ? attemptsWithRelations.reduce((sum, a) => sum + a.netScore, 0) / totalAttempts 
       : 0;
-    const highestScore = totalAttempts > 0 ? Math.max(...attempts.map(a => a.netScore)) : 0;
-    const lowestScore = totalAttempts > 0 ? Math.min(...attempts.map(a => a.netScore)) : 0;
+    const highestScore = totalAttempts > 0 ? Math.max(...attemptsWithRelations.map(a => a.netScore)) : 0;
+    const lowestScore = totalAttempts > 0 ? Math.min(...attemptsWithRelations.map(a => a.netScore)) : 0;
     const avgTime = totalAttempts > 0 
-      ? attempts.reduce((sum, a) => sum + (a.timeTakenSeconds || 0), 0) / totalAttempts 
+      ? attemptsWithRelations.reduce((sum, a) => sum + (a.timeTakenSeconds || 0), 0) / totalAttempts 
       : 0;
     
-    const questionStats = attempts.length > 0
-      ? await db.query.question.findMany({
-          where: eq(question.quizId, id),
-          with: {
-            attemptAnswers: {
-              where: inArray(attemptAnswer.attemptId, attempts.map(a => a.id)),
-            },
-          },
-        })
+    const questionStats = attemptsWithRelations.length > 0
+      ? await db.select().from(question).where(eq(question.quizId, id))
       : [];
+    const questionStatIds = questionStats.map(q => q.id);
+    const questionStatAttemptIds = attemptsWithRelations.map(a => a.id);
+    const questionStatAnswers = questionStatIds.length > 0 && questionStatAttemptIds.length > 0
+      ? await db.select().from(attemptAnswer).where(and(inArray(attemptAnswer.questionId, questionStatIds), inArray(attemptAnswer.attemptId, questionStatAttemptIds)))
+      : [];
+    const questionStatAnswerMap = new Map<string, any[]>();
+    for (const a of questionStatAnswers) {
+      const list = questionStatAnswerMap.get(a.questionId) || [];
+      list.push(a);
+      questionStatAnswerMap.set(a.questionId, list);
+    }
+    const questionStatsWithAnswers = questionStats.map(q => ({
+      ...q,
+      attemptAnswers: questionStatAnswerMap.get(q.id) || [],
+    }));
     
-    const perQuestionAnalytics = questionStats.map(q => {
+    const perQuestionAnalytics = questionStatsWithAnswers.map(q => {
       const answers = q.attemptAnswers;
       const total = answers.length;
       const correct = answers.filter(a => a.isCorrect).length;

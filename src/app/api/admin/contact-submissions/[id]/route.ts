@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { contactSubmission as csSchema } from '@/db/schema';
+import { contactSubmission as csSchema, user as userSchema } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/admin-auth';
 import { sendMail } from '@/lib/email';
@@ -41,21 +41,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!adminCheck.ok) return adminCheck.response;
 
     const resolvedParams = await params;
-    const submission = await db.query.contactSubmission.findFirst({
-      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
-      with: {
-        repliedByAdmin: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
-    });
+    const [submission] = await db.select().from(csSchema).where(eq(csSchema.id, resolvedParams.id)).limit(1);
 
     if (!submission) {
       return NextResponse.json({ error: 'Contact submission not found.' }, { status: 404 });
+    }
+
+    if (submission.repliedByAdminId) {
+      const [admin] = await db.select({ id: userSchema.id, fullName: userSchema.fullName, email: userSchema.email }).from(userSchema).where(eq(userSchema.id, submission.repliedByAdminId)).limit(1);
+      (submission as any).repliedByAdmin = admin || null;
     }
 
     return NextResponse.json({ submission: normalizeSubmission(submission) });
@@ -75,9 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const adminReply = typeof body?.adminReply === 'string' ? body.adminReply.trim() : '';
     const sendReplyEmail = Boolean(body?.sendReplyEmail ?? true);
 
-    const existing = await db.query.contactSubmission.findFirst({
-      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
-    });
+    const [existing] = await db.select().from(csSchema).where(eq(csSchema.id, resolvedParams.id)).limit(1);
 
     if (!existing) {
       return NextResponse.json({ error: 'Contact submission not found.' }, { status: 404 });
@@ -103,9 +95,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .set(updateData)
       .where(eq(csSchema.id, resolvedParams.id));
 
-    const updatedSubmission = await db.query.contactSubmission.findFirst({
-      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
-    });
+    const [updatedSubmission] = await db.select().from(csSchema).where(eq(csSchema.id, resolvedParams.id)).limit(1);
 
     if (!updatedSubmission) {
       return NextResponse.json({ error: 'Submission not found after update.' }, { status: 404 });

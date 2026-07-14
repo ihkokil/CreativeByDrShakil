@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { quiz, question, quizAttempt, attemptAnswer, quizQuestionMapping } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray, asc } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 
 export async function GET(
@@ -18,26 +18,26 @@ export async function GET(
     
     const studentId = payload.sub;
     
-    // Fetch attempt details along with the associated quiz
-    const attempt = await db.query.quizAttempt.findFirst({
-      where: and(
-        eq(quizAttempt.id, attemptId),
-        eq(quizAttempt.quizId, quizId),
-        eq(quizAttempt.studentId, studentId)
-      ),
-      with: { quiz: true },
-    });
+    const [attemptRow] = await db.select().from(quizAttempt).where(and(
+      eq(quizAttempt.id, attemptId),
+      eq(quizAttempt.quizId, quizId),
+      eq(quizAttempt.studentId, studentId)
+    )).limit(1);
+    let attemptQuiz = null;
+    if (attemptRow) {
+      [attemptQuiz] = await db.select().from(quiz).where(eq(quiz.id, attemptRow.quizId)).limit(1);
+    }
+    const attempt = attemptRow ? { ...attemptRow, quiz: attemptQuiz! } : null;
     
     if (!attempt) {
       return NextResponse.json({ error: 'Attempt not found.' }, { status: 404 });
     }
     
-    // Fetch mappings for the questions in this attempt
-    const mappings = await db.query.quizQuestionMapping.findMany({
-      where: eq(quizQuestionMapping.attemptId, attemptId),
-      orderBy: (m, { asc }) => [asc(m.displayOrder)],
-      with: { question: true },
-    });
+    const mappings = await db.select().from(quizQuestionMapping).where(eq(quizQuestionMapping.attemptId, attemptId)).orderBy(asc(quizQuestionMapping.displayOrder));
+    const questionIds = mappings.map(m => m.questionId);
+    const mappingQuestions = questionIds.length > 0 ? await db.select().from(question).where(inArray(question.id, questionIds)) : [];
+    const questionMap = new Map(mappingQuestions.map(q => [q.id, q]));
+    const mappingsWithQuestions = mappings.map(m => ({ ...m, question: questionMap.get(m.questionId)! }));
     
     // Fetch existing answers saved for this attempt
     const existingAnswers = await db.query.attemptAnswer.findMany({
@@ -45,7 +45,7 @@ export async function GET(
     });
     
     // Construct mapped questions array maintaining optionOrder and displayOrder
-    const mappedQuestions = mappings.map((m) => {
+    const mappedQuestions = mappingsWithQuestions.map((m) => {
       const q = m.question;
       const originalOptions = [
         { letter: 'A', text: q.optionA },

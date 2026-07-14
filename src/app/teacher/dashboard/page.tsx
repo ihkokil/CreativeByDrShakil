@@ -23,18 +23,6 @@ interface TeacherStats {
     totalLessonsCompleted: number;
     courseProgress: any[];
     aggregateProgress: number;
-    quizStats: {
-        totalQuizzes: number;
-        activeQuizzes: number;
-        recentActivity: Array<{
-            id: string;
-            quizTitle: string;
-            studentName: string;
-            netScore: number;
-            percentageScore: number;
-            submittedAt: string | null;
-        }>;
-    };
 }
 
 function TeacherDashboardContent() {
@@ -100,7 +88,6 @@ function TeacherDashboardContent() {
                             aggregateProgress={stats?.aggregateProgress || 0}
                             teacherName={user.user_metadata?.full_name || "Teacher"}
                             onTabChange={setActiveTab}
-                            quizStats={stats?.quizStats || { totalQuizzes: 0, activeQuizzes: 0, recentActivity: [] }}
                         />
                     )}
                 </>

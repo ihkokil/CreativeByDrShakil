@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { order as orderSchema, payment as paymentSchema } from '@/db/schema';
+import { order as orderSchema, payment as paymentSchema, user as userSchema, course as courseSchema } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyVerificationToken } from '@/lib/token-utils';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
@@ -21,14 +21,20 @@ export async function GET(request: NextRequest) {
   const { orderId, action } = payload;
 
   try {
-    const order = await db.query.order.findFirst({
-      where: (o, { eq }) => eq(o.id, orderId),
-      with: { payments: true, user: true, course: true },
-    });
+    const order = (await db.select().from(orderSchema).where(eq(orderSchema.id, orderId)).limit(1))[0] as any;
 
     if (!order) {
       return NextResponse.redirect(new URL('/verify-payment?status=error&message=Order not found', request.url));
     }
+
+    const [payments, user, course] = await Promise.all([
+      db.select().from(paymentSchema).where(eq(paymentSchema.orderId, orderId)),
+      db.select().from(userSchema).where(eq(userSchema.id, order.userId)).limit(1).then(r => r[0] || null),
+      db.select().from(courseSchema).where(eq(courseSchema.id, order.courseId)).limit(1).then(r => r[0] || null),
+    ]);
+    order.payments = payments;
+    order.user = user;
+    order.course = course;
 
     if (order.status !== 'pending') {
       return NextResponse.redirect(new URL(`/verify-payment?status=info&message=This order is already ${order.status}`, request.url));

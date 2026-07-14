@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+import { course as courseSchema, user as userSchema } from '@/db/schema';
+import { eq, and, isNotNull, desc } from 'drizzle-orm';
+
 const formatPrice = (price: number) => {
   if (price <= 0) {
     return 'Free';
@@ -11,26 +14,33 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const course = await db.query.course.findFirst({
-      where: (c, { eq, isNotNull, and }) => and(
-        eq(c.status, 'published'),
-        eq(c.isFeatured, true),
-        isNotNull(c.slug)
-      ),
-      orderBy: (c, { desc }) => [desc(c.publishedAt), desc(c.updatedAt)],
-      with: {
-        teacher: {
-          columns: {
-            id: true,
-            fullName: true,
-            designation: true,
-            profileImage: true,
-          },
-        },
-      },
-    });
+    const results = await db.select({
+      id: courseSchema.id,
+      slug: courseSchema.slug,
+      title: courseSchema.title,
+      price: courseSchema.price,
+      duration: courseSchema.duration,
+      courseStartDate: courseSchema.courseStartDate,
+      imageUrl: courseSchema.imageUrl,
+      isFeatured: courseSchema.isFeatured,
+      instructor: courseSchema.instructor,
+      teacherId: userSchema.id,
+      teacherFullName: userSchema.fullName,
+      teacherDesignation: userSchema.designation,
+      teacherProfileImage: userSchema.profileImage,
+    })
+    .from(courseSchema)
+    .leftJoin(userSchema, eq(courseSchema.teacherId, userSchema.id))
+    .where(and(
+      eq(courseSchema.status, 'published'),
+      eq(courseSchema.isFeatured, true),
+      isNotNull(courseSchema.slug)
+    ))
+    .orderBy(desc(courseSchema.publishedAt), desc(courseSchema.updatedAt))
+    .limit(1);
 
-    if (!course) {
+    const match = results[0];
+    if (!match) {
       return NextResponse.json({ course: null }, {
         headers: {
           'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
@@ -40,20 +50,20 @@ export async function GET() {
 
     return NextResponse.json({
       course: {
-        id: course.id,
-        slug: course.slug,
-        title: course.title,
-        price: formatPrice(course.price),
-        priceValue: course.price,
-        duration: course.duration,
-        courseStartDate: course.courseStartDate,
-        image: course.imageUrl,
-        isFeatured: course.isFeatured,
+        id: match.id,
+        slug: match.slug,
+        title: match.title,
+        price: formatPrice(match.price),
+        priceValue: match.price,
+        duration: match.duration,
+        courseStartDate: match.courseStartDate,
+        image: match.imageUrl,
+        isFeatured: match.isFeatured,
         mainInstructor: {
-          id: course.teacher?.id || `teacher-${course.id}`,
-          name: course.teacher?.fullName || course.instructor,
-          role: course.teacher?.designation || 'Course Instructor',
-          image: course.teacher?.profileImage || '/placeholder-square.svg',
+          id: match.teacherId || `teacher-${match.id}`,
+          name: match.teacherFullName || match.instructor,
+          role: match.teacherDesignation || 'Course Instructor',
+          image: match.teacherProfileImage || '/placeholder-square.svg',
         },
       },
     }, {
@@ -64,4 +74,4 @@ export async function GET() {
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
-}
+}

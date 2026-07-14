@@ -16,10 +16,12 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
     
-    const existingQuiz = await db.query.quiz.findFirst({
-      where: eq(quiz.id, id),
-      with: { questions: true },
-    });
+    const [existingQuizRow] = await db.select().from(quiz).where(eq(quiz.id, id)).limit(1);
+    let existingQuizQuestions: (typeof question.$inferSelect)[] = [];
+    if (existingQuizRow) {
+      existingQuizQuestions = await db.select().from(question).where(eq(question.quizId, id));
+    }
+    const existingQuiz = existingQuizRow ? { ...existingQuizRow, questions: existingQuizQuestions } : null;
     
     if (!existingQuiz) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });

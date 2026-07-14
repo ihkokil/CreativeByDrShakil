@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getSession } from '@/lib/auth-server'
 import { db } from '@/lib/db';
-import { order as orderSchema, payment as paymentSchema, user as userSchema } from '@/db/schema';
+import { order as orderSchema, payment as paymentSchema, user as userSchema, course as courseSchema } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { sendPaymentVerificationEmail } from '@/lib/payment-emails'
 import { sendTelegramVerification } from '@/lib/telegram'
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid payment amount' }, { status: 400 })
     }
 
-    const order = await db.query.order.findFirst({ where: (o, { eq }) => eq(o.id, orderId) })
+    const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, orderId)).limit(1)
     if (!order || order.userId !== session.user.id) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
@@ -63,29 +63,21 @@ export async function POST(request: NextRequest) {
     };
     await db.update(orderSchema).set({ status: 'pending' }).where(eq(orderSchema.id, orderId));
 
-    const fullOrder = await db.query.order.findFirst({
-      where: (o, { eq }) => eq(o.id, orderId),
-      with: {
-        user: { columns: { fullName: true } },
-        course: {
-          columns: { title: true },
-          with: {
-            teacher: {
-              columns: {
-                email: true,
-                telegramChatId: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const fullOrder = (await db.select().from(orderSchema).where(eq(orderSchema.id, orderId)).limit(1))[0] as any;
+    if (fullOrder) {
+      const [userRow] = await db.select({ fullName: userSchema.fullName }).from(userSchema).where(eq(userSchema.id, fullOrder.userId)).limit(1);
+      const [courseRow] = await db.select({ title: courseSchema.title, teacherId: courseSchema.teacherId }).from(courseSchema).where(eq(courseSchema.id, fullOrder.courseId)).limit(1);
+      let teacher = null;
+      if (courseRow?.teacherId) {
+        const [teacherRow] = await db.select({ email: userSchema.email, telegramChatId: userSchema.telegramChatId }).from(userSchema).where(eq(userSchema.id, courseRow.teacherId)).limit(1);
+        teacher = teacherRow || null;
+      }
+      fullOrder.user = userRow || null;
+      fullOrder.course = courseRow ? { ...courseRow, teacher } : null;
+    }
 
     if (fullOrder) {
-      const managers = await db.query.user.findMany({
-        where: (u, { eq }) => eq(u.canManagePayments, true),
-        columns: { email: true, telegramChatId: true },
-      });
+      const managers = await db.select({ email: userSchema.email, telegramChatId: userSchema.telegramChatId }).from(userSchema).where(eq(userSchema.canManagePayments, true));
 
       const recipientEmails = new Set<string>();
       const additionalChatIds = new Set<string>();

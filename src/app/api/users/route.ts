@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import { getGlobalSessionSettings, resolveAutoLockSetting } from '@/lib/session-manager';
-import { user } from '@/db/schema';
-import { sql, eq, or, ilike, and, count, desc, asc } from 'drizzle-orm';
+import { user, deviceSession as deviceSessionSchema, order as orderSchema, course as courseSchema } from '@/db/schema';
+import { sql, eq, or, ilike, and, count, desc, asc, inArray } from 'drizzle-orm';
 
 /**
  * GET /api/users?page=1&limit=20&search=query
@@ -58,66 +58,79 @@ export async function GET(request: NextRequest) {
     // Fetch count + paginated users + globalSettings in parallel
     const [totalResult, users, globalSettings] = await Promise.all([
       db.select({ total: count() }).from(user).where(whereClause),
-      db.query.user.findMany({
-        where: () => whereClause!,
-        columns: {
-          id: true,
-          fullName: true,
-          email: true,
-          role: true,
-          isBanned: true,
-          isSessionLockedExempt: true,
-          createdAt: true,
-          profileImage: true,
-          image: true,
-        },
-        with: {
-          deviceSessions: {
-            columns: {
-              id: true,
-              deviceType: true,
-              browserName: true,
-              ipAddress: true,
-              isLocked: true,
-              loggedOutAt: true,
-              createdAt: true,
-              lastActivityAt: true,
-            },
-            orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-          },
-          orders: {
-            where: (o, { eq }) => eq(o.status, 'approved'),
-            columns: {
-              id: true,
-              enrolledAt: true,
-              expiresAt: true,
-            },
-            with: {
-              course: {
-                columns: {
-                  id: true,
-                  title: true,
-                  slug: true,
-                },
-              },
-            },
-          },
-        },
-        orderBy: getOrderBy(),
-        limit,
-        offset,
-      }),
+      db.select({
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        isBanned: user.isBanned,
+        isSessionLockedExempt: user.isSessionLockedExempt,
+        createdAt: user.createdAt,
+        profileImage: user.profileImage,
+        image: user.image,
+      }).from(user).where(whereClause).orderBy(getOrderBy()).limit(limit).offset(offset),
       getGlobalSessionSettings(),
     ]);
 
     const totalCount = totalResult[0]?.total ?? 0;
     const totalPages = Math.ceil(totalCount / limit);
 
+    const userIds = users.map(u => u.id);
+    const [deviceSessions, orders] = await Promise.all([
+      userIds.length > 0
+        ? db.select({
+            id: deviceSessionSchema.id,
+            userId: deviceSessionSchema.userId,
+            deviceType: deviceSessionSchema.deviceType,
+            browserName: deviceSessionSchema.browserName,
+            ipAddress: deviceSessionSchema.ipAddress,
+            isLocked: deviceSessionSchema.isLocked,
+            loggedOutAt: deviceSessionSchema.loggedOutAt,
+            createdAt: deviceSessionSchema.createdAt,
+            lastActivityAt: deviceSessionSchema.lastActivityAt,
+          }).from(deviceSessionSchema).where(inArray(deviceSessionSchema.userId, userIds)).orderBy(desc(deviceSessionSchema.createdAt))
+        : [],
+      userIds.length > 0
+        ? db.select({
+            id: orderSchema.id,
+            userId: orderSchema.userId,
+            courseId: orderSchema.courseId,
+            enrolledAt: orderSchema.enrolledAt,
+            expiresAt: orderSchema.expiresAt,
+          }).from(orderSchema).where(and(inArray(orderSchema.userId, userIds), eq(orderSchema.status, 'approved')))
+        : [],
+    ]);
+
+    const orderCourseIds = [...new Set(orders.map(o => o.courseId))];
+    const courses = orderCourseIds.length > 0
+      ? await db.select({
+          id: courseSchema.id,
+          title: courseSchema.title,
+          slug: courseSchema.slug,
+        }).from(courseSchema).where(inArray(courseSchema.id, orderCourseIds))
+      : [];
+    const courseMap = new Map(courses.map(c => [c.id, c]));
+
+    const deviceSessionsMap = new Map<string, typeof deviceSessions>();
+    for (const ds of deviceSessions) {
+      const list = deviceSessionsMap.get(ds.userId) || [];
+      list.push(ds);
+      deviceSessionsMap.set(ds.userId, list);
+    }
+
+    const ordersMap = new Map<string, any[]>();
+    for (const o of orders) {
+      const list = ordersMap.get(o.userId) || [];
+      list.push({ ...o, course: courseMap.get(o.courseId) || null });
+      ordersMap.set(o.userId, list);
+    }
+
     const formattedUsers = await Promise.all(
       users.map(async (u) => {
-        const activeSessions = u.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+        const userDeviceSessions = deviceSessionsMap.get(u.id) || [];
+        const activeSessions = userDeviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
 
-        const latestSession = [...u.deviceSessions].sort(
+        const latestSession = [...userDeviceSessions].sort(
           (a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
         )[0];
         const lastActiveAt = latestSession ? latestSession.lastActivityAt : u.createdAt;
@@ -131,6 +144,7 @@ export async function GET(request: NextRequest) {
         hasUserOverride = resolved.hasUserOverride;
         userAutoLockSetting = resolved.userAutoLockFirstBrowser;
 
+        const userOrders = ordersMap.get(u.id) || [];
         return {
           id: u.id,
           fullName: u.fullName,
@@ -141,12 +155,12 @@ export async function GET(request: NextRequest) {
           createdAt: u.createdAt,
           profileImage: u.profileImage || u.image || null,
           activeSessions,
-          sessions: u.deviceSessions,
+          sessions: userDeviceSessions,
           lastActiveAt,
           autoLockSetting,
           hasUserOverride,
           userAutoLockSetting,
-          enrolledCourses: u.orders.map((order) => ({
+          enrolledCourses: userOrders.map((order) => ({
             orderId: order.id,
             courseId: order.course.id,
             courseTitle: order.course.title,

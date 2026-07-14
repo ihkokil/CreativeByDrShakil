@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function ForgotPasswordRedirectPage() {
+export default function ForgotPaswordTypoRedirectPage() {
     redirect("/forgot-password");
 }

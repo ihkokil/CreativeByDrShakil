@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { order as orderSchema, payment as paymentSchema } from '@/db/schema';
+import { order as orderSchema, payment as paymentSchema, user as userSchema, course as courseSchema } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { requirePaymentManager } from '@/lib/admin-auth';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
@@ -22,14 +22,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Invalid decision. Use approve or reject.' }, { status: 400 });
     }
 
-    const order = await db.query.order.findFirst({
-      where: (o, { eq }) => eq(o.id, orderId),
-      with: { payments: true, user: true, course: true },
-    });
+    const order = (await db.select().from(orderSchema).where(eq(orderSchema.id, orderId)).limit(1))[0] as any;
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
+
+    const [payments, user, course] = await Promise.all([
+      db.select().from(paymentSchema).where(eq(paymentSchema.orderId, orderId)),
+      db.select().from(userSchema).where(eq(userSchema.id, order.userId)).limit(1).then(r => r[0] || null),
+      db.select().from(courseSchema).where(eq(courseSchema.id, order.courseId)).limit(1).then(r => r[0] || null),
+    ]);
+    order.payments = payments;
+    order.user = user;
+    order.course = course;
 
     const nextOrderStatus = decision === 'approve' ? 'approved' : 'rejected';
     const nextPaymentStatus = decision === 'approve' ? 'approved' : 'rejected';
@@ -39,9 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       status: nextOrderStatus,
     }).where(eq(orderSchema.id, orderId));
 
-    const updatedOrder = await db.query.order.findFirst({
-      where: (o, { eq }) => eq(o.id, orderId),
-    });
+    const [updatedOrder] = await db.select().from(orderSchema).where(eq(orderSchema.id, orderId)).limit(1);
 
     if (order.payments?.length) {
       await db.update(paymentSchema).set({

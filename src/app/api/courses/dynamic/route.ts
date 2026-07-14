@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
-import { course as courseSchema, order as orderSchema } from '@/db/schema';
-import { eq, sql, ne, count } from 'drizzle-orm';
+import { course as courseSchema, order as orderSchema, user as userSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
+import { eq, sql, ne, count, and, isNotNull, inArray, desc, asc } from 'drizzle-orm';
 import { BuilderCurriculumNode, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { videoLibraryNode } from '@/db/schema';
 
@@ -15,34 +15,14 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const [courses, orderCountsData] = await Promise.all([
-      db.query.course.findMany({
-        where: (c, { eq, isNotNull, and }) => and(
-          eq(c.status, 'published'),
-          isNotNull(c.slug)
-        ),
-        orderBy: (c, { desc }) => [desc(c.publishedAt), desc(c.updatedAt)],
-        with: {
-          teacher: {
-            columns: {
-              id: true,
-              fullName: true,
-              designation: true,
-              profileImage: true,
-            },
-          },
-          instructors: {
-            orderBy: (i, { asc }) => [asc(i.sortOrder)],
-            columns: {
-              id: true,
-              name: true,
-              designation: true,
-              imageUrl: true,
-              sortOrder: true,
-            },
-          },
-        },
-      }),
+    const [coursesData, orderCountsData] = await Promise.all([
+      db.select()
+        .from(courseSchema)
+        .where(and(
+          eq(courseSchema.status, 'published'),
+          isNotNull(courseSchema.slug)
+        ))
+        .orderBy(desc(courseSchema.publishedAt), desc(courseSchema.updatedAt)),
       db.select({
         courseId: orderSchema.courseId,
         count: sql<number>`count(${orderSchema.id})`.mapWith(Number),
@@ -51,6 +31,49 @@ export async function GET() {
       .where(eq(orderSchema.status, 'approved'))
       .groupBy(orderSchema.courseId)
     ]);
+
+    const teacherIds = Array.from(new Set(coursesData.map(c => c.teacherId).filter(Boolean))) as string[];
+    const courseIds = coursesData.map(c => c.id);
+
+    const [teachers, instructors] = await Promise.all([
+      teacherIds.length > 0
+        ? db.select({
+            id: userSchema.id,
+            fullName: userSchema.fullName,
+            designation: userSchema.designation,
+            profileImage: userSchema.profileImage,
+          })
+          .from(userSchema)
+          .where(inArray(userSchema.id, teacherIds))
+        : Promise.resolve([]),
+      courseIds.length > 0
+        ? db.select({
+            id: courseInstructorSchema.id,
+            courseId: courseInstructorSchema.courseId,
+            name: courseInstructorSchema.name,
+            designation: courseInstructorSchema.designation,
+            imageUrl: courseInstructorSchema.imageUrl,
+            sortOrder: courseInstructorSchema.sortOrder,
+          })
+          .from(courseInstructorSchema)
+          .where(inArray(courseInstructorSchema.courseId, courseIds))
+          .orderBy(asc(courseInstructorSchema.sortOrder))
+        : Promise.resolve([]),
+    ]);
+
+    const teacherMap = new Map(teachers.map(t => [t.id, t]));
+    const instructorsMap = new Map<string, any[]>();
+    instructors.forEach(inst => {
+      const list = instructorsMap.get(inst.courseId) || [];
+      list.push(inst);
+      instructorsMap.set(inst.courseId, list);
+    });
+
+    const courses = coursesData.map(c => ({
+      ...c,
+      teacher: c.teacherId ? teacherMap.get(c.teacherId) || null : null,
+      instructors: instructorsMap.get(c.id) || [],
+    }));
 
     const orderCountMap = new Map(orderCountsData.map(row => [row.courseId, row.count]));
 
