@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Loader2, Check } from "lucide-react";
 import styles from "./StudentRulesModal.module.css";
 import { motion } from "framer-motion";
+import { formatDateInputGMT6 } from "@/lib/date-format";
 
 interface StudentRulesModalProps {
     courseId: string;
@@ -29,7 +30,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
     const [action, setAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [intervalDays, setIntervalDays] = useState<number>(7);
-    const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState<string>(() => formatDateInputGMT6(new Date()));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 

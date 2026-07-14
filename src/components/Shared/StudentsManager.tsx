@@ -13,6 +13,7 @@ import styles from './StudentsManager.module.css';
 import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
 import SingleCourseProgressModal from './SingleCourseProgressModal';
+import { formatDateGMT6, formatDateInputGMT6 } from '@/lib/date-format';
 
 interface EnrolledCourse {
   orderId: string;
@@ -203,8 +204,8 @@ function StudentProgramsCell({ student, onCourseClick }: { student: StudentProfi
             <span className={styles.courseCardTitle} title={c.courseTitle}>{c.courseTitle}</span>
             <div className={styles.courseCardBottom}>
               <div className={styles.courseCardDate}>
-                <span>Start: {c.enrolledAt ? new Date(c.enrolledAt).toLocaleDateString('en-GB') : '—'}</span>
-                <span>Expires: {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString('en-GB') : '—'}</span>
+                <span>Start: {c.enrolledAt ? formatDateGMT6(c.enrolledAt) : '—'}</span>
+                <span>Expires: {c.expiresAt ? formatDateGMT6(c.expiresAt) : '—'}</span>
               </div>
               {progress !== null ? (
                 <CircularProgress progress={progress} />
@@ -239,7 +240,7 @@ export default function StudentsManager() {
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchCourseIds, setBatchCourseIds] = useState<string[]>([]);
-  const [batchEnrollDate, setBatchEnrollDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [batchEnrollDate, setBatchEnrollDate] = useState(() => formatDateInputGMT6(new Date()));
 
   // Batch panels
   const [showEnrollPanel, setShowEnrollPanel] = useState(false);
@@ -247,7 +248,7 @@ export default function StudentsManager() {
   const [removeCourseId, setRemoveCourseId] = useState('');
   const [showDatePanel, setShowDatePanel] = useState(false);
   const [datePanelCourseId, setDatePanelCourseId] = useState('');
-  const [datePanelDate, setDatePanelDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [datePanelDate, setDatePanelDate] = useState(() => formatDateInputGMT6(new Date()));
 
   // Edit student enrollments state
   const [editEnrollments, setEditEnrollments] = useState<Record<string, { selected: boolean, date: string, isExisting: boolean }>>({});
@@ -787,9 +788,8 @@ export default function StudentsManager() {
   const calculatedEditExpiry = useMemo(() => {
     if (!editingEnrollment?.enrolledAt) return '';
     try {
-      const d = new Date(editingEnrollment.enrolledAt);
-      d.setFullYear(d.getFullYear() + 1);
-      return d.toLocaleDateString('en-GB');
+      const [year, month, day] = editingEnrollment.enrolledAt.split('-').map(Number);
+      return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year + 1}`;
     } catch {
       return '';
     }
@@ -798,9 +798,8 @@ export default function StudentsManager() {
   const calculatedBatchExpiry = useMemo(() => {
     if (!batchEnrollDate) return '';
     try {
-      const d = new Date(batchEnrollDate);
-      d.setFullYear(d.getFullYear() + 1);
-      return d.toLocaleDateString('en-GB');
+      const [year, month, day] = batchEnrollDate.split('-').map(Number);
+      return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year + 1}`;
     } catch {
       return '';
     }
@@ -981,7 +980,7 @@ export default function StudentsManager() {
                             student.enrolledCourses.forEach(c => {
                               initialEnrollments[c.courseId] = {
                                 selected: true,
-                                date: c.enrolledAt ? new Date(c.enrolledAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                                date: c.enrolledAt ? formatDateInputGMT6(c.enrolledAt) : formatDateInputGMT6(new Date()),
                                 isExisting: true
                               };
                             });
@@ -1256,7 +1255,7 @@ export default function StudentsManager() {
               studentName: selectedStudentForDetails.fullName,
               courseTitle: course.courseTitle,
               orderId: course.orderId,
-              enrolledAt: course.enrolledAt ? new Date(course.enrolledAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              enrolledAt: course.enrolledAt ? formatDateInputGMT6(course.enrolledAt) : formatDateInputGMT6(new Date()),
             });
           }}
           onEditRules={(course) => {
@@ -1482,7 +1481,7 @@ export default function StudentsManager() {
                 <label style={{ display: 'block', marginBottom: '12px', fontWeight: 600, fontSize: '0.9rem' }}>Manage Course Enrollments</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', paddingRight: '8px' }}>
                   {courses.map(course => {
-                    const state = editEnrollments[course.id] || { selected: false, date: new Date().toISOString().split('T')[0], isExisting: false };
+                    const state = editEnrollments[course.id] || { selected: false, date: formatDateInputGMT6(new Date()), isExisting: false };
                     
                     return (
                       <div key={course.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '12px', background: 'var(--surface-soft)', border: '1px solid var(--glass-border)' }}>

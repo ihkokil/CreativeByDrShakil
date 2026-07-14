@@ -5,6 +5,7 @@ import dashStyles from '@/app/admin/dashboard/AdminDashboard.module.css';
 import styles from './EnrollmentsManager.module.css';
 import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
+import { formatDateInputGMT6 } from '@/lib/date-format';
 
 interface EnrolledCourse {
   orderId: string;
@@ -49,13 +50,13 @@ export default function EnrollmentsManager() {
   const [selectedStudentForDetails, setSelectedStudentForDetails] = useState<StudentProfile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [batchCourseId, setBatchCourseId] = useState('');
-  const [batchEnrollDate, setBatchEnrollDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [batchEnrollDate, setBatchEnrollDate] = useState(() => formatDateInputGMT6(new Date()));
 
   // Integrated module rules states
   const [ruleAction, setRuleAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
   const [intervalDays, setIntervalDays] = useState<number>(7);
-  const [ruleStartDate, setRuleStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [ruleStartDate, setRuleStartDate] = useState<string>(() => formatDateInputGMT6(new Date()));
   const [ruleEndDate, setRuleEndDate] = useState<string>("");
 
   const token = useMemo(() => {
@@ -224,7 +225,7 @@ export default function EnrollmentsManager() {
       setRuleAction('start_from_today');
       setDaysOfWeek([]);
       setIntervalDays(7);
-      setRuleStartDate(new Date().toISOString().split('T')[0]);
+      setRuleStartDate(formatDateInputGMT6(new Date()));
       setRuleEndDate('');
       
       // Refresh students list
@@ -664,7 +665,7 @@ export default function EnrollmentsManager() {
               studentName: selectedStudentForDetails.fullName,
               courseTitle: course.courseTitle,
               orderId: course.orderId,
-              enrolledAt: course.enrolledAt ? new Date(course.enrolledAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+              enrolledAt: course.enrolledAt ? formatDateInputGMT6(course.enrolledAt) : formatDateInputGMT6(new Date()),
             });
           }}
           onEditRules={(course) => {
