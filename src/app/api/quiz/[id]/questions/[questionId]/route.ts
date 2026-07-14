@@ -64,10 +64,13 @@ export async function PUT(
     if (correctOption !== undefined) updateData.correctOption = correctOption.trim();
     if (explanation !== undefined) updateData.explanation = explanation?.trim() || null;
     
-    const [updatedQuestion] = await db.update(question)
+    await db.update(question)
       .set(updateData)
-      .where(and(eq(question.id, questionId), eq(question.quizId, id)))
-      .returning();
+      .where(and(eq(question.id, questionId), eq(question.quizId, id)));
+
+    const updatedQuestion = await db.query.question.findFirst({
+      where: (q, { eq, and }) => and(eq(q.id, questionId), eq(q.quizId, id)),
+    });
     
     return NextResponse.json({ question: updatedQuestion });
   } catch (error: any) {

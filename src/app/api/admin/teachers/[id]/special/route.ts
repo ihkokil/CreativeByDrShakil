@@ -18,16 +18,20 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
       return NextResponse.json({ error: 'Invalid payload. canManagePayments must be a boolean.' }, { status: 400 });
     }
 
-    const [updatedTeacher] = await db.update(userSchema)
+    await db.update(userSchema)
       .set({ canManagePayments })
-      .where(and(eq(userSchema.id, params.id), eq(userSchema.role, 'teacher')))
-      .returning({
-        id: userSchema.id,
-        fullName: userSchema.fullName,
-        email: userSchema.email,
-        role: userSchema.role,
-        canManagePayments: userSchema.canManagePayments,
-      });
+      .where(and(eq(userSchema.id, params.id), eq(userSchema.role, 'teacher')));
+
+    const updatedTeacher = await db.query.user.findFirst({
+      where: (u, { eq, and }) => and(eq(u.id, params.id), eq(u.role, 'teacher')),
+      columns: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        canManagePayments: true,
+      }
+    });
 
     if (!updatedTeacher) {
       return NextResponse.json({ error: 'Teacher not found.' }, { status: 404 });

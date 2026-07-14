@@ -80,18 +80,33 @@ export async function POST(request: NextRequest) {
       verifyExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
 
-    const [user] = await db.insert(userSchema).values({
-      id: crypto.randomUUID(),
+    const { hash } = await import('bcryptjs');
+    const generatedId = crypto.randomUUID();
+    const hashedPassword = await hash(password, 12);
+    const nowStr = new Date().toISOString();
+
+    const insertValues = {
+      id: generatedId,
       email: normalizedEmail,
-      passwordHash: sql`crypt(${password}, gen_salt('bf', 12))`,
+      passwordHash: hashedPassword,
       fullName,
       phone: phone || null,
       bmdcNumber: bmdc || null,
-      role: 'student',
+      role: 'student' as const,
       emailVerified,
       emailVerificationTokenHash: tokenHash,
       emailVerificationExpires: verifyExpiry?.toISOString() || null,
-    }).returning();
+    };
+
+    await db.insert(userSchema).values(insertValues);
+
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, generatedId),
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Failed to create user.' }, { status: 500 });
+    }
 
     // Send Telegram Notification (fire and forget)
     sendTelegramRegistrationNotification({

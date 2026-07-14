@@ -130,17 +130,39 @@ export async function POST(request: NextRequest) {
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
       
 
-      const [newUser] = await db.insert(userSchema).values({
-        id: crypto.randomUUID(),
+      const { hash } = await import('bcryptjs');
+      const generatedId = crypto.randomUUID();
+      const hashedPassword = await hash(tempPassword, 12);
+      const nowStr = new Date().toISOString();
+
+      const insertValues = {
+        id: generatedId,
         email: normalizedEmail,
         fullName,
         phone: phone || null,
-        passwordHash: sql`crypt(${tempPassword}, gen_salt('bf', 12))`,
-        role: 'student',
+        passwordHash: hashedPassword,
+        role: 'student' as const,
         emailVerified: true,
         passwordResetTokenHash: tokenHash,
         passwordResetExpires: resetExpiry.toISOString(),
-      }).returning();
+      };
+
+      await db.insert(userSchema).values(insertValues);
+
+      const newUser = {
+        ...insertValues,
+        createdAt: nowStr,
+        updatedAt: nowStr,
+        canManagePayments: false,
+        isBanned: false,
+        telegramChatId: null,
+        image: null,
+        isSessionLockedExempt: false,
+        profileImage: null,
+        designation: null,
+        degrees: null,
+        institution: null,
+      };
       finalStudent = newUser;
       newlyCreatedUserId = newUser.id;
       isNewReg = true;

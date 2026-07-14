@@ -42,16 +42,19 @@ export async function POST(request: NextRequest) {
     const categoryId = nanoid();
     const now = new Date();
     
-    const [newCategory] = await db.insert(quizCategory).values({
+    const nowStr = now.toISOString();
+    const insertValues = {
       id: categoryId,
       name,
       displayName,
       description,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    }).returning();
+      createdAt: nowStr,
+      updatedAt: nowStr,
+    };
+
+    await db.insert(quizCategory).values(insertValues);
     
-    return NextResponse.json({ category: newCategory }, { status: 201 });
+    return NextResponse.json({ category: insertValues }, { status: 201 });
   } catch (error: any) {
     console.error('POST /api/quiz/categories error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

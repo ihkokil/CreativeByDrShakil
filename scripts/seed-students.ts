@@ -1,5 +1,4 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { db } from '../src/lib/db';
 import { eq } from 'drizzle-orm';
 import * as schema from '../src/db/schema';
 import * as dotenv from 'dotenv';
@@ -7,9 +6,6 @@ import bcrypt from 'bcryptjs';
 
 dotenv.config();
 dotenv.config({ path: '.env.local' });
-
-const sql = neon(process.env.NEON_DATABASE_URL!);
-const db = drizzle(sql, { schema });
 
 const STUDENTS = [
   {
@@ -54,17 +50,18 @@ async function main() {
     // Delete if exists first to avoid complex upsert with Drizzle
     await db.delete(schema.user).where(eq(schema.user.email, student.email));
     
-    const dbStudents = await db.insert(schema.user).values({
-      id: `usr_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+    const studentId = `usr_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+    await db.insert(schema.user).values({
+      id: studentId,
       fullName: student.fullName,
       email: student.email,
       role: 'student',
       emailVerified: true,
       passwordHash,
       createdAt: student.accountCreateDate,
-    }).returning();
+    });
     
-    const dbStudent = dbStudents[0];
+    const dbStudent = { id: studentId };
 
     // Delete existing orders for this student
     await db.delete(schema.order).where(eq(schema.order.userId, dbStudent.id));

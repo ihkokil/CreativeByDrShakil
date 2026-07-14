@@ -98,16 +98,33 @@ export async function POST(
     const attemptId = nanoid();
     const startedAt = new Date();
     
-    const [newAttempt] = await db.insert(quizAttempt).values({
+    const insertValues = {
       id: attemptId,
       quizId,
       studentId,
       startedAt: startedAt.toISOString(),
-      status: 'in_progress',
+      status: 'in_progress' as const,
       attemptNumber: attemptCount + 1,
       createdAt: startedAt.toISOString(),
       updatedAt: startedAt.toISOString(),
-    }).returning();
+    };
+
+    await db.insert(quizAttempt).values(insertValues);
+
+    const newAttempt = {
+      ...insertValues,
+      submittedAt: null,
+      timeTakenSeconds: null,
+      isAutoSubmitted: false,
+      totalScore: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      skippedCount: 0,
+      negativeMarks: 0,
+      netScore: 0,
+      percentageScore: 0,
+      rank: null,
+    };
     
     const mappings = selectedQuestions.map((q, index) => {
       const options = [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean);

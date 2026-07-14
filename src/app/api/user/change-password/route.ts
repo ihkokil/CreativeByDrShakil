@@ -28,17 +28,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New password must be different from current password.' }, { status: 400 });
     }
 
-    // Query user and check current password hash in database
-    const results = await db.execute(sql`
-      SELECT 
-        id, "passwordHash",
-        ("passwordHash" = crypt(${currentPassword}, "passwordHash")) as "isCurrentValid"
-      FROM "User" 
-      WHERE id = ${payload.sub} 
-      LIMIT 1
-    `);
-
-    const user = results[0] as any;
+    // Query user and check current password hash
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+    });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -51,13 +44,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!user.isCurrentValid) {
+    const { compare, hash } = await import('bcryptjs');
+    const isCurrentValid = await compare(currentPassword, user.passwordHash);
+
+    if (!isCurrentValid) {
       return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 });
     }
 
     // Hash and update to the new password in DB
+    const newHash = await hash(newPassword, 12);
     await db.update(userSchema).set({
-        passwordHash: sql`crypt(${newPassword}, gen_salt('bf', 12))`,
+        passwordHash: newHash,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
       }).where(eq(userSchema.id, user.id));

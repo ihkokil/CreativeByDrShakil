@@ -131,16 +131,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return acc;
     }, {});
 
-    const [updatedCourse] = await db.update(courseSchema).set({
+    await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(mergedCurriculum),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }).where(eq(courseSchema.id, course.id)).returning();
+      }).where(eq(courseSchema.id, course.id));
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: updatedCourse.releaseMode,
-      releaseStartAt: updatedCourse.releaseStartAt || updatedCourse.courseStartDate,
-      releaseIntervalDays: updatedCourse.releaseIntervalDays,
-      releaseGroupsPerWeek: updatedCourse.releaseGroupsPerWeek,
+      releaseMode: course.releaseMode,
+      releaseStartAt: course.releaseStartAt || course.courseStartDate,
+      releaseIntervalDays: course.releaseIntervalDays,
+      releaseGroupsPerWeek: course.releaseGroupsPerWeek,
       releaseGroupDates: compactReleaseGroupDates,
     });
 

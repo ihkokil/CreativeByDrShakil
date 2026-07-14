@@ -117,8 +117,9 @@ export async function POST(request: NextRequest) {
 
     const slug = await buildUniqueSlug(title);
 
-    const [newCourse] = await db.insert(courseSchema).values({
-        id: crypto.randomUUID(),
+    const courseId = crypto.randomUUID();
+    await db.insert(courseSchema).values({
+        id: courseId,
         slug,
         title,
         description: 'Course description will be added soon.',
@@ -134,10 +135,10 @@ export async function POST(request: NextRequest) {
         timezone: 'Asia/Dhaka',
         curriculumJson: '[]',
         releaseGroupDates: '{}',
-    }).returning();
+    });
 
     const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, newCourse.id),
+      where: (c, { eq }) => eq(c.id, courseId),
       with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
     });
 

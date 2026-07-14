@@ -5,7 +5,7 @@ Creative By Dr. Shakil is a Next.js learning platform with role-based dashboards
 ## Highlights
 
 - Built with Next.js App Router, React, and TypeScript.
-- PostgreSQL + Prisma for persistent user and role data.
+- MariaDB/MySQL + Drizzle ORM for persistent data.
 - JWT-based authentication with secure cookie session support.
 - Role-aware app shell for student, teacher, and admin dashboards.
 - Admin teacher management APIs and modal-driven invite flow.
@@ -15,7 +15,7 @@ Creative By Dr. Shakil is a Next.js learning platform with role-based dashboards
 - Next.js 16
 - React 19
 - TypeScript
-- Prisma ORM
+- Drizzle ORM
 
 - bcryptjs + jsonwebtoken
 - Lucide icons + Framer Motion
@@ -40,18 +40,16 @@ src/
 		AuthContext.tsx
 	lib/
 		auth-server.ts
-		prisma.ts
-prisma/
-	schema.prisma
-scripts/
-	seed-teachers.mjs
+		db.ts
+drizzle/
+	0000_calm_maria_hill.sql
 ```
 
 ## Prerequisites
 
 - Node.js 20+
 - npm 10+
-- Neon Database (PostgreSQL)
+- MariaDB/MySQL Database
 
 ## Environment Variables
 
@@ -59,8 +57,8 @@ Create or update `.env.local` or `.env` in the project root.
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| NEON_DATABASE_URL | Yes | PostgreSQL connection string for the database (Neon). |
-| NEON_DIRECT_URL | Yes | Direct PostgreSQL connection string for database schema migrations. |
+| MYSQL_DATABASE_URL | Yes | MariaDB/MySQL connection string for the database. |
+| MYSQL_DIRECT_URL | Yes | Direct MariaDB/MySQL connection string for database schema migrations. |
 | JWT_SECRET | Yes | Secret used to sign and verify JWT authentication tokens. |
 | JWT_EXPIRES_IN | No | JWT token expiration window (e.g. `7d`). |
 | RESEND_API_KEY | Yes | Resend API key used to send emails. |
@@ -79,9 +77,9 @@ Create or update `.env.local` or `.env` in the project root.
 Example:
 
 ```env
-# Neon Database
-NEON_DATABASE_URL="postgresql://user:pass@host.neon.tech/neondb?sslmode=require"
-NEON_DIRECT_URL="postgresql://user:pass@host.neon.tech/neondb?sslmode=require"
+# MariaDB/MySQL Database
+MYSQL_DATABASE_URL="mysql://[user]:[password]@[host]:3306/[database]"
+MYSQL_DIRECT_URL="mysql://[user]:[password]@[host]:3306/[database]"
 
 # Authentication
 JWT_SECRET="your-super-secret-jwt-key"
@@ -118,25 +116,17 @@ npm install
 
 ## Database Setup
 
-Generate Prisma client:
+Sync database schema:
 
 ```bash
-npx prisma generate
+npx drizzle-kit push
 ```
 
-Apply schema to your database:
+Migrate PostgreSQL (Supabase) data to MariaDB/MySQL:
 
 ```bash
-npx prisma db push
+npx tsx scripts/migrate-postgres-to-mysql.ts
 ```
-
-Seed teacher accounts:
-
-```bash
-npm run seed:teachers
-```
-
-The seed script upserts demo teacher users with password `Teacher@12345`.
 
 ## Run the App
 
@@ -167,7 +157,6 @@ npm run lint
 | `npm run build` | Builds optimized production bundle. |
 | `npm start` | Starts production server after build. |
 | `npm run lint` | Runs Next.js/ESLint checks. |
-| `npm run seed:teachers` | Seeds/upserts teacher accounts. |
 
 ## Core Routes
 
@@ -201,7 +190,7 @@ npm run lint
 
 - Set all required environment variables in your hosting platform.
 - Ensure database connectivity from the deployed environment.
-- Run `npx prisma generate` during build and apply schema changes before first run.
+- Run schema migrations (`npx drizzle-kit push` or SQL execution) before first run.
 
 ## Repository
 

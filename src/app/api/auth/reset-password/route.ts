@@ -51,9 +51,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Update password
+    const { hash } = await import('bcryptjs');
+    const hashedPassword = await hash(String(password), 12);
     await db.update(userSchema)
       .set({
-        passwordHash: sql`crypt(${String(password)}, gen_salt('bf', 12))`,
+        passwordHash: hashedPassword,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
       })

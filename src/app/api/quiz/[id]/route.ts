@@ -178,10 +178,9 @@ export async function PUT(
       }
     }
     
-    const [updatedQuiz] = await db.update(quiz)
+    await db.update(quiz)
       .set(updateData)
-      .where(eq(quiz.id, id))
-      .returning();
+      .where(eq(quiz.id, id));
       
     if (questions && Array.isArray(questions)) {
       const existingQuestions = await db.query.question.findMany({
@@ -231,6 +230,10 @@ export async function PUT(
       }
     }
     
+    const updatedQuiz = await db.query.quiz.findFirst({
+      where: (q, { eq }) => eq(q.id, id),
+    });
+
     return NextResponse.json({ quiz: updatedQuiz });
   } catch (error: any) {
     console.error('PUT /api/quiz/[id] error:', error);

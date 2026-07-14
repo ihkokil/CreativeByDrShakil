@@ -127,8 +127,10 @@ export async function POST(
     for (const row of validRows) {
       const questionTypeTyped: 'mcq' | 'true_false' = row.optionC && row.optionC !== '' ? 'mcq' : 'true_false';
       
-      const [newQuestion] = await db.insert(question).values({
-        id: nanoid(),
+      const questionId = nanoid();
+      const nowStr = new Date().toISOString();
+      const insertValues = {
+        id: questionId,
         quizId: id,
         questionText: row.questionText,
         questionType: questionTypeTyped,
@@ -138,11 +140,13 @@ export async function POST(
         optionD: row.optionD,
         correctOption: row.correctOption,
         explanation: row.explanation || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }).returning();
+        createdAt: nowStr,
+        updatedAt: nowStr,
+      };
+
+      await db.insert(question).values(insertValues);
       
-      importedQuestions.push(newQuestion);
+      importedQuestions.push(insertValues);
     }
     
     return NextResponse.json({

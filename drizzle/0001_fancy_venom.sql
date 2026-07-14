@@ -1,1 +1,0 @@
-ALTER TABLE "User" ADD COLUMN "isBanned" boolean DEFAULT false NOT NULL;

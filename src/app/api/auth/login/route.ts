@@ -33,18 +33,10 @@ export async function POST(request: NextRequest) {
 
     const { identifier, password } = parsed.data;
 
-    // Use Drizzle's execute to verify password using pgcrypto on the database level via the pooled connection.
-    const results = await db.execute(sql`
-      SELECT 
-        id, email, phone, role, "isBanned", "emailVerified", "passwordHash",
-        "fullName", "bmdcNumber", "profileImage", "canManagePayments", "isSessionLockedExempt",
-        ("passwordHash" = crypt(${password}, "passwordHash")) as "isPasswordValid"
-      FROM "User" 
-      WHERE email = ${identifier} OR phone = ${identifier} 
-      LIMIT 1
-    `);
-
-    const userRecord = results[0] as any;
+    // Query user record using Drizzle builder
+    const userRecord = await db.query.user.findFirst({
+      where: (u, { eq, or }) => or(eq(u.email, identifier), eq(u.phone, identifier)),
+    });
 
     if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
@@ -73,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Handle newly migrated users who don't have a password yet
     if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
       const { hash } = await import('bcryptjs');
-      const newHash = await hash(password, 10);
+      const newHash = await hash(password, 12);
       await db.update(user).set({ passwordHash: newHash }).where(eq(user.id, userRecord.id));
       userRecord.passwordHash = newHash;
     }
@@ -85,7 +77,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!userRecord.isPasswordValid) {
+    const { compare } = await import('bcryptjs');
+    const isPasswordValid = await compare(password, userRecord.passwordHash);
+
+    if (!isPasswordValid) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
     }
 

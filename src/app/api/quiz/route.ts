@@ -199,15 +199,16 @@ export async function POST(request: NextRequest) {
     const quizId = nanoid();
     const now = new Date();
     
-    const [newQuiz] = await db.insert(quiz).values({
+    const nowStr = now.toISOString();
+    const insertValues = {
       id: quizId,
-      title,
-      description,
-      instructions,
+      title: title.trim(),
+      description: description || null,
+      instructions: instructions || null,
       categoryId: categoryId || null,
-      durationMinutes,
-      numQuestionsToServe,
-      positionType: positionType || 'best_attempt',
+      durationMinutes: durationMinutes || 0,
+      numQuestionsToServe: numQuestionsToServe || 0,
+      positionType: (positionType || 'best_attempt') as 'best_attempt' | 'last_attempt' | 'first_attempt',
       allowMultipleAttempts: allowMultipleAttempts || false,
       maxAttempts: maxAttempts || null,
       allowNegativeMarking: allowNegativeMarking || false,
@@ -215,14 +216,18 @@ export async function POST(request: NextRequest) {
       marksPerCorrect: marksPerCorrect || 1,
       startDatetime: startDatetime ? new Date(startDatetime).toISOString() : null,
       endDatetime: endDatetime ? new Date(endDatetime).toISOString() : null,
-      status: status || 'draft',
+      status: (status || 'draft') as 'draft' | 'published' | 'archived',
       shuffleQuestions: shuffleQuestions !== false,
       shuffleOptions: shuffleOptions !== false,
       createdBy: payload.sub,
-      publishedAt: status === 'published' ? now.toISOString() : null,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    }).returning();
+      publishedAt: status === 'published' ? nowStr : null,
+      createdAt: nowStr,
+      updatedAt: nowStr,
+    };
+
+    await db.insert(quiz).values(insertValues);
+
+    const newQuiz = insertValues;
 
     if (body.questions && Array.isArray(body.questions) && body.questions.length > 0) {
       const nowStr = now.toISOString();

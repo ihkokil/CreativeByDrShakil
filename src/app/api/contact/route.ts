@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       imageUrls.push(`/${relativePath}`);
     }
 
-    const [submission] = await db.insert(csSchema).values({
+    const insertValues = {
         id: submissionId,
         fullName,
         phone,
@@ -91,7 +91,19 @@ export async function POST(request: NextRequest) {
         subject,
         message,
         imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
-    }).returning();
+    };
+
+    await db.insert(csSchema).values(insertValues);
+
+    const submission = {
+        ...insertValues,
+        status: 'open' as const,
+        adminReply: null,
+        adminReplySentAt: null,
+        repliedByAdminId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    };
 
     let parsedImageUrls: string[] = [];
     try {

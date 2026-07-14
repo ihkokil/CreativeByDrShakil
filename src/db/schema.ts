@@ -1,30 +1,18 @@
-import { pgTable, index, uniqueIndex, foreignKey, text, timestamp, integer, doublePrecision, boolean, varchar, pgEnum, jsonb } from "drizzle-orm/pg-core"
+import { mysqlTable, index, uniqueIndex, foreignKey, text, datetime, int, double, boolean, varchar, mysqlEnum, json } from "drizzle-orm/mysql-core"
 import { sql } from "drizzle-orm"
 
-export const contactIssueType = pgEnum("ContactIssueType", ['query', 'technical_assistance', 'billing', 'course_access', 'other'])
-export const contactSubmissionStatus = pgEnum("ContactSubmissionStatus", ['open', 'in_review', 'responded', 'closed'])
-export const coursePublishStatus = pgEnum("CoursePublishStatus", ['draft', 'scheduled', 'published', 'archived'])
-export const courseReleaseMode = pgEnum("CourseReleaseMode", ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant'])
-export const deviceType = pgEnum("DeviceType", ['desktop', 'mobile', 'tablet'])
-export const userRole = pgEnum("UserRole", ['admin', 'teacher', 'student'])
-export const quizStatus = pgEnum("QuizStatus", ['draft', 'published', 'archived'])
-export const quizPositionType = pgEnum("QuizPositionType", ['best_attempt', 'last_attempt', 'first_attempt'])
-export const questionType = pgEnum("QuestionType", ['mcq', 'true_false'])
-export const attemptStatus = pgEnum("AttemptStatus", ['in_progress', 'submitted', 'auto_submitted', 'abandoned'])
-
-
-export const lessonProgress = pgTable("LessonProgress", {
-	id: text().primaryKey().notNull(),
-	userId: text().notNull(),
-	courseId: text().notNull(),
-	lessonNodeId: text().notNull(),
-	completedAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+export const lessonProgress = mysqlTable("LessonProgress", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	userId: varchar({ length: 255 }).notNull(),
+	courseId: varchar({ length: 255 }).notNull(),
+	lessonNodeId: varchar({ length: 255 }).notNull(),
+	completedAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	index("LessonProgress_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
-	index("LessonProgress_userId_courseId_idx").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.courseId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("LessonProgress_userId_courseId_lessonNodeId_key").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.courseId.asc().nullsLast().op("text_ops"), table.lessonNodeId.asc().nullsLast().op("text_ops")),
+	index("LessonProgress_courseId_idx").on(table.courseId),
+	index("LessonProgress_userId_courseId_idx").on(table.userId, table.courseId),
+	uniqueIndex("LessonProgress_userId_courseId_lessonNodeId_key").on(table.userId, table.courseId, table.lessonNodeId),
 	foreignKey({
 			columns: [table.courseId],
 			foreignColumns: [course.id],
@@ -37,20 +25,20 @@ export const lessonProgress = pgTable("LessonProgress", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const studentModuleAvailability = pgTable("StudentModuleAvailability", {
-	id: text().primaryKey().notNull(),
-	courseId: text().notNull(),
-	userId: text().notNull(),
-	lessonNodeId: text().notNull(),
+export const studentModuleAvailability = mysqlTable("StudentModuleAvailability", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	courseId: varchar({ length: 255 }).notNull(),
+	userId: varchar({ length: 255 }).notNull(),
+	lessonNodeId: varchar({ length: 255 }).notNull(),
 	availabilityMode: text().default('available').notNull(),
-	availableAt: timestamp({ precision: 3, mode: 'string' }),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	availableAt: datetime({ fsp: 3, mode: 'string' }),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	index("StudentModuleAvailability_courseId_lessonNodeId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops"), table.lessonNodeId.asc().nullsLast().op("text_ops")),
-	index("StudentModuleAvailability_courseId_userId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops"), table.userId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("StudentModuleAvailability_courseId_userId_lessonNodeId_key").using("btree", table.courseId.asc().nullsLast().op("text_ops"), table.userId.asc().nullsLast().op("text_ops"), table.lessonNodeId.asc().nullsLast().op("text_ops")),
-	index("StudentModuleAvailability_userId_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	index("StudentModuleAvailability_courseId_lessonNodeId_idx").on(table.courseId, table.lessonNodeId),
+	index("StudentModuleAvailability_courseId_userId_idx").on(table.courseId, table.userId),
+	uniqueIndex("StudentModuleAvailability_courseId_userId_lessonNodeId_key").on(table.courseId, table.userId, table.lessonNodeId),
+	index("StudentModuleAvailability_userId_idx").on(table.userId),
 	foreignKey({
 			columns: [table.courseId],
 			foreignColumns: [course.id],
@@ -63,17 +51,17 @@ export const studentModuleAvailability = pgTable("StudentModuleAvailability", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const courseInstructor = pgTable("CourseInstructor", {
-	id: text().primaryKey().notNull(),
-	courseId: text().notNull(),
+export const courseInstructor = mysqlTable("CourseInstructor", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	courseId: varchar({ length: 255 }).notNull(),
 	name: text().notNull(),
 	designation: text(),
-	sortOrder: integer().default(0).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	sortOrder: int().default(0).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 	imageUrl: text(),
 }, (table) => [
-	index("CourseInstructor_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
+	index("CourseInstructor_courseId_idx").on(table.courseId),
 	foreignKey({
 			columns: [table.courseId],
 			foreignColumns: [course.id],
@@ -81,17 +69,17 @@ export const courseInstructor = pgTable("CourseInstructor", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const payment = pgTable("Payment", {
-	id: text().primaryKey().notNull(),
-	orderId: text().notNull(),
+export const payment = mysqlTable("Payment", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	orderId: varchar({ length: 255 }).notNull(),
 	phoneNumber: text().notNull(),
 	transactionId: text().notNull(),
-	amount: doublePrecision().notNull(),
+	amount: double().notNull(),
 	status: text().default('pending').notNull(),
-	submittedAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	approvedAt: timestamp({ precision: 3, mode: 'string' }),
+	submittedAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	approvedAt: datetime({ fsp: 3, mode: 'string' }),
 }, (table) => [
-	uniqueIndex("Payment_orderId_key").using("btree", table.orderId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("Payment_orderId_key").on(table.orderId),
 	foreignKey({
 			columns: [table.orderId],
 			foreignColumns: [order.id],
@@ -99,27 +87,27 @@ export const payment = pgTable("Payment", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const contactSubmission = pgTable("ContactSubmission", {
-	id: text().primaryKey().notNull(),
+export const contactSubmission = mysqlTable("ContactSubmission", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
 	fullName: text().notNull(),
-	email: text().notNull(),
+	email: varchar({ length: 255 }).notNull(),
 	phone: text().notNull(),
-	issueType: contactIssueType().notNull(),
+	issueType: mysqlEnum("issueType", ['query', 'technical_assistance', 'billing', 'course_access', 'other']).notNull(),
 	subject: text().notNull(),
 	message: text().notNull(),
 	imageUrls: text(),
-	status: contactSubmissionStatus().default('open').notNull(),
+	status: mysqlEnum("status", ['open', 'in_review', 'responded', 'closed']).default('open').notNull(),
 	adminReply: text(),
-	adminReplySentAt: timestamp({ precision: 3, mode: 'string' }),
-	repliedByAdminId: text(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	adminReplySentAt: datetime({ fsp: 3, mode: 'string' }),
+	repliedByAdminId: varchar({ length: 255 }),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	index("ContactSubmission_createdAt_idx").using("btree", table.createdAt.asc().nullsLast().op("timestamp_ops")),
-	index("ContactSubmission_email_idx").using("btree", table.email.asc().nullsLast().op("text_ops")),
-	index("ContactSubmission_issueType_idx").using("btree", table.issueType.asc().nullsLast().op("enum_ops")),
-	index("ContactSubmission_repliedByAdminId_idx").using("btree", table.repliedByAdminId.asc().nullsLast().op("text_ops")),
-	index("ContactSubmission_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	index("ContactSubmission_createdAt_idx").on(table.createdAt),
+	index("ContactSubmission_email_idx").on(table.email),
+	index("ContactSubmission_issueType_idx").on(table.issueType),
+	index("ContactSubmission_repliedByAdminId_idx").on(table.repliedByAdminId),
+	index("ContactSubmission_status_idx").on(table.status),
 	foreignKey({
 			columns: [table.repliedByAdminId],
 			foreignColumns: [user.id],
@@ -127,33 +115,33 @@ export const contactSubmission = pgTable("ContactSubmission", {
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-export const paymentConfig = pgTable("PaymentConfig", {
-	id: text().default('default').primaryKey().notNull(),
+export const paymentConfig = mysqlTable("PaymentConfig", {
+	id: varchar({ length: 255 }).default('default').primaryKey().notNull(),
 	provider: text().default('bkash').notNull(),
 	sendMoneyNumber: text().notNull(),
 	qrCodeUrl: text(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 });
 
-export const deviceSession = pgTable("DeviceSession", {
-	id: text().primaryKey().notNull(),
-	userId: text().notNull(),
-	deviceType: deviceType().notNull(),
+export const deviceSession = mysqlTable("DeviceSession", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	userId: varchar({ length: 255 }).notNull(),
+	deviceType: mysqlEnum("deviceType", ['desktop', 'mobile', 'tablet']).notNull(),
 	browserName: text().notNull(),
 	userAgent: text().notNull(),
 	ipAddress: text().notNull(),
 	isLocked: boolean().default(false).notNull(),
-	loggedOutAt: timestamp({ precision: 3, mode: 'string' }),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	lastActivityAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	loggedOutAt: datetime({ fsp: 3, mode: 'string' }),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	lastActivityAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	deviceHash: text(),
 	deviceLabel: text(),
 	osInfo: text(),
 	lockedByDeviceLabel: text(),
 }, (table) => [
-	index("DeviceSession_userId_deviceType_idx").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.deviceType.asc().nullsLast().op("text_ops")),
-	index("DeviceSession_userId_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	index("DeviceSession_userId_deviceType_idx").on(table.userId, table.deviceType),
+	index("DeviceSession_userId_idx").on(table.userId),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
@@ -161,13 +149,13 @@ export const deviceSession = pgTable("DeviceSession", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const user = pgTable("User", {
-	id: text().primaryKey().notNull(),
-	email: text().notNull(),
-	phone: text(),
+export const user = mysqlTable("User", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	email: varchar({ length: 255 }).notNull(),
+	phone: varchar({ length: 255 }),
 	passwordHash: text(),
 	fullName: text().notNull(),
-	role: userRole().default('student').notNull(),
+	role: mysqlEnum("role", ['admin', 'teacher', 'student']).default('student').notNull(),
 	bmdcNumber: text(),
 	designation: text(),
 	institution: text(),
@@ -175,55 +163,55 @@ export const user = pgTable("User", {
 	profileImage: text(),
 	emailVerified: boolean().default(true).notNull(),
 	emailVerificationTokenHash: text(),
-	emailVerificationExpires: timestamp({ precision: 3, mode: 'string' }),
+	emailVerificationExpires: datetime({ fsp: 3, mode: 'string' }),
 	passwordResetTokenHash: text(),
-	passwordResetExpires: timestamp({ precision: 3, mode: 'string' }),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	passwordResetExpires: datetime({ fsp: 3, mode: 'string' }),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 	canManagePayments: boolean().default(false).notNull(),
 	isBanned: boolean().default(false).notNull(),
 	telegramChatId: text(),
 	image: text(),
 	isSessionLockedExempt: boolean().default(false).notNull(),
 }, (table) => [
-	uniqueIndex("User_email_key").using("btree", table.email.asc().nullsLast().op("text_ops")),
-	uniqueIndex("User_phone_key").using("btree", table.phone.asc().nullsLast().op("text_ops")),
+	uniqueIndex("User_email_key").on(table.email),
+	uniqueIndex("User_phone_key").on(table.phone),
 ]);
 
-export const course = pgTable("Course", {
-	id: text().primaryKey().notNull(),
-	slug: text(),
+export const course = mysqlTable("Course", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	slug: varchar({ length: 255 }),
 	title: text().notNull(),
 	description: text().notNull(),
 	overview: text(),
-	categoryId: text(),
-	price: doublePrecision().notNull(),
-	salePrice: doublePrecision(),
+	categoryId: varchar({ length: 255 }),
+	price: double().notNull(),
+	salePrice: double(),
 	instructor: text().notNull(),
 	language: text(),
 	imageUrl: text(),
 	duration: text().notNull(),
-	courseStartDate: timestamp({ precision: 3, mode: 'string' }),
+	courseStartDate: datetime({ fsp: 3, mode: 'string' }),
 	learningOutcomes: text(),
-	teacherId: text(),
-	status: coursePublishStatus().default('draft').notNull(),
+	teacherId: varchar({ length: 255 }),
+	status: mysqlEnum("status", ['draft', 'scheduled', 'published', 'archived']).default('draft').notNull(),
 	timezone: text().default('Asia/Dhaka').notNull(),
-	releaseMode: courseReleaseMode(),
-	releaseStartAt: timestamp({ precision: 3, mode: 'string' }),
-	releaseIntervalDays: integer(),
-	releaseGroupsPerWeek: integer(),
+	releaseMode: mysqlEnum("releaseMode", ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant']),
+	releaseStartAt: datetime({ fsp: 3, mode: 'string' }),
+	releaseIntervalDays: int(),
+	releaseGroupsPerWeek: int(),
 	releaseGroupDates: text(),
 	curriculumJson: text(),
-	publishedAt: timestamp({ precision: 3, mode: 'string' }),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	publishedAt: datetime({ fsp: 3, mode: 'string' }),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 	isFeatured: boolean().default(false).notNull(),
 	releaseDaysOfWeek: text(),
 }, (table) => [
-	index("Course_categoryId_idx").using("btree", table.categoryId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("Course_slug_key").using("btree", table.slug.asc().nullsLast().op("text_ops")),
-	index("Course_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
-	index("Course_teacherId_idx").using("btree", table.teacherId.asc().nullsLast().op("text_ops")),
+	index("Course_categoryId_idx").on(table.categoryId),
+	uniqueIndex("Course_slug_key").on(table.slug),
+	index("Course_status_idx").on(table.status),
+	index("Course_teacherId_idx").on(table.teacherId),
 	foreignKey({
 			columns: [table.categoryId],
 			foreignColumns: [category.id],
@@ -236,25 +224,25 @@ export const course = pgTable("Course", {
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-export const globalSessionLockSettings = pgTable("GlobalSessionLockSettings", {
-	id: text().default('global').primaryKey().notNull(),
+export const globalSessionLockSettings = mysqlTable("GlobalSessionLockSettings", {
+	id: varchar({ length: 255 }).default('global').primaryKey().notNull(),
 	autoLockFirstBrowser: boolean().default(true).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 	allowDesktop: boolean().default(true).notNull(),
 	allowTablet: boolean().default(true).notNull(),
 	allowMobile: boolean().default(true).notNull(),
-	maxConcurrentSessions: integer().default(3).notNull(),
+	maxConcurrentSessions: int().default(3).notNull(),
 });
 
-export const sessionLockSettings = pgTable("SessionLockSettings", {
-	id: text().primaryKey().notNull(),
-	userId: text().notNull(),
+export const sessionLockSettings = mysqlTable("SessionLockSettings", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	userId: varchar({ length: 255 }).notNull(),
 	autoLockFirstBrowser: boolean().default(true).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	uniqueIndex("SessionLockSettings_userId_key").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("SessionLockSettings_userId_key").on(table.userId),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
@@ -262,29 +250,29 @@ export const sessionLockSettings = pgTable("SessionLockSettings", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const category = pgTable("Category", {
-	id: text().primaryKey().notNull(),
-	name: text().notNull(),
+export const category = mysqlTable("Category", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	name: varchar({ length: 255 }).notNull(),
 	displayName: text().notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	uniqueIndex("Category_name_key").using("btree", table.name.asc().nullsLast().op("text_ops")),
+	uniqueIndex("Category_name_key").on(table.name),
 ]);
 
-export const videoLibraryNode = pgTable("VideoLibraryNode", {
-	id: text().primaryKey().notNull(),
+export const videoLibraryNode = mysqlTable("VideoLibraryNode", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
 	title: text().notNull(),
 	type: text().notNull(),
 	url: text(),
 	duration: text(),
-	parentId: text(),
-	attachments: jsonb().$type<{ name: string; url: string; type?: string; size?: number }[]>(),
-	sortOrder: integer().default(0).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	parentId: varchar({ length: 255 }),
+	attachments: json().$type<{ name: string; url: string; type?: string; size?: number }[]>(),
+	sortOrder: int().default(0).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	index("VideoLibraryNode_parentId_idx").using("btree", table.parentId.asc().nullsLast().op("text_ops")),
+	index("VideoLibraryNode_parentId_idx").on(table.parentId),
 	foreignKey({
 			columns: [table.parentId],
 			foreignColumns: [table.id],
@@ -292,42 +280,42 @@ export const videoLibraryNode = pgTable("VideoLibraryNode", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const emailOtp = pgTable("EmailOtp", {
-	id: text().primaryKey().notNull(),
-	email: text().notNull(),
+export const emailOtp = mysqlTable("EmailOtp", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	email: varchar({ length: 255 }).notNull(),
 	otpHash: text().notNull(),
-	expiresAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	expiresAt: datetime({ fsp: 3, mode: 'string' }).notNull(),
 	verified: boolean().default(false).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("EmailOtp_email_idx").using("btree", table.email.asc().nullsLast().op("text_ops")),
+	index("EmailOtp_email_idx").on(table.email),
 ]);
 
-export const prismaMigrations = pgTable("_prisma_migrations", {
+export const prismaMigrations = mysqlTable("_prisma_migrations", {
 	id: varchar({ length: 36 }).primaryKey().notNull(),
 	checksum: varchar({ length: 64 }).notNull(),
-	finishedAt: timestamp("finished_at", { withTimezone: true, mode: 'string' }),
+	finishedAt: datetime("finished_at", { fsp: 3, mode: 'string' }),
 	migrationName: varchar("migration_name", { length: 255 }).notNull(),
 	logs: text(),
-	rolledBackAt: timestamp("rolled_back_at", { withTimezone: true, mode: 'string' }),
-	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	appliedStepsCount: integer("applied_steps_count").default(0).notNull(),
+	rolledBackAt: datetime("rolled_back_at", { fsp: 3, mode: 'string' }),
+	startedAt: datetime("started_at", { fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	appliedStepsCount: int("applied_steps_count").default(0).notNull(),
 });
 
-export const order = pgTable("Order", {
-	id: text().primaryKey().notNull(),
-	userId: text().notNull(),
-	courseId: text().notNull(),
+export const order = mysqlTable("Order", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	userId: varchar({ length: 255 }).notNull(),
+	courseId: varchar({ length: 255 }).notNull(),
 	status: text().default('pending').notNull(),
-	totalAmount: doublePrecision().notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
-	enrolledAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
-	expiresAt: timestamp({ precision: 3, mode: 'string' }),
+	totalAmount: double().notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	enrolledAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`),
+	expiresAt: datetime({ fsp: 3, mode: 'string' }),
 }, (table) => [
-	index("Order_courseId_idx").using("btree", table.courseId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("Order_userId_courseId_key").using("btree", table.userId.asc().nullsLast().op("text_ops"), table.courseId.asc().nullsLast().op("text_ops")),
-	index("Order_userId_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	index("Order_courseId_idx").on(table.courseId),
+	uniqueIndex("Order_userId_courseId_key").on(table.userId, table.courseId),
+	index("Order_userId_idx").on(table.userId),
 	foreignKey({
 			columns: [table.courseId],
 			foreignColumns: [course.id],
@@ -340,31 +328,31 @@ export const order = pgTable("Order", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const verificationToken = pgTable("VerificationToken", {
-	identifier: text().notNull(),
-	token: text().notNull(),
-	expires: timestamp({ precision: 3, mode: 'string' }).notNull(),
+export const verificationToken = mysqlTable("VerificationToken", {
+	identifier: varchar({ length: 255 }).notNull(),
+	token: varchar({ length: 255 }).notNull(),
+	expires: datetime({ fsp: 3, mode: 'string' }).notNull(),
 }, (table) => [
-	uniqueIndex("VerificationToken_identifier_token_key").using("btree", table.identifier.asc().nullsLast().op("text_ops"), table.token.asc().nullsLast().op("text_ops")),
-	uniqueIndex("VerificationToken_token_key").using("btree", table.token.asc().nullsLast().op("text_ops")),
+	uniqueIndex("VerificationToken_identifier_token_key").on(table.identifier, table.token),
+	uniqueIndex("VerificationToken_token_key").on(table.token),
 ]);
 
-export const account = pgTable("Account", {
-	id: text().primaryKey().notNull(),
-	userId: text().notNull(),
+export const account = mysqlTable("Account", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	userId: varchar({ length: 255 }).notNull(),
 	type: text().notNull(),
-	provider: text().notNull(),
-	providerAccountId: text().notNull(),
+	provider: varchar({ length: 255 }).notNull(),
+	providerAccountId: varchar({ length: 255 }).notNull(),
 	refreshToken: text("refresh_token"),
 	accessToken: text("access_token"),
-	expiresAt: integer("expires_at"),
+	expiresAt: int("expires_at"),
 	tokenType: text("token_type"),
 	scope: text(),
 	idToken: text("id_token"),
 	sessionState: text("session_state"),
 }, (table) => [
-	uniqueIndex("Account_provider_providerAccountId_key").using("btree", table.provider.asc().nullsLast().op("text_ops"), table.providerAccountId.asc().nullsLast().op("text_ops")),
-	index("Account_userId_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("Account_provider_providerAccountId_key").on(table.provider, table.providerAccountId),
+	index("Account_userId_idx").on(table.userId),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
@@ -372,14 +360,14 @@ export const account = pgTable("Account", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const session = pgTable("Session", {
-	id: text().primaryKey().notNull(),
-	sessionToken: text().notNull(),
-	userId: text().notNull(),
-	expires: timestamp({ precision: 3, mode: 'string' }).notNull(),
+export const session = mysqlTable("Session", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	sessionToken: varchar({ length: 255 }).notNull(),
+	userId: varchar({ length: 255 }).notNull(),
+	expires: datetime({ fsp: 3, mode: 'string' }).notNull(),
 }, (table) => [
-	uniqueIndex("Session_sessionToken_key").using("btree", table.sessionToken.asc().nullsLast().op("text_ops")),
-	index("Session_userId_idx").using("btree", table.userId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("Session_sessionToken_key").on(table.sessionToken),
+	index("Session_userId_idx").on(table.userId),
 	foreignKey({
 			columns: [table.userId],
 			foreignColumns: [user.id],
@@ -387,44 +375,44 @@ export const session = pgTable("Session", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const quizCategory = pgTable("QuizCategory", {
-	id: text().primaryKey().notNull(),
-	name: text().notNull(),
+export const quizCategory = mysqlTable("QuizCategory", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	name: varchar({ length: 255 }).notNull(),
 	displayName: text().notNull(),
 	description: text(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	uniqueIndex("QuizCategory_name_key").using("btree", table.name.asc().nullsLast().op("text_ops")),
+	uniqueIndex("QuizCategory_name_key").on(table.name),
 ]);
 
-export const quiz = pgTable("Quiz", {
-	id: text().primaryKey().notNull(),
+export const quiz = mysqlTable("Quiz", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
 	title: text().notNull(),
 	description: text(),
 	instructions: text(),
-	categoryId: text(),
-	durationMinutes: integer().notNull(),
-	numQuestionsToServe: integer().notNull(),
-	positionType: quizPositionType().default('best_attempt').notNull(),
+	categoryId: varchar({ length: 255 }),
+	durationMinutes: int().notNull(),
+	numQuestionsToServe: int().notNull(),
+	positionType: mysqlEnum("positionType", ['best_attempt', 'last_attempt', 'first_attempt']).default('best_attempt').notNull(),
 	allowMultipleAttempts: boolean().default(false).notNull(),
-	maxAttempts: integer(),
+	maxAttempts: int(),
 	allowNegativeMarking: boolean().default(false).notNull(),
-	negativeValue: doublePrecision().default(0.25).notNull(),
-	marksPerCorrect: doublePrecision().default(1).notNull(),
-	startDatetime: timestamp({ precision: 3, mode: 'string' }),
-	endDatetime: timestamp({ precision: 3, mode: 'string' }),
-	status: quizStatus().default('draft').notNull(),
+	negativeValue: double().default(0.25).notNull(),
+	marksPerCorrect: double().default(1).notNull(),
+	startDatetime: datetime({ fsp: 3, mode: 'string' }),
+	endDatetime: datetime({ fsp: 3, mode: 'string' }),
+	status: mysqlEnum("status", ['draft', 'published', 'archived']).default('draft').notNull(),
 	shuffleQuestions: boolean().default(true).notNull(),
 	shuffleOptions: boolean().default(true).notNull(),
-	createdBy: text().notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
-	publishedAt: timestamp({ precision: 3, mode: 'string' }),
+	createdBy: varchar({ length: 255 }).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	publishedAt: datetime({ fsp: 3, mode: 'string' }),
 }, (table) => [
-	index("Quiz_categoryId_idx").using("btree", table.categoryId.asc().nullsLast().op("text_ops")),
-	index("Quiz_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
-	index("Quiz_createdBy_idx").using("btree", table.createdBy.asc().nullsLast().op("text_ops")),
+	index("Quiz_categoryId_idx").on(table.categoryId),
+	index("Quiz_status_idx").on(table.status),
+	index("Quiz_createdBy_idx").on(table.createdBy),
 	foreignKey({
 			columns: [table.categoryId],
 			foreignColumns: [quizCategory.id],
@@ -437,21 +425,21 @@ export const quiz = pgTable("Quiz", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const question = pgTable("Question", {
-	id: text().primaryKey().notNull(),
-	quizId: text().notNull(),
+export const question = mysqlTable("Question", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	quizId: varchar({ length: 255 }).notNull(),
 	questionText: text().notNull(),
-	questionType: questionType().notNull(),
+	questionType: mysqlEnum("questionType", ['mcq', 'true_false']).notNull(),
 	optionA: text().notNull(),
 	optionB: text().notNull(),
 	optionC: text(),
 	optionD: text(),
 	correctOption: text().notNull(),
 	explanation: text(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	index("Question_quizId_idx").using("btree", table.quizId.asc().nullsLast().op("text_ops")),
+	index("Question_quizId_idx").on(table.quizId),
 	foreignKey({
 			columns: [table.quizId],
 			foreignColumns: [quiz.id],
@@ -459,31 +447,31 @@ export const question = pgTable("Question", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const quizAttempt = pgTable("QuizAttempt", {
-	id: text().primaryKey().notNull(),
-	quizId: text().notNull(),
-	studentId: text().notNull(),
-	startedAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	submittedAt: timestamp({ precision: 3, mode: 'string' }),
-	timeTakenSeconds: integer(),
+export const quizAttempt = mysqlTable("QuizAttempt", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	quizId: varchar({ length: 255 }).notNull(),
+	studentId: varchar({ length: 255 }).notNull(),
+	startedAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	submittedAt: datetime({ fsp: 3, mode: 'string' }),
+	timeTakenSeconds: int(),
 	isAutoSubmitted: boolean().default(false).notNull(),
-	totalScore: doublePrecision().default(0).notNull(),
-	correctCount: integer().default(0).notNull(),
-	wrongCount: integer().default(0).notNull(),
-	skippedCount: integer().default(0).notNull(),
-	negativeMarks: doublePrecision().default(0).notNull(),
-	netScore: doublePrecision().default(0).notNull(),
-	percentageScore: doublePrecision().default(0).notNull(),
-	rank: integer(),
-	status: attemptStatus().default('in_progress').notNull(),
-	attemptNumber: integer().default(1).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
-	updatedAt: timestamp({ precision: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
+	totalScore: double().default(0).notNull(),
+	correctCount: int().default(0).notNull(),
+	wrongCount: int().default(0).notNull(),
+	skippedCount: int().default(0).notNull(),
+	negativeMarks: double().default(0).notNull(),
+	netScore: double().default(0).notNull(),
+	percentageScore: double().default(0).notNull(),
+	rank: int(),
+	status: mysqlEnum("status", ['in_progress', 'submitted', 'auto_submitted', 'abandoned']).default('in_progress').notNull(),
+	attemptNumber: int().default(1).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: datetime({ fsp: 3, mode: 'string' }).$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
-	index("QuizAttempt_quizId_idx").using("btree", table.quizId.asc().nullsLast().op("text_ops")),
-	index("QuizAttempt_studentId_idx").using("btree", table.studentId.asc().nullsLast().op("text_ops")),
-	index("QuizAttempt_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
-	uniqueIndex("QuizAttempt_quizId_studentId_attemptNumber_key").using("btree", table.quizId.asc().nullsLast().op("text_ops"), table.studentId.asc().nullsLast().op("text_ops"), table.attemptNumber.asc().nullsLast().op("int4_ops")),
+	index("QuizAttempt_quizId_idx").on(table.quizId),
+	index("QuizAttempt_studentId_idx").on(table.studentId),
+	index("QuizAttempt_status_idx").on(table.status),
+	uniqueIndex("QuizAttempt_quizId_studentId_attemptNumber_key").on(table.quizId, table.studentId, table.attemptNumber),
 	foreignKey({
 			columns: [table.quizId],
 			foreignColumns: [quiz.id],
@@ -496,17 +484,17 @@ export const quizAttempt = pgTable("QuizAttempt", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const attemptAnswer = pgTable("AttemptAnswer", {
-	id: text().primaryKey().notNull(),
-	attemptId: text().notNull(),
-	questionId: text().notNull(),
+export const attemptAnswer = mysqlTable("AttemptAnswer", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	attemptId: varchar({ length: 255 }).notNull(),
+	questionId: varchar({ length: 255 }).notNull(),
 	selectedOption: text(),
 	isCorrect: boolean().default(false).notNull(),
-	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	createdAt: datetime({ fsp: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => [
-	index("AttemptAnswer_attemptId_idx").using("btree", table.attemptId.asc().nullsLast().op("text_ops")),
-	index("AttemptAnswer_questionId_idx").using("btree", table.questionId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("AttemptAnswer_attemptId_questionId_key").using("btree", table.attemptId.asc().nullsLast().op("text_ops"), table.questionId.asc().nullsLast().op("text_ops")),
+	index("AttemptAnswer_attemptId_idx").on(table.attemptId),
+	index("AttemptAnswer_questionId_idx").on(table.questionId),
+	uniqueIndex("AttemptAnswer_attemptId_questionId_key").on(table.attemptId, table.questionId),
 	foreignKey({
 			columns: [table.attemptId],
 			foreignColumns: [quizAttempt.id],
@@ -519,16 +507,16 @@ export const attemptAnswer = pgTable("AttemptAnswer", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const quizQuestionMapping = pgTable("QuizQuestionMapping", {
-	id: text().primaryKey().notNull(),
-	attemptId: text().notNull(),
-	questionId: text().notNull(),
-	displayOrder: integer().notNull(),
-	optionOrder: jsonb().notNull(),
+export const quizQuestionMapping = mysqlTable("QuizQuestionMapping", {
+	id: varchar({ length: 255 }).primaryKey().notNull(),
+	attemptId: varchar({ length: 255 }).notNull(),
+	questionId: varchar({ length: 255 }).notNull(),
+	displayOrder: int().notNull(),
+	optionOrder: json().notNull(),
 }, (table) => [
-	index("QuizQuestionMapping_attemptId_idx").using("btree", table.attemptId.asc().nullsLast().op("text_ops")),
-	index("QuizQuestionMapping_questionId_idx").using("btree", table.questionId.asc().nullsLast().op("text_ops")),
-	uniqueIndex("QuizQuestionMapping_attemptId_questionId_key").using("btree", table.attemptId.asc().nullsLast().op("text_ops"), table.questionId.asc().nullsLast().op("text_ops")),
+	index("QuizQuestionMapping_attemptId_idx").on(table.attemptId),
+	index("QuizQuestionMapping_questionId_idx").on(table.questionId),
+	uniqueIndex("QuizQuestionMapping_attemptId_questionId_key").on(table.attemptId, table.questionId),
 	foreignKey({
 			columns: [table.attemptId],
 			foreignColumns: [quizAttempt.id],

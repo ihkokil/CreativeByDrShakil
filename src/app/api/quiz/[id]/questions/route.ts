@@ -97,8 +97,9 @@ export async function POST(
     const questionTypeTyped: 'mcq' | 'true_false' = questionType === 'true_false' ? 'true_false' : 'mcq';
     const nowStr = new Date().toISOString();
     
-    const [newQuestion] = await db.insert(question).values({
-      id: crypto.randomUUID(),
+    const questionId = crypto.randomUUID();
+    const insertValues = {
+      id: questionId,
       quizId: id,
       questionText: questionText.trim(),
       questionType: questionTypeTyped,
@@ -110,9 +111,11 @@ export async function POST(
       explanation: explanation?.trim() || null,
       createdAt: nowStr,
       updatedAt: nowStr,
-    }).returning();
+    };
+
+    await db.insert(question).values(insertValues);
     
-    return NextResponse.json({ question: newQuestion }, { status: 201 });
+    return NextResponse.json({ question: insertValues }, { status: 201 });
   } catch (error: any) {
     console.error('POST /api/quiz/[id]/questions error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

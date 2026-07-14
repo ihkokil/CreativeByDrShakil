@@ -87,8 +87,9 @@ export async function POST(request: NextRequest) {
             .where(parentId ? eq(vlnSchema.parentId, parentId) : isNull(vlnSchema.parentId));
         const nextOrder = (result[0]?._max ?? -1) + 1;
 
-        const [node] = await db.insert(vlnSchema).values({
-            id: crypto.randomUUID(),
+        const nodeId = crypto.randomUUID();
+        const insertValues = {
+            id: nodeId,
             title,
             type,
             url,
@@ -96,7 +97,15 @@ export async function POST(request: NextRequest) {
             parentId,
             attachments,
             sortOrder: nextOrder,
-        }).returning();
+        };
+
+        await db.insert(vlnSchema).values(insertValues);
+
+        const node = {
+            ...insertValues,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
 
         return NextResponse.json({ node }, { status: 201 });
     } catch (error: any) {

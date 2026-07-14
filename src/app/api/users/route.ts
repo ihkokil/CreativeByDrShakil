@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         case 'lastActive':
         default:
           // Subquery: order by most recent device session activity. Note the alias "user" instead of "User"
-          return [sql`(SELECT MAX("lastActivityAt") FROM "DeviceSession" WHERE "userId" = "user"."id") DESC NULLS LAST`];
+          return [sql`(SELECT MAX(lastActivityAt) FROM DeviceSession WHERE userId = user.id) DESC`];
       }
     };
 

@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
     const totalAmount = course.price
     let order;
     if (existingOrder) {
-      const [updatedOrder] = await db.update(orderSchema).set({
+      await db.update(orderSchema).set({
         status: 'pending',
         totalAmount: totalAmount,
-      }).where(eq(orderSchema.id, existingOrder.id)).returning();
-      order = await db.query.order.findFirst({ where: (o, { eq }) => eq(o.id, updatedOrder.id), with: { course: true } });
+      }).where(eq(orderSchema.id, existingOrder.id));
+      order = await db.query.order.findFirst({ where: (o, { eq }) => eq(o.id, existingOrder.id), with: { course: true } });
     } else {
       const newOrderId = crypto.randomUUID();
       await db.insert(orderSchema).values({

@@ -12,17 +12,17 @@ export default async function DebugPage() {
   let studentCount: number | null = null;
 
   try {
-    const result = await db.execute(sql`SELECT version(), current_timestamp`);
-    if (result && result.length > 0) {
+    const [rows]: any = await db.execute(sql`SELECT version() as version, current_timestamp() as current_timestamp`);
+    if (rows && rows.length > 0) {
       status = 'Connected';
-      version = String(result[0].version);
-      timestamp = String(result[0].current_timestamp);
+      version = String(rows[0].version);
+      timestamp = String(rows[0].current_timestamp);
       
-      const coursesResult = await db.execute(sql`SELECT count(*) FROM "Course"`);
-      courseCount = Number(coursesResult[0]?.count || 0);
+      const [coursesRows]: any = await db.execute(sql`SELECT count(*) as count FROM Course`);
+      courseCount = Number(coursesRows[0]?.count || 0);
 
-      const studentsResult = await db.execute(sql`SELECT count(*) FROM "User" WHERE role = 'student'`);
-      studentCount = Number(studentsResult[0]?.count || 0);
+      const [studentsRows]: any = await db.execute(sql`SELECT count(*) as count FROM User WHERE role = 'student'`);
+      studentCount = Number(studentsRows[0]?.count || 0);
     } else {
       status = 'Query failed to return results';
     }
@@ -73,7 +73,7 @@ export default async function DebugPage() {
 
           {version && (
             <div className="p-4 bg-gray-50 rounded-lg">
-              <span className="font-semibold text-gray-600 block mb-2">PostgreSQL Version:</span>
+              <span className="font-semibold text-gray-600 block mb-2">Database Version:</span>
               <p className="text-sm font-mono text-gray-700 break-words">{version}</p>
             </div>
           )}

@@ -181,10 +181,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     // price is already a number for doublePrecision column
 
-    const [course] = await db.update(courseSchema)
+    await db.update(courseSchema)
       .set(updateData)
-      .where(eq(courseSchema.id, existingCourse.id))
-      .returning();
+      .where(eq(courseSchema.id, existingCourse.id));
+
+    const course = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, existingCourse.id),
+    });
 
     return NextResponse.json({ course });
   } catch (error: any) {

@@ -45,14 +45,22 @@ export async function POST(request: NextRequest) {
     // neon-http driver does not support transactions — execute sequentially.
 // Delete any existing payment attempt, insert the new one, then mark the order pending.
     await db.delete(paymentSchema).where(eq(paymentSchema.orderId, orderId));
-    const payment = (await db.insert(paymentSchema).values({
-      id: crypto.randomUUID(),
+    const paymentId = crypto.randomUUID();
+    const insertValues = {
+      id: paymentId,
       orderId,
       phoneNumber,
       transactionId,
       amount: paymentAmount,
       status: 'pending',
-    }).returning())[0];
+    };
+    await db.insert(paymentSchema).values(insertValues);
+
+    const payment = {
+      ...insertValues,
+      submittedAt: new Date().toISOString(),
+      approvedAt: null,
+    };
     await db.update(orderSchema).set({ status: 'pending' }).where(eq(orderSchema.id, orderId));
 
     const fullOrder = await db.query.order.findFirst({

@@ -32,7 +32,8 @@ export async function POST(
     const newQuizId = nanoid();
     const now = new Date();
     
-    const [newQuiz] = await db.insert(quiz).values({
+    const nowStr = now.toISOString();
+    const insertValues = {
       id: newQuizId,
       title: `${existingQuiz.title} (Copy)`,
       description: existingQuiz.description,
@@ -48,13 +49,20 @@ export async function POST(
       marksPerCorrect: existingQuiz.marksPerCorrect,
       startDatetime: null,
       endDatetime: null,
-      status: 'draft',
+      status: 'draft' as const,
       shuffleQuestions: existingQuiz.shuffleQuestions,
       shuffleOptions: existingQuiz.shuffleOptions,
       createdBy: payload.sub,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    }).returning();
+      createdAt: nowStr,
+      updatedAt: nowStr,
+    };
+
+    await db.insert(quiz).values(insertValues);
+
+    const newQuiz = {
+      ...insertValues,
+      publishedAt: null,
+    };
     
     for (const q of existingQuiz.questions) {
       await db.insert(question).values({

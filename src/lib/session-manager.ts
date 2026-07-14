@@ -44,8 +44,9 @@ function mapDate(d: string | null): Date | null {
 }
 
 export async function createDeviceSession(options: CreateSessionOptions): Promise<SessionInfo> {
-  const [session] = await db.insert(deviceSession).values({
-    id: crypto.randomUUID(), // Using UUID instead of CUID for new ones
+  const id = crypto.randomUUID();
+  const insertValues = {
+    id,
     userId: options.userId,
     deviceType: options.deviceType,
     browserName: options.browserName,
@@ -54,22 +55,23 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
     deviceHash: options.deviceHash || null,
     deviceLabel: options.deviceLabel || null,
     osInfo: options.osInfo || null,
-  }).returning();
+  };
+  await db.insert(deviceSession).values(insertValues);
 
   return {
-    id: session.id,
-    userId: session.userId,
-    deviceType: session.deviceType as DeviceType,
-    browserName: session.browserName,
-    ipAddress: session.ipAddress,
-    isLocked: session.isLocked,
-    loggedOutAt: mapDate(session.loggedOutAt),
-    createdAt: new Date(session.createdAt),
-    lastActivityAt: new Date(session.lastActivityAt),
-    deviceHash: session.deviceHash,
-    deviceLabel: session.deviceLabel,
-    osInfo: session.osInfo,
-    lockedByDeviceLabel: session.lockedByDeviceLabel,
+    id,
+    userId: options.userId,
+    deviceType: options.deviceType as DeviceType,
+    browserName: options.browserName,
+    ipAddress: options.ipAddress,
+    isLocked: false,
+    loggedOutAt: null,
+    createdAt: new Date(),
+    lastActivityAt: new Date(),
+    deviceHash: options.deviceHash || null,
+    deviceLabel: options.deviceLabel || null,
+    osInfo: options.osInfo || null,
+    lockedByDeviceLabel: null,
   };
 }
 
