@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import styles from "./Dashboard.module.css";
 import Loader from "@/components/UI/Loader";
+import { formatDateTextGMT6, formatDateTimeGMT6, getExpiryDateGMT6 } from "@/lib/date-format";
 import {
     LayoutDashboard,
     UserCog,
@@ -231,27 +232,15 @@ function StudentDashboardContent() {
 
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
+    return formatDateTextGMT6(dateStr);
   };
 
   const getExpiryDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    date.setFullYear(date.getFullYear() + 1);
-    return formatDate(date.toISOString());
+    return getExpiryDateGMT6(dateStr);
   };
 
   const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTimeGMT6(dateStr);
   };
 
   if (loading || !user) {

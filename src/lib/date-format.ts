@@ -137,4 +137,73 @@ export const parseDbDate = (value?: string | Date | null): Date | null => {
   }
   const date = new Date(dateToParse);
   return isNaN(date.getTime()) ? null : date;
+};
+
+export const formatDateTextGMT6 = (value?: string | Date | null): string => {
+  if (!value) return '—';
+  
+  let dateToParse = value;
+  if (typeof value === 'string' && !value.endsWith('Z') && !value.includes('+')) {
+    dateToParse = value.replace(' ', 'T') + (value.includes('T') ? 'Z' : 'Z');
+  }
+  const date = typeof dateToParse === 'string' ? new Date(dateToParse) : dateToParse;
+  
+  if (!date || isNaN(date.getTime())) return '—';
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Dhaka',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  });
+
+  const parts = formatter.formatToParts(date);
+  const day = parts.find(p => p.type === 'day')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const year = parts.find(p => p.type === 'year')?.value || '';
+
+  return `${day} ${month} ${year}`;
+};
+
+export const formatDateInputGMT6 = (value?: string | Date | null): string => {
+  if (!value) return '';
+  
+  let dateToParse = value;
+  if (typeof value === 'string' && !value.endsWith('Z') && !value.includes('+')) {
+    dateToParse = value.replace(' ', 'T') + (value.includes('T') ? 'Z' : 'Z');
+  }
+  const date = typeof dateToParse === 'string' ? new Date(dateToParse) : dateToParse;
+  
+  if (!date || isNaN(date.getTime())) return '';
+
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Dhaka',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+
+  const parts = formatter.formatToParts(date);
+  const day = parts.find(p => p.type === 'day')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const year = parts.find(p => p.type === 'year')?.value || '';
+
+  return `${year}-${month}-${day}`;
+};
+
+export const getExpiryDateGMT6 = (value?: string | Date | null): string => {
+  if (!value) return '—';
+  
+  let dateToParse = value;
+  if (typeof value === 'string' && !value.endsWith('Z') && !value.includes('+')) {
+    dateToParse = value.replace(' ', 'T') + (value.includes('T') ? 'Z' : 'Z');
+  }
+  const date = typeof dateToParse === 'string' ? new Date(dateToParse) : dateToParse;
+  
+  if (!date || isNaN(date.getTime())) return '—';
+
+  const expiryDate = new Date(date.getTime());
+  expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+  return formatDateTextGMT6(expiryDate);
 };
