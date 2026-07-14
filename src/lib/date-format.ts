@@ -1,3 +1,5 @@
+process.env.TZ = 'UTC';
+
 const displayDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "2-digit",
