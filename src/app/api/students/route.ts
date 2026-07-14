@@ -65,11 +65,9 @@ export async function GET() {
             userId: orderSchema.userId,
             enrolledAt: orderSchema.enrolledAt,
             expiresAt: orderSchema.expiresAt,
-            course: {
-              id: courseSchema.id,
-              title: courseSchema.title,
-              slug: courseSchema.slug,
-            }
+            courseId: courseSchema.id,
+            courseTitle: courseSchema.title,
+            courseSlug: courseSchema.slug,
           })
           .from(orderSchema)
           .leftJoin(courseSchema, eq(orderSchema.courseId, courseSchema.id))
@@ -89,17 +87,22 @@ export async function GET() {
 
     const ordersMap = new Map<string, any[]>();
     ordersList.forEach(o => {
-      if (o.course && o.course.id) {
+      if (o.courseId) {
         const list = ordersMap.get(o.userId) || [];
         list.push({
           id: o.id,
           enrolledAt: o.enrolledAt,
           expiresAt: o.expiresAt,
-          course: o.course,
+          course: {
+            id: o.courseId,
+            title: o.courseTitle,
+            slug: o.courseSlug,
+          },
         });
         ordersMap.set(o.userId, list);
       }
     });
+
 
     const students = studentsList.map(s => ({
       ...s,
