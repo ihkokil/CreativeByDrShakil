@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+import { course as courseSchema, user as userSchema } from '@/db/schema';
+import { eq, and, isNotNull, desc } from 'drizzle-orm';
+
 const formatPrice = (price: number) => {
   if (price <= 0) {
     return 'Free';
@@ -11,32 +14,35 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const course = await db.query.course.findFirst({
-      where: (c, { eq, isNotNull, and }) => and(
-        eq(c.status, 'published'),
-        eq(c.isFeatured, true),
-        isNotNull(c.slug)
-      ),
-      orderBy: (c, { desc }) => [desc(c.publishedAt), desc(c.updatedAt)],
-      with: {
-        teacher: {
-          columns: {
-            id: true,
-            fullName: true,
-            designation: true,
-            profileImage: true,
-          },
-        },
-      },
-    });
+    const results = await db.select({
+      course: courseSchema,
+      teacher: {
+        id: userSchema.id,
+        fullName: userSchema.fullName,
+        designation: userSchema.designation,
+        profileImage: userSchema.profileImage,
+      }
+    })
+    .from(courseSchema)
+    .leftJoin(userSchema, eq(courseSchema.teacherId, userSchema.id))
+    .where(and(
+      eq(courseSchema.status, 'published'),
+      eq(courseSchema.isFeatured, true),
+      isNotNull(courseSchema.slug)
+    ))
+    .orderBy(desc(courseSchema.publishedAt), desc(courseSchema.updatedAt))
+    .limit(1);
 
-    if (!course) {
+    const match = results[0];
+    if (!match) {
       return NextResponse.json({ course: null }, {
         headers: {
           'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=3600',
         },
       });
     }
+
+    const { course, teacher } = match;
 
     return NextResponse.json({
       course: {

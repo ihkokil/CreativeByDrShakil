@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { eq, inArray, and } from 'drizzle-orm';
+import { eq, inArray, and, or, desc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes, populateMediaVaultNodesBatch } from '@/lib/media-vault-populator';
+import { 
+  course as courseSchema, 
+  order as orderSchema, 
+  user as userSchema, 
+  lessonProgress as lessonProgressSchema, 
+  quiz as quizSchema, 
+  quizAttempt as quizAttemptSchema 
+} from '@/db/schema';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,13 +23,12 @@ export async function GET(request: NextRequest) {
     const teacherId = payload.sub;
 
     // 1. Get all courses in the system
-    const courses = await db.query.course.findMany({
-      columns: {
-        id: true,
-        title: true,
-        curriculumJson: true,
-      },
-    });
+    const courses = await db.select({
+      id: courseSchema.id,
+      title: courseSchema.title,
+      curriculumJson: courseSchema.curriculumJson,
+    })
+    .from(courseSchema);
 
     const courseIds = courses.map((c) => c.id);
 
@@ -37,37 +44,40 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Get approved orders for these courses from users with 'student' role
-    const allOrders = await db.query.order.findMany({
-      where: (o, { inArray, eq, and }) => and(inArray(o.courseId, courseIds), eq(o.status, 'approved')),
-      columns: {
-        id: true,
-        userId: true,
-        courseId: true,
-      },
-      with: {
-        user: { columns: { role: true } },
-      },
-    });
-    
-    const approvedOrders = allOrders.filter(o => o.user?.role === 'student');
+    const approvedOrders = await db.select({
+      id: orderSchema.id,
+      userId: orderSchema.userId,
+      courseId: orderSchema.courseId,
+      user: {
+        role: userSchema.role,
+      }
+    })
+    .from(orderSchema)
+    .innerJoin(userSchema, eq(orderSchema.userId, userSchema.id))
+    .where(and(
+      inArray(orderSchema.courseId, courseIds),
+      eq(orderSchema.status, 'approved'),
+      eq(userSchema.role, 'student')
+    ));
 
     const uniqueStudentIds = new Set(approvedOrders.map(o => o.userId));
     const totalStudents = uniqueStudentIds.size;
 
     // 3. Get progress entries for these courses (only for students)
-    const allProgressEntries = await db.query.lessonProgress.findMany({
-      where: (lp, { inArray }) => inArray(lp.courseId, courseIds),
-      columns: {
-        userId: true,
-        courseId: true,
-        lessonNodeId: true,
-      },
-      with: {
-        user: { columns: { role: true } },
-      },
-    });
-    
-    const progressEntries = allProgressEntries.filter(p => p.user?.role === 'student');
+    const progressEntries = await db.select({
+      userId: lessonProgressSchema.userId,
+      courseId: lessonProgressSchema.courseId,
+      lessonNodeId: lessonProgressSchema.lessonNodeId,
+      user: {
+        role: userSchema.role,
+      }
+    })
+    .from(lessonProgressSchema)
+    .innerJoin(userSchema, eq(lessonProgressSchema.userId, userSchema.id))
+    .where(and(
+      inArray(lessonProgressSchema.courseId, courseIds),
+      eq(userSchema.role, 'student')
+    ));
 
     // 4. Group data to calculate averages
     const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson));
@@ -116,26 +126,47 @@ export async function GET(request: NextRequest) {
     }
 
     // Quiz Statistics
-    const allQuizzes = await db.query.quiz.findMany({
-      columns: { id: true, status: true },
-    });
+    const allQuizzes = await db.select({
+      id: quizSchema.id,
+      status: quizSchema.status,
+    })
+    .from(quizSchema);
+
     const totalQuizzes = allQuizzes.length;
     const activeQuizzes = allQuizzes.filter(q => q.status === 'published').length;
 
-    const recentAttempts = await db.query.quizAttempt.findMany({
-      where: (qa, { and, or, eq }) => or(eq(qa.status, 'submitted'), eq(qa.status, 'auto_submitted')),
-      with: {
-        quiz: { columns: { title: true } },
-        student: { columns: { fullName: true } }
-      },
-      orderBy: (qa, { desc }) => [desc(qa.submittedAt)],
-      limit: 5,
-    });
+    const recentAttemptsRaw = await db.select()
+      .from(quizAttemptSchema)
+      .where(or(
+        eq(quizAttemptSchema.status, 'submitted'),
+        eq(quizAttemptSchema.status, 'auto_submitted')
+      ))
+      .orderBy(desc(quizAttemptSchema.submittedAt))
+      .limit(5);
 
-    const recentQuizActivity = recentAttempts.map(ra => ({
+    const attemptQuizIds = Array.from(new Set(recentAttemptsRaw.map(ra => ra.quizId)));
+    const attemptStudentIds = Array.from(new Set(recentAttemptsRaw.map(ra => ra.studentId)));
+
+    const [quizzesList, studentsList] = await Promise.all([
+      attemptQuizIds.length > 0
+        ? db.select({ id: quizSchema.id, title: quizSchema.title })
+            .from(quizSchema)
+            .where(inArray(quizSchema.id, attemptQuizIds))
+        : Promise.resolve([]),
+      attemptStudentIds.length > 0
+        ? db.select({ id: userSchema.id, fullName: userSchema.fullName })
+            .from(userSchema)
+            .where(inArray(userSchema.id, attemptStudentIds))
+        : Promise.resolve([]),
+    ]);
+
+    const quizMap = new Map(quizzesList.map(q => [q.id, q]));
+    const studentMap = new Map(studentsList.map(s => [s.id, s]));
+
+    const recentQuizActivity = recentAttemptsRaw.map(ra => ({
       id: ra.id,
-      quizTitle: ra.quiz?.title || 'Unknown Quiz',
-      studentName: ra.student?.fullName || 'Unknown Student',
+      quizTitle: quizMap.get(ra.quizId)?.title || 'Unknown Quiz',
+      studentName: studentMap.get(ra.studentId)?.fullName || 'Unknown Student',
       netScore: ra.netScore,
       percentageScore: ra.percentageScore,
       submittedAt: ra.submittedAt,

@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { inArray, and, eq } from 'drizzle-orm';
+import { inArray, and, eq, desc, asc } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
+import { 
+  user as userSchema, 
+  order as orderSchema, 
+  course as courseSchema, 
+  payment as paymentSchema, 
+  lessonProgress as lessonProgressSchema, 
+  quiz as quizSchema, 
+  quizAttempt as quizAttemptSchema 
+} from '@/db/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,22 +26,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: {
-        id: true,
-        email: true,
-        phone: true,
-        role: true,
-        fullName: true,
-        profileImage: true,
-        bmdcNumber: true,
-        designation: true,
-        institution: true,
-        degrees: true,
-        createdAt: true,
-      },
-    });
+    const users = await db.select({
+      id: userSchema.id,
+      email: userSchema.email,
+      phone: userSchema.phone,
+      role: userSchema.role,
+      fullName: userSchema.fullName,
+      profileImage: userSchema.profileImage,
+      bmdcNumber: userSchema.bmdcNumber,
+      designation: userSchema.designation,
+      institution: userSchema.institution,
+      degrees: userSchema.degrees,
+      createdAt: userSchema.createdAt,
+    })
+    .from(userSchema)
+    .where(eq(userSchema.id, payload.sub))
+    .limit(1);
+
+    const user = users[0];
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -41,40 +52,63 @@ export async function GET(request: NextRequest) {
     const isAdmin = user.role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    const orders = await db.query.order.findMany({
-      where: (o, { eq }) => eq(o.userId, user.id),
-      with: {
-        course: {
-          columns: {
-            id: true,
-            slug: true,
-            title: true,
-            imageUrl: true,
-            duration: true,
-            status: true,
-            curriculumJson: true,
-          },
-        },
-        payments: {
-          columns: {
-            id: true,
-            status: true,
-            transactionId: true,
-            phoneNumber: true,
-            submittedAt: true,
-            approvedAt: true,
-          },
-        },
-      },
-      orderBy: (o, { desc }) => [desc(o.createdAt)],
+    const rawOrders = await db.select()
+      .from(orderSchema)
+      .where(eq(orderSchema.userId, user.id))
+      .orderBy(desc(orderSchema.createdAt));
+
+    const orderCourseIds = rawOrders.map(o => o.courseId);
+    const orderIds = rawOrders.map(o => o.id);
+
+    const [coursesList, paymentsList] = await Promise.all([
+      orderCourseIds.length > 0
+        ? db.select({
+            id: courseSchema.id,
+            slug: courseSchema.slug,
+            title: courseSchema.title,
+            imageUrl: courseSchema.imageUrl,
+            duration: courseSchema.duration,
+            status: courseSchema.status,
+            curriculumJson: courseSchema.curriculumJson,
+          })
+          .from(courseSchema)
+          .where(inArray(courseSchema.id, orderCourseIds))
+        : Promise.resolve([]),
+      orderIds.length > 0
+        ? db.select({
+            id: paymentSchema.id,
+            orderId: paymentSchema.orderId,
+            status: paymentSchema.status,
+            transactionId: paymentSchema.transactionId,
+            phoneNumber: paymentSchema.phoneNumber,
+            submittedAt: paymentSchema.submittedAt,
+            approvedAt: paymentSchema.approvedAt,
+          })
+          .from(paymentSchema)
+          .where(inArray(paymentSchema.orderId, orderIds))
+        : Promise.resolve([]),
+    ]);
+
+    const coursesMap = new Map(coursesList.map(c => [c.id, c]));
+    const paymentsMap = new Map<string, any[]>();
+    paymentsList.forEach(p => {
+      const list = paymentsMap.get(p.orderId) || [];
+      list.push(p);
+      paymentsMap.set(p.orderId, list);
     });
+
+    const orders = rawOrders.map(o => ({
+      ...o,
+      course: coursesMap.get(o.courseId) || null,
+      payments: paymentsMap.get(o.id) || [],
+    }));
 
     let enrolledCourses: any[] = [];
     
     if (isAdmin) {
-      const allPublishedCourses = await db.query.course.findMany({
-        where: (c, { eq }) => eq(c.status, 'published'),
-      });
+      const allPublishedCourses = await db.select()
+        .from(courseSchema)
+        .where(eq(courseSchema.status, 'published'));
 
       enrolledCourses = await Promise.all(allPublishedCourses.map(async (course: any) => {
         const rawCurriculum = parseCurriculumJson(course.curriculumJson);
@@ -119,16 +153,15 @@ export async function GET(request: NextRequest) {
 
     const courseIds = enrolledCourses.map((c) => c.courseId);
     const progressRows = courseIds.length
-      ? await db.query.lessonProgress.findMany({
-          where: (lp, { eq, inArray, and }) => and(
-            eq(lp.userId, user.id),
-            inArray(lp.courseId, courseIds)
-          ),
-          columns: {
-            courseId: true,
-            lessonNodeId: true,
-          },
+      ? await db.select({
+          courseId: lessonProgressSchema.courseId,
+          lessonNodeId: lessonProgressSchema.lessonNodeId,
         })
+        .from(lessonProgressSchema)
+        .where(and(
+          eq(lessonProgressSchema.userId, user.id),
+          inArray(lessonProgressSchema.courseId, courseIds)
+        ))
       : [];
 
     const progressByCourse = progressRows.reduce<Record<string, Set<string>>>((acc: any, row: any) => {
@@ -175,18 +208,35 @@ export async function GET(request: NextRequest) {
     };
 
     // Quiz Stats
-    const publishedQuizzes = await db.query.quiz.findMany({
-      where: (q, { eq }) => eq(q.status, 'published'),
-      columns: { id: true, title: true },
-    });
+    const publishedQuizzes = await db.select({
+      id: quizSchema.id,
+      title: quizSchema.title,
+    })
+    .from(quizSchema)
+    .where(eq(quizSchema.status, 'published'));
 
-    const studentAttempts = await db.query.quizAttempt.findMany({
-      where: (qa, { eq }) => eq(qa.studentId, user.id),
-      with: {
-        quiz: { columns: { title: true } }
-      },
-      orderBy: (qa, { desc }) => [desc(qa.submittedAt)],
-    });
+    const rawAttempts = await db.select()
+      .from(quizAttemptSchema)
+      .where(eq(quizAttemptSchema.studentId, user.id))
+      .orderBy(desc(quizAttemptSchema.submittedAt));
+
+    const attemptQuizIds = Array.from(new Set(rawAttempts.map(a => a.quizId)));
+
+    const quizzesList = attemptQuizIds.length > 0
+      ? await db.select({
+          id: quizSchema.id,
+          title: quizSchema.title,
+        })
+        .from(quizSchema)
+        .where(inArray(quizSchema.id, attemptQuizIds))
+      : [];
+
+    const quizzesMap = new Map(quizzesList.map(q => [q.id, q]));
+
+    const studentAttempts = rawAttempts.map(a => ({
+      ...a,
+      quiz: quizzesMap.get(a.quizId) || null,
+    }));
 
     const completedAttempts = studentAttempts.filter(a => a.status === 'submitted' || a.status === 'auto_submitted');
     const completedQuizIds = new Set(completedAttempts.map(a => a.quizId));

@@ -84,6 +84,14 @@
   --dropdown-menu-text: var(--foreground);
   --dropdown-menu-active: color-mix(in srgb, var(--primary) 34%, var(--surface-soft));
   --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 88%, var(--foreground));
+
+  /* Component Compatibility (Dark Theme) */
+  --surface: #1e293b;
+  --surface-alt: #0f172a;
+  --border: rgba(255, 255, 255, 0.1);
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --text: #ffffff;
+  --primary-dark: #b91c1c;
 }
 
 [data-theme='light'] {
@@ -114,6 +122,14 @@
   --dropdown-menu-text: var(--foreground);
   --dropdown-menu-active: color-mix(in srgb, var(--primary) 20%, white);
   --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 92%, var(--foreground));
+
+  /* Component Compatibility (Light Theme) */
+  --surface: #ffffff;
+  --surface-alt: #f1f5f9;
+  --border: rgba(15, 23, 42, 0.1);
+  --bg-hover: rgba(15, 23, 42, 0.05);
+  --text: #0f172a;
+  --primary-dark: #b91c1c;
 }
 
 * {
