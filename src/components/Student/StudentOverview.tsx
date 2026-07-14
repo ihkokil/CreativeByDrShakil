@@ -8,8 +8,8 @@ import {
     UserCog,
     CheckCircle
 } from "lucide-react";
-import styles from "@/components/Teacher/TeacherOverview.module.css";
 import Link from "next/link";
+import styles from "@/components/Teacher/TeacherOverview.module.css";
 
 interface EnrolledCourse {
     orderId: string;
@@ -27,19 +27,6 @@ interface StudentOverviewProps {
     completedLessons: number;
     enrolledCourses: EnrolledCourse[];
     onTabChange: (tab: string) => void;
-    quizStats: {
-        availableCount: number;
-        completedCount: number;
-        averageScore: number;
-        recentAttempts: Array<{
-            id: string;
-            quizId: string;
-            quizTitle: string;
-            percentageScore: number;
-            netScore: number;
-            submittedAt: string | null;
-        }>;
-    };
 }
 
 export default function StudentOverview({
@@ -48,7 +35,6 @@ export default function StudentOverview({
     completedLessons,
     enrolledCourses,
     onTabChange,
-    quizStats
 }: StudentOverviewProps) {
     
     const containerVariants: Variants = {
@@ -198,58 +184,6 @@ export default function StudentOverview({
                         </div>
                     </button>
                 </div>
-            </motion.div>
-
-            {/* 5. Quizzes Overview Card */}
-            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
-                <div className={styles.cardHeader}>
-                    <h3>Quizzes Overview</h3>
-                </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-                    <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'block', color: 'var(--primary)' }}>{quizStats.availableCount}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pending</span>
-                    </div>
-                    <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'block', color: '#10b981' }}>{quizStats.completedCount}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Completed</span>
-                    </div>
-                    <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', display: 'block', color: '#f59e0b' }}>{quizStats.averageScore}%</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Avg. Score</span>
-                    </div>
-                </div>
-
-                <div className={styles.cardHeader} style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px', marginTop: '10px' }}>
-                    <h4 style={{ fontSize: '0.85rem', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Recent Results</h4>
-                </div>
-                
-                <div className={styles.activities} style={{ minHeight: '120px' }}>
-                    {quizStats.recentAttempts.length > 0 ? (
-                        quizStats.recentAttempts.map((attempt) => (
-                            <div key={attempt.id} className={styles.activityItem} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <strong style={{ fontSize: '0.85rem' }}>{attempt.quizTitle}</strong>
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                        {attempt.submittedAt ? new Date(attempt.submittedAt).toLocaleDateString() : 'Just now'}
-                                    </span>
-                                </div>
-                                <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: attempt.percentageScore >= 50 ? '#10b981' : '#ef4444' }}>
-                                    {attempt.percentageScore.toFixed(1)}%
-                                </span>
-                            </div>
-                        ))
-                    ) : (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '20px 0' }}>
-                            No quizzes completed yet.
-                        </p>
-                    )}
-                </div>
-                
-                <Link href="/dashboard/quizzes" className={styles.viewAllBtn} style={{ marginTop: 'auto', textDecoration: 'none', display: 'flex', justifyContent: 'center' }}>
-                    Browse All Quizzes <ArrowRight size={16} />
-                </Link>
             </motion.div>
 
         </motion.div>

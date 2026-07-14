@@ -81,19 +81,6 @@ interface DashboardPayload {
             approvedAt: string | null;
         };
     }>;
-    quizStats: {
-        availableCount: number;
-        completedCount: number;
-        averageScore: number;
-        recentAttempts: Array<{
-            id: string;
-            quizId: string;
-            quizTitle: string;
-            percentageScore: number;
-            netScore: number;
-            submittedAt: string | null;
-        }>;
-    };
 }
 
 function StudentDashboardContent() {
@@ -294,7 +281,6 @@ function StudentDashboardContent() {
               url.searchParams.set("tab", tab);
               router.push(url.toString());
             }}
-            quizStats={data.quizStats}
           />
         </div>
       )}
