@@ -32,6 +32,7 @@ function TeacherDashboardLayoutContent({
         const tab = searchParams.get("tab");
         if (tab) return tab;
         if (pathname?.includes("/courses")) return "courses";
+        if (pathname?.includes("/quizzes")) return "quizzes";
         return "overview";
     })();
 

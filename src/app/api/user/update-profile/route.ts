@@ -21,23 +21,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Full name is required.' }, { status: 400 });
     }
 
-    const [user] = await db.update(userSchema)
+    await db.update(userSchema)
       .set({
         fullName,
         phone: phone || null,
         bmdcNumber: bmdcNumber || null,
         profileImage: profileImage || null,
       })
-      .where(eq(userSchema.id, payload.sub))
-      .returning({
-        id: userSchema.id,
-        email: userSchema.email,
-        phone: userSchema.phone,
-        role: userSchema.role,
-        fullName: userSchema.fullName,
-        bmdcNumber: userSchema.bmdcNumber,
-        profileImage: userSchema.profileImage,
-      });
+      .where(eq(userSchema.id, payload.sub));
+
+    const user = await db.query.user.findFirst({
+      where: (u, { eq }) => eq(u.id, payload.sub),
+      columns: {
+        id: true,
+        email: true,
+        phone: true,
+        role: true,
+        fullName: true,
+        bmdcNumber: true,
+        profileImage: true,
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
+    }
 
     return NextResponse.json({
       success: true,

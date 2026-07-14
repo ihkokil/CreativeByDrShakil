@@ -120,15 +120,21 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       // Create new user
-      const [newUser] = await db.insert(userSchema).values({
-        id: crypto.randomUUID(),
+      const userId = crypto.randomUUID();
+      const insertValues = {
+        id: userId,
         email: googleUser.email,
         fullName: googleUser.name || 'Google User',
-        emailVerified: true, // Google emails are already verified
+        emailVerified: true,
         profileImage: googleUser.picture || null,
-        role: 'student',
-      }).returning();
-      user = newUser;
+        role: 'student' as const,
+      };
+
+      await db.insert(userSchema).values(insertValues);
+
+      user = await db.query.user.findFirst({
+        where: (u, { eq }) => eq(u.id, userId),
+      });
     } else {
       // Update profile image from Google if not already set
       if (!user.profileImage && googleUser.picture) {
@@ -136,6 +142,10 @@ export async function GET(request: NextRequest) {
           .set({ profileImage: googleUser.picture })
           .where(eq(userSchema.id, user.id));
       }
+    }
+
+    if (!user) {
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=CreationFailed`);
     }
 
     if (user.isBanned) {

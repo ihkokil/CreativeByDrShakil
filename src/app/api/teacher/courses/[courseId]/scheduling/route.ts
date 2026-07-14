@@ -98,10 +98,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.publishedAt = updateData.publishedAt.toISOString();
     }
 
-    const [updatedCourse] = await db.update(courseSchema)
+    await db.update(courseSchema)
       .set(updateData)
-      .where(eq(courseSchema.id, course.id))
-      .returning();
+      .where(eq(courseSchema.id, course.id));
+
+    const updatedCourse = await db.query.course.findFirst({
+      where: (c, { eq }) => eq(c.id, course.id),
+    });
+
+    if (!updatedCourse) {
+      return NextResponse.json({ error: 'Course not found after update.' }, { status: 404 });
+    }
 
     const curriculum = ensureGroupInheritance(parseCurriculumJson(updatedCourse.curriculumJson));
     const groups = collectSecondChildGroups(curriculum);

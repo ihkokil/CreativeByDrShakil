@@ -99,10 +99,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.status = normalizedStatus || 'responded';
     }
 
-    const [updatedSubmission] = await db.update(csSchema)
+    await db.update(csSchema)
       .set(updateData)
-      .where(eq(csSchema.id, resolvedParams.id))
-      .returning();
+      .where(eq(csSchema.id, resolvedParams.id));
+
+    const updatedSubmission = await db.query.contactSubmission.findFirst({
+      where: (cs, { eq }) => eq(cs.id, resolvedParams.id),
+    });
+
+    if (!updatedSubmission) {
+      return NextResponse.json({ error: 'Submission not found after update.' }, { status: 404 });
+    }
 
     let replyEmailSent = false;
 

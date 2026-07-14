@@ -22,14 +22,18 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
         const { fullName, email, designation, institution, degrees, profileImage } = await request.json();
 
-        const [updatedTeacher] = await db.update(userSchema).set({
+        await db.update(userSchema).set({
             fullName,
             email,
             designation: designation || null,
             institution: institution || null,
             degrees: degrees || null,
             profileImage: profileImage || null
-        }).where(eq(userSchema.id, params.id)).returning();
+        }).where(eq(userSchema.id, params.id));
+
+        const updatedTeacher = await db.query.user.findFirst({
+            where: (u, { eq }) => eq(u.id, params.id)
+        });
 
         return NextResponse.json({ success: true, teacher: updatedTeacher });
     } catch (error: any) {

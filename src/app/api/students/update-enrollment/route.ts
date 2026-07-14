@@ -45,22 +45,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Enrollment order not found.' }, { status: 404 });
     }
 
-    const [updatedOrder] = await db.update(orderSchema)
+    await db.update(orderSchema)
       .set({
         enrolledAt: enrolledAt.toISOString(),
         expiresAt: expiresAt.toISOString(),
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(orderSchema.id, orderId))
-      .returning();
+      .where(eq(orderSchema.id, orderId));
 
     return NextResponse.json({
       success: true,
       message: 'Enrollment date updated successfully.',
       order: {
-        id: updatedOrder.id,
-        enrolledAt: updatedOrder.enrolledAt,
-        expiresAt: updatedOrder.expiresAt,
+        id: orderId,
+        enrolledAt: enrolledAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
       },
     });
   } catch (error: any) {

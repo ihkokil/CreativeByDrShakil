@@ -48,19 +48,39 @@ export async function POST(request: NextRequest) {
     const { token: setupToken, tokenHash: resetTokenHash } = await createTokenPair();
     const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000);
 
-    const [student] = await db.insert(userSchema).values({
-        id: crypto.randomUUID(),
+    const { hash } = await import('bcryptjs');
+    const studentId = crypto.randomUUID();
+    const hashedPassword = await hash(placeholder, 12);
+
+    const insertValues = {
+        id: studentId,
         email: normalizedEmail,
         fullName,
         phone: phone || null,
         bmdcNumber: bmdcNumber || null,
         profileImage: profileImage || null,
-        passwordHash: sql`crypt(${placeholder}, gen_salt('bf', 12))`,
-        role: 'student',
+        passwordHash: hashedPassword,
+        role: 'student' as const,
         emailVerified: true, // Auto-verify internally added students
         passwordResetTokenHash: resetTokenHash,
         passwordResetExpires: resetExpiry.toISOString(),
-    }).returning();
+    };
+
+    await db.insert(userSchema).values(insertValues);
+
+    const student = {
+        ...insertValues,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        canManagePayments: false,
+        isBanned: false,
+        telegramChatId: null,
+        image: null,
+        isSessionLockedExempt: false,
+        designation: null,
+        degrees: null,
+        institution: null,
+    };
 
     // Send password setup email
     let emailSent = true;
@@ -120,10 +140,13 @@ export async function PUT(request: NextRequest) {
                 }
             }
 
-            const [updated] = await db.update(userSchema)
+            await db.update(userSchema)
                 .set(data)
-                .where(eq(userSchema.id, id))
-                .returning();
+                .where(eq(userSchema.id, id));
+
+            const updated = await db.query.user.findFirst({
+                where: (u, { eq }) => eq(u.id, id)
+            });
     
         return NextResponse.json({ message: 'Student updated successfully.', student: updated });
     } catch (err: any) {

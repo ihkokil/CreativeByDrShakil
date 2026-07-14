@@ -174,6 +174,44 @@ export async function GET(request: NextRequest) {
       totalPurchases: orders.length,
     };
 
+    // Quiz Stats
+    const publishedQuizzes = await db.query.quiz.findMany({
+      where: (q, { eq }) => eq(q.status, 'published'),
+      columns: { id: true, title: true },
+    });
+
+    const studentAttempts = await db.query.quizAttempt.findMany({
+      where: (qa, { eq }) => eq(qa.studentId, user.id),
+      with: {
+        quiz: { columns: { title: true } }
+      },
+      orderBy: (qa, { desc }) => [desc(qa.submittedAt)],
+    });
+
+    const completedAttempts = studentAttempts.filter(a => a.status === 'submitted' || a.status === 'auto_submitted');
+    const completedQuizIds = new Set(completedAttempts.map(a => a.quizId));
+    const completedCount = completedQuizIds.size;
+    const availableCount = publishedQuizzes.filter(q => !completedQuizIds.has(q.id)).length;
+    const averageScore = completedAttempts.length > 0 
+      ? Math.round(completedAttempts.reduce((sum, a) => sum + a.percentageScore, 0) / completedAttempts.length)
+      : 0;
+
+    const recentQuizAttempts = completedAttempts.slice(0, 3).map(a => ({
+      id: a.id,
+      quizId: a.quizId,
+      quizTitle: a.quiz?.title || 'Unknown Quiz',
+      percentageScore: a.percentageScore,
+      netScore: a.netScore,
+      submittedAt: a.submittedAt,
+    }));
+
+    const quizStats = {
+      availableCount,
+      completedCount,
+      averageScore,
+      recentAttempts: recentQuizAttempts,
+    };
+
     const purchaseHistory = orders.map((order: any) => ({
       id: order.id,
       status: order.status,
@@ -205,6 +243,7 @@ export async function GET(request: NextRequest) {
       studyStats,
       enrolledCourses,
       purchaseHistory,
+      quizStats,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

@@ -35,9 +35,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const nextPaymentStatus = decision === 'approve' ? 'approved' : 'rejected';
 
     // neon-http driver does not support transactions — execute sequentially.
-    const [updatedOrder] = await db.update(orderSchema).set({
+    await db.update(orderSchema).set({
       status: nextOrderStatus,
-    }).where(eq(orderSchema.id, orderId)).returning();
+    }).where(eq(orderSchema.id, orderId));
+
+    const updatedOrder = await db.query.order.findFirst({
+      where: (o, { eq }) => eq(o.id, orderId),
+    });
 
     if (order.payments?.length) {
       await db.update(paymentSchema).set({

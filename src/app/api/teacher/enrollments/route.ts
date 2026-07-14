@@ -62,17 +62,39 @@ export async function POST(request: NextRequest) {
 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
 
-      const [newStudent] = await db.insert(userSchema).values({
-          id: crypto.randomUUID(),
+      const { hash } = await import('bcryptjs');
+      const studentId = crypto.randomUUID();
+      const hashedPassword = await hash(tempPassword, 12);
+      const nowStr = new Date().toISOString();
+
+      const insertValues = {
+          id: studentId,
           email: normalizedEmail,
           fullName,
           phone: phone || null,
-          passwordHash: sql`crypt(${tempPassword}, gen_salt('bf', 12))`,
-          role: 'student',
+          passwordHash: hashedPassword,
+          role: 'student' as const,
           emailVerified: true,
           passwordResetTokenHash: tokenHash,
           passwordResetExpires: resetExpiry.toISOString(),
-      }).returning();
+      };
+
+      await db.insert(userSchema).values(insertValues);
+
+      const newStudent = {
+          ...insertValues,
+          createdAt: nowStr,
+          updatedAt: nowStr,
+          canManagePayments: false,
+          isBanned: false,
+          telegramChatId: null,
+          image: null,
+          isSessionLockedExempt: false,
+          profileImage: null,
+          designation: null,
+          degrees: null,
+          institution: null,
+      };
       student = newStudent;
 
       isNewRegistration = true;
@@ -110,12 +132,12 @@ export async function POST(request: NextRequest) {
 
     let order;
     if (existingOrder) {
-      const [updatedOrder] = await db.update(orderSchema).set({
+      await db.update(orderSchema).set({
           status: 'approved',
           totalAmount: 0,
-      }).where(eq(orderSchema.id, existingOrder.id)).returning();
+      }).where(eq(orderSchema.id, existingOrder.id));
       order = await db.query.order.findFirst({
-        where: (o, { eq }) => eq(o.id, updatedOrder.id),
+        where: (o, { eq }) => eq(o.id, existingOrder.id),
         with: { course: true, user: true },
       });
     } else {

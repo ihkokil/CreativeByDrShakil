@@ -13,7 +13,8 @@ import {
     Users,
     User as UserIcon,
     GraduationCap,
-    Inbox
+    Inbox,
+    FileText
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
@@ -53,6 +54,7 @@ export default function TeacherSidebar({
         { id: 'enrollments', label: 'Enrollments', icon: <Inbox size={20} /> },
         { id: 'courses', label: 'Courses', icon: <BookOpen size={20} /> },
         { id: 'students', label: 'Students', icon: <GraduationCap size={20} /> },
+        { id: 'quizzes', label: 'Quizzes', icon: <FileText size={20} />, href: '/teacher/dashboard/quizzes' },
         { id: 'users', label: 'Users', icon: <Users size={20} /> },
         { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },
         { id: 'profile', label: 'My Profile', icon: <UserIcon size={20} /> },

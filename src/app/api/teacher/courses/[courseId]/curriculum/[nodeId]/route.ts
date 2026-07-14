@@ -125,10 +125,10 @@ export async function PATCH(
 
     const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
 
-    const [updatedCourse] = await db.update(courseSchema).set({
+    await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }).where(eq(courseSchema.id, course.id)).returning();
+      }).where(eq(courseSchema.id, course.id));
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',
@@ -181,10 +181,10 @@ export async function DELETE(
 
     const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
 
-    const [updatedCourse] = await db.update(courseSchema).set({
+    await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }).where(eq(courseSchema.id, course.id)).returning();
+      }).where(eq(courseSchema.id, course.id));
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',

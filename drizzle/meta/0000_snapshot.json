@@ -1,149 +1,119 @@
 {
-  "id": "00000000-0000-0000-0000-000000000000",
-  "prevId": "",
-  "version": "7",
-  "dialect": "postgresql",
+  "version": "5",
+  "dialect": "mysql",
+  "id": "46a1ee21-3226-4d25-9387-eb88b244b6d3",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "public.LessonProgress": {
-      "name": "LessonProgress",
-      "schema": "",
+    "Account": {
+      "name": "Account",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "userId": {
           "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "courseId": {
-          "name": "courseId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "lessonNodeId": {
-          "name": "lessonNodeId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "completedAt": {
-          "name": "completedAt",
-          "type": "timestamp(3)",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
+          "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp(3)",
+        "type": {
+          "name": "type",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
+          "autoincrement": false
         },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp(3)",
+        "provider": {
+          "name": "provider",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
+        },
+        "providerAccountId": {
+          "name": "providerAccountId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "token_type": {
+          "name": "token_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "session_state": {
+          "name": "session_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
-        "LessonProgress_courseId_idx": {
-          "name": "LessonProgress_courseId_idx",
+        "Account_provider_providerAccountId_key": {
+          "name": "Account_provider_providerAccountId_key",
           "columns": [
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "provider",
+            "providerAccountId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": true
         },
-        "LessonProgress_userId_courseId_idx": {
-          "name": "LessonProgress_userId_courseId_idx",
+        "Account_userId_idx": {
+          "name": "Account_userId_idx",
           "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "userId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "LessonProgress_userId_courseId_lessonNodeId_key": {
-          "name": "LessonProgress_userId_courseId_lessonNodeId_key",
-          "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "lessonNodeId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "LessonProgress_courseId_fkey": {
-          "name": "LessonProgress_courseId_fkey",
-          "tableFrom": "LessonProgress",
-          "tableTo": "Course",
-          "schemaTo": "public",
-          "columnsFrom": [
-            "courseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "cascade"
-        },
-        "LessonProgress_userId_fkey": {
-          "name": "LessonProgress_userId_fkey",
-          "tableFrom": "LessonProgress",
+        "Account_userId_fkey": {
+          "name": "Account_userId_fkey",
+          "tableFrom": "Account",
           "tableTo": "User",
-          "schemaTo": "public",
           "columnsFrom": [
             "userId"
           ],
@@ -154,169 +124,96 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "Account_id": {
+          "name": "Account_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.StudentModuleAvailability": {
-      "name": "StudentModuleAvailability",
-      "schema": "",
+    "AttemptAnswer": {
+      "name": "AttemptAnswer",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "courseId": {
-          "name": "courseId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "lessonNodeId": {
-          "name": "lessonNodeId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "availabilityMode": {
-          "name": "availabilityMode",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": "'available'"
+          "autoincrement": false
         },
-        "availableAt": {
-          "name": "availableAt",
-          "type": "timestamp(3)",
+        "attemptId": {
+          "name": "attemptId",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false
+        },
+        "questionId": {
+          "name": "questionId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "selectedOption": {
+          "name": "selectedOption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isCorrect": {
+          "name": "isCorrect",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {
-        "StudentModuleAvailability_courseId_lessonNodeId_idx": {
-          "name": "StudentModuleAvailability_courseId_lessonNodeId_idx",
+        "AttemptAnswer_attemptId_idx": {
+          "name": "AttemptAnswer_attemptId_idx",
           "columns": [
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "lessonNodeId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "attemptId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
-        "StudentModuleAvailability_courseId_userId_idx": {
-          "name": "StudentModuleAvailability_courseId_userId_idx",
+        "AttemptAnswer_questionId_idx": {
+          "name": "AttemptAnswer_questionId_idx",
           "columns": [
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "questionId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
-        "StudentModuleAvailability_courseId_userId_lessonNodeId_key": {
-          "name": "StudentModuleAvailability_courseId_userId_lessonNodeId_key",
+        "AttemptAnswer_attemptId_questionId_key": {
+          "name": "AttemptAnswer_attemptId_questionId_key",
           "columns": [
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "lessonNodeId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "attemptId",
+            "questionId"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "StudentModuleAvailability_userId_idx": {
-          "name": "StudentModuleAvailability_userId_idx",
-          "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": true
         }
       },
       "foreignKeys": {
-        "StudentModuleAvailability_courseId_fkey": {
-          "name": "StudentModuleAvailability_courseId_fkey",
-          "tableFrom": "StudentModuleAvailability",
-          "tableTo": "Course",
-          "schemaTo": "public",
+        "AttemptAnswer_attemptId_fkey": {
+          "name": "AttemptAnswer_attemptId_fkey",
+          "tableFrom": "AttemptAnswer",
+          "tableTo": "QuizAttempt",
           "columnsFrom": [
-            "courseId"
+            "attemptId"
           ],
           "columnsTo": [
             "id"
@@ -324,13 +221,12 @@
           "onDelete": "cascade",
           "onUpdate": "cascade"
         },
-        "StudentModuleAvailability_userId_fkey": {
-          "name": "StudentModuleAvailability_userId_fkey",
-          "tableFrom": "StudentModuleAvailability",
-          "tableTo": "User",
-          "schemaTo": "public",
+        "AttemptAnswer_questionId_fkey": {
+          "name": "AttemptAnswer_questionId_fkey",
+          "tableFrom": "AttemptAnswer",
+          "tableTo": "Question",
           "columnsFrom": [
-            "userId"
+            "questionId"
           ],
           "columnsTo": [
             "id"
@@ -339,375 +235,217 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "AttemptAnswer_id": {
+          "name": "AttemptAnswer_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.CourseInstructor": {
-      "name": "CourseInstructor",
-      "schema": "",
+    "Category": {
+      "name": "Category",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "courseId": {
-          "name": "courseId",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "name": {
           "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "designation": {
-          "name": "designation",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sortOrder": {
-          "name": "sortOrder",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": 0
+          "autoincrement": false
+        },
+        "displayName": {
+          "name": "displayName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "updatedAt": {
           "name": "updatedAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
-        },
-        "imageUrl": {
-          "name": "imageUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false
         }
       },
       "indexes": {
-        "CourseInstructor_courseId_idx": {
-          "name": "CourseInstructor_courseId_idx",
+        "Category_name_key": {
+          "name": "Category_name_key",
           "columns": [
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "name"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": true
         }
       },
-      "foreignKeys": {
-        "CourseInstructor_courseId_fkey": {
-          "name": "CourseInstructor_courseId_fkey",
-          "tableFrom": "CourseInstructor",
-          "tableTo": "Course",
-          "schemaTo": "public",
-          "columnsFrom": [
-            "courseId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "cascade"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.Payment": {
-      "name": "Payment",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "orderId": {
-          "name": "orderId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phoneNumber": {
-          "name": "phoneNumber",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "transactionId": {
-          "name": "transactionId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "amount": {
-          "name": "amount",
-          "type": "double precision",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "submittedAt": {
-          "name": "submittedAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "approvedAt": {
-          "name": "approvedAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "Payment_orderId_key": {
-          "name": "Payment_orderId_key",
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "Category_id": {
+          "name": "Category_id",
           "columns": [
-            {
-              "expression": "orderId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "Payment_orderId_fkey": {
-          "name": "Payment_orderId_fkey",
-          "tableFrom": "Payment",
-          "tableTo": "Order",
-          "schemaTo": "public",
-          "columnsFrom": [
-            "orderId"
-          ],
-          "columnsTo": [
             "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "cascade"
+          ]
         }
       },
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.ContactSubmission": {
+    "ContactSubmission": {
       "name": "ContactSubmission",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "fullName": {
           "name": "fullName",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "email": {
           "name": "email",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "phone": {
           "name": "phone",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "issueType": {
           "name": "issueType",
-          "type": "ContactIssueType",
-          "typeSchema": "public",
+          "type": "enum('query','technical_assistance','billing','course_access','other')",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "subject": {
           "name": "subject",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "message": {
           "name": "message",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "imageUrls": {
           "name": "imageUrls",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "status": {
           "name": "status",
-          "type": "ContactSubmissionStatus",
-          "typeSchema": "public",
+          "type": "enum('open','in_review','responded','closed')",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "'open'"
         },
         "adminReply": {
           "name": "adminReply",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "adminReplySentAt": {
           "name": "adminReplySentAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "repliedByAdminId": {
           "name": "repliedByAdminId",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "updatedAt": {
           "name": "updatedAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         }
       },
       "indexes": {
         "ContactSubmission_createdAt_idx": {
           "name": "ContactSubmission_createdAt_idx",
           "columns": [
-            {
-              "expression": "createdAt",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "timestamp_ops",
-              "isExpression": false
-            }
+            "createdAt"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
         "ContactSubmission_email_idx": {
           "name": "ContactSubmission_email_idx",
           "columns": [
-            {
-              "expression": "email",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "email"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
         "ContactSubmission_issueType_idx": {
           "name": "ContactSubmission_issueType_idx",
           "columns": [
-            {
-              "expression": "issueType",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "enum_ops",
-              "isExpression": false
-            }
+            "issueType"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
         "ContactSubmission_repliedByAdminId_idx": {
           "name": "ContactSubmission_repliedByAdminId_idx",
           "columns": [
-            {
-              "expression": "repliedByAdminId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "repliedByAdminId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
         "ContactSubmission_status_idx": {
           "name": "ContactSubmission_status_idx",
           "columns": [
-            {
-              "expression": "status",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "enum_ops",
-              "isExpression": false
-            }
+            "status"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -715,7 +453,6 @@
           "name": "ContactSubmission_repliedByAdminId_fkey",
           "tableFrom": "ContactSubmission",
           "tableTo": "User",
-          "schemaTo": "public",
           "columnsFrom": [
             "repliedByAdminId"
           ],
@@ -726,473 +463,131 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.PaymentConfig": {
-      "name": "PaymentConfig",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "'default'"
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'bkash'"
-        },
-        "sendMoneyNumber": {
-          "name": "sendMoneyNumber",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "qrCodeUrl": {
-          "name": "qrCodeUrl",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.DeviceSession": {
-      "name": "DeviceSession",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "deviceType": {
-          "name": "deviceType",
-          "type": "DeviceType",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "browserName": {
-          "name": "browserName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "userAgent": {
-          "name": "userAgent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ipAddress": {
-          "name": "ipAddress",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "isLocked": {
-          "name": "isLocked",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "loggedOutAt": {
-          "name": "loggedOutAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "lastActivityAt": {
-          "name": "lastActivityAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {
-        "DeviceSession_userId_deviceType_idx": {
-          "name": "DeviceSession_userId_deviceType_idx",
+      "compositePrimaryKeys": {
+        "ContactSubmission_id": {
+          "name": "ContactSubmission_id",
           "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "deviceType",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "DeviceSession_userId_idx": {
-          "name": "DeviceSession_userId_idx",
-          "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "DeviceSession_userId_fkey": {
-          "name": "DeviceSession_userId_fkey",
-          "tableFrom": "DeviceSession",
-          "tableTo": "User",
-          "schemaTo": "public",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
             "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "cascade"
+          ]
         }
       },
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.User": {
-      "name": "User",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "phone": {
-          "name": "phone",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "passwordHash": {
-          "name": "passwordHash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "fullName": {
-          "name": "fullName",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "role": {
-          "name": "role",
-          "type": "UserRole",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'student'"
-        },
-        "bmdcNumber": {
-          "name": "bmdcNumber",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "designation": {
-          "name": "designation",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "institution": {
-          "name": "institution",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "degrees": {
-          "name": "degrees",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "profileImage": {
-          "name": "profileImage",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emailVerified": {
-          "name": "emailVerified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "emailVerificationTokenHash": {
-          "name": "emailVerificationTokenHash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "emailVerificationExpires": {
-          "name": "emailVerificationExpires",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "passwordResetTokenHash": {
-          "name": "passwordResetTokenHash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "passwordResetExpires": {
-          "name": "passwordResetExpires",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "canManagePayments": {
-          "name": "canManagePayments",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "telegramChatId": {
-          "name": "telegramChatId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "image": {
-          "name": "image",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "User_email_key": {
-          "name": "User_email_key",
-          "columns": [
-            {
-              "expression": "email",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "User_phone_key": {
-          "name": "User_phone_key",
-          "columns": [
-            {
-              "expression": "phone",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.Course": {
+    "Course": {
       "name": "Course",
-      "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "slug": {
           "name": "slug",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "title": {
           "name": "title",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "description": {
           "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "overview": {
           "name": "overview",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "categoryId": {
           "name": "categoryId",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "price": {
           "name": "price",
-          "type": "double precision",
+          "type": "double",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "salePrice": {
           "name": "salePrice",
-          "type": "double precision",
+          "type": "double",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "instructor": {
           "name": "instructor",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "language": {
           "name": "language",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "imageUrl": {
           "name": "imageUrl",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "duration": {
           "name": "duration",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "courseStartDate": {
           "name": "courseStartDate",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "learningOutcomes": {
           "name": "learningOutcomes",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "teacherId": {
           "name": "teacherId",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "status": {
           "name": "status",
-          "type": "CoursePublishStatus",
-          "typeSchema": "public",
+          "type": "enum('draft','scheduled','published','archived')",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "'draft'"
         },
         "timezone": {
@@ -1200,142 +595,117 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'Asia/Dhaka'"
+          "autoincrement": false,
+          "default": "('Asia/Dhaka')"
         },
         "releaseMode": {
           "name": "releaseMode",
-          "type": "CourseReleaseMode",
-          "typeSchema": "public",
+          "type": "enum('fixed_interval','groups_per_week','day_of_week','explicit_dates','instant')",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "releaseStartAt": {
           "name": "releaseStartAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "releaseIntervalDays": {
           "name": "releaseIntervalDays",
-          "type": "integer",
+          "type": "int",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "releaseGroupsPerWeek": {
           "name": "releaseGroupsPerWeek",
-          "type": "integer",
+          "type": "int",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "releaseGroupDates": {
           "name": "releaseGroupDates",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "curriculumJson": {
           "name": "curriculumJson",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "publishedAt": {
           "name": "publishedAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "updatedAt": {
           "name": "updatedAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "isFeatured": {
           "name": "isFeatured",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": false
         },
         "releaseDaysOfWeek": {
           "name": "releaseDaysOfWeek",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
         "Course_categoryId_idx": {
           "name": "Course_categoryId_idx",
           "columns": [
-            {
-              "expression": "categoryId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "categoryId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
         "Course_slug_key": {
           "name": "Course_slug_key",
           "columns": [
-            {
-              "expression": "slug",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "slug"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": true
         },
         "Course_status_idx": {
           "name": "Course_status_idx",
           "columns": [
-            {
-              "expression": "status",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "enum_ops",
-              "isExpression": false
-            }
+            "status"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
         "Course_teacherId_idx": {
           "name": "Course_teacherId_idx",
           "columns": [
-            {
-              "expression": "teacherId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "teacherId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -1343,7 +713,6 @@
           "name": "Course_categoryId_fkey",
           "tableFrom": "Course",
           "tableTo": "Category",
-          "schemaTo": "public",
           "columnsFrom": [
             "categoryId"
           ],
@@ -1357,7 +726,6 @@
           "name": "Course_teacherId_fkey",
           "tableFrom": "Course",
           "tableTo": "User",
-          "schemaTo": "public",
           "columnsFrom": [
             "teacherId"
           ],
@@ -1368,113 +736,241 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.GlobalSessionLockSettings": {
-      "name": "GlobalSessionLockSettings",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "'global'"
-        },
-        "autoLockFirstBrowser": {
-          "name": "autoLockFirstBrowser",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
+      "compositePrimaryKeys": {
+        "Course_id": {
+          "name": "Course_id",
+          "columns": [
+            "id"
+          ]
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.SessionLockSettings": {
-      "name": "SessionLockSettings",
-      "schema": "",
+    "CourseInstructor": {
+      "name": "CourseInstructor",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "autoLockFirstBrowser": {
-          "name": "autoLockFirstBrowser",
-          "type": "boolean",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": true
+          "autoincrement": false
+        },
+        "courseId": {
+          "name": "courseId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "designation": {
+          "name": "designation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "updatedAt": {
           "name": "updatedAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
+        },
+        "imageUrl": {
+          "name": "imageUrl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
-        "SessionLockSettings_userId_key": {
-          "name": "SessionLockSettings_userId_key",
+        "CourseInstructor_courseId_idx": {
+          "name": "CourseInstructor_courseId_idx",
           "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "courseId"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "SessionLockSettings_userId_fkey": {
-          "name": "SessionLockSettings_userId_fkey",
-          "tableFrom": "SessionLockSettings",
+        "CourseInstructor_courseId_fkey": {
+          "name": "CourseInstructor_courseId_fkey",
+          "tableFrom": "CourseInstructor",
+          "tableTo": "Course",
+          "columnsFrom": [
+            "courseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "CourseInstructor_id": {
+          "name": "CourseInstructor_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "DeviceSession": {
+      "name": "DeviceSession",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deviceType": {
+          "name": "deviceType",
+          "type": "enum('desktop','mobile','tablet')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "browserName": {
+          "name": "browserName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userAgent": {
+          "name": "userAgent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ipAddress": {
+          "name": "ipAddress",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "isLocked": {
+          "name": "isLocked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "loggedOutAt": {
+          "name": "loggedOutAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "lastActivityAt": {
+          "name": "lastActivityAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "deviceHash": {
+          "name": "deviceHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deviceLabel": {
+          "name": "deviceLabel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "osInfo": {
+          "name": "osInfo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "lockedByDeviceLabel": {
+          "name": "lockedByDeviceLabel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "DeviceSession_userId_deviceType_idx": {
+          "name": "DeviceSession_userId_deviceType_idx",
+          "columns": [
+            "userId",
+            "deviceType"
+          ],
+          "isUnique": false
+        },
+        "DeviceSession_userId_idx": {
+          "name": "DeviceSession_userId_idx",
+          "columns": [
+            "userId"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "DeviceSession_userId_fkey": {
+          "name": "DeviceSession_userId_fkey",
+          "tableFrom": "DeviceSession",
           "tableTo": "User",
-          "schemaTo": "public",
           "columnsFrom": [
             "userId"
           ],
@@ -1485,160 +981,267 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "DeviceSession_id": {
+          "name": "DeviceSession_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.Category": {
-      "name": "Category",
-      "schema": "",
+    "EmailOtp": {
+      "name": "EmailOtp",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
-        "name": {
-          "name": "name",
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "otpHash": {
+          "name": "otpHash",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
-        "displayName": {
-          "name": "displayName",
-          "type": "text",
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
+        },
+        "verified": {
+          "name": "verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {
-        "Category_name_key": {
-          "name": "Category_name_key",
+        "EmailOtp_email_idx": {
+          "name": "EmailOtp_email_idx",
           "columns": [
-            {
-              "expression": "name",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "email"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "EmailOtp_id": {
+          "name": "EmailOtp_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.VideoLibraryNode": {
-      "name": "VideoLibraryNode",
-      "schema": "",
+    "GlobalSessionLockSettings": {
+      "name": "GlobalSessionLockSettings",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "url": {
-          "name": "url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "duration": {
-          "name": "duration",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "parentId": {
-          "name": "parentId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sortOrder": {
-          "name": "sortOrder",
-          "type": "integer",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true,
-          "default": 0
+          "autoincrement": false,
+          "default": "'global'"
+        },
+        "autoLockFirstBrowser": {
+          "name": "autoLockFirstBrowser",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "updatedAt": {
           "name": "updatedAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
+        },
+        "allowDesktop": {
+          "name": "allowDesktop",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "allowTablet": {
+          "name": "allowTablet",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "allowMobile": {
+          "name": "allowMobile",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "maxConcurrentSessions": {
+          "name": "maxConcurrentSessions",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 3
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "GlobalSessionLockSettings_id": {
+          "name": "GlobalSessionLockSettings_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "LessonProgress": {
+      "name": "LessonProgress",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "courseId": {
+          "name": "courseId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lessonNodeId": {
+          "name": "lessonNodeId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "completedAt": {
+          "name": "completedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         }
       },
       "indexes": {
-        "VideoLibraryNode_parentId_idx": {
-          "name": "VideoLibraryNode_parentId_idx",
+        "LessonProgress_courseId_idx": {
+          "name": "LessonProgress_courseId_idx",
           "columns": [
-            {
-              "expression": "parentId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "courseId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
+        },
+        "LessonProgress_userId_courseId_idx": {
+          "name": "LessonProgress_userId_courseId_idx",
+          "columns": [
+            "userId",
+            "courseId"
+          ],
+          "isUnique": false
+        },
+        "LessonProgress_userId_courseId_lessonNodeId_key": {
+          "name": "LessonProgress_userId_courseId_lessonNodeId_key",
+          "columns": [
+            "userId",
+            "courseId",
+            "lessonNodeId"
+          ],
+          "isUnique": true
         }
       },
       "foreignKeys": {
-        "VideoLibraryNode_parentId_fkey": {
-          "name": "VideoLibraryNode_parentId_fkey",
-          "tableFrom": "VideoLibraryNode",
-          "tableTo": "VideoLibraryNode",
-          "schemaTo": "public",
+        "LessonProgress_courseId_fkey": {
+          "name": "LessonProgress_courseId_fkey",
+          "tableFrom": "LessonProgress",
+          "tableTo": "Course",
           "columnsFrom": [
-            "parentId"
+            "courseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "LessonProgress_userId_fkey": {
+          "name": "LessonProgress_userId_fkey",
+          "tableFrom": "LessonProgress",
+          "tableTo": "User",
+          "columnsFrom": [
+            "userId"
           ],
           "columnsTo": [
             "id"
@@ -1647,260 +1250,109 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.EmailOtp": {
-      "name": "EmailOtp",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "otpHash": {
-          "name": "otpHash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expiresAt": {
-          "name": "expiresAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "verified": {
-          "name": "verified",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "CURRENT_TIMESTAMP"
-        }
-      },
-      "indexes": {
-        "EmailOtp_email_idx": {
-          "name": "EmailOtp_email_idx",
+      "compositePrimaryKeys": {
+        "LessonProgress_id": {
+          "name": "LessonProgress_id",
           "columns": [
-            {
-              "expression": "email",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+            "id"
+          ]
         }
       },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public._prisma_migrations": {
-      "name": "_prisma_migrations",
-      "schema": "",
+    "Order": {
+      "name": "Order",
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(36)",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "checksum": {
-          "name": "checksum",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "finished_at": {
-          "name": "finished_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "migration_name": {
-          "name": "migration_name",
           "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
-        },
-        "logs": {
-          "name": "logs",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "rolled_back_at": {
-          "name": "rolled_back_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
           "notNull": true,
-          "default": "now()"
-        },
-        "applied_steps_count": {
-          "name": "applied_steps_count",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.Order": {
-      "name": "Order",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "autoincrement": false
         },
         "userId": {
           "name": "userId",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "courseId": {
           "name": "courseId",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "status": {
           "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'pending'"
+          "autoincrement": false,
+          "default": "('pending')"
         },
         "totalAmount": {
           "name": "totalAmount",
-          "type": "double precision",
+          "type": "double",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "createdAt": {
           "name": "createdAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "updatedAt": {
           "name": "updatedAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "enrolledAt": {
           "name": "enrolledAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
         },
         "expiresAt": {
           "name": "expiresAt",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {
         "Order_courseId_idx": {
           "name": "Order_courseId_idx",
           "columns": [
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "courseId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         },
         "Order_userId_courseId_key": {
           "name": "Order_userId_courseId_key",
           "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "courseId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "userId",
+            "courseId"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": true
         },
         "Order_userId_idx": {
           "name": "Order_userId_idx",
           "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "userId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -1908,7 +1360,6 @@
           "name": "Order_courseId_fkey",
           "tableFrom": "Order",
           "tableTo": "Course",
-          "schemaTo": "public",
           "columnsFrom": [
             "courseId"
           ],
@@ -1922,7 +1373,6 @@
           "name": "Order_userId_fkey",
           "tableFrom": "Order",
           "tableTo": "User",
-          "schemaTo": "public",
           "columnsFrom": [
             "userId"
           ],
@@ -1933,209 +1383,356 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
-    },
-    "public.VerificationToken": {
-      "name": "VerificationToken",
-      "schema": "",
-      "columns": {
-        "identifier": {
-          "name": "identifier",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires": {
-          "name": "expires",
-          "type": "timestamp(3)",
-          "primaryKey": false,
-          "notNull": true
+      "compositePrimaryKeys": {
+        "Order_id": {
+          "name": "Order_id",
+          "columns": [
+            "id"
+          ]
         }
       },
-      "indexes": {
-        "VerificationToken_identifier_token_key": {
-          "name": "VerificationToken_identifier_token_key",
-          "columns": [
-            {
-              "expression": "identifier",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "token",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "VerificationToken_token_key": {
-          "name": "VerificationToken_token_key",
-          "columns": [
-            {
-              "expression": "token",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.Account": {
-      "name": "Account",
-      "schema": "",
+    "Payment": {
+      "name": "Payment",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
-        "userId": {
-          "name": "userId",
+        "orderId": {
+          "name": "orderId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "phoneNumber": {
+          "name": "phoneNumber",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
-        "type": {
-          "name": "type",
+        "transactionId": {
+          "name": "transactionId",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "('pending')"
+        },
+        "submittedAt": {
+          "name": "submittedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "approvedAt": {
+          "name": "approvedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "Payment_orderId_key": {
+          "name": "Payment_orderId_key",
+          "columns": [
+            "orderId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "Payment_orderId_fkey": {
+          "name": "Payment_orderId_fkey",
+          "tableFrom": "Payment",
+          "tableTo": "Order",
+          "columnsFrom": [
+            "orderId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "Payment_id": {
+          "name": "Payment_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "PaymentConfig": {
+      "name": "PaymentConfig",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'default'"
         },
         "provider": {
           "name": "provider",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false,
+          "default": "('bkash')"
         },
-        "providerAccountId": {
-          "name": "providerAccountId",
+        "sendMoneyNumber": {
+          "name": "sendMoneyNumber",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
-        "refresh_token": {
-          "name": "refresh_token",
+        "qrCodeUrl": {
+          "name": "qrCodeUrl",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
-        "access_token": {
-          "name": "access_token",
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "PaymentConfig_id": {
+          "name": "PaymentConfig_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "_prisma_migrations": {
+      "name": "_prisma_migrations",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checksum": {
+          "name": "checksum",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "migration_name": {
+          "name": "migration_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "logs": {
+          "name": "logs",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "integer",
+        "rolled_back_at": {
+          "name": "rolled_back_at",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
         },
-        "token_type": {
-          "name": "token_type",
+        "started_at": {
+          "name": "started_at",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "applied_steps_count": {
+          "name": "applied_steps_count",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "_prisma_migrations_id": {
+          "name": "_prisma_migrations_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "Question": {
+      "name": "Question",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "quizId": {
+          "name": "quizId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "questionText": {
+          "name": "questionText",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false
         },
-        "scope": {
-          "name": "scope",
+        "questionType": {
+          "name": "questionType",
+          "type": "enum('mcq','true_false')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "optionA": {
+          "name": "optionA",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false
         },
-        "id_token": {
-          "name": "id_token",
+        "optionB": {
+          "name": "optionB",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "autoincrement": false
         },
-        "session_state": {
-          "name": "session_state",
+        "optionC": {
+          "name": "optionC",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": false,
+          "autoincrement": false
+        },
+        "optionD": {
+          "name": "optionD",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "correctOption": {
+          "name": "correctOption",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "explanation": {
+          "name": "explanation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         }
       },
       "indexes": {
-        "Account_provider_providerAccountId_key": {
-          "name": "Account_provider_providerAccountId_key",
+        "Question_quizId_idx": {
+          "name": "Question_quizId_idx",
           "columns": [
-            {
-              "expression": "provider",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            },
-            {
-              "expression": "providerAccountId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "quizId"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "Account_userId_idx": {
-          "name": "Account_userId_idx",
-          "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "Account_userId_fkey": {
-          "name": "Account_userId_fkey",
-          "tableFrom": "Account",
-          "tableTo": "User",
-          "schemaTo": "public",
+        "Question_quizId_fkey": {
+          "name": "Question_quizId_fkey",
+          "tableFrom": "Question",
+          "tableTo": "Quiz",
           "columnsFrom": [
-            "userId"
+            "quizId"
           ],
           "columnsTo": [
             "id"
@@ -2144,73 +1741,682 @@
           "onUpdate": "cascade"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "Question_id": {
+          "name": "Question_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
     },
-    "public.Session": {
-      "name": "Session",
-      "schema": "",
+    "Quiz": {
+      "name": "Quiz",
       "columns": {
         "id": {
           "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
           "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "instructions": {
+          "name": "instructions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "categoryId": {
+          "name": "categoryId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "durationMinutes": {
+          "name": "durationMinutes",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "numQuestionsToServe": {
+          "name": "numQuestionsToServe",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "positionType": {
+          "name": "positionType",
+          "type": "enum('best_attempt','last_attempt','first_attempt')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'best_attempt'"
+        },
+        "allowMultipleAttempts": {
+          "name": "allowMultipleAttempts",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "maxAttempts": {
+          "name": "maxAttempts",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "allowNegativeMarking": {
+          "name": "allowNegativeMarking",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "negativeValue": {
+          "name": "negativeValue",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0.25
+        },
+        "marksPerCorrect": {
+          "name": "marksPerCorrect",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "startDatetime": {
+          "name": "startDatetime",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "endDatetime": {
+          "name": "endDatetime",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('draft','published','archived')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'draft'"
+        },
+        "shuffleQuestions": {
+          "name": "shuffleQuestions",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "shuffleOptions": {
+          "name": "shuffleOptions",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "createdBy": {
+          "name": "createdBy",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "publishedAt": {
+          "name": "publishedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "Quiz_categoryId_idx": {
+          "name": "Quiz_categoryId_idx",
+          "columns": [
+            "categoryId"
+          ],
+          "isUnique": false
+        },
+        "Quiz_status_idx": {
+          "name": "Quiz_status_idx",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        },
+        "Quiz_createdBy_idx": {
+          "name": "Quiz_createdBy_idx",
+          "columns": [
+            "createdBy"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "Quiz_categoryId_fkey": {
+          "name": "Quiz_categoryId_fkey",
+          "tableFrom": "Quiz",
+          "tableTo": "QuizCategory",
+          "columnsFrom": [
+            "categoryId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "cascade"
+        },
+        "Quiz_createdBy_fkey": {
+          "name": "Quiz_createdBy_fkey",
+          "tableFrom": "Quiz",
+          "tableTo": "User",
+          "columnsFrom": [
+            "createdBy"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "Quiz_id": {
+          "name": "Quiz_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "QuizAttempt": {
+      "name": "QuizAttempt",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "quizId": {
+          "name": "quizId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "studentId": {
+          "name": "studentId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "startedAt": {
+          "name": "startedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "submittedAt": {
+          "name": "submittedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "timeTakenSeconds": {
+          "name": "timeTakenSeconds",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isAutoSubmitted": {
+          "name": "isAutoSubmitted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "totalScore": {
+          "name": "totalScore",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "correctCount": {
+          "name": "correctCount",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "wrongCount": {
+          "name": "wrongCount",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "skippedCount": {
+          "name": "skippedCount",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "negativeMarks": {
+          "name": "negativeMarks",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "netScore": {
+          "name": "netScore",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "percentageScore": {
+          "name": "percentageScore",
+          "type": "double",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "rank": {
+          "name": "rank",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "enum('in_progress','submitted','auto_submitted','abandoned')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'in_progress'"
+        },
+        "attemptNumber": {
+          "name": "attemptNumber",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "QuizAttempt_quizId_idx": {
+          "name": "QuizAttempt_quizId_idx",
+          "columns": [
+            "quizId"
+          ],
+          "isUnique": false
+        },
+        "QuizAttempt_studentId_idx": {
+          "name": "QuizAttempt_studentId_idx",
+          "columns": [
+            "studentId"
+          ],
+          "isUnique": false
+        },
+        "QuizAttempt_status_idx": {
+          "name": "QuizAttempt_status_idx",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        },
+        "QuizAttempt_quizId_studentId_attemptNumber_key": {
+          "name": "QuizAttempt_quizId_studentId_attemptNumber_key",
+          "columns": [
+            "quizId",
+            "studentId",
+            "attemptNumber"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "QuizAttempt_quizId_fkey": {
+          "name": "QuizAttempt_quizId_fkey",
+          "tableFrom": "QuizAttempt",
+          "tableTo": "Quiz",
+          "columnsFrom": [
+            "quizId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "QuizAttempt_studentId_fkey": {
+          "name": "QuizAttempt_studentId_fkey",
+          "tableFrom": "QuizAttempt",
+          "tableTo": "User",
+          "columnsFrom": [
+            "studentId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "QuizAttempt_id": {
+          "name": "QuizAttempt_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "QuizCategory": {
+      "name": "QuizCategory",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "displayName": {
+          "name": "displayName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "QuizCategory_name_key": {
+          "name": "QuizCategory_name_key",
+          "columns": [
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "QuizCategory_id": {
+          "name": "QuizCategory_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "QuizQuestionMapping": {
+      "name": "QuizQuestionMapping",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "attemptId": {
+          "name": "attemptId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "questionId": {
+          "name": "questionId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "displayOrder": {
+          "name": "displayOrder",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "optionOrder": {
+          "name": "optionOrder",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "QuizQuestionMapping_attemptId_idx": {
+          "name": "QuizQuestionMapping_attemptId_idx",
+          "columns": [
+            "attemptId"
+          ],
+          "isUnique": false
+        },
+        "QuizQuestionMapping_questionId_idx": {
+          "name": "QuizQuestionMapping_questionId_idx",
+          "columns": [
+            "questionId"
+          ],
+          "isUnique": false
+        },
+        "QuizQuestionMapping_attemptId_questionId_key": {
+          "name": "QuizQuestionMapping_attemptId_questionId_key",
+          "columns": [
+            "attemptId",
+            "questionId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "QuizQuestionMapping_attemptId_fkey": {
+          "name": "QuizQuestionMapping_attemptId_fkey",
+          "tableFrom": "QuizQuestionMapping",
+          "tableTo": "QuizAttempt",
+          "columnsFrom": [
+            "attemptId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "QuizQuestionMapping_questionId_fkey": {
+          "name": "QuizQuestionMapping_questionId_fkey",
+          "tableFrom": "QuizQuestionMapping",
+          "tableTo": "Question",
+          "columnsFrom": [
+            "questionId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "QuizQuestionMapping_id": {
+          "name": "QuizQuestionMapping_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "Session": {
+      "name": "Session",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
         },
         "sessionToken": {
           "name": "sessionToken",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "userId": {
           "name": "userId",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         },
         "expires": {
           "name": "expires",
-          "type": "timestamp(3)",
+          "type": "datetime(3)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "autoincrement": false
         }
       },
       "indexes": {
         "Session_sessionToken_key": {
           "name": "Session_sessionToken_key",
           "columns": [
-            {
-              "expression": "sessionToken",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "sessionToken"
           ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": true
         },
         "Session_userId_idx": {
           "name": "Session_userId_idx",
           "columns": [
-            {
-              "expression": "userId",
-              "asc": true,
-              "nulls": "last",
-              "opclass": "text_ops",
-              "isExpression": false
-            }
+            "userId"
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -2218,7 +2424,6 @@
           "name": "Session_userId_fkey",
           "tableFrom": "Session",
           "tableTo": "User",
-          "schemaTo": "public",
           "columnsFrom": [
             "userId"
           ],
@@ -2229,78 +2434,586 @@
           "onUpdate": "cascade"
         }
       },
+      "compositePrimaryKeys": {
+        "Session_id": {
+          "name": "Session_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "SessionLockSettings": {
+      "name": "SessionLockSettings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "autoLockFirstBrowser": {
+          "name": "autoLockFirstBrowser",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "SessionLockSettings_userId_key": {
+          "name": "SessionLockSettings_userId_key",
+          "columns": [
+            "userId"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "SessionLockSettings_userId_fkey": {
+          "name": "SessionLockSettings_userId_fkey",
+          "tableFrom": "SessionLockSettings",
+          "tableTo": "User",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "SessionLockSettings_id": {
+          "name": "SessionLockSettings_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "StudentModuleAvailability": {
+      "name": "StudentModuleAvailability",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "courseId": {
+          "name": "courseId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "userId": {
+          "name": "userId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "lessonNodeId": {
+          "name": "lessonNodeId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "availabilityMode": {
+          "name": "availabilityMode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "('available')"
+        },
+        "availableAt": {
+          "name": "availableAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "StudentModuleAvailability_courseId_lessonNodeId_idx": {
+          "name": "StudentModuleAvailability_courseId_lessonNodeId_idx",
+          "columns": [
+            "courseId",
+            "lessonNodeId"
+          ],
+          "isUnique": false
+        },
+        "StudentModuleAvailability_courseId_userId_idx": {
+          "name": "StudentModuleAvailability_courseId_userId_idx",
+          "columns": [
+            "courseId",
+            "userId"
+          ],
+          "isUnique": false
+        },
+        "StudentModuleAvailability_courseId_userId_lessonNodeId_key": {
+          "name": "StudentModuleAvailability_courseId_userId_lessonNodeId_key",
+          "columns": [
+            "courseId",
+            "userId",
+            "lessonNodeId"
+          ],
+          "isUnique": true
+        },
+        "StudentModuleAvailability_userId_idx": {
+          "name": "StudentModuleAvailability_userId_idx",
+          "columns": [
+            "userId"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "StudentModuleAvailability_courseId_fkey": {
+          "name": "StudentModuleAvailability_courseId_fkey",
+          "tableFrom": "StudentModuleAvailability",
+          "tableTo": "Course",
+          "columnsFrom": [
+            "courseId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
+        "StudentModuleAvailability_userId_fkey": {
+          "name": "StudentModuleAvailability_userId_fkey",
+          "tableFrom": "StudentModuleAvailability",
+          "tableTo": "User",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "StudentModuleAvailability_id": {
+          "name": "StudentModuleAvailability_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "User": {
+      "name": "User",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "passwordHash": {
+          "name": "passwordHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "fullName": {
+          "name": "fullName",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "enum('admin','teacher','student')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'student'"
+        },
+        "bmdcNumber": {
+          "name": "bmdcNumber",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "designation": {
+          "name": "designation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "institution": {
+          "name": "institution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "degrees": {
+          "name": "degrees",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "profileImage": {
+          "name": "profileImage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "emailVerified": {
+          "name": "emailVerified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
+        "emailVerificationTokenHash": {
+          "name": "emailVerificationTokenHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "emailVerificationExpires": {
+          "name": "emailVerificationExpires",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "passwordResetTokenHash": {
+          "name": "passwordResetTokenHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "passwordResetExpires": {
+          "name": "passwordResetExpires",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "canManagePayments": {
+          "name": "canManagePayments",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "isBanned": {
+          "name": "isBanned",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "telegramChatId": {
+          "name": "telegramChatId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isSessionLockedExempt": {
+          "name": "isSessionLockedExempt",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        }
+      },
+      "indexes": {
+        "User_email_key": {
+          "name": "User_email_key",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        },
+        "User_phone_key": {
+          "name": "User_phone_key",
+          "columns": [
+            "phone"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "User_id": {
+          "name": "User_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "VerificationToken": {
+      "name": "VerificationToken",
+      "columns": {
+        "identifier": {
+          "name": "identifier",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires": {
+          "name": "expires",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "VerificationToken_identifier_token_key": {
+          "name": "VerificationToken_identifier_token_key",
+          "columns": [
+            "identifier",
+            "token"
+          ],
+          "isUnique": true
+        },
+        "VerificationToken_token_key": {
+          "name": "VerificationToken_token_key",
+          "columns": [
+            "token"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {},
-      "policies": {},
-      "isRLSEnabled": false
+      "checkConstraint": {}
+    },
+    "VideoLibraryNode": {
+      "name": "VideoLibraryNode",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "duration": {
+          "name": "duration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "parentId": {
+          "name": "parentId",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "attachments": {
+          "name": "attachments",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "sortOrder": {
+          "name": "sortOrder",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "VideoLibraryNode_parentId_idx": {
+          "name": "VideoLibraryNode_parentId_idx",
+          "columns": [
+            "parentId"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "VideoLibraryNode_parentId_fkey": {
+          "name": "VideoLibraryNode_parentId_fkey",
+          "tableFrom": "VideoLibraryNode",
+          "tableTo": "VideoLibraryNode",
+          "columnsFrom": [
+            "parentId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {
+        "VideoLibraryNode_id": {
+          "name": "VideoLibraryNode_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
     }
   },
-  "enums": {
-    "public.ContactIssueType": {
-      "name": "ContactIssueType",
-      "values": [
-        "query",
-        "technical_assistance",
-        "billing",
-        "course_access",
-        "other"
-      ],
-      "schema": "public"
-    },
-    "public.ContactSubmissionStatus": {
-      "name": "ContactSubmissionStatus",
-      "values": [
-        "open",
-        "in_review",
-        "responded",
-        "closed"
-      ],
-      "schema": "public"
-    },
-    "public.CoursePublishStatus": {
-      "name": "CoursePublishStatus",
-      "values": [
-        "draft",
-        "scheduled",
-        "published",
-        "archived"
-      ],
-      "schema": "public"
-    },
-    "public.CourseReleaseMode": {
-      "name": "CourseReleaseMode",
-      "values": [
-        "fixed_interval",
-        "groups_per_week",
-        "day_of_week",
-        "explicit_dates",
-        "instant"
-      ],
-      "schema": "public"
-    },
-    "public.DeviceType": {
-      "name": "DeviceType",
-      "values": [
-        "desktop",
-        "mobile"
-      ],
-      "schema": "public"
-    },
-    "public.UserRole": {
-      "name": "UserRole",
-      "values": [
-        "admin",
-        "teacher",
-        "student"
-      ],
-      "schema": "public"
-    }
-  },
-  "schemas": {},
-  "sequences": {},
-  "roles": {},
-  "policies": {},
   "views": {},
   "_meta": {
     "schemas": {},
@@ -2308,6 +3021,7 @@
     "columns": {}
   },
   "internal": {
-    "tables": {}
+    "tables": {},
+    "indexes": {}
   }
 }

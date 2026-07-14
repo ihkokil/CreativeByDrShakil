@@ -53,11 +53,14 @@ export async function POST(request: NextRequest) {
         const { token: resetToken, tokenHash } = await createTokenPair();
         const resetExpiry = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72 hours
 
+        const { hash } = await import('bcryptjs');
+        const hashedPassword = await hash(placeholder, 12);
+
         await db.insert(userSchema).values({
             id: crypto.randomUUID(),
             email: normalizedEmail,
             fullName,
-            passwordHash: sql`crypt(${placeholder}, gen_salt('bf', 12))`,
+            passwordHash: hashedPassword,
             role: 'teacher',
             designation: designation || null,
             institution: institution || null,

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Create the duplicated course
     const newCourseId = crypto.randomUUID();
-    const [duplicatedCourse] = await db.insert(courseSchema).values({
+    await db.insert(courseSchema).values({
       id: newCourseId,
       title: newTitle,
       slug: newSlug,
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       curriculumJson: originalCourse.curriculumJson as any,
       releaseDaysOfWeek: typeof originalCourse.releaseDaysOfWeek === 'object' && originalCourse.releaseDaysOfWeek ? JSON.stringify(originalCourse.releaseDaysOfWeek) : (originalCourse.releaseDaysOfWeek as any),
       isFeatured: false, // Reset featured status
-    }).returning();
+    });
 
     if (originalCourse.instructors && originalCourse.instructors.length > 0) {
       await Promise.all(originalCourse.instructors.map(inst =>

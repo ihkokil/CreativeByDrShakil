@@ -1,14 +1,6 @@
-import postgres from 'postgres';
-import { drizzle } from 'drizzle-orm/postgres-js';
+import { db } from '../src/lib/db';
 import { eq, inArray } from 'drizzle-orm';
 import * as schema from '../src/db/schema';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
-dotenv.config({ path: '.env.local' });
-
-const client = postgres(process.env.DATABASE_URL!, { prepare: false });
-const db = drizzle(client, { schema });
 
 async function main() {
   console.log('Connecting to database...');
@@ -18,24 +10,27 @@ async function main() {
 
   console.log(`Setting student enrollment dates to: ${targetDate}`);
 
-  // 1. Update the 'createdAt' property of all users with role 'student'
-  const updatedUsers = await db.update(schema.user)
-    .set({ createdAt: targetDate })
-    .where(eq(schema.user.role, 'student'))
-    .returning({ id: schema.user.id });
+  // Fetch student IDs beforehand
+  const students = await db.select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.role, 'student'));
 
-  console.log(`Updated ${updatedUsers.length} students' profiles (User.createdAt).`);
+  if (students.length > 0) {
+    const studentIds = students.map(u => u.id);
 
-  if (updatedUsers.length > 0) {
-    const studentIds = updatedUsers.map(u => u.id);
+    // 1. Update the 'createdAt' property of all users with role 'student'
+    await db.update(schema.user)
+      .set({ createdAt: targetDate })
+      .where(eq(schema.user.role, 'student'));
+
+    console.log(`Updated ${students.length} students' profiles (User.createdAt).`);
     
     // 2. Update the 'createdAt' property of all orders (which represents course enrollment)
-    const updatedOrders = await db.update(schema.order)
+    await db.update(schema.order)
       .set({ createdAt: targetDate, enrolledAt: targetDate })
-      .where(inArray(schema.order.userId, studentIds))
-      .returning({ id: schema.order.id });
+      .where(inArray(schema.order.userId, studentIds));
 
-    console.log(`Updated ${updatedOrders.length} course enrollments (Order.createdAt & enrolledAt).`);
+    console.log(`Updated course enrollments (Order.createdAt & enrolledAt) for the students.`);
   } else {
     console.log(`Updated 0 course enrollments.`);
   }

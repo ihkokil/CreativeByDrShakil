@@ -59,24 +59,24 @@ export async function POST(request: NextRequest) {
 
     const qrCodeUrl = qrCodeUrlRaw || '/bkash-qr.png'
 
-    const [config] = await db.insert(pcSchema)
+    await db.insert(pcSchema)
       .values({
         id: 'default',
         provider: 'bkash',
         sendMoneyNumber,
         qrCodeUrl,
       })
-      .onConflictDoUpdate({
-        target: pcSchema.id,
+      .onDuplicateKeyUpdate({
         set: { provider: 'bkash', sendMoneyNumber, qrCodeUrl }
-      })
-      .returning({
-        provider: pcSchema.provider,
-        sendMoneyNumber: pcSchema.sendMoneyNumber,
-        qrCodeUrl: pcSchema.qrCodeUrl,
-      })
+      });
 
-    return NextResponse.json({ success: true, config })
+    const config = {
+      provider: 'bkash',
+      sendMoneyNumber,
+      qrCodeUrl,
+    };
+
+    return NextResponse.json({ success: true, config });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Internal server error.' }, { status: 500 })
   }

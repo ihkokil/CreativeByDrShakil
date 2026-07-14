@@ -63,7 +63,10 @@ export async function PATCH(
             return NextResponse.json({ error: 'No valid fields to update.' }, { status: 400 });
         }
 
-        const [node] = await db.update(vlnSchema).set(data).where(eq(vlnSchema.id, id)).returning();
+        await db.update(vlnSchema).set(data).where(eq(vlnSchema.id, id));
+        const node = await db.query.videoLibraryNode.findFirst({
+            where: (vln, { eq }) => eq(vln.id, id)
+        });
 
         return NextResponse.json({ node });
     } catch (error: any) {

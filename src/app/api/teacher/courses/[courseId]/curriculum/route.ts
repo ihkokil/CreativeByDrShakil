@@ -144,10 +144,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const rawCurriculumToSave = stripMediaVaultChildren(normalizedCurriculum);
 
-    const [updatedCourse] = await db.update(courseSchema).set({
+    await db.update(courseSchema).set({
         curriculumJson: JSON.stringify(rawCurriculumToSave),
         releaseGroupDates: JSON.stringify(compactReleaseGroupDates),
-      }).where(eq(courseSchema.id, course.id)).returning();
+      }).where(eq(courseSchema.id, course.id));
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: 'circular',
