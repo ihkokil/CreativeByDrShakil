@@ -48,12 +48,17 @@ if (isCloudflare) {
     }
   };
 } else {
-  // Use a standard connection pool for local development performance
+  // Use a standard connection pool for local development performance.
+  // enableKeepAlive + keepAliveInitialDelay prevents ECONNRESET when the
+  // server-side wait_timeout drops an idle TCP connection mid-session.
   poolConnection = mysql.createPool({
     uri,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,   // send first keepalive after 10 s
+    connectTimeout: 30000,
   });
 }
 

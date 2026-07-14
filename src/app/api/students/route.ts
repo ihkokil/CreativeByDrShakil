@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
+import { eq, inArray, and, desc } from 'drizzle-orm';
+import { 
+  user as userSchema, 
+  deviceSession as deviceSessionSchema, 
+  order as orderSchema, 
+  course as courseSchema 
+} from '@/db/schema';
 
 /**
  * GET /api/students - Returns a list of all student users, sessions, and courses.
@@ -19,52 +26,86 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const students = await db.query.user.findMany({
-      where: (u, { eq }) => eq(u.role, 'student'),
-      columns: {
-        id: true,
-        fullName: true,
-        email: true,
-        phone: true,
-        bmdcNumber: true,
-        role: true,
-        createdAt: true,
-        profileImage: true,
-      },
-      with: {
-        deviceSessions: {
-          columns: {
-            id: true,
-            deviceType: true,
-            browserName: true,
-            ipAddress: true,
-            isLocked: true,
-            loggedOutAt: true,
-            createdAt: true,
-            lastActivityAt: true,
-          },
-          orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-        },
-        orders: {
-          where: (o, { eq }) => eq(o.status, 'approved'),
-          columns: {
-            id: true,
-            enrolledAt: true,
-            expiresAt: true,
-          },
-          with: {
+    const studentsList = await db.select({
+      id: userSchema.id,
+      fullName: userSchema.fullName,
+      email: userSchema.email,
+      phone: userSchema.phone,
+      bmdcNumber: userSchema.bmdcNumber,
+      role: userSchema.role,
+      createdAt: userSchema.createdAt,
+      profileImage: userSchema.profileImage,
+    })
+    .from(userSchema)
+    .where(eq(userSchema.role, 'student'))
+    .orderBy(desc(userSchema.createdAt));
+
+    const studentIds = studentsList.map(s => s.id);
+
+    const [deviceSessionsList, ordersList] = await Promise.all([
+      studentIds.length > 0
+        ? db.select({
+            id: deviceSessionSchema.id,
+            userId: deviceSessionSchema.userId,
+            deviceType: deviceSessionSchema.deviceType,
+            browserName: deviceSessionSchema.browserName,
+            ipAddress: deviceSessionSchema.ipAddress,
+            isLocked: deviceSessionSchema.isLocked,
+            loggedOutAt: deviceSessionSchema.loggedOutAt,
+            createdAt: deviceSessionSchema.createdAt,
+            lastActivityAt: deviceSessionSchema.lastActivityAt,
+          })
+          .from(deviceSessionSchema)
+          .where(inArray(deviceSessionSchema.userId, studentIds))
+          .orderBy(desc(deviceSessionSchema.createdAt))
+        : Promise.resolve([]),
+      studentIds.length > 0
+        ? db.select({
+            id: orderSchema.id,
+            userId: orderSchema.userId,
+            enrolledAt: orderSchema.enrolledAt,
+            expiresAt: orderSchema.expiresAt,
             course: {
-              columns: {
-                id: true,
-                title: true,
-                slug: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: (u, { desc }) => [desc(u.createdAt)],
+              id: courseSchema.id,
+              title: courseSchema.title,
+              slug: courseSchema.slug,
+            }
+          })
+          .from(orderSchema)
+          .leftJoin(courseSchema, eq(orderSchema.courseId, courseSchema.id))
+          .where(and(
+            inArray(orderSchema.userId, studentIds),
+            eq(orderSchema.status, 'approved')
+          ))
+        : Promise.resolve([]),
+    ]);
+
+    const deviceSessionsMap = new Map<string, any[]>();
+    deviceSessionsList.forEach(ds => {
+      const list = deviceSessionsMap.get(ds.userId) || [];
+      list.push(ds);
+      deviceSessionsMap.set(ds.userId, list);
     });
+
+    const ordersMap = new Map<string, any[]>();
+    ordersList.forEach(o => {
+      if (o.course && o.course.id) {
+        const list = ordersMap.get(o.userId) || [];
+        list.push({
+          id: o.id,
+          enrolledAt: o.enrolledAt,
+          expiresAt: o.expiresAt,
+          course: o.course,
+        });
+        ordersMap.set(o.userId, list);
+      }
+    });
+
+    const students = studentsList.map(s => ({
+      ...s,
+      deviceSessions: deviceSessionsMap.get(s.id) || [],
+      orders: ordersMap.get(s.id) || [],
+    }));
 
     const formattedStudents = students.map((student) => {
       const activeSessions = student.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
@@ -116,10 +157,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId is required.' }, { status: 400 });
     }
 
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      columns: { id: true, title: true, slug: true },
-    });
+    const coursesListResult = await db.select({
+      id: courseSchema.id,
+      title: courseSchema.title,
+      slug: courseSchema.slug,
+    })
+    .from(courseSchema)
+    .where(eq(courseSchema.id, courseId))
+    .limit(1);
+
+    const course = coursesListResult[0];
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -137,9 +184,12 @@ export async function POST(request: NextRequest) {
     // Transactions are not supported in neon-http driver, so we use standard sequential execution
     for (const studentId of studentIds) {
       try {
-        const student = await db.query.user.findFirst({
-          where: (u: any, { eq, and }: any) => and(eq(u.id, studentId), eq(u.role, 'student')),
-        });
+        const studentsListResult = await db.select()
+          .from(userSchema)
+          .where(and(eq(userSchema.id, studentId), eq(userSchema.role, 'student')))
+          .limit(1);
+
+        const student = studentsListResult[0];
 
         if (!student) {
           errors.push(`Student with ID ${studentId} not found.`);
