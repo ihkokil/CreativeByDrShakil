@@ -30,6 +30,18 @@ interface TeacherOverviewProps {
     aggregateProgress: number;
     teacherName: string;
     onTabChange: (tab: string) => void;
+    quizStats: {
+        totalQuizzes: number;
+        activeQuizzes: number;
+        recentActivity: Array<{
+            id: string;
+            quizTitle: string;
+            studentName: string;
+            netScore: number;
+            percentageScore: number;
+            submittedAt: string | null;
+        }>;
+    };
 }
 
 export default function TeacherOverview({
@@ -40,7 +52,8 @@ export default function TeacherOverview({
     courseProgress,
     aggregateProgress,
     teacherName,
-    onTabChange
+    onTabChange,
+    quizStats
 }: TeacherOverviewProps) {
     const router = useRouter();
 
@@ -112,12 +125,24 @@ export default function TeacherOverview({
                 </div>
             </motion.div>
 
+            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
+                <div className={styles.metricHeader}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                        <CheckCircle size={20} />
+                    </div>
+                </div>
+                <div className={styles.metricBody}>
+                    <h4>{quizStats.activeQuizzes} / {quizStats.totalQuizzes}</h4>
+                    <p>Published Quizzes</p>
+                </div>
+            </motion.div>
+
             {/* 3. Quick Actions */}
             <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={item}>
                 <div className={styles.cardHeader}>
                     <h3>Quick Management</h3>
                 </div>
-                <div className={styles.actionGrid}>
+                <div className={styles.actionGrid} style={{ gridTemplateColumns: '1fr' }}>
                     <button onClick={() => onTabChange("library")} className={styles.actionBtn}>
                         <div className={styles.actionIcon}><Video size={18} /></div>
                         <div className={styles.actionInfo}>
@@ -130,6 +155,13 @@ export default function TeacherOverview({
                         <div className={styles.actionInfo}>
                             <strong>Course Manager</strong>
                             <span>Curriculum & pricing</span>
+                        </div>
+                    </button>
+                    <button onClick={() => router.push("/teacher/dashboard/quizzes/create")} className={styles.actionBtn}>
+                        <div className={styles.actionIcon}><Plus size={18} /></div>
+                        <div className={styles.actionInfo}>
+                            <strong>Create New Quiz</strong>
+                            <span>Build interactive tests</span>
                         </div>
                     </button>
                 </div>
@@ -178,6 +210,46 @@ export default function TeacherOverview({
                         View All Programs <ArrowUpRight size={14} />
                     </button>
                 )}
+            </motion.div>
+
+            {/* 5. Recent Quiz Submissions Card */}
+            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={item}>
+                <div className={styles.cardHeader}>
+                    <h3>Recent Quiz Submissions</h3>
+                </div>
+                <div className={styles.activities} style={{ minHeight: '120px' }}>
+                    {quizStats.recentActivity.length > 0 ? (
+                        quizStats.recentActivity.map((activity) => (
+                            <div key={activity.id} className={styles.activityItem} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <strong style={{ fontSize: '0.85rem' }}>{activity.studentName}</strong>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        {activity.quizTitle}
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                    <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: '#10b981' }}>
+                                        {activity.percentageScore.toFixed(1)}%
+                                    </span>
+                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                        {activity.submittedAt ? new Date(activity.submittedAt).toLocaleDateString() : 'Just now'}
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textAlign: 'center', padding: '20px 0' }}>
+                            No student attempts yet.
+                        </p>
+                    )}
+                </div>
+                <button 
+                    className={styles.viewAllBtn} 
+                    style={{ marginTop: 'auto' }}
+                    onClick={() => router.push('/teacher/dashboard/quizzes')}
+                >
+                    Manage Quizzes Hub <ArrowUpRight size={14} />
+                </button>
             </motion.div>
 
 

@@ -1,4 +1,4 @@
-import { pgTable, index, uniqueIndex, foreignKey, text, timestamp, integer, doublePrecision, boolean, varchar, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, index, uniqueIndex, foreignKey, text, timestamp, integer, doublePrecision, boolean, varchar, pgEnum, jsonb } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 export const contactIssueType = pgEnum("ContactIssueType", ['query', 'technical_assistance', 'billing', 'course_access', 'other'])
@@ -7,6 +7,10 @@ export const coursePublishStatus = pgEnum("CoursePublishStatus", ['draft', 'sche
 export const courseReleaseMode = pgEnum("CourseReleaseMode", ['fixed_interval', 'groups_per_week', 'day_of_week', 'explicit_dates', 'instant'])
 export const deviceType = pgEnum("DeviceType", ['desktop', 'mobile'])
 export const userRole = pgEnum("UserRole", ['admin', 'teacher', 'student'])
+export const quizStatus = pgEnum("QuizStatus", ['draft', 'published', 'archived'])
+export const quizPositionType = pgEnum("QuizPositionType", ['best_attempt', 'last_attempt', 'first_attempt'])
+export const questionType = pgEnum("QuestionType", ['mcq', 'true_false'])
+export const attemptStatus = pgEnum("AttemptStatus", ['in_progress', 'submitted', 'auto_submitted', 'abandoned'])
 
 
 export const lessonProgress = pgTable("LessonProgress", {
@@ -369,5 +373,159 @@ export const session = pgTable("Session", {
 			columns: [table.userId],
 			foreignColumns: [user.id],
 			name: "Session_userId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+]);
+
+export const quizCategory = pgTable("QuizCategory", {
+	id: text().primaryKey().notNull(),
+	name: text().notNull(),
+	displayName: text().notNull(),
+	description: text(),
+	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
+}, (table) => [
+	uniqueIndex("QuizCategory_name_key").using("btree", table.name.asc().nullsLast().op("text_ops")),
+]);
+
+export const quiz = pgTable("Quiz", {
+	id: text().primaryKey().notNull(),
+	title: text().notNull(),
+	description: text(),
+	instructions: text(),
+	categoryId: text(),
+	durationMinutes: integer().notNull(),
+	numQuestionsToServe: integer().notNull(),
+	positionType: quizPositionType().default('best_attempt').notNull(),
+	allowMultipleAttempts: boolean().default(false).notNull(),
+	maxAttempts: integer(),
+	allowNegativeMarking: boolean().default(false).notNull(),
+	negativeValue: doublePrecision().default(0.25).notNull(),
+	marksPerCorrect: doublePrecision().default(1).notNull(),
+	startDatetime: timestamp({ precision: 3, mode: 'string' }),
+	endDatetime: timestamp({ precision: 3, mode: 'string' }),
+	status: quizStatus().default('draft').notNull(),
+	shuffleQuestions: boolean().default(true).notNull(),
+	shuffleOptions: boolean().default(true).notNull(),
+	createdBy: text().notNull(),
+	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
+	publishedAt: timestamp({ precision: 3, mode: 'string' }),
+}, (table) => [
+	index("Quiz_categoryId_idx").using("btree", table.categoryId.asc().nullsLast().op("text_ops")),
+	index("Quiz_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	index("Quiz_createdBy_idx").using("btree", table.createdBy.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.categoryId],
+			foreignColumns: [quizCategory.id],
+			name: "Quiz_categoryId_fkey"
+		}).onUpdate("cascade").onDelete("set null"),
+	foreignKey({
+			columns: [table.createdBy],
+			foreignColumns: [user.id],
+			name: "Quiz_createdBy_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+]);
+
+export const question = pgTable("Question", {
+	id: text().primaryKey().notNull(),
+	quizId: text().notNull(),
+	questionText: text().notNull(),
+	questionType: questionType().notNull(),
+	optionA: text().notNull(),
+	optionB: text().notNull(),
+	optionC: text(),
+	optionD: text(),
+	correctOption: text().notNull(),
+	explanation: text(),
+	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
+}, (table) => [
+	index("Question_quizId_idx").using("btree", table.quizId.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.quizId],
+			foreignColumns: [quiz.id],
+			name: "Question_quizId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+]);
+
+export const quizAttempt = pgTable("QuizAttempt", {
+	id: text().primaryKey().notNull(),
+	quizId: text().notNull(),
+	studentId: text().notNull(),
+	startedAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	submittedAt: timestamp({ precision: 3, mode: 'string' }),
+	timeTakenSeconds: integer(),
+	isAutoSubmitted: boolean().default(false).notNull(),
+	totalScore: doublePrecision().default(0).notNull(),
+	correctCount: integer().default(0).notNull(),
+	wrongCount: integer().default(0).notNull(),
+	skippedCount: integer().default(0).notNull(),
+	negativeMarks: doublePrecision().default(0).notNull(),
+	netScore: doublePrecision().default(0).notNull(),
+	percentageScore: doublePrecision().default(0).notNull(),
+	rank: integer(),
+	status: attemptStatus().default('in_progress').notNull(),
+	attemptNumber: integer().default(1).notNull(),
+	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ precision: 3, mode: 'string' }).notNull(),
+}, (table) => [
+	index("QuizAttempt_quizId_idx").using("btree", table.quizId.asc().nullsLast().op("text_ops")),
+	index("QuizAttempt_studentId_idx").using("btree", table.studentId.asc().nullsLast().op("text_ops")),
+	index("QuizAttempt_status_idx").using("btree", table.status.asc().nullsLast().op("enum_ops")),
+	uniqueIndex("QuizAttempt_quizId_studentId_attemptNumber_key").using("btree", table.quizId.asc().nullsLast().op("text_ops"), table.studentId.asc().nullsLast().op("text_ops"), table.attemptNumber.asc().nullsLast().op("int4_ops")),
+	foreignKey({
+			columns: [table.quizId],
+			foreignColumns: [quiz.id],
+			name: "QuizAttempt_quizId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+	foreignKey({
+			columns: [table.studentId],
+			foreignColumns: [user.id],
+			name: "QuizAttempt_studentId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+]);
+
+export const attemptAnswer = pgTable("AttemptAnswer", {
+	id: text().primaryKey().notNull(),
+	attemptId: text().notNull(),
+	questionId: text().notNull(),
+	selectedOption: text(),
+	isCorrect: boolean().default(false).notNull(),
+	createdAt: timestamp({ precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+	index("AttemptAnswer_attemptId_idx").using("btree", table.attemptId.asc().nullsLast().op("text_ops")),
+	index("AttemptAnswer_questionId_idx").using("btree", table.questionId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("AttemptAnswer_attemptId_questionId_key").using("btree", table.attemptId.asc().nullsLast().op("text_ops"), table.questionId.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.attemptId],
+			foreignColumns: [quizAttempt.id],
+			name: "AttemptAnswer_attemptId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+	foreignKey({
+			columns: [table.questionId],
+			foreignColumns: [question.id],
+			name: "AttemptAnswer_questionId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+]);
+
+export const quizQuestionMapping = pgTable("QuizQuestionMapping", {
+	id: text().primaryKey().notNull(),
+	attemptId: text().notNull(),
+	questionId: text().notNull(),
+	displayOrder: integer().notNull(),
+	optionOrder: jsonb().notNull(),
+}, (table) => [
+	index("QuizQuestionMapping_attemptId_idx").using("btree", table.attemptId.asc().nullsLast().op("text_ops")),
+	index("QuizQuestionMapping_questionId_idx").using("btree", table.questionId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("QuizQuestionMapping_attemptId_questionId_key").using("btree", table.attemptId.asc().nullsLast().op("text_ops"), table.questionId.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.attemptId],
+			foreignColumns: [quizAttempt.id],
+			name: "QuizQuestionMapping_attemptId_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+	foreignKey({
+			columns: [table.questionId],
+			foreignColumns: [question.id],
+			name: "QuizQuestionMapping_questionId_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);

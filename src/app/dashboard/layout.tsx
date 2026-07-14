@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import StudentSidebar from "@/components/Student/StudentSidebar";
 import StudentHeader from "@/components/Student/StudentHeader";
@@ -25,7 +25,13 @@ function StudentDashboardLayoutContent({
         }
     }, []);
 
-    const activeTab = (searchParams.get("tab") as any) || "overview";
+    const pathname = usePathname();
+    const activeTab = (() => {
+        const tab = searchParams.get("tab");
+        if (tab) return tab;
+        if (pathname?.includes("/quizzes")) return "quizzes";
+        return "overview";
+    })();
 
     useEffect(() => {
         if (!loading && !user) {

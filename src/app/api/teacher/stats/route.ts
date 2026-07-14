@@ -115,6 +115,38 @@ export async function GET(request: NextRequest) {
       aggregateProgress = Math.round(totalProgressSum / totalEnrollments);
     }
 
+    // Quiz Statistics
+    const allQuizzes = await db.query.quiz.findMany({
+      columns: { id: true, status: true },
+    });
+    const totalQuizzes = allQuizzes.length;
+    const activeQuizzes = allQuizzes.filter(q => q.status === 'published').length;
+
+    const recentAttempts = await db.query.quizAttempt.findMany({
+      where: (qa, { and, or, eq }) => or(eq(qa.status, 'submitted'), eq(qa.status, 'auto_submitted')),
+      with: {
+        quiz: { columns: { title: true } },
+        student: { columns: { fullName: true } }
+      },
+      orderBy: (qa, { desc }) => [desc(qa.submittedAt)],
+      limit: 5,
+    });
+
+    const recentQuizActivity = recentAttempts.map(ra => ({
+      id: ra.id,
+      quizTitle: ra.quiz?.title || 'Unknown Quiz',
+      studentName: ra.student?.fullName || 'Unknown Student',
+      netScore: ra.netScore,
+      percentageScore: ra.percentageScore,
+      submittedAt: ra.submittedAt,
+    }));
+
+    const quizStats = {
+      totalQuizzes,
+      activeQuizzes,
+      recentActivity: recentQuizActivity,
+    };
+
     return NextResponse.json({
       totalCourses: courses.length,
       totalStudents,
@@ -122,6 +154,7 @@ export async function GET(request: NextRequest) {
       totalLessonsCompleted,
       courseProgress: courseStats,
       aggregateProgress,
+      quizStats,
     });
   } catch (error: any) {
     console.error('[TEACHER_STATS_ERROR]', error);
