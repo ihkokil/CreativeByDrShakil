@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { course as courseSchema, user as userSchema, order as orderSchema } from '@/db/schema';
-import { eq, or, and, sql } from 'drizzle-orm';
+import { eq, or, and, sql, asc, desc, inArray } from 'drizzle-orm';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { requireTeacherPayload } from '@/lib/route-auth';
@@ -29,9 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify course belongs to this teacher
-    const course = await db.query.course.findFirst({
-      where: (c, { eq, and }) => and(eq(c.id, courseId), eq(c.teacherId, payload.sub)),
-    });
+    const [course] = await db.select().from(courseSchema).where(and(eq(courseSchema.id, courseId), eq(courseSchema.teacherId, payload.sub))).limit(1);
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found or unauthorized.' }, { status: 404 });
@@ -47,9 +45,7 @@ export async function POST(request: NextRequest) {
 
       const normalizedEmail = String(email).trim().toLowerCase();
 
-      const existingUser = await db.query.user.findFirst({
-        where: (u, { eq, or }) => phone ? or(eq(u.email, normalizedEmail), eq(u.phone, phone)) : eq(u.email, normalizedEmail),
-      });
+      const [existingUser] = await db.select().from(userSchema).where(phone ? or(eq(userSchema.email, normalizedEmail), eq(userSchema.phone, phone)) : eq(userSchema.email, normalizedEmail)).limit(1);
 
       if (existingUser) {
         return NextResponse.json({ error: 'A user with this email or phone already exists.' }, { status: 409 });
@@ -113,18 +109,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Student ID is required for existing students.' }, { status: 400 });
       }
 
-      student = await db.query.user.findFirst({
-        where: (u, { eq, and }) => and(eq(u.id, studentId), eq(u.role, 'student')),
-      });
+      const [foundStudent] = await db.select().from(userSchema).where(and(eq(userSchema.id, studentId), eq(userSchema.role, 'student'))).limit(1);
+      student = foundStudent;
 
       if (!student) {
         return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
       }
     }
 
-    const existingOrder = await db.query.order.findFirst({
-      where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.courseId, courseId)),
-    });
+    const [existingOrder] = await db.select().from(orderSchema).where(and(eq(orderSchema.userId, student.id), eq(orderSchema.courseId, courseId))).limit(1);
 
     if (existingOrder?.status === 'approved') {
       return NextResponse.json({ error: 'Student is already enrolled in this course.' }, { status: 409 });
@@ -136,10 +129,13 @@ export async function POST(request: NextRequest) {
           status: 'approved',
           totalAmount: 0,
       }).where(eq(orderSchema.id, existingOrder.id));
-      order = await db.query.order.findFirst({
-        where: (o, { eq }) => eq(o.id, existingOrder.id),
-        with: { course: true, user: true },
-      });
+      let existingOrderFull = await db.select().from(orderSchema).where(eq(orderSchema.id, existingOrder.id)).limit(1).then(r => r[0] || null);
+      let orderCourse = null, orderUser = null;
+      if (existingOrderFull) {
+        [orderCourse] = existingOrderFull.courseId ? await db.select().from(courseSchema).where(eq(courseSchema.id, existingOrderFull.courseId)).limit(1) : [null];
+        [orderUser] = existingOrderFull.userId ? await db.select().from(userSchema).where(eq(userSchema.id, existingOrderFull.userId)).limit(1) : [null];
+      }
+      order = existingOrderFull ? { ...existingOrderFull, course: orderCourse, user: orderUser } : null;
     } else {
       const newOrderId = crypto.randomUUID();
       await db.insert(orderSchema).values({
@@ -149,10 +145,13 @@ export async function POST(request: NextRequest) {
           status: 'approved',
           totalAmount: 0,
       });
-      order = await db.query.order.findFirst({
-        where: (o, { eq }) => eq(o.id, newOrderId),
-        with: { course: true, user: true },
-      });
+      let newOrderFull = await db.select().from(orderSchema).where(eq(orderSchema.id, newOrderId)).limit(1).then(r => r[0] || null);
+      let newOrderCourse = null, newOrderUser = null;
+      if (newOrderFull) {
+        [newOrderCourse] = newOrderFull.courseId ? await db.select().from(courseSchema).where(eq(courseSchema.id, newOrderFull.courseId)).limit(1) : [null];
+        [newOrderUser] = newOrderFull.userId ? await db.select().from(userSchema).where(eq(userSchema.id, newOrderFull.userId)).limit(1) : [null];
+      }
+      order = newOrderFull ? { ...newOrderFull, course: newOrderCourse, user: newOrderUser } : null;
     }
 
     return NextResponse.json({
@@ -188,32 +187,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const enrollments = await db.query.order.findMany({
-      where: (o, { eq }) => eq(o.status, 'approved'),
-      with: {
-        user: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-            phone: true,
-          },
-        },
-        course: {
-          columns: {
-            id: true,
-            title: true,
-            slug: true,
-            teacherId: true,
-          },
-        },
-      },
-      orderBy: (o, { desc }) => [desc(o.createdAt)],
-      limit: 100,
-    });
+    const enrollmentsData = await db.select().from(orderSchema).where(eq(orderSchema.status, 'approved')).orderBy(desc(orderSchema.createdAt)).limit(100);
 
-    // Filter to only include enrollments for courses this teacher owns or manages (if needed, but platform seems to give full access)
-    // Actually, teacher has full view of students usually, but we'll just filter by teacherId if they are not admin.
+    const orderUserIds = [...new Set(enrollmentsData.map(o => o.userId).filter(Boolean))];
+    const orderCourseIds = [...new Set(enrollmentsData.map(o => o.courseId).filter(Boolean))];
+    const [users, courses] = await Promise.all([
+      orderUserIds.length > 0 ? db.select({ id: userSchema.id, fullName: userSchema.fullName, email: userSchema.email, phone: userSchema.phone }).from(userSchema).where(inArray(userSchema.id, orderUserIds)) : Promise.resolve([]),
+      orderCourseIds.length > 0 ? db.select({ id: courseSchema.id, title: courseSchema.title, slug: courseSchema.slug, teacherId: courseSchema.teacherId }).from(courseSchema).where(inArray(courseSchema.id, orderCourseIds)) : Promise.resolve([]),
+    ]);
+    const usersMap = new Map(users.map(u => [u.id, u]));
+    const coursesMap = new Map(courses.map(c => [c.id, c]));
+    const enrollments = enrollmentsData.map(o => ({ ...o, user: usersMap.get(o.userId) || null, course: coursesMap.get(o.courseId) || null }));
+
+    // Filter to only include enrollments for courses this teacher owns or manages
     let teacherEnrollments = enrollments;
     if (payload.role !== 'admin') {
        teacherEnrollments = enrollments.filter(e => e.course?.teacherId === payload.sub);
@@ -248,16 +234,18 @@ export async function DELETE(request: NextRequest) {
     }
 
     // A teacher might only be allowed to delete enrollments for their own course
-    const existingOrder = await db.query.order.findFirst({
-        where: (o, { eq }) => eq(o.id, orderId),
-        with: { course: true }
-    });
+    const [existingOrder] = await db.select().from(orderSchema).where(eq(orderSchema.id, orderId)).limit(1);
+    let existingOrderCourse = null;
+    if (existingOrder) {
+      [existingOrderCourse] = existingOrder.courseId ? await db.select().from(courseSchema).where(eq(courseSchema.id, existingOrder.courseId)).limit(1) : [null];
+    }
+    const existingOrderWithCourse = existingOrder ? { ...existingOrder, course: existingOrderCourse } : null;
     
-    if (!existingOrder) {
+    if (!existingOrderWithCourse) {
         return NextResponse.json({ error: 'Enrollment not found.' }, { status: 404 });
     }
     
-    if (payload.role !== 'admin' && existingOrder.course?.teacherId !== payload.sub) {
+    if (payload.role !== 'admin' && existingOrderWithCourse.course?.teacherId !== payload.sub) {
         return NextResponse.json({ error: 'Forbidden: You do not own this course.' }, { status: 403 });
     }
 

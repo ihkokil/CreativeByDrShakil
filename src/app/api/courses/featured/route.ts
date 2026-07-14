@@ -15,13 +15,19 @@ const formatPrice = (price: number) => {
 export async function GET() {
   try {
     const results = await db.select({
-      course: courseSchema,
-      teacher: {
-        id: userSchema.id,
-        fullName: userSchema.fullName,
-        designation: userSchema.designation,
-        profileImage: userSchema.profileImage,
-      }
+      id: courseSchema.id,
+      slug: courseSchema.slug,
+      title: courseSchema.title,
+      price: courseSchema.price,
+      duration: courseSchema.duration,
+      courseStartDate: courseSchema.courseStartDate,
+      imageUrl: courseSchema.imageUrl,
+      isFeatured: courseSchema.isFeatured,
+      instructor: courseSchema.instructor,
+      teacherId: userSchema.id,
+      teacherFullName: userSchema.fullName,
+      teacherDesignation: userSchema.designation,
+      teacherProfileImage: userSchema.profileImage,
     })
     .from(courseSchema)
     .leftJoin(userSchema, eq(courseSchema.teacherId, userSchema.id))
@@ -42,24 +48,22 @@ export async function GET() {
       });
     }
 
-    const { course, teacher } = match;
-
     return NextResponse.json({
       course: {
-        id: course.id,
-        slug: course.slug,
-        title: course.title,
-        price: formatPrice(course.price),
-        priceValue: course.price,
-        duration: course.duration,
-        courseStartDate: course.courseStartDate,
-        image: course.imageUrl,
-        isFeatured: course.isFeatured,
+        id: match.id,
+        slug: match.slug,
+        title: match.title,
+        price: formatPrice(match.price),
+        priceValue: match.price,
+        duration: match.duration,
+        courseStartDate: match.courseStartDate,
+        image: match.imageUrl,
+        isFeatured: match.isFeatured,
         mainInstructor: {
-          id: course.teacher?.id || `teacher-${course.id}`,
-          name: course.teacher?.fullName || course.instructor,
-          role: course.teacher?.designation || 'Course Instructor',
-          image: course.teacher?.profileImage || '/placeholder-square.svg',
+          id: match.teacherId || `teacher-${match.id}`,
+          name: match.teacherFullName || match.instructor,
+          role: match.teacherDesignation || 'Course Instructor',
+          image: match.teacherProfileImage || '/placeholder-square.svg',
         },
       },
     }, {
@@ -70,4 +74,4 @@ export async function GET() {
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
-}
+}

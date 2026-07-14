@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { db } from '@/lib/db';
-import { course as courseSchema, studentModuleAvailability as smaSchema, order as orderSchema } from '@/db/schema';
-import { eq, inArray, and, gte, desc } from 'drizzle-orm';
+import { course as courseSchema, courseInstructor as courseInstructorSchema, lessonProgress as lessonProgressSchema, studentModuleAvailability as smaSchema, order as orderSchema, user as userSchema } from '@/db/schema';
+import { eq, inArray, and, gte, desc, asc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -57,12 +57,7 @@ import { sql } from 'drizzle-orm';
 
 const getTeacherCourses = async (teacherId: string, role: string) => {
   const [rawCourses, orderCountsData] = await Promise.all([
-    db.query.course.findMany({
-      orderBy: (c, { desc }) => [desc(c.updatedAt)],
-      with: {
-        instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
-      },
-    }),
+    db.select().from(courseSchema).orderBy(desc(courseSchema.updatedAt)),
     db.select({
       courseId: orderSchema.courseId,
       count: sql<number>`count(${orderSchema.id})`.mapWith(Number)
@@ -72,10 +67,22 @@ const getTeacherCourses = async (teacherId: string, role: string) => {
     .groupBy(orderSchema.courseId)
   ]);
 
+  const courseIds = rawCourses.map(c => c.id);
+  const instructors = courseIds.length > 0
+    ? await db.select().from(courseInstructorSchema).where(inArray(courseInstructorSchema.courseId, courseIds)).orderBy(asc(courseInstructorSchema.sortOrder))
+    : [];
+  const instructorsMap = new Map<string, typeof instructors[number][]>();
+  for (const inst of instructors) {
+    const list = instructorsMap.get(inst.courseId) || [];
+    list.push(inst);
+    instructorsMap.set(inst.courseId, list);
+  }
+
   const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row.count]));
 
   return rawCourses.map(c => ({
     ...c,
+    instructors: instructorsMap.get(c.id) || [],
     _count: { orders: orderCountMap.get(c.id) || 0 },
   })) as unknown as TeacherCourseSummary[];
 };
@@ -131,25 +138,22 @@ export async function GET(request: NextRequest) {
       curriculumJson: any;
     }
 
-    const selectedCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, selectedCourseId),
-      columns: {
-        id: true,
-        title: true,
-        slug: true,
-        status: true,
-        duration: true,
-        imageUrl: true,
-        releaseMode: true,
-        releaseStartAt: true,
-        releaseIntervalDays: true,
-        releaseGroupsPerWeek: true,
-        releaseDaysOfWeek: true,
-        releaseGroupDates: true,
-        curriculumJson: true,
-        courseStartDate: true,
-      },
-    }) as CourseResult | undefined;
+    const [selectedCourse] = await db.select({
+      id: courseSchema.id,
+      title: courseSchema.title,
+      slug: courseSchema.slug,
+      status: courseSchema.status,
+      duration: courseSchema.duration,
+      imageUrl: courseSchema.imageUrl,
+      releaseMode: courseSchema.releaseMode,
+      releaseStartAt: courseSchema.releaseStartAt,
+      releaseIntervalDays: courseSchema.releaseIntervalDays,
+      releaseGroupsPerWeek: courseSchema.releaseGroupsPerWeek,
+      releaseDaysOfWeek: courseSchema.releaseDaysOfWeek,
+      releaseGroupDates: courseSchema.releaseGroupDates,
+      curriculumJson: courseSchema.curriculumJson,
+      courseStartDate: courseSchema.courseStartDate,
+    }).from(courseSchema).where(eq(courseSchema.id, selectedCourseId)).limit(1) as (CourseResult | undefined)[];
 
     if (!selectedCourse) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -158,36 +162,25 @@ export async function GET(request: NextRequest) {
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    const enrollments = await db.query.order.findMany({
-      where: (o, { eq, and, gte }) => and(
-        eq(o.courseId, selectedCourse.id),
-        eq(o.status, 'approved'),
-        gte(o.updatedAt, oneYearAgo.toISOString())
-      ),
-      orderBy: (o, { desc }) => [desc(o.updatedAt)],
-      with: {
-        user: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-            profileImage: true,
-          },
-        },
-      },
-    });
+    const enrollmentsData = await db.select().from(orderSchema).where(
+      and(eq(orderSchema.courseId, selectedCourse.id), eq(orderSchema.status, 'approved'), gte(orderSchema.updatedAt, oneYearAgo.toISOString()))
+    ).orderBy(desc(orderSchema.updatedAt));
 
-    const userIds = enrollments.map((enrollment) => enrollment.user.id);
+    const orderUserIds = [...new Set(enrollmentsData.map(o => o.userId).filter(Boolean))];
+    const users = orderUserIds.length > 0
+      ? await db.select({ id: userSchema.id, fullName: userSchema.fullName, email: userSchema.email, profileImage: userSchema.profileImage }).from(userSchema).where(inArray(userSchema.id, orderUserIds))
+      : [];
+    const usersMap = new Map(users.map(u => [u.id, u]));
+    const enrollments = enrollmentsData.map(o => ({ ...o, user: usersMap.get(o.userId)! }));
+
+    const userIds = enrollmentsData.map(o => o.userId);
     let progressRows: ProgressRow[] = [];
     let overrideRows: OverrideRow[] = [];
 
     // Safely query LessonProgress if it exists
     if (userIds.length > 0) {
       try {
-        const lpResult = await db.query.lessonProgress.findMany({
-          where: (lp, { eq, inArray, and }) => and(eq(lp.courseId, selectedCourse.id), inArray(lp.userId, userIds)),
-          columns: { userId: true, lessonNodeId: true }
-        });
+        const lpResult = await db.select({ userId: lessonProgressSchema.userId, lessonNodeId: lessonProgressSchema.lessonNodeId }).from(lessonProgressSchema).where(and(eq(lessonProgressSchema.courseId, selectedCourse.id), inArray(lessonProgressSchema.userId, userIds)));
         progressRows = lpResult;
       } catch (err) {
         console.warn('LessonProgress query failed', err);
@@ -196,10 +189,7 @@ export async function GET(request: NextRequest) {
 
       // Safely query StudentModuleAvailability if it exists
       try {
-        const smaResult = await db.query.studentModuleAvailability.findMany({
-          where: (sma, { eq, inArray, and }) => and(eq(sma.courseId, selectedCourse.id), inArray(sma.userId, userIds)),
-          columns: { userId: true, lessonNodeId: true, availabilityMode: true, availableAt: true }
-        });
+        const smaResult = await db.select({ userId: smaSchema.userId, lessonNodeId: smaSchema.lessonNodeId, availabilityMode: smaSchema.availabilityMode, availableAt: smaSchema.availableAt }).from(smaSchema).where(and(eq(smaSchema.courseId, selectedCourse.id), inArray(smaSchema.userId, userIds)));
         overrideRows = smaResult as OverrideRow[];
       } catch (err) {
         console.warn('StudentModuleAvailability query failed', err);
@@ -312,10 +302,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId, and lessonNodeId are required.' }, { status: 400 });
     }
 
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      columns: { id: true },
-    });
+    const [course] = await db.select({ id: courseSchema.id }).from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });

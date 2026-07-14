@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { formatLastUpdated } from '@/lib/date-format';
+import { course as courseSchema, user as userSchema, courseInstructor as courseInstructorSchema, order as orderSchema } from '@/db/schema';
+import { eq, and, asc, count } from 'drizzle-orm';
 
 const formatPrice = (price: number) => {
   if (price <= 0) return 'Free';
@@ -17,39 +19,19 @@ export async function GET(
   const { slug } = await params;
   try {
 
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.slug, slug),
-      with: {
-        teacher: {
-          columns: {
-            id: true,
-            fullName: true,
-            designation: true,
-            profileImage: true,
-          },
-        },
-        instructors: {
-          orderBy: (i, { asc }) => [asc(i.sortOrder)],
-          columns: {
-            id: true,
-            name: true,
-            designation: true,
-            imageUrl: true,
-            sortOrder: true,
-          },
-        },
-        orders: {
-          where: (o, { eq }) => eq(o.status, 'approved'),
-          columns: {
-            id: true,
-          },
-        },
-      },
-    });
+    const [course] = await db.select().from(courseSchema).where(eq(courseSchema.slug, slug)).limit(1);
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
+
+    const [teacher, instructors, enrolledResult] = await Promise.all([
+      course.teacherId
+        ? db.select({ id: userSchema.id, fullName: userSchema.fullName, designation: userSchema.designation, profileImage: userSchema.profileImage }).from(userSchema).where(eq(userSchema.id, course.teacherId)).limit(1).then(r => r[0] || null)
+        : Promise.resolve(null),
+      db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, course.id)).orderBy(asc(courseInstructorSchema.sortOrder)),
+      db.select({ count: count() }).from(orderSchema).where(and(eq(orderSchema.courseId, course.id), eq(orderSchema.status, 'approved'))).then(r => r[0]?.count || 0),
+    ]);
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);
     const curriculum = await populateMediaVaultNodes(rawCurriculum);
@@ -71,14 +53,14 @@ export async function GET(
         image: course.imageUrl || '/placeholder.svg',
         status: course.status,
         lastUpdated: formatLastUpdated(course.updatedAt),
-        enrolledCount: course.orders.length,
+        enrolledCount: enrolledResult,
         publishedAt: course.publishedAt,
-        instructors: course.instructors,
+        instructors: instructors,
         mainInstructor: {
-          id: course.teacher?.id || `teacher-${course.id}`,
-          name: course.teacher?.fullName || course.instructor,
-          role: course.teacher?.designation || 'Course Instructor',
-          image: course.teacher?.profileImage || '/placeholder-square.svg',
+          id: teacher?.id || `teacher-${course.id}`,
+          name: teacher?.fullName || course.instructor,
+          role: teacher?.designation || 'Course Instructor',
+          image: teacher?.profileImage || '/placeholder-square.svg',
         },
       },
       curriculum: curriculum,

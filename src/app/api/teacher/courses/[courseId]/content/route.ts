@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { course as courseSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 interface InstructorData {
@@ -26,10 +26,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const instructors = Array.isArray(body.instructors) ? body.instructors : [];
 
     // Verify course exists and belongs to teacher
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      columns: { teacherId: true },
-    });
+    const [course] = await db.select({ teacherId: courseSchema.teacherId }).from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -66,10 +63,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         learningOutcomes,
       }).where(eq(courseSchema.id, courseId));
 
-    const updatedCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
-    });
+    const [updatedCourseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
+    const updatedCourseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId)).orderBy(asc(courseInstructorSchema.sortOrder));
+    const updatedCourse = { ...updatedCourseRow, instructors: updatedCourseInstructors };
 
     return NextResponse.json({ course: updatedCourse }, { status: 200 });
   } catch (error: any) {

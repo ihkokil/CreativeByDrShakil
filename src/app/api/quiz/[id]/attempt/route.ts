@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { quiz, question, quizAttempt, attemptAnswer, quizQuestionMapping, user } from '@/db/schema';
-import { eq, and, sql, count } from 'drizzle-orm';
+import { eq, and, sql, count, inArray } from 'drizzle-orm';
 import { getAuthPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import { shuffleArray } from '@/lib/shuffle';
@@ -20,10 +20,12 @@ export async function POST(
     
     const studentId = payload.sub;
     
-    const quizData = await db.query.quiz.findFirst({
-      where: eq(quiz.id, quizId),
-      with: { questions: true },
-    });
+    const [rawQuiz] = await db.select().from(quiz).where(eq(quiz.id, quizId)).limit(1);
+    let quizQuestions: (typeof question.$inferSelect)[] = [];
+    if (rawQuiz) {
+      quizQuestions = await db.select().from(question).where(eq(question.quizId, quizId));
+    }
+    const quizData = rawQuiz ? { ...rawQuiz, questions: quizQuestions } : null;
     
     if (!quizData) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
@@ -51,10 +53,11 @@ export async function POST(
     });
     
     if (existingAttempt) {
-      const mappings = await db.query.quizQuestionMapping.findMany({
-        where: eq(quizQuestionMapping.attemptId, existingAttempt.id),
-        with: { question: true },
-      });
+      const mappings = await db.select().from(quizQuestionMapping).where(eq(quizQuestionMapping.attemptId, existingAttempt.id));
+      const questionIds = mappings.map(m => m.questionId);
+      const mappingQuestions = questionIds.length > 0 ? await db.select().from(question).where(inArray(question.id, questionIds)) : [];
+      const questionMap = new Map(mappingQuestions.map(q => [q.id, q]));
+      const mappingsWithQuestions = mappings.map(m => ({ ...m, question: questionMap.get(m.questionId)! }));
       
       const answers = await db.query.attemptAnswer.findMany({
         where: eq(attemptAnswer.attemptId, existingAttempt.id),
@@ -64,7 +67,7 @@ export async function POST(
       
       return NextResponse.json({
         attempt: existingAttempt,
-        questions: mappings.map(m => ({
+        questions: mappingsWithQuestions.map(m => ({
           ...m.question,
           displayOrder: m.displayOrder,
           optionOrder: m.optionOrder,

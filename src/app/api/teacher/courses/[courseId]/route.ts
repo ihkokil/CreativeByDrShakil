@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { course as courseSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { course as courseSchema, courseInstructor as courseInstructorSchema, order as orderSchema } from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -21,7 +21,7 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
 
   while (true) {
 
-    const found = await db.query.course.findFirst({ where: (c, { eq }) => eq(c.slug, slug), columns: { id: true } });
+    const [found] = await db.select({ id: courseSchema.id }).from(courseSchema).where(eq(courseSchema.slug, slug)).limit(1);
     if (!found || found.id === currentCourseId) {
       return slug;
     }
@@ -32,7 +32,8 @@ const buildUniqueSlug = async (title: string, currentCourseId: string) => {
 };
 
 const getCourseForPayload = async (courseId: string, userId: string, role: string) => {
-  return db.query.course.findFirst({ where: (c, { eq }) => eq(c.id, courseId) });
+  const [course] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
+  return course;
 };
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -43,16 +44,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { courseId } = await params;
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: {
-        instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
-      },
-    });
+    const [courseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
 
-    if (!course) {
+    if (!courseRow) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
+
+    const instructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId)).orderBy(asc(courseInstructorSchema.sortOrder));
+    const course = { ...courseRow, instructors };
 
     // Teachers and Admins can see/manage all courses
 
@@ -185,9 +184,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       .set(updateData)
       .where(eq(courseSchema.id, existingCourse.id));
 
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, existingCourse.id),
-    });
+    const [course] = await db.select().from(courseSchema).where(eq(courseSchema.id, existingCourse.id)).limit(1);
 
     return NextResponse.json({ course });
   } catch (error: any) {
@@ -210,7 +207,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // Published courses or courses with orders cannot be deleted
-    const orders = await db.query.order.findMany({ where: (o, { eq }) => eq(o.courseId, existingCourse.id), columns: { id: true } });
+    const orders = await db.select({ id: orderSchema.id }).from(orderSchema).where(eq(orderSchema.courseId, existingCourse.id));
     const orderCount = orders.length;
     if (existingCourse.status === 'published' || orderCount > 0) {
       return NextResponse.json(

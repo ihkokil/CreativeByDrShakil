@@ -18,10 +18,12 @@ export async function POST(
     
     const studentId = payload.sub;
     
-    const attempt = await db.query.quizAttempt.findFirst({
-      where: and(eq(quizAttempt.id, attemptId), eq(quizAttempt.studentId, studentId)),
-      with: { quiz: true },
-    });
+    const [attemptRow] = await db.select().from(quizAttempt).where(and(eq(quizAttempt.id, attemptId), eq(quizAttempt.studentId, studentId))).limit(1);
+    let attemptQuiz = null;
+    if (attemptRow) {
+      [attemptQuiz] = await db.select().from(quiz).where(eq(quiz.id, attemptRow.quizId)).limit(1);
+    }
+    const attempt = attemptRow ? { ...attemptRow, quiz: attemptQuiz! } : null;
     
     if (!attempt) {
       return NextResponse.json({ error: 'Attempt not found.' }, { status: 404 });

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { course as courseSchema, user as userSchema, order as orderSchema } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { course as courseSchema, courseInstructor as courseInstructorSchema, user as userSchema, order as orderSchema } from '@/db/schema';
+import { eq, sql, asc, desc, inArray } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, slugify } from '@/lib/teacher-course-builder';
 import { parseDisplayDateToIso } from '@/lib/date-format';
@@ -12,7 +12,7 @@ const buildUniqueSlug = async (title: string) => {
   let slug = base;
   let counter = 2;
 
-  while (await db.query.course.findFirst({ where: (c, { eq }) => eq(c.slug, slug) })) {
+  while ((await db.select({ id: courseSchema.id }).from(courseSchema).where(eq(courseSchema.slug, slug)).limit(1)).length > 0) {
     slug = `${base}-${counter}`;
     counter += 1;
   }
@@ -42,14 +42,11 @@ export async function GET(request: NextRequest) {
 
     let courses;
     try {
-      const [rawCourses, orderCountsData] = await Promise.all([
-        db.query.course.findMany({
-          where: where.teacherId ? (c, { eq }) => eq(c.teacherId, where.teacherId) : undefined,
-          orderBy: (c, { desc }) => [desc(c.updatedAt)],
-          with: {
-            instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] },
-          },
-        }),
+      const [coursesResult, orderCountsResult] = await Promise.all([
+        (where.teacherId
+          ? db.select().from(courseSchema).where(eq(courseSchema.teacherId, where.teacherId))
+          : db.select().from(courseSchema)
+        ).orderBy(desc(courseSchema.updatedAt)),
         db.select({
           courseId: orderSchema.courseId,
           count: sql<number>`count(${orderSchema.id})`.mapWith(Number)
@@ -59,7 +56,19 @@ export async function GET(request: NextRequest) {
         .groupBy(orderSchema.courseId)
       ]);
 
-      const orderCountMap = new Map(orderCountsData.map(row => [row.courseId as string, row.count]));
+      const courseIds = coursesResult.map(c => c.id);
+      const allInstructors = courseIds.length > 0
+        ? await db.select().from(courseInstructorSchema).where(inArray(courseInstructorSchema.courseId, courseIds)).orderBy(asc(courseInstructorSchema.sortOrder))
+        : [];
+      const instructorsMap = new Map<string, any[]>();
+      for (const inst of allInstructors) {
+        const list = instructorsMap.get(inst.courseId) || [];
+        list.push(inst);
+        instructorsMap.set(inst.courseId, list);
+      }
+      const rawCourses = coursesResult.map(c => ({ ...c, instructors: instructorsMap.get(c.id) || [] }));
+
+      const orderCountMap = new Map(orderCountsResult.map(row => [row.courseId as string, row.count]));
 
       courses = rawCourses.map(c => ({
         ...c,
@@ -106,10 +115,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sale price must be a valid positive number.' }, { status: 400 });
     }
 
-    const teacher = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: { fullName: true },
-    });
+    const [teacher] = await db.select({ fullName: userSchema.fullName }).from(userSchema).where(eq(userSchema.id, payload.sub)).limit(1);
 
     if (!teacher) {
       return NextResponse.json({ error: 'Teacher account not found.' }, { status: 404 });
@@ -137,10 +143,12 @@ export async function POST(request: NextRequest) {
         releaseGroupDates: '{}',
     });
 
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
-    });
+    const [courseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
+    let courseInstructors: any[] = [];
+    if (courseRow) {
+      courseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId)).orderBy(asc(courseInstructorSchema.sortOrder));
+    }
+    const course = { ...courseRow, instructors: courseInstructors };
 
     return NextResponse.json({
       course,

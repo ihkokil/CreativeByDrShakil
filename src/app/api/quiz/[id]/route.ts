@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { quiz, quizCategory, question, quizAttempt, user, attemptAnswer } from '@/db/schema';
+import { quiz, quizCategory, question, quizAttempt, user, attemptAnswer, quizQuestionMapping } from '@/db/schema';
 import { eq, and, or, ilike, sql, inArray, count, desc, asc } from 'drizzle-orm';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
@@ -14,16 +14,18 @@ export async function GET(
     const payload = await getAuthPayload(request);
     const isTeacher = payload && (payload.role === 'teacher' || payload.role === 'admin');
     
-    const quizData = await db.query.quiz.findFirst({
-      where: eq(quiz.id, id),
-      with: {
-        category: true,
-        creator: { columns: { id: true, fullName: true } },
-        questions: {
-          orderBy: (q, { asc }) => [asc(q.createdAt)],
-        },
-      },
-    });
+    const [quizRow] = await db.select().from(quiz).where(eq(quiz.id, id)).limit(1);
+    let quizCategoryData = null;
+    let quizCreatorData = null;
+    let quizQuestionsData: (typeof question.$inferSelect)[] = [];
+    if (quizRow) {
+      if (quizRow.categoryId) {
+        [quizCategoryData] = await db.select().from(quizCategory).where(eq(quizCategory.id, quizRow.categoryId)).limit(1);
+      }
+      [quizCreatorData] = await db.select({ id: user.id, fullName: user.fullName }).from(user).where(eq(user.id, quizRow.createdBy)).limit(1);
+      quizQuestionsData = await db.select().from(question).where(eq(question.quizId, id)).orderBy(question.createdAt);
+    }
+    const quizData = quizRow ? { ...quizRow, category: quizCategoryData || null, creator: quizCreatorData || null, questions: quizQuestionsData } : null;
     
     if (!quizData) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
@@ -47,17 +49,17 @@ export async function GET(
     
     let attempt = null;
     if (payload && payload.role === 'student') {
-      attempt = await db.query.quizAttempt.findFirst({
-        where: and(
-          eq(quizAttempt.quizId, id),
-          eq(quizAttempt.studentId, payload.sub)
-        ),
-        orderBy: (a, { desc }) => [desc(a.startedAt)],
-        with: {
-          answers: true,
-          questionMappings: true,
-        },
-      });
+      const [attemptRow] = await db.select().from(quizAttempt).where(and(
+        eq(quizAttempt.quizId, id),
+        eq(quizAttempt.studentId, payload.sub)
+      )).orderBy(desc(quizAttempt.startedAt)).limit(1);
+      let attemptAnswersData: (typeof attemptAnswer.$inferSelect)[] = [];
+      let attemptMappingsData: (typeof quizQuestionMapping.$inferSelect)[] = [];
+      if (attemptRow) {
+        attemptAnswersData = await db.select().from(attemptAnswer).where(eq(attemptAnswer.attemptId, attemptRow.id));
+        attemptMappingsData = await db.select().from(quizQuestionMapping).where(eq(quizQuestionMapping.attemptId, attemptRow.id));
+      }
+      attempt = attemptRow ? { ...attemptRow, answers: attemptAnswersData, questionMappings: attemptMappingsData } : null;
     }
     
     const questionsWithOptions = quizData.questions.map(q => ({

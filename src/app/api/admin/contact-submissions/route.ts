@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { contactSubmission as csSchema, user as userSchema } from '@/db/schema';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { requireAdmin } from '@/lib/admin-auth';
 
 function normalizeSubmission(submission: any) {
@@ -23,19 +25,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || undefined;
 
-    const submissions = await db.query.contactSubmission.findMany({
-      where: status ? (cs, { eq }) => eq(cs.status, status as any) : undefined,
-      orderBy: (cs, { desc }) => [desc(cs.createdAt)],
-      with: {
-        repliedByAdmin: {
-          columns: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
-    });
+    const submissions = status
+      ? await db.select().from(csSchema).where(eq(csSchema.status, status as any)).orderBy(desc(csSchema.createdAt))
+      : await db.select().from(csSchema).orderBy(desc(csSchema.createdAt));
+
+    const adminIds = [...new Set(submissions.map(s => s.repliedByAdminId).filter(Boolean))] as string[];
+    if (adminIds.length > 0) {
+      const admins = await db.select({ id: userSchema.id, fullName: userSchema.fullName, email: userSchema.email }).from(userSchema).where(inArray(userSchema.id, adminIds));
+      const adminMap = new Map(admins.map(a => [a.id, a]));
+      for (const s of submissions) {
+        (s as any).repliedByAdmin = s.repliedByAdminId ? adminMap.get(s.repliedByAdminId) || null : null;
+      }
+    }
 
     return NextResponse.json({ submissions: submissions.map(normalizeSubmission) });
   } catch (error: any) {

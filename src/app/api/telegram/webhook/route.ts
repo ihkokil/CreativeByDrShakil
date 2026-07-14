@@ -7,7 +7,7 @@ import {
   user as userSchema,
   studentModuleAvailability as smaSchema
 } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { updateTelegramVerificationMessage, compressUuid, decompressUuid } from '@/lib/telegram';
 import { randomUUID } from 'crypto';
 import {
@@ -87,10 +87,11 @@ export async function POST(request: NextRequest) {
       // ── Payment verification ──
       if (prefix === 'payment_verify') {
         const [orderId, action] = value.split(':');
-        const order = await db.query.order.findFirst({
-          where: (o, { eq }) => eq(o.id, orderId),
-          with: { payments: true },
-        });
+        const [order] = await db.select().from(orderSchema).where(eq(orderSchema.id, orderId)).limit(1);
+        let payments: any[] = [];
+        if (order) {
+          payments = await db.select().from(paymentSchema).where(eq(paymentSchema.orderId, orderId));
+        }
 
         if (!order) {
           return NextResponse.json({ ok: true });
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
 
           // neon-http driver does not support transactions — execute sequentially.
           await db.update(orderSchema).set({ status: nextStatus }).where(eq(orderSchema.id, orderId));
-          if (order.payments?.length) {
+          if (payments.length) {
             await db.update(paymentSchema).set({
                 status: nextStatus,
                 approvedAt: action === 'approve' ? new Date().toISOString() : null,
@@ -238,18 +239,21 @@ export async function POST(request: NextRequest) {
         const compressedUserId = value;
         const userId = decompressUuid(compressedUserId);
 
-        const enrolledOrders = await db.query.order.findMany({
-          where: (o, { eq, and }) => and(eq(o.userId, userId), eq(o.status, 'approved')),
-          with: { course: true }
-        });
+        const enrolledOrders = await db.select().from(orderSchema).where(and(eq(orderSchema.userId, userId), eq(orderSchema.status, 'approved')));
+        const enrolledOrderCourseIds = enrolledOrders.map(o => o.courseId);
+        const enrolledOrderCourses = enrolledOrderCourseIds.length > 0
+          ? await db.select().from(courseSchema).where(inArray(courseSchema.id, enrolledOrderCourseIds))
+          : [];
+        const enrolledOrderCourseMap = new Map(enrolledOrderCourses.map(c => [c.id, c]));
+        const enrolledOrdersWithCourse = enrolledOrders.map(o => ({ ...o, course: enrolledOrderCourseMap.get(o.courseId)! }));
 
-        if (enrolledOrders.length === 0) {
+        if (enrolledOrdersWithCourse.length === 0) {
           await sendMsg(callbackChatId, '❌ Student is not enrolled in any courses.');
           return NextResponse.json({ ok: true });
         }
 
         // callback_data: "ac:{compressedUserId}:{courseId}" (max ~54 bytes ✓)
-        const inlineKeyboard = enrolledOrders.map(o => [
+        const inlineKeyboard = enrolledOrdersWithCourse.map(o => [
           { text: o.course.title, callback_data: `ac:${compressedUserId}:${o.courseId}` }
         ]);
 
@@ -646,13 +650,16 @@ export async function POST(request: NextRequest) {
         }
 
         // Fetch enrolled courses
-        const enrollments = await db.query.order.findMany({
-          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
-          with: { course: { columns: { title: true } } }
-        });
+        const enrollments = await db.select({ id: orderSchema.id, courseId: orderSchema.courseId, userId: orderSchema.userId, status: orderSchema.status }).from(orderSchema).where(and(eq(orderSchema.userId, student.id), eq(orderSchema.status, 'approved')));
+        const enrollmentCourseIds = enrollments.map(e => e.courseId);
+        const enrollmentCourses = enrollmentCourseIds.length > 0
+          ? await db.select({ id: courseSchema.id, title: courseSchema.title }).from(courseSchema).where(inArray(courseSchema.id, enrollmentCourseIds))
+          : [];
+        const enrollmentCourseMap = new Map(enrollmentCourses.map(c => [c.id, c]));
+        const enrollmentsWithCourse = enrollments.map(e => ({ ...e, course: enrollmentCourseMap.get(e.courseId)! }));
 
-        const courseList = enrollments.length > 0
-          ? enrollments.map(e => `  • ${e.course.title}`).join('\n')
+        const courseList = enrollmentsWithCourse.length > 0
+          ? enrollmentsWithCourse.map(e => `  • ${e.course.title}`).join('\n')
           : '  <i>None</i>';
 
         const message = [
@@ -664,7 +671,7 @@ export async function POST(request: NextRequest) {
           `<b>Role:</b> ${student.role}`,
           `<b>ID:</b> <code>${student.id}</code>`,
           '',
-          `<b>📚 Enrolled Courses (${enrollments.length}):</b>`,
+          `<b>📚 Enrolled Courses (${enrollmentsWithCourse.length}):</b>`,
           courseList,
           '',
           'Select an action below:'
@@ -742,18 +749,21 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        const enrolledOrders = await db.query.order.findMany({
-          where: (o, { eq, and }) => and(eq(o.userId, student.id), eq(o.status, 'approved')),
-          with: { course: true }
-        });
+        const enrolledOrders = await db.select().from(orderSchema).where(and(eq(orderSchema.userId, student.id), eq(orderSchema.status, 'approved')));
+        const availabilityCourseIds = enrolledOrders.map(o => o.courseId);
+        const availabilityCourses = availabilityCourseIds.length > 0
+          ? await db.select().from(courseSchema).where(inArray(courseSchema.id, availabilityCourseIds))
+          : [];
+        const availabilityCourseMap = new Map(availabilityCourses.map(c => [c.id, c]));
+        const enrolledOrdersWithCourse = enrolledOrders.map(o => ({ ...o, course: availabilityCourseMap.get(o.courseId)! }));
 
-        if (enrolledOrders.length === 0) {
+        if (enrolledOrdersWithCourse.length === 0) {
           await sendMsg(messageChatId, `❌ <b>${student.fullName}</b> is not enrolled in any courses.`);
           return NextResponse.json({ ok: true });
         }
 
         const compressedUserId = compressUuid(student.id);
-        const inlineKeyboard = enrolledOrders.map(o => [
+        const inlineKeyboard = enrolledOrdersWithCourse.map(o => [
           { text: o.course.title, callback_data: `ac:${compressedUserId}:${o.courseId}` }
         ]);
 

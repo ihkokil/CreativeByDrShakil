@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { quiz, quizCategory, question, quizAttempt, user } from '@/db/schema';
-import { eq, desc, asc, and, or, ilike, sql, inArray, count, avg, max, min, sum } from 'drizzle-orm';
+import { eq, desc, asc, and, or, ilike, sql, inArray, count } from 'drizzle-orm';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const payload = await getAuthPayload(request);
     const isTeacher = payload && (payload.role === 'teacher' || payload.role === 'admin');
-    
+
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
@@ -18,11 +18,11 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId') || '';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
-    
+
     const offset = (page - 1) * limit;
-    
+
     let whereConditions = [];
-    
+
     if (!isTeacher) {
       whereConditions.push(eq(quiz.status, 'published'));
       if (searchParams.get('startDatetime')) {
@@ -34,21 +34,21 @@ export async function GET(request: NextRequest) {
     } else if (payload.role === 'teacher') {
       whereConditions.push(eq(quiz.createdBy, payload.sub));
     }
-    
+
     if (search) {
       whereConditions.push(ilike(quiz.title, `%${search}%`));
     }
-    
+
     if (status && isTeacher) {
       whereConditions.push(eq(quiz.status, status as 'draft' | 'published' | 'archived'));
     }
-    
+
     if (categoryId) {
       whereConditions.push(eq(quiz.categoryId, categoryId));
     }
-    
+
     const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
-    
+
     let orderColumn;
     switch (sortBy) {
       case 'title':
@@ -66,28 +66,44 @@ export async function GET(request: NextRequest) {
         break;
     }
     const orderFn = sortOrder === 'asc' ? asc : desc;
-    
-    const dbQuizzes = await db.query.quiz.findMany({
-      where: whereClause,
-      with: {
-        category: true,
-        creator: { columns: { id: true, fullName: true } },
-        questions: { columns: { id: true } },
-      },
-      orderBy: orderFn(orderColumn),
-      limit,
-      offset,
-    });
-    
+
+    const dbQuizzes = await db.select().from(quiz).where(whereClause).orderBy(orderFn(orderColumn)).limit(limit).offset(offset);
+
+    const categoryIds = dbQuizzes.map(q => q.categoryId).filter(Boolean);
+    const creatorIds = dbQuizzes.map(q => q.createdBy);
+    const quizIds = dbQuizzes.map(q => q.id);
+
+    const [categories, creators, questions] = await Promise.all([
+      categoryIds.length > 0
+        ? db.select().from(quizCategory).where(inArray(quizCategory.id, categoryIds as string[]))
+        : [],
+      db.select({ id: user.id, fullName: user.fullName }).from(user).where(inArray(user.id, creatorIds)),
+      quizIds.length > 0
+        ? db.select({ quizId: question.quizId, id: question.id }).from(question).where(inArray(question.quizId, quizIds))
+        : [],
+    ]);
+
+    const categoryMap = new Map(categories.map(c => [c.id, c]));
+    const creatorMap = new Map(creators.map(c => [c.id, c]));
+    const questionsMap = new Map<string, { id: string }[]>();
+    for (const q of questions) {
+      const list = questionsMap.get(q.quizId) || [];
+      list.push({ id: q.id });
+      questionsMap.set(q.quizId, list);
+    }
+
     const quizzes = dbQuizzes.map(q => ({
       ...q,
-      _count: { questions: q.questions.length }
+      category: q.categoryId ? categoryMap.get(q.categoryId) || null : null,
+      creator: creatorMap.get(q.createdBy) || null,
+      questions: questionsMap.get(q.id) || [],
+      _count: { questions: (questionsMap.get(q.id) || []).length }
     }));
-    
+
     let totalCount = 0;
     const countResult = await db.select({ count: count() }).from(quiz).where(whereClause);
     totalCount = countResult[0]?.count || 0;
-    
+
     if (!isTeacher && payload && quizzes.length > 0) {
       const studentId = payload.sub;
       const attemptData = await db.query.quizAttempt.findMany({
@@ -97,7 +113,7 @@ export async function GET(request: NextRequest) {
         ),
         columns: { id: true, quizId: true, status: true, netScore: true, attemptNumber: true, submittedAt: true },
       });
-      
+
       const quizAttemptsMap = new Map<string, any[]>();
       for (const attempt of attemptData) {
         if (!quizAttemptsMap.has(attempt.quizId)) {
@@ -105,25 +121,25 @@ export async function GET(request: NextRequest) {
         }
         quizAttemptsMap.get(attempt.quizId)!.push(attempt);
       }
-      
+
       const quizzesWithStatus = quizzes.map(q => {
         const attempts = quizAttemptsMap.get(q.id) || [];
         const completedAttempts = attempts.filter(a => a.status === 'submitted' || a.status === 'auto_submitted');
         const inProgressAttempt = attempts.find(a => a.status === 'in_progress');
-        
+
         let status = 'Not Attempted';
         if (attempts.length > 0) {
           if (inProgressAttempt) status = 'In Progress';
           else if (completedAttempts.length > 0) status = 'Completed';
         }
-        
+
         const scores = completedAttempts.map(a => Number(a.netScore));
         const topScore = scores.length > 0 ? Math.max(...scores) : null;
         const avgScore = scores.length > 0 ? (scores.reduce((sum, val) => sum + val, 0) / scores.length) : null;
         const firstAttempt = completedAttempts.find(a => a.attemptNumber === 1);
         const firstAttemptScore = firstAttempt ? Number(firstAttempt.netScore) : null;
         const latestAttempt = attempts.length > 0 ? attempts.reduce((prev, curr) => prev.attemptNumber > curr.attemptNumber ? prev : curr) : null;
-        
+
         return {
           ...q,
           status,
@@ -140,13 +156,13 @@ export async function GET(request: NextRequest) {
           } : null,
         };
       });
-      
+
       return NextResponse.json({
         quizzes: quizzesWithStatus,
         pagination: { page, limit, total: totalCount, totalPages: Math.ceil(totalCount / limit) },
       });
     }
-    
+
     return NextResponse.json({
       quizzes,
       pagination: { page, limit, total: totalCount, totalPages: Math.ceil(totalCount / limit) },
@@ -163,7 +179,7 @@ export async function POST(request: NextRequest) {
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
-    
+
     const body = await request.json();
     const {
       title,
@@ -184,21 +200,21 @@ export async function POST(request: NextRequest) {
       shuffleOptions,
       status,
     } = body;
-    
+
     if (!title || !durationMinutes || !numQuestionsToServe) {
       return NextResponse.json({ error: 'Title, duration, and number of questions to serve are required.' }, { status: 400 });
     }
-    
+
     if (categoryId) {
       const category = await db.query.quizCategory.findFirst({ where: eq(quizCategory.id, categoryId) });
       if (!category) {
         return NextResponse.json({ error: 'Invalid category.' }, { status: 400 });
       }
     }
-    
+
     const quizId = nanoid();
     const now = new Date();
-    
+
     const nowStr = now.toISOString();
     const insertValues = {
       id: quizId,
@@ -248,7 +264,7 @@ export async function POST(request: NextRequest) {
 
       await db.insert(question).values(questionsToInsert);
     }
-    
+
     return NextResponse.json({ quiz: newQuiz }, { status: 201 });
   } catch (error: any) {
     console.error('POST /api/quiz error:', error);

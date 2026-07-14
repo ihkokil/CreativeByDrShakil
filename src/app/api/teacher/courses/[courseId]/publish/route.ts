@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { course as courseSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { course as courseSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
+import { eq, asc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
@@ -16,10 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const status = body.status || 'published';
 
     // Verify course exists and belongs to teacher
-    const course = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      columns: { teacherId: true, title: true },
-    });
+    const [course] = await db.select({ teacherId: courseSchema.teacherId, title: courseSchema.title }).from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -30,14 +27,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Validate course has required fields
-    const fullCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: { instructors: true },
-    });
+    const [fullCourseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
 
-    if (!fullCourse) {
+    if (!fullCourseRow) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
+
+    const fullCourseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId));
+    const fullCourse = { ...fullCourseRow, instructors: fullCourseInstructors };
 
     const missingFields = [];
     if (!fullCourse.title) missingFields.push('title');
@@ -65,10 +62,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       })
       .where(eq(courseSchema.id, courseId));
 
-    const publishedCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
-    });
+    const [publishedCourseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
+    const publishedCourseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId)).orderBy(asc(courseInstructorSchema.sortOrder));
+    const publishedCourse = { ...publishedCourseRow, instructors: publishedCourseInstructors };
 
     return NextResponse.json({ course: publishedCourse }, { status: 200 });
   } catch (error: any) {

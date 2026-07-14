@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { course as courseSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { slugify } from '@/lib/teacher-course-builder';
 
@@ -10,7 +10,7 @@ const buildUniqueSlug = async (title: string) => {
   let slug = base;
   let counter = 2;
 
-  while (await db.query.course.findFirst({ where: (c, { eq }) => eq(c.slug, slug) })) {
+  while ((await db.select({ id: courseSchema.id }).from(courseSchema).where(eq(courseSchema.slug, slug)).limit(1)).length > 0) {
     slug = `${base}-${counter}`;
     counter += 1;
   }
@@ -28,14 +28,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { courseId } = await params;
     
     // Find the original course
-    const originalCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, courseId),
-      with: { instructors: true },
-    });
+    const [originalCourseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
 
-    if (!originalCourse) {
+    if (!originalCourseRow) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
+
+    const originalCourseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId));
+    const originalCourse = { ...originalCourseRow, instructors: originalCourseInstructors };
 
     // Authorization check
     if (payload.role !== 'admin' && originalCourse.teacherId !== payload.sub) {
@@ -87,10 +87,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ));
     }
     
-    const finalCourse = await db.query.course.findFirst({
-      where: (c, { eq }) => eq(c.id, newCourseId),
-      with: { instructors: { orderBy: (i, { asc }) => [asc(i.sortOrder)] } },
-    });
+    const [finalCourseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, newCourseId)).limit(1);
+    const finalCourseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, newCourseId)).orderBy(asc(courseInstructorSchema.sortOrder));
+    const finalCourse = { ...finalCourseRow, instructors: finalCourseInstructors };
 
     return NextResponse.json({ course: finalCourse });
   } catch (error: any) {
