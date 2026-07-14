@@ -10,7 +10,12 @@ const uri = process.env.MYSQL_DATABASE_URL!;
 // across requests causes 'RefcountedFulfiller' errors because sockets 
 // are bound to the request context that instantiated them.
 // We detect if we're running in production (Cloudflare) to create connections per-query.
-const isCloudflare = process.env.NODE_ENV === 'production';
+const isCloudflareEdge = !!(
+  process.env.CF_PAGES ||
+  process.env.NEXT_RUNTIME === 'edge' ||
+  process.env.CLOUDFLARE
+);
+const isCloudflare = isCloudflareEdge || process.env.FORCE_SINGLE_CONNECTION === 'true';
 
 let poolConnection: any;
 
