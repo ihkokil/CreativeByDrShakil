@@ -115,3 +115,81 @@
     text-decoration: underline;
 }
 
+.strengthContainer {
+    margin-top: 8px;
+    padding: 0 5px;
+}
+
+.strengthMeter {
+    height: 4px;
+    background: var(--surface-soft);
+    border-radius: 2px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.strengthFill {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.strengthText {
+    font-size: 0.75rem;
+    margin-top: 5px;
+    text-align: right;
+    font-weight: 500;
+}
+
+.otpContainer {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.otpInput {
+    width: 50px;
+    height: 54px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-align: center;
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--foreground);
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.otpInput:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--surface-strong);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+.resendContainer {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.resendBtn {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+}
+
+.resendBtn:hover {
+    text-decoration: underline;
+}
+
+.resendBtn:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    text-decoration: none;
+}
