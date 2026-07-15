@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { db } from '@/lib/db';
-import { emailOtp } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { parseDbDate } from '@/lib/date-format';
 
 const verifyOtpSchema = z.object({
@@ -31,11 +29,17 @@ export async function POST(request: NextRequest) {
 
     const { email, otp } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
+    const supabase = getSupabase();
 
-    const otpRecord = await db.query.emailOtp.findFirst({
-      where: (e, { eq }) => eq(e.email, normalizedEmail),
-      orderBy: (e, { desc }) => [desc(e.createdAt)],
-    });
+    const { data: otpRecord, error: otpError } = await supabase
+      .from('EmailOtp')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .order('createdAt', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (otpError) throw otpError;
 
     if (!otpRecord) {
       return NextResponse.json({ error: 'No verification code found for this email.' }, { status: 400 });
@@ -52,7 +56,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark as verified so registration API can check it
-    await db.update(emailOtp).set({ verified: true }).where(eq(emailOtp.id, otpRecord.id));
+    const { error: updateError } = await supabase
+      .from('EmailOtp')
+      .update({ verified: true })
+      .eq('id', otpRecord.id);
+
+    if (updateError) throw updateError;
 
     return NextResponse.json({ verified: true, message: 'Email verified successfully.' });
   } catch (error: any) {

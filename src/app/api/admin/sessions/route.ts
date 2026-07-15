@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
-import { user as userSchema, deviceSession as deviceSessionSchema, sessionLockSettings as sessionLockSettingsSchema } from '@/db/schema';
-import { eq, asc, desc, inArray } from 'drizzle-orm';
 import {
   resolveAutoLockSetting,
   setAutoLockSetting,
   getGlobalAutoLockSetting,
-  setGlobalAutoLockSetting,
 } from '@/lib/session-manager';
 
 /**
@@ -23,30 +20,42 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
+
     // Get all students
-    const studentsData = await db.select({ id: userSchema.id, fullName: userSchema.fullName, email: userSchema.email }).from(userSchema).where(eq(userSchema.role, 'student'));
+    const { data: studentsData, error: studentsError } = await supabaseAdmin
+      .from('User')
+      .select('id, fullName, email')
+      .eq('role', 'student');
 
-    const studentIds = studentsData.map(s => s.id);
-    const [deviceSessions, lockSettings] = await Promise.all([
-      studentIds.length > 0
-        ? db.select({
-            id: deviceSessionSchema.id,
-            userId: deviceSessionSchema.userId,
-            deviceType: deviceSessionSchema.deviceType,
-            browserName: deviceSessionSchema.browserName,
-            ipAddress: deviceSessionSchema.ipAddress,
-            isLocked: deviceSessionSchema.isLocked,
-            loggedOutAt: deviceSessionSchema.loggedOutAt,
-            createdAt: deviceSessionSchema.createdAt,
-            lastActivityAt: deviceSessionSchema.lastActivityAt,
-          }).from(deviceSessionSchema).where(inArray(deviceSessionSchema.userId, studentIds)).orderBy(desc(deviceSessionSchema.createdAt))
-        : Promise.resolve([]),
-      studentIds.length > 0
-        ? db.select({ userId: sessionLockSettingsSchema.userId, autoLockFirstBrowser: sessionLockSettingsSchema.autoLockFirstBrowser }).from(sessionLockSettingsSchema).where(inArray(sessionLockSettingsSchema.userId, studentIds))
-        : Promise.resolve([]),
-    ]);
+    if (studentsError) throw studentsError;
 
-    const sessionsMap = new Map<string, typeof deviceSessions[number][]>();
+    const studentIds = (studentsData || []).map(s => s.id);
+    
+    let deviceSessions: any[] = [];
+    let lockSettings: any[] = [];
+
+    if (studentIds.length > 0) {
+      const [sessionsRes, settingsRes] = await Promise.all([
+        supabaseAdmin
+          .from('DeviceSession')
+          .select('id, userId, deviceType, browserName, ipAddress, isLocked, loggedOutAt, createdAt, lastActivityAt')
+          .in('userId', studentIds)
+          .order('createdAt', { ascending: false }),
+        supabaseAdmin
+          .from('SessionLockSettings')
+          .select('userId, autoLockFirstBrowser')
+          .in('userId', studentIds)
+      ]);
+
+      if (sessionsRes.error) throw sessionsRes.error;
+      if (settingsRes.error) throw settingsRes.error;
+
+      deviceSessions = sessionsRes.data || [];
+      lockSettings = settingsRes.data || [];
+    }
+
+    const sessionsMap = new Map<string, any[]>();
     for (const ds of deviceSessions) {
       const list = sessionsMap.get(ds.userId) || [];
       list.push(ds);
@@ -54,7 +63,7 @@ export async function GET() {
     }
     const lockSettingsMap = new Map(lockSettings.map(ls => [ls.userId, ls]));
 
-    const students = studentsData.map(s => ({
+    const students = (studentsData || []).map(s => ({
       ...s,
       deviceSessions: sessionsMap.get(s.id) || [],
       sessionLockSettings: lockSettingsMap.get(s.id) || null,

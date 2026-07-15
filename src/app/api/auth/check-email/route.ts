@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { db } from '@/lib/db';
-import { sql } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,10 +17,17 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Use Drizzle execute to bypass schema building overhead while utilizing the pool
-    const [rows]: any = await db.execute(sql`SELECT id FROM User WHERE email = ${normalizedEmail} LIMIT 1`);
+    const supabase = getSupabase();
+    const { data: userRecord, error } = await supabase
+      .from('User')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .limit(1)
+      .maybeSingle();
 
-    return NextResponse.json({ exists: rows && rows.length > 0 });
+    if (error) throw error;
+
+    return NextResponse.json({ exists: !!userRecord });
   } catch (error: any) {
     console.error('[Check Email Error]', error?.message || error);
     return NextResponse.json(

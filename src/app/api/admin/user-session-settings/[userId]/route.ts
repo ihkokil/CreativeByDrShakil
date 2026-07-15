@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 import { getAutoLockSetting, setAutoLockSetting } from '@/lib/session-manager';
-import { db } from '@/lib/db';
-import { user } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getSupabaseAdmin } from '@/lib/db';
 
 /**
  * GET /api/admin/user-session-settings/[userId]
@@ -25,10 +23,17 @@ export async function GET(
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
+
     // Verify user exists
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, userId),
-    });
+    const { data: userRecord, error: userError } = await supabaseAdmin
+      .from('User')
+      .select('*')
+      .eq('id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!userRecord) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -70,10 +75,17 @@ export async function PUT(
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
+    const supabaseAdmin = getSupabaseAdmin();
+
     // Verify user exists
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, userId),
-    });
+    const { data: userRecord, error: userError } = await supabaseAdmin
+      .from('User')
+      .select('*')
+      .eq('id', userId)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!userRecord) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -90,9 +102,12 @@ export async function PUT(
       if (typeof isSessionLockedExempt !== 'boolean') {
         return NextResponse.json({ error: 'isSessionLockedExempt must be a boolean' }, { status: 400 });
       }
-      await db.update(user)
-        .set({ isSessionLockedExempt })
-        .where(eq(user.id, userId));
+      const { error: updateError } = await supabaseAdmin
+        .from('User')
+        .update({ isSessionLockedExempt })
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
     }
 
     return NextResponse.json({

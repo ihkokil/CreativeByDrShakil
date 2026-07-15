@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import crypto from "crypto";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { db } from "@/lib/db";
-import { emailOtp } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getSupabase } from "@/lib/db";
 import { sendForgotPasswordOtpEmail } from "@/lib/auth-emails";
 import { isPhoneNumber } from "@/lib/login-validator";
 
@@ -35,7 +33,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
 
-    const user = await db.query.user.findFirst({ where: (u, { eq }) => eq(u.email, normalizedEmail) });
+    const supabase = getSupabase();
+    
+    // Find the user record
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!user) {
       return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
@@ -47,15 +55,24 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
 
     // Delete any old OTPs for this email to clean up
-    await db.delete(emailOtp).where(eq(emailOtp.email, normalizedEmail));
+    const { error: deleteError } = await supabase
+      .from('EmailOtp')
+      .delete()
+      .eq('email', normalizedEmail);
 
-    // Store in DB
-    await db.insert(emailOtp).values({
-      id: crypto.randomUUID(),
-      email: normalizedEmail,
-      otpHash,
-      expiresAt: expiresAt.toISOString(),
-    });
+    if (deleteError) throw deleteError;
+
+    // Store new OTP in DB
+    const { error: insertError } = await supabase
+      .from('EmailOtp')
+      .insert({
+        id: crypto.randomUUID(),
+        email: normalizedEmail,
+        otpHash,
+        expiresAt: expiresAt.toISOString(),
+      });
+
+    if (insertError) throw insertError;
 
     // Send the email
     await sendForgotPasswordOtpEmail({

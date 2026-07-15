@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { user as userSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
@@ -113,10 +111,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/?auth=login&error=NoEmail`);
     }
 
+    const supabase = getSupabase();
+
     // Step 3: Find or create user in database
-    let user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.email, googleUser.email),
-    });
+    let { data: user, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('email', googleUser.email)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!user) {
       // Create new user
@@ -127,20 +132,30 @@ export async function GET(request: NextRequest) {
         fullName: googleUser.name || 'Google User',
         emailVerified: true,
         profileImage: googleUser.picture || null,
-        role: 'student' as const,
+        role: 'student' as 'admin' | 'teacher' | 'student',
       };
 
-      await db.insert(userSchema).values(insertValues);
+      const { error: insertError } = await supabase.from('User').insert(insertValues);
+      if (insertError) throw insertError;
 
-      user = await db.query.user.findFirst({
-        where: (u, { eq }) => eq(u.id, userId),
-      });
+      const { data: newUser, error: fetchError } = await supabase
+        .from('User')
+        .select('*')
+        .eq('id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      user = newUser;
     } else {
       // Update profile image from Google if not already set
       if (!user.profileImage && googleUser.picture) {
-        await db.update(userSchema)
-          .set({ profileImage: googleUser.picture })
-          .where(eq(userSchema.id, user.id));
+        const { error: updateError } = await supabase
+          .from('User')
+          .update({ profileImage: googleUser.picture })
+          .eq('id', user.id);
+
+        if (updateError) throw updateError;
       }
     }
 
@@ -156,7 +171,7 @@ export async function GET(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || '';
     const ipAddress = extractClientIp(request.headers);
 
-    // Retrieve custom device headers (with fallbacks for backward compatibility)
+    // Retrieve custom device headers
     const headerHash = request.headers.get('x-device-hash');
     const headerLabel = request.headers.get('x-device-label');
     const headerOS = request.headers.get('x-device-os');
@@ -176,7 +191,7 @@ export async function GET(request: NextRequest) {
     const { getGlobalSessionSettings, getActiveSessionsForUser, terminateSession, lockSession } = await import('@/lib/session-manager');
     const globalSettings = await getGlobalSessionSettings();
 
-    // Enforce allowed device type restrictions (students only — admins/teachers are exempt)
+    // Enforce allowed device type restrictions (students only)
     const isPrivilegedRole = user.role === 'admin' || user.role === 'teacher';
     if (!isPrivilegedRole) {
       if (deviceType === 'desktop' && !globalSettings.allowDesktop) {
@@ -191,14 +206,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Look for a custom device name previously saved for this device/browser hash
-    const existingSessionWithLabel = await db.query.deviceSession.findFirst({
-      where: (ds, { eq, and, isNotNull }) => and(
-        eq(ds.userId, user.id),
-        eq(ds.deviceHash, deviceHash),
-        isNotNull(ds.deviceLabel)
-      ),
-      orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-    });
+    const { data: existingSessionWithLabel, error: labelError } = await supabase
+      .from('DeviceSession')
+      .select('*')
+      .eq('userId', user.id)
+      .eq('deviceHash', deviceHash)
+      .not('deviceLabel', 'is', null)
+      .order('createdAt', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (labelError) throw labelError;
+
     const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
 
     // Check for existing active sessions

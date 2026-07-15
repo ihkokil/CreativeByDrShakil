@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { db } from '@/lib/db';
-import { emailOtp } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { sendOtpEmail } from '@/lib/auth-emails';
 import { isPhoneNumber } from '@/lib/login-validator';
 
@@ -37,13 +35,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
 
+    const supabase = getSupabase();
+
     // Check if user already exists
-    const userExists = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.email, normalizedEmail),
-      columns: {
-        id: true,
-      },
-    });
+    const { data: userExists, error: userError } = await supabase
+      .from('User')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (userExists) {
       return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 409 });
@@ -55,15 +57,24 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiry
 
     // Delete any old OTPs for this email to clean up
-    await db.delete(emailOtp).where(eq(emailOtp.email, normalizedEmail));
+    const { error: deleteError } = await supabase
+      .from('EmailOtp')
+      .delete()
+      .eq('email', normalizedEmail);
+
+    if (deleteError) throw deleteError;
 
     // Store in DB
-    await db.insert(emailOtp).values({
-      id: crypto.randomUUID(),
-      email: normalizedEmail,
-      otpHash,
-      expiresAt: expiresAt.toISOString(),
-    });
+    const { error: insertError } = await supabase
+      .from('EmailOtp')
+      .insert({
+        id: crypto.randomUUID(),
+        email: normalizedEmail,
+        otpHash,
+        expiresAt: expiresAt.toISOString(),
+      });
+
+    if (insertError) throw insertError;
 
     // Send the email
     await sendOtpEmail({

@@ -1,44 +1,21 @@
-import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
-  try {
-    const config = await db.query.paymentConfig.findFirst({
-      where: (p, { eq }) => eq(p.id, 'default'),
-      columns: {
-        provider: true,
-        sendMoneyNumber: true,
-        qrCodeUrl: true,
-      },
-    })
+export async function GET(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
+}
 
-    if (!config) {
-      return NextResponse.json({
-        provider: 'bkash',
-        sendMoneyNumber: '01700000000',
-        qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
-      }, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
-        },
-      })
-    }
+export async function POST(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
+}
 
-    return NextResponse.json(config, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
-      },
-    })
-  } catch (error) {
-    console.error('Failed to fetch payment configuration:', error);
-    return NextResponse.json({
-      provider: 'bkash',
-      sendMoneyNumber: '01700000000',
-      qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
-    }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
-      },
-    })
-  }
+export async function PUT(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
+}
+
+export async function DELETE(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
 }

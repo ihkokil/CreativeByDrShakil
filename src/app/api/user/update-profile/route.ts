@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { user as userSchema } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function POST(request: NextRequest) {
@@ -21,27 +19,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Full name is required.' }, { status: 400 });
     }
 
-    await db.update(userSchema)
-      .set({
+    const supabase = getSupabase();
+
+    const { error: updateError } = await supabase
+      .from('User')
+      .update({
         fullName,
         phone: phone || null,
         bmdcNumber: bmdcNumber || null,
         profileImage: profileImage || null,
       })
-      .where(eq(userSchema.id, payload.sub));
+      .eq('id', payload.sub);
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: {
-        id: true,
-        email: true,
-        phone: true,
-        role: true,
-        fullName: true,
-        bmdcNumber: true,
-        profileImage: true,
-      }
-    });
+    if (updateError) throw updateError;
+
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('id, email, phone, role, fullName, bmdcNumber, profileImage')
+      .eq('id', payload.sub)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });

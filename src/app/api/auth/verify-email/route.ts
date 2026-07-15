@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { user as userSchema } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getSupabase } from "@/lib/db";
 import { hashToken } from "@/lib/token-utils";
 
 export async function GET(request: NextRequest) {
@@ -13,25 +11,32 @@ export async function GET(request: NextRequest) {
     }
 
     const tokenHash = await hashToken(token);
+    const supabase = getSupabase();
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq, and, gt }) => and(
-        eq(u.emailVerificationTokenHash, tokenHash),
-        gt(u.emailVerificationExpires, new Date().toISOString())
-      ),
-    });
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('emailVerificationTokenHash', tokenHash)
+      .gt('emailVerificationExpires', new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!user) {
       return NextResponse.json({ error: "Verification link is invalid or expired." }, { status: 400 });
     }
 
-    await db.update(userSchema)
-      .set({
+    const { error: updateError } = await supabase
+      .from('User')
+      .update({
         emailVerified: true,
         emailVerificationTokenHash: null,
         emailVerificationExpires: null,
       })
-      .where(eq(userSchema.id, user.id));
+      .eq('id', user.id);
+
+    if (updateError) throw updateError;
 
     return NextResponse.json({ success: true, message: "Email verified successfully." });
   } catch (error: any) {

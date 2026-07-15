@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
-import { db } from '@/lib/db';
-import { deviceSession } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getSupabaseAdmin } from '@/lib/db';
 
 /**
  * PUT /api/admin/sessions/[sessionId]/rename
@@ -30,9 +28,13 @@ export async function PUT(
       return NextResponse.json({ error: 'deviceLabel is required and must be a string' }, { status: 400 });
     }
 
-    await db.update(deviceSession)
-      .set({ deviceLabel })
-      .where(eq(deviceSession.id, sessionId));
+    const supabaseAdmin = getSupabaseAdmin();
+    const { error: updateError } = await supabaseAdmin
+      .from('DeviceSession')
+      .update({ deviceLabel })
+      .eq('id', sessionId);
+
+    if (updateError) throw updateError;
 
     return NextResponse.json({
       success: true,

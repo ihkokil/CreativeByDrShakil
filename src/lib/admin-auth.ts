@@ -51,11 +51,16 @@ export async function requirePaymentManager(request: NextRequest) {
 
   if (payload.role === 'teacher') {
     // Check database to see if the teacher has the canManagePayments flag
-    const { db } = await import('@/lib/db');
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-      columns: { canManagePayments: true }
-    });
+    const { getSupabase } = await import('@/lib/db');
+    const supabase = getSupabase();
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('canManagePayments')
+      .eq('id', payload.sub)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (user?.canManagePayments) {
       return { ok: true as const, payload };

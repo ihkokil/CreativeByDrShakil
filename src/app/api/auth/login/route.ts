@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { db } from '@/lib/db';
-import { user } from '@/db/schema';
-import { eq, or, sql } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
   createDeviceSession,
-  getActiveSessionsByDeviceType,
-  terminateActiveSessionsByDeviceType,
   getAutoLockSetting,
   getFirstDeviceForCategory,
 } from '@/lib/session-manager';
@@ -32,11 +28,17 @@ export async function POST(request: NextRequest) {
     }
 
     const { identifier, password } = parsed.data;
+    const supabase = getSupabase();
 
-    // Query user record using Drizzle builder
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq, or }) => or(eq(u.email, identifier), eq(u.phone, identifier)),
-    });
+    // Query user record by email or phone in database
+    const { data: userRecord, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .or(`email.eq.${identifier},phone.eq.${identifier}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!userRecord) {
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 401 });
@@ -66,7 +68,14 @@ export async function POST(request: NextRequest) {
     if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
       const { hash } = await import('bcryptjs');
       const newHash = await hash(password, 12);
-      await db.update(user).set({ passwordHash: newHash }).where(eq(user.id, userRecord.id));
+      
+      const { error: updateError } = await supabase
+        .from('User')
+        .update({ passwordHash: newHash })
+        .eq('id', userRecord.id);
+
+      if (updateError) throw updateError;
+      
       userRecord.passwordHash = newHash;
     }
 
@@ -123,14 +132,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Look for a custom device name previously saved for this device/browser hash
-    const existingSessionWithLabel = await db.query.deviceSession.findFirst({
-      where: (ds, { eq, and, isNotNull }) => and(
-        eq(ds.userId, userRecord.id),
-        eq(ds.deviceHash, deviceHash),
-        isNotNull(ds.deviceLabel)
-      ),
-      orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-    });
+    const { data: existingSessionWithLabel, error: labelError } = await supabase
+      .from('DeviceSession')
+      .select('*')
+      .eq('userId', userRecord.id)
+      .eq('deviceHash', deviceHash)
+      .not('deviceLabel', 'is', null)
+      .order('createdAt', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (labelError) throw labelError;
+
     const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
 
     // Check for existing active sessions

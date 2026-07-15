@@ -1,76 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { course as courseSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
-import { eq, asc } from 'drizzle-orm';
-import { requireTeacherPayload } from '@/lib/route-auth';
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
-  try {
-    const payload = await requireTeacherPayload(request);
-    if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-    }
+export async function GET(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
+}
 
-    const { courseId } = await params;
-    const body = await request.json();
-    const status = body.status || 'published';
+export async function POST(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
+}
 
-    // Verify course exists and belongs to teacher
-    const [course] = await db.select({ teacherId: courseSchema.teacherId, title: courseSchema.title }).from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
+export async function PUT(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
+}
 
-    if (!course) {
-      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
-    }
-
-    if (payload.role !== 'admin' && course.teacherId !== payload.sub) {
-      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
-    }
-
-    // Validate course has required fields
-    const [fullCourseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
-
-    if (!fullCourseRow) {
-      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
-    }
-
-    const fullCourseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId));
-    const fullCourse = { ...fullCourseRow, instructors: fullCourseInstructors };
-
-    const missingFields = [];
-    if (!fullCourse.title) missingFields.push('title');
-    if (fullCourse.price === undefined || fullCourse.price === null) missingFields.push('price');
-    if (!fullCourse.duration) missingFields.push('duration');
-    // imageUrl is now optional
-    if (!fullCourse.overview) missingFields.push('overview');
-    if (fullCourse.instructors.length === 0) missingFields.push('instructors');
-
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        {
-          error: `Cannot publish course. Missing fields: ${missingFields.join(', ')}`,
-          missingFields,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Update course status
-    await db.update(courseSchema)
-      .set({
-        status,
-        publishedAt: status === 'published' ? new Date().toISOString() : null,
-      })
-      .where(eq(courseSchema.id, courseId));
-
-    const [publishedCourseRow] = await db.select().from(courseSchema).where(eq(courseSchema.id, courseId)).limit(1);
-    const publishedCourseInstructors = await db.select().from(courseInstructorSchema).where(eq(courseInstructorSchema.courseId, courseId)).orderBy(asc(courseInstructorSchema.sortOrder));
-    const publishedCourse = { ...publishedCourseRow, instructors: publishedCourseInstructors };
-
-    return NextResponse.json({ course: publishedCourse }, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || 'Internal server error.' },
-      { status: 500 }
-    );
-  }
+export async function DELETE(request: NextRequest) {
+  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
+  throw new Error('Route not yet migrated to Supabase');
 }

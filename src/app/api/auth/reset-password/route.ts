@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { db } from "@/lib/db";
-import { user as userSchema, emailOtp } from "@/db/schema";
-import { eq, and, gt, sql } from "drizzle-orm";
+import { getSupabase } from "@/lib/db";
 import { signAuthToken, AUTH_COOKIE_NAME } from "@/lib/auth-server";
 import { parseUserAgent, extractClientIp } from "@/lib/device-detection";
 import { createDeviceSession } from "@/lib/session-manager";
@@ -27,24 +25,33 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
+    const supabase = getSupabase();
 
     // Check if the user exists
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.email, normalizedEmail),
-    });
+    const { data: userRecord, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!userRecord) {
       return NextResponse.json({ error: "No account found with this email address." }, { status: 400 });
     }
 
     // Verify they completed OTP verification first
-    const otpRecord = await db.query.emailOtp.findFirst({
-      where: (e, { eq, and, gt }) => and(
-        eq(e.email, normalizedEmail),
-        eq(e.verified, true),
-        gt(e.expiresAt, new Date().toISOString())
-      ),
-    });
+    const { data: otpRecord, error: otpError } = await supabase
+      .from('EmailOtp')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .eq('verified', true)
+      .gt('expiresAt', new Date().toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (otpError) throw otpError;
 
     if (!otpRecord) {
       return NextResponse.json({ error: "OTP has not been verified or has expired. Please try again." }, { status: 400 });
@@ -53,16 +60,25 @@ export async function POST(request: NextRequest) {
     // Update password
     const { hash } = await import('bcryptjs');
     const hashedPassword = await hash(String(password), 12);
-    await db.update(userSchema)
-      .set({
+    
+    const { error: updateError } = await supabase
+      .from('User')
+      .update({
         passwordHash: hashedPassword,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
       })
-      .where(eq(userSchema.id, userRecord.id));
+      .eq('id', userRecord.id);
+
+    if (updateError) throw updateError;
 
     // Delete the verified OTP record to clean up and prevent reuse
-    await db.delete(emailOtp).where(eq(emailOtp.id, otpRecord.id));
+    const { error: deleteError } = await supabase
+      .from('EmailOtp')
+      .delete()
+      .eq('id', otpRecord.id);
+
+    if (deleteError) throw deleteError;
 
     // Auto-login logic
     const userAgent = request.headers.get("user-agent") || "";
@@ -84,14 +100,18 @@ export async function POST(request: NextRequest) {
     const deviceInfo = parseUserAgent(userAgent);
 
     // Retrieve or set custom label
-    const existingSessionWithLabel = await db.query.deviceSession.findFirst({
-      where: (ds, { eq, and, isNotNull }) => and(
-        eq(ds.userId, userRecord.id),
-        eq(ds.deviceHash, deviceHash),
-        isNotNull(ds.deviceLabel)
-      ),
-      orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-    });
+    const { data: existingSessionWithLabel, error: labelError } = await supabase
+      .from('DeviceSession')
+      .select('*')
+      .eq('userId', userRecord.id)
+      .eq('deviceHash', deviceHash)
+      .not('deviceLabel', 'is', null)
+      .order('createdAt', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (labelError) throw labelError;
+
     const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
 
     // Create device session

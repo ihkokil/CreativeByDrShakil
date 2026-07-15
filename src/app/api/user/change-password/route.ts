@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { user as userSchema } from '@/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth';
-
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,10 +25,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New password must be different from current password.' }, { status: 400 });
     }
 
+    const supabase = getSupabase();
+
     // Query user and check current password hash
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-    });
+    const { data: user, error: userError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('id', payload.sub)
+      .limit(1)
+      .maybeSingle();
+
+    if (userError) throw userError;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -53,11 +57,17 @@ export async function POST(request: NextRequest) {
 
     // Hash and update to the new password in DB
     const newHash = await hash(newPassword, 12);
-    await db.update(userSchema).set({
+    
+    const { error: updateError } = await supabase
+      .from('User')
+      .update({
         passwordHash: newHash,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
-      }).where(eq(userSchema.id, user.id));
+      })
+      .eq('id', user.id);
+
+    if (updateError) throw updateError;
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

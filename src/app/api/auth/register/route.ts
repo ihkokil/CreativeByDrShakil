@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { db } from '@/lib/db';
-import { user as userSchema, emailOtp } from '@/db/schema';
-import { eq, or, and, gt, sql } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendVerificationEmail } from '@/lib/auth-emails';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import { createDeviceSession } from '@/lib/session-manager';
 import { sendTelegramRegistrationNotification } from '@/lib/telegram';
-
+import crypto from 'crypto';
 
 const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -42,10 +40,17 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = String(email).trim().toLowerCase();
+    const supabase = getSupabase();
 
-    const existingUser = await db.query.user.findFirst({
-      where: (u, { eq, or }) => or(eq(u.email, normalizedEmail), phone ? eq(u.phone, phone) : undefined),
-    });
+    // Query existing user
+    const { data: existingUser, error: existError } = await supabase
+      .from('User')
+      .select('*')
+      .or(`email.eq.${normalizedEmail}${phone ? `,phone.eq.${phone}` : ''}`)
+      .limit(1)
+      .maybeSingle();
+
+    if (existError) throw existError;
 
     if (existingUser) {
       return NextResponse.json({ error: 'User already exists with this email or phone.' }, { status: 409 });
@@ -57,13 +62,16 @@ export async function POST(request: NextRequest) {
     let token = '';
 
     if (otpVerified) {
-      const otpRecord = await db.query.emailOtp.findFirst({
-        where: (e, { eq, and, gt }) => and(
-          eq(e.email, normalizedEmail),
-          eq(e.verified, true),
-          gt(e.expiresAt, new Date().toISOString())
-        ),
-      });
+      const { data: otpRecord, error: otpError } = await supabase
+        .from('EmailOtp')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .eq('verified', true)
+        .gt('expiresAt', new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
+
+      if (otpError) throw otpError;
 
       if (!otpRecord) {
         return NextResponse.json(
@@ -83,7 +91,6 @@ export async function POST(request: NextRequest) {
     const { hash } = await import('bcryptjs');
     const generatedId = crypto.randomUUID();
     const hashedPassword = await hash(password, 12);
-    const nowStr = new Date().toISOString();
 
     const insertValues = {
       id: generatedId,
@@ -92,17 +99,23 @@ export async function POST(request: NextRequest) {
       fullName,
       phone: phone || null,
       bmdcNumber: bmdc || null,
-      role: 'student' as const,
+      role: 'student' as 'admin' | 'teacher' | 'student',
       emailVerified,
       emailVerificationTokenHash: tokenHash,
       emailVerificationExpires: verifyExpiry?.toISOString() || null,
     };
 
-    await db.insert(userSchema).values(insertValues);
+    const { error: insertError } = await supabase.from('User').insert(insertValues);
+    if (insertError) throw insertError;
 
-    const user = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, generatedId),
-    });
+    const { data: user, error: userFetchError } = await supabase
+      .from('User')
+      .select('*')
+      .eq('id', generatedId)
+      .limit(1)
+      .maybeSingle();
+
+    if (userFetchError) throw userFetchError;
 
     if (!user) {
       return NextResponse.json({ error: 'Failed to create user.' }, { status: 500 });
@@ -119,13 +132,18 @@ export async function POST(request: NextRequest) {
 
     if (otpVerified) {
       // Clean up OTP record if verified via OTP
-      await db.delete(emailOtp).where(eq(emailOtp.email, normalizedEmail));
+      const { error: deleteError } = await supabase
+        .from('EmailOtp')
+        .delete()
+        .eq('email', normalizedEmail);
+
+      if (deleteError) throw deleteError;
 
       // Log the user in immediately
       const userAgent = request.headers.get('user-agent') || '';
       const ipAddress = extractClientIp(request.headers);
 
-      // Retrieve custom device headers (with fallbacks for backward compatibility)
+      // Retrieve custom device headers
       const headerHash = request.headers.get('x-device-hash');
       const headerLabel = request.headers.get('x-device-label');
       const headerOS = request.headers.get('x-device-os');
