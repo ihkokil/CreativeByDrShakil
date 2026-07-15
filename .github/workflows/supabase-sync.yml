@@ -1,0 +1,88 @@
+name: Nightly Supabase DB Synchronization
+
+on:
+  schedule:
+    # 22:00 UTC = 04:00 AM GMT+6 (Bangladesh Standard Time)
+    - cron: '0 22 * * *'
+  workflow_dispatch: # Allows manual trigger for testing
+
+jobs:
+  sync-databases:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL Client Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Run DB Sync Script
+        env:
+          # Direct PostgreSQL connection URLs for standard DB sync (e.g., postgres://...)
+          SUPABASE_DB_URL_1: ${{ secrets.SUPABASE_DB_URL_1 }}
+          SUPABASE_DB_URL_2: ${{ secrets.SUPABASE_DB_URL_2 }}
+          SUPABASE_DB_URL_3: ${{ secrets.SUPABASE_DB_URL_3 }}
+          SUPABASE_DB_URL_4: ${{ secrets.SUPABASE_DB_URL_4 }}
+          SUPABASE_DB_URL_5: ${{ secrets.SUPABASE_DB_URL_5 }}
+        run: |
+          # Helper function to convert pooler URLs (6543) to direct connection URLs (5432)
+          to_direct_url() {
+            node -e "
+              try {
+                const url = new URL(process.argv[1]);
+                if (url.port === '6543' && url.username.startsWith('postgres.')) {
+                  const ref = url.username.substring(9);
+                  url.username = 'postgres';
+                  url.host = 'db.' + ref + '.supabase.co';
+                  url.port = '5432';
+                }
+                console.log(url.toString());
+              } catch(e) {
+                console.log(process.argv[1]);
+              }
+            " "$1"
+          }
+
+          # 1. Calculate the active database for the day that just ended (using offset of 10 min ago).
+          DAY=$(date -d "10 minutes ago" +%d)
+          REM=$((10#$DAY % 5))
+          
+          if [ $REM -eq 1 ]; then SOURCE_URL=$SUPABASE_DB_URL_1; SOURCE_INDEX=1; fi
+          if [ $REM -eq 2 ]; then SOURCE_URL=$SUPABASE_DB_URL_2; SOURCE_INDEX=2; fi
+          if [ $REM -eq 3 ]; then SOURCE_URL=$SUPABASE_DB_URL_3; SOURCE_INDEX=3; fi
+          if [ $REM -eq 4 ]; then SOURCE_URL=$SUPABASE_DB_URL_4; SOURCE_INDEX=4; fi
+          if [ $REM -eq 0 ]; then SOURCE_URL=$SUPABASE_DB_URL_5; SOURCE_INDEX=5; fi
+          
+          echo "Sync Source: DB$SOURCE_INDEX"
+          
+          if [ -z "$SOURCE_URL" ]; then
+            echo "Error: Source URL for DB$SOURCE_INDEX is empty or not configured."
+            exit 1
+          fi
+          
+          SOURCE_URL=$(to_direct_url "$SOURCE_URL")
+          
+          # 2. Dump the public schema from the source database
+          # Includes cleaning statements to reset tables on targets before restore
+          pg_dump --clean --if-exists --no-owner --no-privileges --schema=public --dbname="$SOURCE_URL" -F c -f db_backup.dump
+          
+          # 3. Restore to target databases
+          for i in {1..5}
+          do
+            if [ $i -ne $SOURCE_INDEX ]; then
+              echo "Synchronizing Target DB$i..."
+              TARGET_VAR="SUPABASE_DB_URL_$i"
+              TARGET_URL="${!TARGET_VAR}"
+              
+              if [ -z "$TARGET_URL" ]; then
+                echo "Warning: Target URL for DB$i is empty. Skipping."
+                continue
+              fi
+              
+              TARGET_URL=$(to_direct_url "$TARGET_URL")
+              
+              # Restore public schema schema and data
+              pg_restore --clean --if-exists --no-owner --no-privileges --schema=public --dbname="$TARGET_URL" db_backup.dump
+            fi
+          done
+          
+          echo "Synchronization complete!"
