@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
-import { course as courseSchema, order as orderSchema, user as userSchema, courseInstructor as courseInstructorSchema } from '@/db/schema';
-import { eq, sql, ne, count, and, isNotNull, inArray, desc, asc } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 import { BuilderCurriculumNode, parseCurriculumJson } from '@/lib/teacher-course-builder';
-import { videoLibraryNode } from '@/db/schema';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -15,51 +12,62 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const [coursesData, orderCountsData] = await Promise.all([
-      db.select()
-        .from(courseSchema)
-        .where(and(
-          eq(courseSchema.status, 'published'),
-          isNotNull(courseSchema.slug)
-        ))
-        .orderBy(desc(courseSchema.publishedAt), desc(courseSchema.updatedAt)),
-      db.select({
-        courseId: orderSchema.courseId,
-        count: sql<number>`count(${orderSchema.id})`.mapWith(Number),
-      })
-      .from(orderSchema)
-      .where(eq(orderSchema.status, 'approved'))
-      .groupBy(orderSchema.courseId)
+    const supabase = getSupabase();
+
+    // 1. Fetch courses and orders in parallel
+    const [coursesRes, ordersRes] = await Promise.all([
+      supabase
+        .from('Course')
+        .select('*')
+        .eq('status', 'published')
+        .not('slug', 'is', null)
+        .order('publishedAt', { ascending: false })
+        .order('updatedAt', { ascending: false }),
+      supabase
+        .from('Order')
+        .select('courseId')
+        .eq('status', 'approved')
     ]);
+
+    if (coursesRes.error) throw coursesRes.error;
+    if (ordersRes.error) throw ordersRes.error;
+
+    const coursesData = coursesRes.data || [];
+    const ordersData = ordersRes.data || [];
+
+    // Aggregate order counts in memory
+    const orderCountMap = new Map<string, number>();
+    ordersData.forEach((row) => {
+      if (row.courseId) {
+        orderCountMap.set(row.courseId, (orderCountMap.get(row.courseId) || 0) + 1);
+      }
+    });
 
     const teacherIds = Array.from(new Set(coursesData.map(c => c.teacherId).filter(Boolean))) as string[];
     const courseIds = coursesData.map(c => c.id);
 
-    const [teachers, instructors] = await Promise.all([
+    // 2. Fetch teachers and course instructors in parallel
+    const [teachersRes, instructorsRes] = await Promise.all([
       teacherIds.length > 0
-        ? db.select({
-            id: userSchema.id,
-            fullName: userSchema.fullName,
-            designation: userSchema.designation,
-            profileImage: userSchema.profileImage,
-          })
-          .from(userSchema)
-          .where(inArray(userSchema.id, teacherIds))
-        : Promise.resolve([]),
+        ? supabase
+            .from('User')
+            .select('id, fullName, designation, profileImage')
+            .in('id', teacherIds)
+        : Promise.resolve({ data: [], error: null }),
       courseIds.length > 0
-        ? db.select({
-            id: courseInstructorSchema.id,
-            courseId: courseInstructorSchema.courseId,
-            name: courseInstructorSchema.name,
-            designation: courseInstructorSchema.designation,
-            imageUrl: courseInstructorSchema.imageUrl,
-            sortOrder: courseInstructorSchema.sortOrder,
-          })
-          .from(courseInstructorSchema)
-          .where(inArray(courseInstructorSchema.courseId, courseIds))
-          .orderBy(asc(courseInstructorSchema.sortOrder))
-        : Promise.resolve([]),
+        ? supabase
+            .from('CourseInstructor')
+            .select('id, courseId, name, designation, imageUrl, sortOrder')
+            .in('courseId', courseIds)
+            .order('sortOrder', { ascending: true })
+        : Promise.resolve({ data: [], error: null })
     ]);
+
+    if (teachersRes.error) throw teachersRes.error;
+    if (instructorsRes.error) throw instructorsRes.error;
+
+    const teachers = teachersRes.data || [];
+    const instructors = instructorsRes.data || [];
 
     const teacherMap = new Map(teachers.map(t => [t.id, t]));
     const instructorsMap = new Map<string, any[]>();
@@ -75,22 +83,22 @@ export async function GET() {
       instructors: instructorsMap.get(c.id) || [],
     }));
 
-    const orderCountMap = new Map(orderCountsData.map(row => [row.courseId, row.count]));
-
     const rawCurriculums = courses.map((course) => parseCurriculumJson(course.curriculumJson));
     
-    const countsData = await db.select({
-      parentId: videoLibraryNode.parentId,
-      count: count(videoLibraryNode.id)
-    })
-    .from(videoLibraryNode)
-    .where(ne(videoLibraryNode.type, 'folder'))
-    .groupBy(videoLibraryNode.parentId);
-    
-    let folderCounts: Record<string, number> = {};
-    for (const row of countsData) {
-      if (row.parentId) folderCounts[row.parentId] = row.count;
-    }
+    // 3. Fetch video library nodes to calculate lesson counts in memory
+    const { data: videoNodes, error: videoError } = await supabase
+      .from('VideoLibraryNode')
+      .select('id, parentId, type')
+      .neq('type', 'folder');
+
+    if (videoError) throw videoError;
+
+    const folderCounts: Record<string, number> = {};
+    (videoNodes || []).forEach(node => {
+      if (node.parentId) {
+        folderCounts[node.parentId] = (folderCounts[node.parentId] || 0) + 1;
+      }
+    });
 
     const processedCourses = courses.map((course, index) => {
       const curriculum = rawCurriculums[index];
@@ -162,4 +170,3 @@ export async function GET() {
     );
   }
 }
-

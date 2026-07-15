@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractBearerToken, extractCookieToken, verifyAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
-import { db } from '@/lib/db';
+import { getSupabase } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   const bearerToken = extractBearerToken(request);
@@ -33,11 +33,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-    });
+    const supabase = getSupabase();
+    const { data: userRecord, error } = await supabase
+      .from('User')
+      .select('*')
+      .eq('id', payload.sub)
+      .maybeSingle();
 
-    if (!userRecord || userRecord.isBanned) {
+    if (error || !userRecord || userRecord.isBanned) {
       const response = NextResponse.json({ user: null, role: null }, { status: 200 });
       response.cookies.delete(AUTH_COOKIE_NAME);
       return response;

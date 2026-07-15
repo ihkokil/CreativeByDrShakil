@@ -1,26 +1,23 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { db } from '@/lib/db';
+import { getSupabase } from '@/lib/db';
 
 const normalizeOptionalText = (value: unknown) =>
   typeof value === 'string' ? value.trim() || null : null;
 
 export async function GET() {
   try {
-    const teachers = await db.query.user.findMany({
-      where: (u, { eq }) => eq(u.role, 'teacher'),
-      columns: {
-        id: true,
-        fullName: true,
-        profileImage: true,
-        designation: true,
-        institution: true,
-      },
-      orderBy: (u, { asc }) => [asc(u.fullName)],
-    });
+    const supabase = getSupabase();
+    const { data: teachers, error } = await supabase
+      .from('User')
+      .select('id, fullName, profileImage, designation, institution')
+      .eq('role', 'teacher')
+      .order('fullName', { ascending: true });
+
+    if (error) throw error;
 
     return NextResponse.json({
-      teachers: teachers.map((teacher) => ({
+      teachers: (teachers || []).map((teacher) => ({
         id: teacher.id,
         full_name: teacher.fullName.trim(),
         profile_image: normalizeOptionalText(teacher.profileImage),
@@ -33,6 +30,7 @@ export async function GET() {
       },
     });
   } catch (error: any) {
+    console.error('[/api/teachers] Unexpected error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }

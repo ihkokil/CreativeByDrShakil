@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-
-import { course as courseSchema, user as userSchema } from '@/db/schema';
-import { eq, and, isNotNull, desc } from 'drizzle-orm';
+import { getSupabase } from '@/lib/db';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -14,32 +11,41 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const results = await db.select({
-      id: courseSchema.id,
-      slug: courseSchema.slug,
-      title: courseSchema.title,
-      price: courseSchema.price,
-      duration: courseSchema.duration,
-      courseStartDate: courseSchema.courseStartDate,
-      imageUrl: courseSchema.imageUrl,
-      isFeatured: courseSchema.isFeatured,
-      instructor: courseSchema.instructor,
-      teacherId: userSchema.id,
-      teacherFullName: userSchema.fullName,
-      teacherDesignation: userSchema.designation,
-      teacherProfileImage: userSchema.profileImage,
-    })
-    .from(courseSchema)
-    .leftJoin(userSchema, eq(courseSchema.teacherId, userSchema.id))
-    .where(and(
-      eq(courseSchema.status, 'published'),
-      eq(courseSchema.isFeatured, true),
-      isNotNull(courseSchema.slug)
-    ))
-    .orderBy(desc(courseSchema.publishedAt), desc(courseSchema.updatedAt))
-    .limit(1);
+    const supabase = getSupabase();
+    
+    // Perform a PostgREST join by specifying User relation in the select query.
+    // Relational mapping uses the foreign key from Course(teacherId) to User(id).
+    const { data: results, error } = await supabase
+      .from('Course')
+      .select(`
+        id,
+        slug,
+        title,
+        price,
+        duration,
+        courseStartDate,
+        imageUrl,
+        isFeatured,
+        instructor,
+        publishedAt,
+        updatedAt,
+        teacher:User(
+          id,
+          fullName,
+          designation,
+          profileImage
+        )
+      `)
+      .eq('status', 'published')
+      .eq('isFeatured', true)
+      .not('slug', 'is', null)
+      .order('publishedAt', { ascending: false })
+      .order('updatedAt', { ascending: false })
+      .limit(1);
 
-    const match = results[0];
+    if (error) throw error;
+
+    const match = results?.[0];
     if (!match) {
       return NextResponse.json({ course: null }, {
         headers: {
@@ -47,6 +53,9 @@ export async function GET() {
         },
       });
     }
+
+    // teacher is returned as an object (or array depending on schema)
+    const teacher = Array.isArray(match.teacher) ? match.teacher[0] : match.teacher;
 
     return NextResponse.json({
       course: {
@@ -60,10 +69,10 @@ export async function GET() {
         image: match.imageUrl,
         isFeatured: match.isFeatured,
         mainInstructor: {
-          id: match.teacherId || `teacher-${match.id}`,
-          name: match.teacherFullName || match.instructor,
-          role: match.teacherDesignation || 'Course Instructor',
-          image: match.teacherProfileImage || '/placeholder-square.svg',
+          id: teacher?.id || `teacher-${match.id}`,
+          name: teacher?.fullName || match.instructor,
+          role: teacher?.designation || 'Course Instructor',
+          image: teacher?.profileImage || '/placeholder-square.svg',
         },
       },
     }, {
@@ -72,6 +81,7 @@ export async function GET() {
       },
     });
   } catch (error: any) {
+    console.error('[/api/courses/featured] Unexpected error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
-}
+}

@@ -1,7 +1,6 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
-import { db } from './db';
 
 export const AUTH_COOKIE_NAME = 'session_token';
 
@@ -71,11 +70,16 @@ export async function getSession() {
       if (!sessionValid) return null;
     }
 
-    const userRecord = await db.query.user.findFirst({
-      where: (u, { eq }) => eq(u.id, payload.sub),
-    });
+    const { getSupabase } = await import('./db');
+    const supabase = getSupabase();
+    
+    const { data: userRecord, error } = await supabase
+      .from('User')
+      .select('*')
+      .eq('id', payload.sub)
+      .maybeSingle();
 
-    if (!userRecord || userRecord.isBanned) return null;
+    if (error || !userRecord || userRecord.isBanned) return null;
 
     return {
       user: {

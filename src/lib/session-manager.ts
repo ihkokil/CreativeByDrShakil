@@ -1,9 +1,5 @@
-import { db } from './db';
-import { deviceSession, sessionLockSettings, globalSessionLockSettings } from '@/db/schema';
+import { getSupabase } from './db';
 import { DeviceType } from './client-fingerprint';
-import { eq, and, isNull, inArray, desc } from 'drizzle-orm';
-
-
 
 export interface CreateSessionOptions {
   userId: string;
@@ -56,7 +52,10 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
     deviceLabel: options.deviceLabel || null,
     osInfo: options.osInfo || null,
   };
-  await db.insert(deviceSession).values(insertValues);
+  
+  const supabase = getSupabase();
+  const { error } = await supabase.from('DeviceSession').insert(insertValues);
+  if (error) throw error;
 
   return {
     id,
@@ -76,12 +75,18 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
 }
 
 export async function getActiveSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const sessions = await db.query.deviceSession.findMany({
-    where: (ds, { eq, and, isNull }) => and(eq(ds.userId, userId), isNull(ds.loggedOutAt), eq(ds.isLocked, false)),
-    orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-  });
+  const supabase = getSupabase();
+  const { data: sessions, error } = await supabase
+    .from('DeviceSession')
+    .select('*')
+    .eq('userId', userId)
+    .is('loggedOutAt', null)
+    .eq('isLocked', false)
+    .order('createdAt', { ascending: false });
 
-  return sessions.map((s) => ({
+  if (error) throw error;
+
+  return (sessions || []).map((s) => ({
     id: s.id,
     userId: s.userId,
     deviceType: s.deviceType as DeviceType,
@@ -99,12 +104,16 @@ export async function getActiveSessionsForUser(userId: string): Promise<SessionI
 }
 
 export async function getAllSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const sessions = await db.query.deviceSession.findMany({
-    where: (ds, { eq }) => eq(ds.userId, userId),
-    orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-  });
+  const supabase = getSupabase();
+  const { data: sessions, error } = await supabase
+    .from('DeviceSession')
+    .select('*')
+    .eq('userId', userId)
+    .order('createdAt', { ascending: false });
 
-  return sessions.map((s) => ({
+  if (error) throw error;
+
+  return (sessions || []).map((s) => ({
     id: s.id,
     userId: s.userId,
     deviceType: s.deviceType as DeviceType,
@@ -122,15 +131,18 @@ export async function getAllSessionsForUser(userId: string): Promise<SessionInfo
 }
 
 export async function getActiveSessionByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo | null> {
-  const session = await db.query.deviceSession.findFirst({
-    where: (ds, { eq, and, isNull }) => and(
-        eq(ds.userId, userId), 
-        eq(ds.deviceType, deviceType),
-        isNull(ds.loggedOutAt), 
-        eq(ds.isLocked, false)
-    ),
-  });
+  const supabase = getSupabase();
+  const { data: session, error } = await supabase
+    .from('DeviceSession')
+    .select('*')
+    .eq('userId', userId)
+    .eq('deviceType', deviceType)
+    .is('loggedOutAt', null)
+    .eq('isLocked', false)
+    .limit(1)
+    .maybeSingle();
 
+  if (error) throw error;
   if (!session) return null;
 
   return {
@@ -151,17 +163,19 @@ export async function getActiveSessionByDeviceType(userId: string, deviceType: D
 }
 
 export async function getActiveSessionsByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo[]> {
-  const sessions = await db.query.deviceSession.findMany({
-    where: (ds, { eq, and, isNull }) => and(
-        eq(ds.userId, userId), 
-        eq(ds.deviceType, deviceType),
-        isNull(ds.loggedOutAt), 
-        eq(ds.isLocked, false)
-    ),
-    orderBy: (ds, { desc }) => [desc(ds.createdAt)],
-  });
+  const supabase = getSupabase();
+  const { data: sessions, error } = await supabase
+    .from('DeviceSession')
+    .select('*')
+    .eq('userId', userId)
+    .eq('deviceType', deviceType)
+    .is('loggedOutAt', null)
+    .eq('isLocked', false)
+    .order('createdAt', { ascending: false });
 
-  return sessions.map((s) => ({
+  if (error) throw error;
+
+  return (sessions || []).map((s) => ({
     id: s.id,
     userId: s.userId,
     deviceType: s.deviceType as DeviceType,
@@ -186,23 +200,32 @@ export async function terminateActiveSessionsByDeviceType(userId: string, device
     return [];
   }
 
-  await db.update(deviceSession)
-    .set({ loggedOutAt: new Date().toISOString() })
-    .where(inArray(deviceSession.id, sessionIds));
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('DeviceSession')
+    .update({ loggedOutAt: new Date().toISOString() })
+    .in('id', sessionIds);
+
+  if (error) throw error;
 
   return sessionIds;
 }
 
 export async function getFirstDeviceForCategory(userId: string, deviceType: DeviceType): Promise<SessionInfo | null> {
-  const session = await db.query.deviceSession.findFirst({
-    where: (ds, { eq, and, isNotNull }) => and(
-      eq(ds.userId, userId),
-      eq(ds.deviceType, deviceType),
-      isNotNull(ds.deviceHash)
-    ),
-    orderBy: (ds, { asc }) => [asc(ds.createdAt)],
-  });
+  const supabase = getSupabase();
+  const { data: session, error } = await supabase
+    .from('DeviceSession')
+    .select('*')
+    .eq('userId', userId)
+    .eq('deviceType', deviceType)
+    .not('deviceHash', 'is', null)
+    .order('createdAt', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
   if (!session) return null;
+
   return {
     id: session.id,
     userId: session.userId,
@@ -221,10 +244,15 @@ export async function getFirstDeviceForCategory(userId: string, deviceType: Devi
 }
 
 export async function getSessionById(sessionId: string): Promise<SessionInfo | null> {
-  const session = await db.query.deviceSession.findFirst({
-    where: (ds, { eq }) => eq(ds.id, sessionId),
-  });
+  const supabase = getSupabase();
+  const { data: session, error } = await supabase
+    .from('DeviceSession')
+    .select('*')
+    .eq('id', sessionId)
+    .limit(1)
+    .maybeSingle();
 
+  if (error) throw error;
   if (!session) return null;
 
   return {
@@ -245,42 +273,66 @@ export async function getSessionById(sessionId: string): Promise<SessionInfo | n
 }
 
 export async function terminateSession(sessionId: string): Promise<void> {
-  await db.update(deviceSession)
-    .set({ loggedOutAt: new Date().toISOString() })
-    .where(eq(deviceSession.id, sessionId));
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('DeviceSession')
+    .update({ loggedOutAt: new Date().toISOString() })
+    .eq('id', sessionId);
+  
+  if (error) throw error;
 }
 
 export async function lockSession(sessionId: string, lockedBy: string = 'Administrator'): Promise<void> {
-  await db.update(deviceSession)
-    .set({ isLocked: true, lockedByDeviceLabel: lockedBy })
-    .where(eq(deviceSession.id, sessionId));
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('DeviceSession')
+    .update({ isLocked: true, lockedByDeviceLabel: lockedBy })
+    .eq('id', sessionId);
+
+  if (error) throw error;
 }
 
 export async function updateSessionDeviceHash(sessionId: string, deviceHash: string): Promise<void> {
-  await db.update(deviceSession)
-    .set({ deviceHash })
-    .where(eq(deviceSession.id, sessionId));
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('DeviceSession')
+    .update({ deviceHash })
+    .eq('id', sessionId);
+
+  if (error) throw error;
 }
 
 export async function unlockSession(sessionId: string): Promise<void> {
-  await db.update(deviceSession)
-    .set({ isLocked: false })
-    .where(eq(deviceSession.id, sessionId));
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('DeviceSession')
+    .update({ isLocked: false })
+    .eq('id', sessionId);
+
+  if (error) throw error;
 }
 
 export async function isSessionValid(sessionId: string): Promise<boolean> {
-  const session = await db.query.deviceSession.findFirst({
-    where: (ds, { eq }) => eq(ds.id, sessionId),
-  });
+  const supabase = getSupabase();
+  const { data: session, error } = await supabase
+    .from('DeviceSession')
+    .select('isLocked, loggedOutAt')
+    .eq('id', sessionId)
+    .limit(1)
+    .maybeSingle();
 
-  if (!session) return false;
+  if (error || !session) return false;
   return !session.isLocked && !session.loggedOutAt;
 }
 
 export async function updateSessionActivity(sessionId: string): Promise<void> {
-  await db.update(deviceSession)
-    .set({ lastActivityAt: new Date().toISOString() })
-    .where(eq(deviceSession.id, sessionId));
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from('DeviceSession')
+    .update({ lastActivityAt: new Date().toISOString() })
+    .eq('id', sessionId);
+
+  if (error) throw error;
 }
 
 export async function getAutoLockSetting(userId: string): Promise<boolean> {
@@ -289,17 +341,32 @@ export async function getAutoLockSetting(userId: string): Promise<boolean> {
 }
 
 export async function setAutoLockSetting(userId: string, enabled: boolean): Promise<void> {
-    const existing = await db.query.sessionLockSettings.findFirst({
-        where: (sls, { eq }) => eq(sls.userId, userId)
-    });
+    const supabase = getSupabase();
+    const { data: existing, error: getError } = await supabase
+        .from('SessionLockSettings')
+        .select('*')
+        .eq('userId', userId)
+        .limit(1)
+        .maybeSingle();
+
+    if (getError) throw getError;
 
     if (existing) {
-        await db.update(sessionLockSettings)
-            .set({ autoLockFirstBrowser: enabled })
-            .where(eq(sessionLockSettings.userId, userId));
+        const { error } = await supabase
+            .from('SessionLockSettings')
+            .update({ autoLockFirstBrowser: enabled })
+            .eq('userId', userId);
+        if (error) throw error;
     } else {
-        await db.insert(sessionLockSettings)
-            .values({ id: crypto.randomUUID(), userId, autoLockFirstBrowser: enabled, updatedAt: new Date().toISOString() });
+        const { error } = await supabase
+            .from('SessionLockSettings')
+            .insert({ 
+                id: crypto.randomUUID(), 
+                userId, 
+                autoLockFirstBrowser: enabled, 
+                updatedAt: new Date().toISOString() 
+            });
+        if (error) throw error;
     }
 }
 
@@ -312,9 +379,15 @@ export interface GlobalSessionSettings {
 }
 
 export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings> {
-  const setting = await db.query.globalSessionLockSettings.findFirst({
-    where: (gsls, { eq }) => eq(gsls.id, 'global'),
-  });
+  const supabase = getSupabase();
+  const { data: setting, error } = await supabase
+    .from('GlobalSessionLockSettings')
+    .select('*')
+    .eq('id', 'global')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
 
   return {
     autoLockFirstBrowser: setting?.autoLockFirstBrowser ?? true,
@@ -326,9 +399,15 @@ export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings>
 }
 
 export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSettings>): Promise<void> {
-  const existing = await db.query.globalSessionLockSettings.findFirst({
-    where: (gsls, { eq }) => eq(gsls.id, 'global')
-  });
+  const supabase = getSupabase();
+  const { data: existing, error: getError } = await supabase
+    .from('GlobalSessionLockSettings')
+    .select('*')
+    .eq('id', 'global')
+    .limit(1)
+    .maybeSingle();
+
+  if (getError) throw getError;
 
   const updatedFields: any = {
     updatedAt: new Date().toISOString(),
@@ -340,12 +419,15 @@ export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSe
   if (settings.maxConcurrentSessions !== undefined) updatedFields.maxConcurrentSessions = settings.maxConcurrentSessions;
 
   if (existing) {
-    await db.update(globalSessionLockSettings)
-      .set(updatedFields)
-      .where(eq(globalSessionLockSettings.id, 'global'));
+    const { error } = await supabase
+      .from('GlobalSessionLockSettings')
+      .update(updatedFields)
+      .eq('id', 'global');
+    if (error) throw error;
   } else {
-    await db.insert(globalSessionLockSettings)
-      .values({
+    const { error } = await supabase
+      .from('GlobalSessionLockSettings')
+      .insert({
         id: 'global',
         autoLockFirstBrowser: settings.autoLockFirstBrowser ?? true,
         allowDesktop: settings.allowDesktop ?? true,
@@ -354,6 +436,7 @@ export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSe
         maxConcurrentSessions: settings.maxConcurrentSessions ?? 3,
         updatedAt: new Date().toISOString(),
       });
+    if (error) throw error;
   }
 }
 
@@ -367,10 +450,14 @@ export async function setGlobalAutoLockSetting(enabled: boolean): Promise<void> 
 }
 
 export async function resolveAutoLockSetting(userId: string): Promise<AutoLockResolution> {
-  const [userSetting, globalAutoLockFirstBrowser] = await Promise.all([
-    db.query.sessionLockSettings.findFirst({ where: (sls, { eq }) => eq(sls.userId, userId) }),
+  const supabase = getSupabase();
+  const [userRes, globalAutoLockFirstBrowser] = await Promise.all([
+    supabase.from('SessionLockSettings').select('*').eq('userId', userId).limit(1).maybeSingle(),
     getGlobalAutoLockSetting(),
   ]);
+
+  if (userRes.error) throw userRes.error;
+  const userSetting = userRes.data;
 
   const hasUserOverride = Boolean(userSetting);
   const userAutoLockFirstBrowser = userSetting?.autoLockFirstBrowser ?? null;
@@ -386,21 +473,30 @@ export async function resolveAutoLockSetting(userId: string): Promise<AutoLockRe
 }
 
 export async function getAllSessionLockSettings() {
-  return db.query.sessionLockSettings.findMany();
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from('SessionLockSettings').select('*');
+  if (error) throw error;
+  return data || [];
 }
 
 export async function terminateAllSessions(): Promise<void> {
+  const supabase = getSupabase();
   // Only terminate sessions belonging to students (not admin/teacher)
-  const { user } = await import('@/db/schema');
-  const studentIds = db
-    .select({ id: user.id })
-    .from(user)
-    .where(eq(user.role, 'student'));
+  const { data: students, error: userError } = await supabase
+    .from('User')
+    .select('id')
+    .eq('role', 'student');
 
-  await db.update(deviceSession)
-    .set({ loggedOutAt: new Date().toISOString() })
-    .where(and(
-      isNull(deviceSession.loggedOutAt),
-      inArray(deviceSession.userId, studentIds)
-    ));
+  if (userError) throw userError;
+
+  const studentIds = (students || []).map((s) => s.id);
+  if (studentIds.length === 0) return;
+
+  const { error } = await supabase
+    .from('DeviceSession')
+    .update({ loggedOutAt: new Date().toISOString() })
+    .is('loggedOutAt', null)
+    .in('userId', studentIds);
+
+  if (error) throw error;
 }
