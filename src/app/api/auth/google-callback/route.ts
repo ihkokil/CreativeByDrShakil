@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${appUrl}/?auth=login&error=NoEmail`);
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Step 3: Find or create user in database
     let { data: user, error: userError } = await supabase

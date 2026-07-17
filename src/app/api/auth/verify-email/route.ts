@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabase } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/db";
 import { hashToken } from "@/lib/token-utils";
 
 export async function GET(request: NextRequest) {
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     }
 
     const tokenHash = await hashToken(token);
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: user, error: userError } = await supabase
       .from('User')

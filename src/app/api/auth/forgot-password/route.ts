@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import crypto from "crypto";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getSupabase } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/db";
 import { sendForgotPasswordOtpEmail } from "@/lib/auth-emails";
 import { isPhoneNumber } from "@/lib/login-validator";
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     // Find the user record
     const { data: user, error: userError } = await supabase

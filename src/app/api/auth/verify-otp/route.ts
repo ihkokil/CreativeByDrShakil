@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { parseDbDate } from '@/lib/date-format';
 
 const verifyOtpSchema = z.object({
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const { email, otp } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: otpRecord, error: otpError } = await supabase
       .from('EmailOtp')

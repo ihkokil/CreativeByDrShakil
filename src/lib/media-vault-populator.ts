@@ -25,17 +25,17 @@ export async function populateMediaVaultNodes(nodes: any[]): Promise<any[]> {
 
   // Fetch all media vault nodes for these folders
   const { data: mediaNodes = [] }: { data: any[] | null } = await supabase
-    .from('MediaVaultNode')
-    .select('id, title, type, url, storagePath, duration, folderId, sortOrder')
-    .in('folderId', uniqueFolderIds)
+    .from('VideoLibraryNode')
+    .select('id, title, type, url, duration, parentId, sortOrder, attachments')
+    .in('parentId', uniqueFolderIds)
     .order('sortOrder', { ascending: true });
 
-  // Group by folderId
+  // Group by folderId (parentId)
   const nodesByFolder = new Map<string, any[]>();
   for (const node of (mediaNodes || [])) {
-    const list = nodesByFolder.get(node.folderId) || [];
+    const list = nodesByFolder.get(node.parentId) || [];
     list.push(node);
-    nodesByFolder.set(node.folderId, list);
+    nodesByFolder.set(node.parentId, list);
   }
 
   // Recursively inject children from media vault
@@ -47,7 +47,7 @@ export async function populateMediaVaultNodes(nodes: any[]): Promise<any[]> {
           title: vn.title,
           type: vn.type || 'self-hosted',
           url: vn.url || null,
-          storagePath: vn.storagePath || null,
+          attachments: vn.attachments || null,
           duration: vn.duration || null,
           children: [],
         }));

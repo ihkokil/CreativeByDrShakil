@@ -125,37 +125,44 @@ function createDoubleWriteProxy(activeClient: SupabaseClient<any>, backupClient:
           const activeBuilder = activeClient.from(tableName);
           const backupBuilder = backupClient.from(tableName);
 
-          return new Proxy(activeBuilder, {
-            get(builderTarget, builderProp) {
-              const originalMethod = (builderTarget as any)[builderProp];
-
-              if (['insert', 'update', 'delete', 'upsert'].includes(builderProp as string)) {
-                return (...args: any[]) => {
-                  const activePromise = Promise.resolve((activeBuilder as any)[builderProp](...args));
-                  const backupPromise = Promise.resolve((backupBuilder as any)[builderProp](...args));
-
-                  return {
-                    then: async (onfulfilled: any, onrejected: any) => {
-                      try {
-                        const [activeRes] = await Promise.all([
-                          activePromise,
-                          backupPromise.catch((err: any) => {
-                            console.error(`[WARNING] Backup DB write failed for table '${tableName}':`, err);
-                            return null;
-                          })
-                        ]);
-                        return onfulfilled ? onfulfilled(activeRes) : activeRes;
-                      } catch (err) {
-                        return onrejected ? onrejected(err) : Promise.reject(err);
-                      }
+          function wrapBuilder(activeB: any, backupB: any, isMutation = false): any {
+            return new Proxy(activeB, {
+              get(bTarget, bProp) {
+                if (bProp === 'then') {
+                  return (onfulfilled: any, onrejected: any) => {
+                    const activePromise = Promise.resolve(activeB.then());
+                    if (isMutation) {
+                      const backupPromise = Promise.resolve(backupB.then()).catch(err => {
+                        console.error(`[WARNING] Backup DB write failed for table '${tableName}':`, err);
+                        return null;
+                      });
+                      return Promise.all([activePromise, backupPromise])
+                        .then(([activeRes]) => onfulfilled ? onfulfilled(activeRes) : activeRes)
+                        .catch(err => onrejected ? onrejected(err) : Promise.reject(err));
                     }
+                    return activePromise.then(onfulfilled).catch(onrejected);
                   };
-                };
+                }
+                
+                const originalMethod = bTarget[bProp];
+                if (typeof originalMethod === 'function') {
+                  return (...args: any[]) => {
+                    const nextIsMutation = isMutation || ['insert', 'update', 'delete', 'upsert'].includes(bProp as string);
+                    const newActiveB = originalMethod.apply(activeB, args);
+                    const newBackupB = backupB[bProp] ? backupB[bProp].apply(backupB, args) : backupB;
+                    
+                    if (newActiveB && typeof newActiveB.then === 'function') {
+                      return wrapBuilder(newActiveB, newBackupB, nextIsMutation);
+                    }
+                    return newActiveB;
+                  };
+                }
+                return originalMethod;
               }
-
-              return typeof originalMethod === 'function' ? originalMethod.bind(activeBuilder) : originalMethod;
-            }
-          });
+            });
+          }
+          
+          return wrapBuilder(activeBuilder, backupBuilder);
         };
       }
 
@@ -190,16 +197,17 @@ function createDoubleWriteProxy(activeClient: SupabaseClient<any>, backupClient:
   });
 }
 
-// Get the current active standard (anon) client wrapped in a dynamic double-writing proxy
+// Get the current active client wrapped in a dynamic double-writing proxy
+// We use the admin client (Service Role) here to globally bypass RLS,
+// which matches the previous Drizzle behavior where the raw postgres connection bypassed RLS.
+// Application-level security is enforced in the API routes.
 export function getSupabase(): SupabaseClient<any> {
-  const activeIndex = getActiveDbIndex();
-  const activeClient = supabaseClients[activeIndex];
-  return createDoubleWriteProxy(activeClient, backupClient);
-}
-
-// Get the current active admin (service role) client wrapped in a dynamic double-writing proxy
-export function getSupabaseAdmin(): SupabaseClient<any> {
   const activeIndex = getActiveDbIndex();
   const activeClient = supabaseAdminClients[activeIndex];
   return createDoubleWriteProxy(activeClient, backupAdminClient);
+}
+
+// Keep getSupabaseAdmin for backwards compatibility where it was explicitly imported
+export function getSupabaseAdmin(): SupabaseClient<any> {
+  return getSupabase();
 }

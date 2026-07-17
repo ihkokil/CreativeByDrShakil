@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { getSupabase } from "@/lib/db";
+import { getSupabaseAdmin } from "@/lib/db";
 import { signAuthToken, AUTH_COOKIE_NAME } from "@/lib/auth-server";
 import { parseUserAgent, extractClientIp } from "@/lib/device-detection";
 import { createDeviceSession } from "@/lib/session-manager";
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     const { email, password } = parsed.data;
     const normalizedEmail = email.trim().toLowerCase();
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Check if the user exists
     const { data: userRecord, error: userError } = await supabase

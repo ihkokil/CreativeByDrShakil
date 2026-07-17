@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       if (typeof nodeId !== 'string') continue;
 
       await supabase
-        .from('MediaVaultNode')
+        .from('VideoLibraryNode')
         // @ts-ignore
         .update({ sortOrder: i })
         .eq('id', nodeId);
