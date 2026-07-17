@@ -1,21 +1,101 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+import { getSupabase } from '@/lib/db';
+import { getAuthPayload } from '@/lib/route-auth';
+import { nanoid } from '@/lib/nanoid';
 
 export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+  try {
+    const payload = await getAuthPayload(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const body = await request.json();
+    const { courseId } = body;
 
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    if (!courseId || typeof courseId !== 'string') {
+      return NextResponse.json({ error: 'courseId is required.' }, { status: 400 });
+    }
+
+    const supabase = getSupabase();
+
+    // Verify the course exists and is published
+    const { data: course, error: courseError }: { data: any; error: any } = await supabase
+      .from('Course')
+      .select('id, title, slug, price, salePrice, status')
+      .eq('id', courseId)
+      .limit(1)
+      .maybeSingle();
+
+    if (courseError) throw courseError;
+
+    if (!course) {
+      return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
+    }
+
+    if (course.status !== 'published') {
+      return NextResponse.json({ error: 'Course is not available for purchase.' }, { status: 400 });
+    }
+
+    // Check if the student already has an active (approved) order for this course
+    const { data: existingOrder }: { data: any } = await supabase
+      .from('Order')
+      .select('id, status')
+      .eq('userId', payload.sub)
+      .eq('courseId', courseId)
+      .eq('status', 'approved')
+      .limit(1)
+      .maybeSingle();
+
+    if (existingOrder) {
+      return NextResponse.json({ error: 'You are already enrolled in this course.' }, { status: 409 });
+    }
+
+    // Check for an existing pending order
+    const { data: pendingOrder }: { data: any } = await supabase
+      .from('Order')
+      .select('id, status')
+      .eq('userId', payload.sub)
+      .eq('courseId', courseId)
+      .eq('status', 'pending')
+      .limit(1)
+      .maybeSingle();
+
+    if (pendingOrder) {
+      return NextResponse.json({
+        orderId: pendingOrder.id,
+        status: 'pending',
+        message: 'You already have a pending order for this course.',
+        course: { id: course.id, title: course.title, slug: course.slug },
+      });
+    }
+
+    // Create a new order
+    const totalAmount = course.salePrice ?? course.price ?? 0;
+    const nowStr = new Date().toISOString();
+    const orderId = nanoid();
+
+    const { error: insertError } = await supabase.from('Order').insert({
+      id: orderId,
+      userId: payload.sub,
+      courseId: course.id,
+      totalAmount,
+      amount: totalAmount,
+      status: 'pending',
+      createdAt: nowStr,
+      updatedAt: nowStr,
+    } as any);
+
+    if (insertError) throw insertError;
+
+    return NextResponse.json({
+      orderId,
+      status: 'pending',
+      totalAmount,
+      course: { id: course.id, title: course.title, slug: course.slug },
+    });
+  } catch (error: any) {
+    console.error('[orders/initiate] error:', error);
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
 }

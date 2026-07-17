@@ -1,21 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabase } from '@/lib/db';
+import { requireTeacherPayload } from '@/lib/route-auth';
+import { nanoid } from '@/lib/nanoid';
 
-export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const payload = await requireTeacherPayload(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
 
-export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const { id: quizId } = await params;
+    const body = await request.json();
+    const { questions } = body;
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return NextResponse.json({ error: 'questions array is required.' }, { status: 400 });
+    }
 
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    const supabase = getSupabase();
+
+    const { data: quiz }: { data: any } = await supabase
+      .from('Quiz')
+      .select('id, createdBy')
+      .eq('id', quizId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!quiz) {
+      return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
+    }
+
+    if (payload.role === 'teacher' && quiz.createdBy !== payload.sub) {
+      return NextResponse.json({ error: 'Not authorized to import into this quiz.' }, { status: 403 });
+    }
+
+    const nowStr = new Date().toISOString();
+    let imported = 0;
+
+    for (const q of questions) {
+      if (!q.questionText || !q.optionA || !q.optionB || !q.correctOption) {
+        continue; // Skip invalid questions
+      }
+
+      await supabase.from('Question').insert({
+        id: nanoid(),
+        quizId,
+        questionText: q.questionText.trim(),
+        questionType: q.questionType === 'true_false' ? 'true_false' : 'mcq',
+        optionA: q.optionA.trim(),
+        optionB: q.optionB.trim(),
+        optionC: q.optionC?.trim() || null,
+        optionD: q.optionD?.trim() || null,
+        correctOption: q.correctOption.trim(),
+        explanation: q.explanation?.trim() || null,
+        createdAt: nowStr,
+        updatedAt: nowStr,
+      } as any);
+
+      imported++;
+    }
+
+    // Update quiz updatedAt
+    await supabase
+      .from('Quiz')
+      // @ts-ignore
+      .update({ updatedAt: nowStr })
+      .eq('id', quizId);
+
+    return NextResponse.json({
+      success: true,
+      imported,
+      message: `Imported ${imported} questions.`,
+    });
+  } catch (error: any) {
+    console.error('[quiz/import] error:', error);
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
 }
