@@ -41,7 +41,7 @@ function topologicalSort(tables, edges) {
     adj.set(t, []);
     inDegree.set(t, 0);
   }
-  
+
   for (const [dependent, referenced] of edges) {
     // dependent relies on referenced. So 'referenced' must be inserted BEFORE 'dependent'.
     // Edge direction: referenced -> dependent
@@ -77,9 +77,42 @@ function topologicalSort(tables, edges) {
   return order;
 }
 
+/**
+ * VideoLibraryNode is self-referencing (parentId -> id) and can be an
+ * arbitrarily deep tree (e.g. module -> lesson -> sub-item -> ...).
+ * A naive "nulls first" sort only guarantees roots come first; it does NOT
+ * guarantee a node is ordered after its actual parent once you go past
+ * depth 2, which can violate the self-referencing FK on insert.
+ *
+ * This does a proper level-order (BFS-by-depth) sort using parentId chains,
+ * with a safety fallback for any orphaned/cyclic rows so nothing is dropped.
+ */
+function sortVideoLibraryNodesByDepth(rows) {
+  const byId = new Map(rows.map(r => [r.id, r]));
+  const depthCache = new Map();
+
+  function depthOf(row, seen = new Set()) {
+    if (row.parentId === null || row.parentId === undefined) return 0;
+    if (depthCache.has(row.id)) return depthCache.get(row.id);
+    if (seen.has(row.id)) return 0; // cycle guard, shouldn't happen but stay safe
+    const parent = byId.get(row.parentId);
+    if (!parent) return 0; // parent not in this batch (already exists on target)
+    seen.add(row.id);
+    const d = 1 + depthOf(parent, seen);
+    depthCache.set(row.id, d);
+    return d;
+  }
+
+  for (const row of rows) {
+    depthCache.set(row.id, depthOf(row));
+  }
+
+  return [...rows].sort((a, b) => depthCache.get(a.id) - depthCache.get(b.id));
+}
+
 async function sync() {
   console.log(`Connected to Source DB.`);
-  
+
   // 1. Fetch tables
   const tablesResult = await sql`
     SELECT table_name 
@@ -87,8 +120,10 @@ async function sync() {
     WHERE table_schema = 'public' 
     AND table_type = 'BASE TABLE'
   `;
-  const tables = tablesResult.map(r => r.table_name);
-  
+  const tables = tablesResult
+    .map(r => r.table_name)
+    .filter(t => !t.startsWith('_prisma') && t !== 'drizzle_migrations');
+
   // 2. Fetch foreign key constraints
   const edgesResult = await sql`
     SELECT
@@ -105,7 +140,7 @@ async function sync() {
     WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
   `;
   const edges = edgesResult.map(r => [r.dependent_table, r.referenced_table]);
-  
+
   // 3. Sort tables topologically
   const tableOrder = topologicalSort(tables, edges);
   console.log(`\nDiscovered ${tables.length} tables. Planned sync order:`);
@@ -117,9 +152,6 @@ async function sync() {
   const data = {};
   for (const table of tableOrder) {
     console.log(`Fetching ${table} from source...`);
-    // Exclude Prisma/Drizzle migration tables just in case
-    if (table.startsWith('_prisma') || table === 'drizzle_migrations') continue;
-    
     data[table] = await sql`SELECT * FROM public.${sql(table)}`;
     console.log(` -> Fetched ${data[table].length} rows for ${table}`);
   }
@@ -130,47 +162,58 @@ async function sync() {
     for (const table of tableOrder) {
       let rows = data[table];
       if (!rows || rows.length === 0) continue;
-      
+
       if (table === 'VideoLibraryNode') {
-         rows = rows.sort((a, b) => {
-            if (a.parentId === null && b.parentId !== null) return -1;
-            if (a.parentId !== null && b.parentId === null) return 1;
-            return 0;
-         });
+        rows = sortVideoLibraryNodesByDepth(rows);
       }
-      
+
       console.log(`Upserting ${rows.length} rows into ${table}...`);
-      
+
       // Batch inserts in chunks of 500 to avoid request size limits
       const chunkSize = 500;
       let totalSuccess = 0;
       for (let i = 0; i < rows.length; i += chunkSize) {
         let chunk = rows.slice(i, i + chunkSize);
-        
+
         let options = undefined;
         // If a table has a specific unique constraint that is failing due to existing test data,
         // we can specify it here to merge correctly instead of failing.
+        // (Matched against every non-PK UNIQUE constraint present in the schema.)
         if (table === 'LessonProgress') {
-           options = { onConflict: 'userId, courseId, lessonNodeId' };
+          options = { onConflict: 'userId, courseId, lessonNodeId' };
         } else if (table === 'StudentModuleAvailability') {
-           options = { onConflict: 'courseId, userId, lessonNodeId' };
+          options = { onConflict: 'courseId, userId, lessonNodeId' };
         } else if (table === 'Order') {
-           options = { onConflict: 'userId, courseId' };
+          options = { onConflict: 'userId, courseId' };
         } else if (table === 'Account') {
-           options = { onConflict: 'provider, providerAccountId' };
+          options = { onConflict: 'provider, providerAccountId' };
         } else if (table === 'VerificationToken') {
-           options = { onConflict: 'identifier, token' };
+          options = { onConflict: 'identifier, token' };
         } else if (table === 'Payment') {
-           options = { onConflict: 'orderId' };
+          options = { onConflict: 'orderId' };
         } else if (table === 'SessionLockSettings') {
-           options = { onConflict: 'userId' };
+          options = { onConflict: 'userId' };
         } else if (table === 'Category') {
-           options = { onConflict: 'name' };
+          options = { onConflict: 'name' };
+        } else if (table === 'QuizCategory') {
+          // BUG FIX: previously fell through to default (PK-only) upsert and
+          // could throw a unique violation on QuizCategory_name_key.
+          options = { onConflict: 'name' };
+        } else if (table === 'AttemptAnswer') {
+          options = { onConflict: 'attemptId, questionId' };
+        } else if (table === 'QuizQuestionMapping') {
+          options = { onConflict: 'attemptId, questionId' };
+        } else if (table === 'QuizAttempt') {
+          options = { onConflict: 'quizId, studentId, attemptNumber' };
+        } else if (table === 'Course') {
+          options = { onConflict: 'slug' };
+        } else if (table === 'Session') {
+          options = { onConflict: 'sessionToken' };
         }
-        
+
         const { error } = await target.client.from(table).upsert(chunk, options);
         if (error) {
-          console.error(`Error inserting chunk ${Math.floor(i/chunkSize) + 1} into ${table} on ${target.name}:`, error.message);
+          console.error(`Error inserting chunk ${Math.floor(i / chunkSize) + 1} into ${table} on ${target.name}:`, error.message);
         } else {
           totalSuccess += chunk.length;
         }
