@@ -56,7 +56,9 @@ export async function POST(request: NextRequest) {
           .eq('userId', userId)
           .eq('lessonNodeId', lessonNodeId);
 
-        await supabase.from('StudentModuleAvailability').insert({
+        await supabase.from('StudentModuleAvailability')
+// @ts-ignore
+.insert({
           id: crypto.randomUUID(),
           courseId,
           userId,

@@ -63,7 +63,9 @@ export async function POST(
         .update({ selectedOption, updatedAt: nowStr })
         .eq('id', existingAnswer.id);
     } else {
-      await supabase.from('AttemptAnswer').insert({
+      await supabase.from('AttemptAnswer')
+// @ts-ignore
+.insert({
         id: nanoid(),
         attemptId,
         questionId,

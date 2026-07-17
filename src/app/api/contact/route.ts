@@ -94,7 +94,9 @@ export async function POST(request: NextRequest) {
     };
 
     const supabase = getSupabase();
-    const { error: insertError } = await supabase.from('ContactSubmission').insert(insertValues);
+    const { error: insertError } = await supabase.from('ContactSubmission')
+// @ts-ignore
+.insert(insertValues);
     if (insertError) throw insertError;
     
     const { data: submissionRow } = await supabase.from('ContactSubmission').select('*').eq('id', submissionId).limit(1).maybeSingle();

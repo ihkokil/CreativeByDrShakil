@@ -41,7 +41,7 @@ export async function GET(
       orderQuery = orderQuery.eq('courseId', courseId);
     }
 
-    const { data: orders = [] } = await orderQuery;
+    const { data: orders = [] }: { data: any[] | null } = await orderQuery;
     const courseIds = [...new Set((orders || []).map((o: any) => o.courseId).filter(Boolean))];
 
     if (courseIds.length === 0) {

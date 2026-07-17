@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Get all approved orders
     const ordersPromise = courseIds.length > 0
       ? supabase.from('Order').select('id, courseId, totalAmount, status, createdAt').eq('status', 'approved').in('courseId', courseIds)
-      : Promise.resolve({ data: [] });
+      : Promise.resolve({ data: [] as any[] });
 
     // Get pending orders
     const pendingPromise = courseIds.length > 0

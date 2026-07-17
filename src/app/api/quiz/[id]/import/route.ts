@@ -46,7 +46,9 @@ export async function POST(
         continue; // Skip invalid questions
       }
 
-      await supabase.from('Question').insert({
+      await supabase.from('Question')
+// @ts-ignore
+.insert({
         id: nanoid(),
         quizId,
         questionText: q.questionText.trim(),

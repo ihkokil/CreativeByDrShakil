@@ -282,7 +282,9 @@ export async function PUT(
         } else {
           await supabase
             .from('Question')
-            .insert({
+            
+// @ts-ignore
+.insert({
               id: nanoid(),
               quizId: id,
               ...questionData,

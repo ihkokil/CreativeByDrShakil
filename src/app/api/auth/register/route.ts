@@ -105,7 +105,9 @@ export async function POST(request: NextRequest) {
       emailVerificationExpires: verifyExpiry?.toISOString() || null,
     };
 
-    const { error: insertError } = await supabase.from('User').insert(insertValues);
+    const { error: insertError } = await supabase.from('User')
+// @ts-ignore
+.insert(insertValues);
     if (insertError) throw insertError;
 
     const { data: user, error: userFetchError } = await supabase

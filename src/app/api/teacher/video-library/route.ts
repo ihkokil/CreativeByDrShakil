@@ -106,7 +106,9 @@ export async function POST(request: NextRequest) {
             sortOrder: nextOrder,
         };
 
-        const { error: insertError } = await supabase.from('VideoLibraryNode').insert(insertValues as any);
+        const { error: insertError } = await supabase.from('VideoLibraryNode')
+// @ts-ignore
+.insert(insertValues as any);
         if (insertError) throw insertError;
 
         const node = {

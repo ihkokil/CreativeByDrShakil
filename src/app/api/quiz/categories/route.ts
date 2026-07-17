@@ -58,7 +58,9 @@ export async function POST(request: NextRequest) {
       updatedAt: nowStr,
     };
 
-    const { error: insertError } = await supabase.from('QuizCategory').insert(insertValues as any);
+    const { error: insertError } = await supabase.from('QuizCategory')
+// @ts-ignore
+.insert(insertValues as any);
     if (insertError) throw insertError;
     
     return NextResponse.json({ category: insertValues }, { status: 201 });

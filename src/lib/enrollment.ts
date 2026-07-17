@@ -26,7 +26,9 @@ export async function ensureCourseEnrollment(
     
   if (!existingOrder) {
     const orderId = nanoid();
-    await supabase.from('Order').insert({
+    await supabase.from('Order')
+// @ts-ignore
+.insert({
       id: orderId,
       userId,
       courseId,

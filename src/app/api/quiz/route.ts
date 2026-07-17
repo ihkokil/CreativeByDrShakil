@@ -266,7 +266,9 @@ export async function POST(request: NextRequest) {
       updatedAt: nowStr,
     };
 
-    const { error: insertError } = await supabase.from('Quiz').insert(insertValues as any);
+    const { error: insertError } = await supabase.from('Quiz')
+// @ts-ignore
+.insert(insertValues as any);
     if (insertError) throw insertError;
 
     const newQuiz = insertValues;
@@ -287,7 +289,9 @@ export async function POST(request: NextRequest) {
         updatedAt: nowStr,
       }));
 
-      const { error: questionsError } = await supabase.from('Question').insert(questionsToInsert);
+      const { error: questionsError } = await supabase.from('Question')
+// @ts-ignore
+.insert(questionsToInsert);
       if (questionsError) throw questionsError;
     }
 

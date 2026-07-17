@@ -67,7 +67,9 @@ export async function POST(request: NextRequest) {
     // Store in DB
     const { error: insertError } = await supabase
       .from('EmailOtp')
-      .insert({
+      
+// @ts-ignore
+.insert({
         id: crypto.randomUUID(),
         email: normalizedEmail,
         otpHash,

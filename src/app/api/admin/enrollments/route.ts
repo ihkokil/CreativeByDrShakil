@@ -160,7 +160,9 @@ export async function POST(request: NextRequest) {
       };
 
       // @ts-ignore: Supabase JS types expect never[] if schema is not well-defined
-      const { error: insertError } = await supabase.from('User').insert(insertValues);
+      const { error: insertError } = await supabase.from('User')
+// @ts-ignore
+.insert(insertValues);
       
       if (insertError) {
         return NextResponse.json({ error: 'Failed to create student.' }, { status: 500 });

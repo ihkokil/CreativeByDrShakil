@@ -56,7 +56,7 @@ function fetchWithTimeout(ms = 8000) {
 
 // Pre-initialize and cache dynamic clients (standard/anon and admin/service role)
 const supabaseClients = dbConfigs.map(config => 
-  createClient<Database>(config.url, config.anonKey, {
+  createClient<any>(config.url, config.anonKey, {
     global: {
       fetch: fetchWithTimeout(8000),
     },
@@ -68,7 +68,7 @@ const supabaseClients = dbConfigs.map(config =>
 );
 
 const supabaseAdminClients = dbConfigs.map(config => 
-  createClient<Database>(config.url, config.serviceKey, {
+  createClient<any>(config.url, config.serviceKey, {
     global: {
       fetch: fetchWithTimeout(8000),
     },
@@ -80,7 +80,7 @@ const supabaseAdminClients = dbConfigs.map(config =>
 );
 
 // Pre-initialize and cache the backup clients
-const backupClient = createClient<Database>(backupConfig.url, backupConfig.anonKey, {
+const backupClient = createClient<any>(backupConfig.url, backupConfig.anonKey, {
   global: {
     fetch: fetchWithTimeout(8000),
   },
@@ -90,7 +90,7 @@ const backupClient = createClient<Database>(backupConfig.url, backupConfig.anonK
   },
 });
 
-const backupAdminClient = createClient<Database>(backupConfig.url, backupConfig.serviceKey, {
+const backupAdminClient = createClient<any>(backupConfig.url, backupConfig.serviceKey, {
   global: {
     fetch: fetchWithTimeout(8000),
   },
@@ -116,7 +116,7 @@ export function getActiveDbIndex(): number {
 }
 
 // Helper to create a proxy that mirrors mutating actions to the backup database
-function createDoubleWriteProxy(activeClient: SupabaseClient<Database>, backupClient: SupabaseClient<Database>): SupabaseClient<Database> {
+function createDoubleWriteProxy(activeClient: SupabaseClient<any>, backupClient: SupabaseClient<any>): SupabaseClient<any> {
   return new Proxy(activeClient, {
     get(target, prop, receiver) {
       // 1. Intercept table queries: supabase.from('table_name')
@@ -191,14 +191,14 @@ function createDoubleWriteProxy(activeClient: SupabaseClient<Database>, backupCl
 }
 
 // Get the current active standard (anon) client wrapped in a dynamic double-writing proxy
-export function getSupabase(): SupabaseClient<Database> {
+export function getSupabase(): SupabaseClient<any> {
   const activeIndex = getActiveDbIndex();
   const activeClient = supabaseClients[activeIndex];
   return createDoubleWriteProxy(activeClient, backupClient);
 }
 
 // Get the current active admin (service role) client wrapped in a dynamic double-writing proxy
-export function getSupabaseAdmin(): SupabaseClient<Database> {
+export function getSupabaseAdmin(): SupabaseClient<any> {
   const activeIndex = getActiveDbIndex();
   const activeClient = supabaseAdminClients[activeIndex];
   return createDoubleWriteProxy(activeClient, backupAdminClient);

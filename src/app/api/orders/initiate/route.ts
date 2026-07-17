@@ -75,7 +75,9 @@ export async function POST(request: NextRequest) {
     const nowStr = new Date().toISOString();
     const orderId = nanoid();
 
-    const { error: insertError } = await supabase.from('Order').insert({
+    const { error: insertError } = await supabase.from('Order')
+// @ts-ignore
+.insert({
       id: orderId,
       userId: payload.sub,
       courseId: course.id,

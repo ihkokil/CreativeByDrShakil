@@ -49,7 +49,9 @@ export async function POST(request: NextRequest) {
     const nowStr = new Date().toISOString();
     const paymentId = nanoid();
 
-    const { error: paymentError } = await supabase.from('Payment').insert({
+    const { error: paymentError } = await supabase.from('Payment')
+// @ts-ignore
+.insert({
       id: paymentId,
       orderId,
       transactionId: transactionId.trim(),

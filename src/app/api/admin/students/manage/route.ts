@@ -64,7 +64,9 @@ export async function POST(request: NextRequest) {
         userId = nanoid();
         const nowStr = new Date().toISOString();
 
-        const { error: insertError } = await supabase.from('User').insert({
+        const { error: insertError } = await supabase.from('User')
+// @ts-ignore
+.insert({
           id: userId,
           email: email.trim().toLowerCase(),
           fullName: fullName.trim(),

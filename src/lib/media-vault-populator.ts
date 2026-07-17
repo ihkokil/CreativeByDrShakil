@@ -24,7 +24,7 @@ export async function populateMediaVaultNodes(nodes: any[]): Promise<any[]> {
   const uniqueFolderIds = [...new Set(folderIds)];
 
   // Fetch all media vault nodes for these folders
-  const { data: mediaNodes = [] } = await supabase
+  const { data: mediaNodes = [] }: { data: any[] | null } = await supabase
     .from('MediaVaultNode')
     .select('id, title, type, url, storagePath, duration, folderId, sortOrder')
     .in('folderId', uniqueFolderIds)

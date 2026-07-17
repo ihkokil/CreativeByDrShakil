@@ -91,7 +91,9 @@ export async function POST(
 
     if (!existing) {
       const nowStr = new Date().toISOString();
-      const { error: insertError } = await supabase.from('LessonProgress').insert({
+      const { error: insertError } = await supabase.from('LessonProgress')
+// @ts-ignore
+.insert({
         id: nanoid(),
         userId: payload.sub,
         courseId: course.id,

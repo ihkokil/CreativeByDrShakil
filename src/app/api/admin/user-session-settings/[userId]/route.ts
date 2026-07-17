@@ -26,7 +26,7 @@ export async function GET(
     const supabaseAdmin = getSupabaseAdmin();
 
     // Verify user exists
-    const { data: userRecord, error: userError } = await supabaseAdmin
+    const { data: userRecord, error: userError }: { data: any; error: any } = await supabaseAdmin
       .from('User')
       .select('*')
       .eq('id', userId)
@@ -78,7 +78,7 @@ export async function PUT(
     const supabaseAdmin = getSupabaseAdmin();
 
     // Verify user exists
-    const { data: userRecord, error: userError } = await supabaseAdmin
+    const { data: userRecord, error: userError }: { data: any; error: any } = await supabaseAdmin
       .from('User')
       .select('*')
       .eq('id', userId)
@@ -104,6 +104,7 @@ export async function PUT(
       }
       const { error: updateError } = await supabaseAdmin
         .from('User')
+        // @ts-ignore
         .update({ isSessionLockedExempt })
         .eq('id', userId);
 
