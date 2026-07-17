@@ -31,6 +31,7 @@ export async function PUT(
     const supabaseAdmin = getSupabaseAdmin();
     const { error: updateError } = await supabaseAdmin
       .from('DeviceSession')
+      // @ts-ignore: Supabase types expect never for update on untyped schema
       .update({ deviceLabel })
       .eq('id', sessionId);
 

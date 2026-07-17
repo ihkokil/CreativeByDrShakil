@@ -73,7 +73,7 @@ export async function getSession() {
     const { getSupabase } = await import('./db');
     const supabase = getSupabase();
     
-    const { data: userRecord, error } = await supabase
+    const { data: userRecord, error }: { data: any, error: any } = await supabase
       .from('User')
       .select('*')
       .eq('id', payload.sub)

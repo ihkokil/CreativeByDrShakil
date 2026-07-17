@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
-    if (!user.passwordHash) {
+    if (!(user as any).passwordHash) {
       return NextResponse.json(
         { error: 'This account is linked to Google. Please use Google Sign-in instead of a password.' },
         { status: 400 }
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { compare, hash } = await import('bcryptjs');
-    const isCurrentValid = await compare(currentPassword, user.passwordHash);
+    const isCurrentValid = await compare(currentPassword, (user as any).passwordHash);
 
     if (!isCurrentValid) {
       return NextResponse.json({ error: 'Current password is incorrect.' }, { status: 400 });
@@ -60,12 +60,13 @@ export async function POST(request: NextRequest) {
     
     const { error: updateError } = await supabase
       .from('User')
+      // @ts-ignore
       .update({
         passwordHash: newHash,
         passwordResetTokenHash: null,
         passwordResetExpires: null,
       })
-      .eq('id', user.id);
+      .eq('id', (user as any).id);
 
     if (updateError) throw updateError;
 

@@ -1,21 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabase } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+  try {
+    // Optional CRON_SECRET security token check
+    const authHeader = request.headers.get('authorization') || '';
+    const cronSecret = process.env.CRON_SECRET?.trim();
 
-export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    if (cronSecret) {
+      const expectedToken = `Bearer ${cronSecret}`;
+      const urlToken = new URL(request.url).searchParams.get('token');
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+      if (authHeader !== expectedToken && urlToken !== cronSecret) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
 
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    // Run a fast, lightweight query to warm up the serverless database instance
+    const supabase = getSupabase();
+    const { data: result } = await supabase.from('Course').select('id').limit(1);
+
+    return NextResponse.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      warmed: result && result.length > 0 ? (result[0] as any).id : 'no_courses',
+    });
+  } catch (error: any) {
+    console.error('[Cron Keep-Warm] Error warming database:', error);
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
 }

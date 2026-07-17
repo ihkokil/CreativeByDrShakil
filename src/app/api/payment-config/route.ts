@@ -1,21 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { getSupabase } from '@/lib/db'
 
-export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+export async function GET() {
+  try {
+    const supabase = getSupabase();
+    
+    const { data: config } = await supabase
+      .from('PaymentConfig')
+      .select('provider, sendMoneyNumber, qrCodeUrl')
+      .eq('id', 'default')
+      .limit(1)
+      .maybeSingle();
 
-export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    if (!config) {
+      return NextResponse.json({
+        provider: 'bkash',
+        sendMoneyNumber: '01700000000',
+        qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+        },
+      })
+    }
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
-
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 3 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    return NextResponse.json(config, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+      },
+    })
+  } catch (error) {
+    console.error('Failed to fetch payment configuration:', error);
+    return NextResponse.json({
+      provider: 'bkash',
+      sendMoneyNumber: '01700000000',
+      qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+      },
+    })
+  }
 }

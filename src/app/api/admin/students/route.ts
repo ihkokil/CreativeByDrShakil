@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getSupabase } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
@@ -17,25 +17,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const students = await db.query.user.findMany({
-      where: (u, { eq }) => eq(u.role, 'student'),
-      columns: {
-        id: true,
-        fullName: true,
-        role: true,
-        createdAt: true,
-        email: true,
-        phone: true,
-        profileImage: true,
-        bmdcNumber: true,
-        emailVerified: true,
-      },
-      orderBy: (u, { desc }) => [desc(u.createdAt)],
-      limit: 50, // limit for UI performance, can add pagination later
-    });
+    const supabase = getSupabase();
+    const { data: students = [], error } = await supabase
+      .from('User')
+      .select('id, fullName, role, createdAt, email, phone, profileImage, bmdcNumber, emailVerified')
+      .eq('role', 'student')
+      .order('createdAt', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
 
     return NextResponse.json({
-      students: students.map((student: any) => ({
+      students: (students || []).map((student: any) => ({
         id: student.id,
         full_name: student.fullName,
         role: student.role,
@@ -44,7 +37,7 @@ export async function GET(request: NextRequest) {
         phone: student.phone,
         profile_image: student.profileImage,
         bmdcNumber: student.bmdcNumber,
-            emailVerified: student.emailVerified,
+        emailVerified: student.emailVerified,
       })),
     });
   } catch (error: any) {

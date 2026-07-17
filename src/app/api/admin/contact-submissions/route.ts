@@ -1,21 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabase } from '@/lib/db';
+import { requireAdmin } from '@/lib/admin-auth';
+
+function normalizeSubmission(submission: any) {
+  let parsedImageUrls = [];
+  if (typeof submission.imageUrls === 'string') {
+    try { parsedImageUrls = JSON.parse(submission.imageUrls); } catch (e) {}
+  } else if (Array.isArray(submission.imageUrls)) {
+    parsedImageUrls = submission.imageUrls;
+  }
+  return {
+    ...submission,
+    imageUrls: parsedImageUrls,
+  };
+}
 
 export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+  try {
+    const adminCheck = await requireAdmin(request);
+    if (!adminCheck.ok) return adminCheck.response;
 
-export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status') || undefined;
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const supabase = getSupabase();
+    let query = supabase.from('ContactSubmission').select('*').order('createdAt', { ascending: false });
 
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data: submissions = [], error } = await query;
+    if (error) throw error;
+
+    const adminIds = [...new Set((submissions || []).map((s: any) => s.repliedByAdminId).filter(Boolean))] as string[];
+    
+    if (adminIds.length > 0) {
+      const { data: admins = [] } = await supabase.from('User').select('id, fullName, email').in('id', adminIds);
+      const adminMap = new Map((admins || []).map((a: any) => [a.id, a]));
+      for (const s of submissions || []) {
+        (s as any).repliedByAdmin = (s as any).repliedByAdminId ? adminMap.get((s as any).repliedByAdminId) || null : null;
+      }
+    }
+
+    return NextResponse.json({ submissions: (submissions || []).map(normalizeSubmission) });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
 }

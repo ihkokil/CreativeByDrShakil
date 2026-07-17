@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
 
     const { error: updateError } = await supabase
       .from('User')
+      // @ts-ignore
       .update({
         fullName,
         phone: phone || null,
@@ -49,15 +50,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
+        id: (user as any).id,
+        email: (user as any).email,
+        phone: (user as any).phone,
+        role: (user as any).role,
         user_metadata: {
-          full_name: user.fullName,
-          phone: user.phone,
-          bmdc_number: user.bmdcNumber,
-          profile_image: user.profileImage,
+          full_name: (user as any).fullName,
+          phone: (user as any).phone,
+          bmdc_number: (user as any).bmdcNumber,
+          profile_image: (user as any).profileImage,
         },
       },
     });

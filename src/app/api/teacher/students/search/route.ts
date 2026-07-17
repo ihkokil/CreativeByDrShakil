@@ -1,21 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireTeacherPayload } from '@/lib/route-auth';
+import { getSupabase } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+  try {
+    const payload = await requireTeacherPayload(request);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
 
-export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const query = request.nextUrl.searchParams.get('q') || '';
+    const supabase = getSupabase();
+    
+    let dbQuery = supabase
+      .from('User')
+      .select('id, fullName, email, phone')
+      .eq('role', 'student');
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    if (query.length > 0) {
+      const searchPattern = `%${query}%`;
+      dbQuery = dbQuery.or(`fullName.ilike.${searchPattern},email.ilike.${searchPattern},phone.ilike.${searchPattern}`);
+    }
 
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    const { data: students = [], error } = await dbQuery.limit(200);
+
+    if (error) throw error;
+
+    return NextResponse.json({ students: students || [] });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
 }

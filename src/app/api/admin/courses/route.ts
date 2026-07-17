@@ -1,21 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabase } from '@/lib/db';
+import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+  try {
+    const bearerToken = extractBearerToken(request);
+    const cookieToken = await extractCookieToken();
+    const token = bearerToken || cookieToken;
 
-export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    }
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const payload = await verifyAuthToken(token);
+    if (payload.role !== 'admin' && payload.role !== 'teacher') {
+      return NextResponse.json({ error: 'Forbidden: Admin or Teacher access required.' }, { status: 403 });
+    }
 
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    const supabase = getSupabase();
+    const { data: courses = [], error } = await supabase
+      .from('Course')
+      .select('id, title, slug, status, price, instructor')
+      .order('updatedAt', { ascending: false })
+      .order('createdAt', { ascending: false });
+
+    if (error) throw error;
+
+    return NextResponse.json({
+      courses: (courses || []).map((course: any) => ({
+        id: course.id,
+        title: course.title,
+        slug: course.slug,
+        status: course.status,
+        price: course.price,
+        instructor: course.instructor,
+      })),
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
+  }
 }

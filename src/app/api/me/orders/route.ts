@@ -1,21 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { getSupabase } from '@/lib/db';
+import { getAuthPayload } from '@/lib/route-auth'
 
 export async function GET(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+  try {
+    const payload = await getAuthPayload(request)
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-export async function POST(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const supabase = getSupabase();
 
-export async function PUT(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
-}
+    const { data: orders = [], error: ordersError } = await supabase
+      .from('Order')
+      .select('*')
+      .eq('userId', payload.sub)
+      .order('createdAt', { ascending: false });
+      
+    if (ordersError) throw ordersError;
 
-export async function DELETE(request: NextRequest) {
-  // TODO(supabase-migration): Phase 2 — stubbed during Drizzle purge
-  throw new Error('Route not yet migrated to Supabase');
+    let ordersWithRelations = orders || [];
+    if (ordersWithRelations.length > 0) {
+      const courseIds = [...new Set(ordersWithRelations.map((o: any) => o.courseId))];
+      const orderIds = ordersWithRelations.map((o: any) => o.id);
+      
+      const coursesPromise = courseIds.length 
+        ? supabase.from('Course').select('*').in('id', courseIds) 
+        : Promise.resolve({ data: [] });
+      const paymentsPromise = orderIds.length 
+        ? supabase.from('Payment').select('*').in('orderId', orderIds) 
+        : Promise.resolve({ data: [] });
+        
+      const [coursesRes, paymentsRes] = await Promise.all([coursesPromise, paymentsPromise]);
+      const courses = coursesRes.data || [];
+      const payments = paymentsRes.data || [];
+      
+      const courseMap = new Map(courses.map((c: any) => [c.id, c]));
+      const paymentMap = new Map<string, any[]>();
+      for (const p of (payments as any[])) {
+        const arr = paymentMap.get(p.orderId) || [];
+        arr.push(p);
+        paymentMap.set(p.orderId, arr);
+      }
+      
+      ordersWithRelations = ordersWithRelations.map((o: any) => ({
+        ...o,
+        course: courseMap.get(o.courseId) || null,
+        payments: paymentMap.get(o.id) || [],
+      }));
+    }
+
+    return NextResponse.json(ordersWithRelations)
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  }
 }

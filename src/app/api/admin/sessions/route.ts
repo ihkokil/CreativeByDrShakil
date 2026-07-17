@@ -30,7 +30,7 @@ export async function GET() {
 
     if (studentsError) throw studentsError;
 
-    const studentIds = (studentsData || []).map(s => s.id);
+    const studentIds = (studentsData || []).map((s: any) => s.id);
     
     let deviceSessions: any[] = [];
     let lockSettings: any[] = [];
@@ -61,9 +61,9 @@ export async function GET() {
       list.push(ds);
       sessionsMap.set(ds.userId, list);
     }
-    const lockSettingsMap = new Map(lockSettings.map(ls => [ls.userId, ls]));
+    const lockSettingsMap = new Map(lockSettings.map((ls: any) => [ls.userId, ls]));
 
-    const students = (studentsData || []).map(s => ({
+    const students = (studentsData || []).map((s: any) => ({
       ...s,
       deviceSessions: sessionsMap.get(s.id) || [],
       sessionLockSettings: lockSettingsMap.get(s.id) || null,
@@ -75,9 +75,9 @@ export async function GET() {
     const response = {
       globalAutoLockSetting,
       students: await Promise.all(
-        students.map(async (student) => {
+        students.map(async (student: any) => {
           const resolved = await resolveAutoLockSetting(student.id);
-          const activeSessions = student.deviceSessions.filter((s) => !s.loggedOutAt && !s.isLocked);
+          const activeSessions = student.deviceSessions.filter((s: any) => !s.loggedOutAt && !s.isLocked);
 
           return {
             id: student.id,

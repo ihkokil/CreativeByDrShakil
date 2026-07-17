@@ -45,7 +45,7 @@ export async function GET() {
 
     if (error) throw error;
 
-    const match = results?.[0];
+    const match = results?.[0] as any;
     if (!match) {
       return NextResponse.json({ course: null }, {
         headers: {

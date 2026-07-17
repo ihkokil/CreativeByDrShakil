@@ -17,9 +17,9 @@ export async function GET() {
     if (error) throw error;
 
     return NextResponse.json({
-      teachers: (teachers || []).map((teacher) => ({
+      teachers: (teachers || []).map((teacher: any) => ({
         id: teacher.id,
-        full_name: teacher.fullName.trim(),
+        full_name: teacher.fullName?.trim() || null,
         profile_image: normalizeOptionalText(teacher.profileImage),
         designation: normalizeOptionalText(teacher.designation),
         institution: normalizeOptionalText(teacher.institution),

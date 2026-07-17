@@ -71,13 +71,13 @@ export async function GET() {
 
     const teacherMap = new Map(teachers.map(t => [t.id, t]));
     const instructorsMap = new Map<string, any[]>();
-    instructors.forEach(inst => {
+    instructors.forEach((inst: any) => {
       const list = instructorsMap.get(inst.courseId) || [];
       list.push(inst);
       instructorsMap.set(inst.courseId, list);
     });
 
-    const courses = coursesData.map(c => ({
+    const courses = coursesData.map((c: any) => ({
       ...c,
       teacher: c.teacherId ? teacherMap.get(c.teacherId) || null : null,
       instructors: instructorsMap.get(c.id) || [],
@@ -94,7 +94,7 @@ export async function GET() {
     if (videoError) throw videoError;
 
     const folderCounts: Record<string, number> = {};
-    (videoNodes || []).forEach(node => {
+    (videoNodes || []).forEach((node: any) => {
       if (node.parentId) {
         folderCounts[node.parentId] = (folderCounts[node.parentId] || 0) + 1;
       }
