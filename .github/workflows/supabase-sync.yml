@@ -4,35 +4,62 @@ on:
   schedule:
     # 22:00 UTC = 04:00 AM GMT+6 (Bangladesh Standard Time)
     - cron: '0 22 * * *'
-  workflow_dispatch: # Allows manual trigger for testing
+  workflow_dispatch:
 
 jobs:
   sync-databases:
     runs-on: ubuntu-latest
     steps:
-      - name: Install PostgreSQL Client Tools
+      - name: Install PostgreSQL 17 Client Tools
         run: |
+          sudo apt-get remove -y postgresql-client* libpq* || true
+          sudo apt-get install -y curl ca-certificates
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            > /etc/apt/sources.list.d/pgdg.list'
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Run DB Sync Script
         env:
-          # Direct PostgreSQL connection URLs for standard DB sync (e.g., postgres://...)
           SUPABASE_DB_URL_1: ${{ secrets.SUPABASE_DB_URL_1 }}
           SUPABASE_DB_URL_2: ${{ secrets.SUPABASE_DB_URL_2 }}
           SUPABASE_DB_URL_3: ${{ secrets.SUPABASE_DB_URL_3 }}
           SUPABASE_DB_URL_4: ${{ secrets.SUPABASE_DB_URL_4 }}
           SUPABASE_DB_URL_5: ${{ secrets.SUPABASE_DB_URL_5 }}
+          CLEAN_SQL: |
+            -- Drop event triggers first (they depend on functions in public schema)
+            DO $$
+            DECLARE
+              trig RECORD;
+            BEGIN
+              FOR trig IN
+                SELECT evtname FROM pg_event_trigger
+              LOOP
+                EXECUTE format('DROP EVENT TRIGGER IF EXISTS %I CASCADE', trig.evtname);
+                RAISE NOTICE 'Dropped event trigger: %', trig.evtname;
+              END LOOP;
+            END;
+            $$;
+
+            -- Drop and recreate public schema to wipe all objects cleanly
+            DROP SCHEMA public CASCADE;
+            CREATE SCHEMA public;
+            GRANT ALL ON SCHEMA public TO postgres;
+            GRANT ALL ON SCHEMA public TO public;
         run: |
-          # Helper function to convert pooler URLs (6543) to direct connection URLs (5432)
-          to_direct_url() {
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          echo "Using pg_dump: $(which pg_dump) — $(pg_dump --version)"
+
+          to_session_url() {
             node -e "
               try {
                 const url = new URL(process.argv[1]);
-                if (url.port === '6543' && url.username.startsWith('postgres.')) {
-                  const ref = url.username.substring(9);
-                  url.username = 'postgres';
-                  url.host = 'db.' + ref + '.supabase.co';
+                if (url.port === '6543') {
                   url.port = '5432';
                 }
                 console.log(url.toString());
@@ -42,47 +69,89 @@ jobs:
             " "$1"
           }
 
-          # 1. Calculate the active database for the day that just ended (using offset of 10 min ago).
+          # Drop all event triggers and the public schema cleanly on a target DB
+          # before restore, so pg_restore doesn't hit dependency conflicts.
+          clean_target() {
+            local TARGET_URL="$1"
+            echo "  Pre-cleaning target..."
+            echo "$CLEAN_SQL" | psql "$TARGET_URL"
+          }
+
+          # ── Determine source DB for today ──────────────────────────────────
           DAY=$(date -d "10 minutes ago" +%d)
           REM=$((10#$DAY % 5))
-          
+
           if [ $REM -eq 1 ]; then SOURCE_URL=$SUPABASE_DB_URL_1; SOURCE_INDEX=1; fi
           if [ $REM -eq 2 ]; then SOURCE_URL=$SUPABASE_DB_URL_2; SOURCE_INDEX=2; fi
           if [ $REM -eq 3 ]; then SOURCE_URL=$SUPABASE_DB_URL_3; SOURCE_INDEX=3; fi
           if [ $REM -eq 4 ]; then SOURCE_URL=$SUPABASE_DB_URL_4; SOURCE_INDEX=4; fi
           if [ $REM -eq 0 ]; then SOURCE_URL=$SUPABASE_DB_URL_5; SOURCE_INDEX=5; fi
-          
+
           echo "Sync Source: DB$SOURCE_INDEX"
-          
+
           if [ -z "$SOURCE_URL" ]; then
             echo "Error: Source URL for DB$SOURCE_INDEX is empty or not configured."
             exit 1
           fi
-          
-          SOURCE_URL=$(to_direct_url "$SOURCE_URL")
-          
-          # 2. Dump the public schema from the source database
-          # Includes cleaning statements to reset tables on targets before restore
-          pg_dump --clean --if-exists --no-owner --no-privileges --schema=public --dbname="$SOURCE_URL" -F c -f db_backup.dump
-          
-          # 3. Restore to target databases
+
+          SOURCE_URL=$(to_session_url "$SOURCE_URL")
+
+          # ── Dump source (no --clean, we handle cleanup manually) ───────────
+          pg_dump \
+            --no-owner \
+            --no-privileges \
+            --schema=public \
+            --dbname="$SOURCE_URL" \
+            -F c \
+            -f db_backup.dump
+
+          echo "Dump complete. Starting restore to targets..."
+
+          # ── Restore to each target ─────────────────────────────────────────
+          RESTORE_FAILED=0
+
           for i in {1..5}
           do
             if [ $i -ne $SOURCE_INDEX ]; then
+              echo "──────────────────────────────────────"
               echo "Synchronizing Target DB$i..."
+
               TARGET_VAR="SUPABASE_DB_URL_$i"
               TARGET_URL="${!TARGET_VAR}"
-              
+
               if [ -z "$TARGET_URL" ]; then
                 echo "Warning: Target URL for DB$i is empty. Skipping."
                 continue
               fi
-              
-              TARGET_URL=$(to_direct_url "$TARGET_URL")
-              
-              # Restore public schema schema and data
-              pg_restore --clean --if-exists --no-owner --no-privileges --schema=public --dbname="$TARGET_URL" db_backup.dump
+
+              TARGET_URL=$(to_session_url "$TARGET_URL")
+
+              # Step 1: Clean target manually with CASCADE support
+              if ! clean_target "$TARGET_URL"; then
+                echo "Error: Pre-clean failed for DB$i. Skipping restore."
+                RESTORE_FAILED=1
+                continue
+              fi
+
+              # Step 2: Restore (no --clean, schema is already blank)
+              if ! pg_restore \
+                    --no-owner \
+                    --no-privileges \
+                    --schema=public \
+                    --dbname="$TARGET_URL" \
+                    db_backup.dump; then
+                echo "Error: Restore failed for DB$i."
+                RESTORE_FAILED=1
+              else
+                echo "DB$i synchronized successfully."
+              fi
             fi
           done
-          
-          echo "Synchronization complete!"
+
+          echo "══════════════════════════════════════"
+          if [ $RESTORE_FAILED -ne 0 ]; then
+            echo "Synchronization completed WITH errors. Check logs above."
+            exit 1
+          else
+            echo "Synchronization complete! All targets updated."
+          fi
