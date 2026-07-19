@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { verifyVerificationToken } from '@/lib/token-utils';
 import { getAppUrl } from '@/lib/email';
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { orderId, action } = tokenPayload;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: order, error: orderError }: { data: any; error: any } = await supabase
       .from('Order')

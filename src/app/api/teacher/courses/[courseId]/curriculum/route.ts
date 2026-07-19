@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 
@@ -14,7 +14,7 @@ export async function GET(
     }
 
     const { courseId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')
@@ -53,7 +53,7 @@ export async function PUT(
       return NextResponse.json({ error: 'curriculum must be an array.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')

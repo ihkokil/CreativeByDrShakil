@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function PUT(
@@ -14,7 +14,7 @@ export async function PUT(
 
     const { courseId } = await params;
     const body = await request.json();
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')

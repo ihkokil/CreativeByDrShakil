@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { sendMail } from '@/lib/email';
 import { type ContactIssueType } from '@/lib/contact-emails';
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (!adminCheck.ok) return adminCheck.response;
 
     const resolvedParams = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: submission } = await supabase
       .from('ContactSubmission')
@@ -80,7 +80,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const adminReply = typeof body?.adminReply === 'string' ? body.adminReply.trim() : '';
     const sendReplyEmail = Boolean(body?.sendReplyEmail ?? true);
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: existing } = await supabase
       .from('ContactSubmission')

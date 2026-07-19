@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         const authCheck = await requireTeacherOrAdmin(request);
         if (!authCheck.ok) return authCheck.response;
 
-        const supabase = getSupabase();
+        const supabase = getSupabaseAdmin();
         
         const { data: nodes = [], error } = await supabase
             .from('VideoLibraryNode')
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Invalid type.' }, { status: 400 });
         }
 
-        const supabase = getSupabase();
+        const supabase = getSupabaseAdmin();
 
         if (parentId) {
             const { data: parent } = await supabase
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
         const nextOrder = ((result as any)?.sortOrder ?? -1) + 1;
 
         const nodeId = crypto.randomUUID();
+        const nowStr = new Date().toISOString();
         const insertValues = {
             id: nodeId,
             title,
@@ -104,6 +105,8 @@ export async function POST(request: NextRequest) {
             parentId,
             attachments,
             sortOrder: nextOrder,
+            createdAt: nowStr,
+            updatedAt: nowStr,
         };
 
         const { error: insertError } = await supabase.from('VideoLibraryNode')

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, collectVideoNodes } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
@@ -17,7 +17,7 @@ export async function GET(
     const { id: studentId } = await params;
     const courseId = request.nextUrl.searchParams.get('courseId');
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: student }: { data: any } = await supabase
       .from('User')
@@ -30,7 +30,6 @@ export async function GET(
       return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
     }
 
-    // Get approved orders for this student
     let orderQuery = supabase
       .from('Order')
       .select('courseId, enrolledAt, updatedAt')

@@ -10,130 +10,38 @@ jobs:
   sync-databases:
     runs-on: ubuntu-latest
     steps:
-      - name: Install PostgreSQL 17 Client Tools
-        run: |
-          sudo apt-get remove -y postgresql-client* libpq* || true
-          sudo apt-get install -y curl ca-certificates
-          sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail \
-            https://www.postgresql.org/media/keys/ACCC4CF8.asc
-          sudo sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
-            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
-            > /etc/apt/sources.list.d/pgdg.list'
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-17
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Verify Node Version
+        run: node --version
+
+      - name: Install Dependencies
+        run: npm ci
 
       - name: Run DB Sync Script
         env:
-          SUPABASE_DB_URL_1: ${{ secrets.SUPABASE_DB_URL_1 }}
-          SUPABASE_DB_URL_2: ${{ secrets.SUPABASE_DB_URL_2 }}
-          SUPABASE_DB_URL_3: ${{ secrets.SUPABASE_DB_URL_3 }}
-          SUPABASE_DB_URL_4: ${{ secrets.SUPABASE_DB_URL_4 }}
-          SUPABASE_DB_URL_5: ${{ secrets.SUPABASE_DB_URL_5 }}
-          # The permanent 6th backup DB that the app double-writes to
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          CI: true
 
-          to_session_url() {
-            node -e "
-              try {
-                const url = new URL(process.argv[1]);
-                if (url.port === '6543') url.port = '5432';
-                console.log(url.toString());
-              } catch(e) { console.log(process.argv[1]); }
-            " "$1"
-          }
+          # Source DB (The Primary Backup DB)
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-          clean_target() {
-            local TARGET_URL="$1"
-            psql "$TARGET_URL" -c "DO \$\$ DECLARE trig RECORD; BEGIN FOR trig IN SELECT evtname FROM pg_event_trigger LOOP EXECUTE format('DROP EVENT TRIGGER IF EXISTS %I CASCADE', trig.evtname); END LOOP; END; \$\$;"
-            psql "$TARGET_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;"
-          }
-
-          # ── Determine source DB for today ──────────────────────────────────
-          DAY=$(date +%d)
-          REM=$(( (10#$DAY - 1) % 5 + 1 ))
-
-          SOURCE_VAR="SUPABASE_DB_URL_$REM"
-          SOURCE_URL="${!SOURCE_VAR}"
-          SOURCE_INDEX=$REM
-
-          echo "Today is day $DAY. Selecting DB$SOURCE_INDEX as the Sync Source."
-
-          if [ -z "$SOURCE_URL" ]; then
-            echo "Error: Source URL for DB$SOURCE_INDEX is empty."
-            exit 1
-          fi
-
-          SOURCE_URL=$(to_session_url "$SOURCE_URL")
-
-          # ── Dump source ────────────────────────────────────────────────────
-          echo "Dumping DB$SOURCE_INDEX..."
-          pg_dump --no-owner --no-privileges --schema=public \
-            --dbname="$SOURCE_URL" -F c -f db_backup.dump
-          echo "Dump complete."
-
-          # ── Restore to the 5 rotating DBs (skip source) ───────────────────
-          RESTORE_FAILED=0
-
-          for i in {1..5}
-          do
-            if [ $i -ne $SOURCE_INDEX ]; then
-              echo "Syncing DB$SOURCE_INDEX → DB$i..."
-              TARGET_VAR="SUPABASE_DB_URL_$i"
-              TARGET_URL="${!TARGET_VAR}"
-
-              if [ -z "$TARGET_URL" ]; then
-                echo "Warning: DB$i URL is empty. Skipping."
-                continue
-              fi
-
-              TARGET_URL=$(to_session_url "$TARGET_URL")
-
-              if ! clean_target "$TARGET_URL"; then
-                echo "Pre-clean failed for DB$i. Skipping."
-                RESTORE_FAILED=1
-                continue
-              fi
-
-              if ! pg_restore --no-owner --no-privileges --schema=public \
-                    --dbname="$TARGET_URL" db_backup.dump; then
-                echo "Restore to DB$i failed."
-                RESTORE_FAILED=1
-              else
-                echo "DB$i synced successfully. ✅"
-              fi
-            fi
-          done
-
-          # ── Restore to the permanent 6th backup DB ─────────────────────────
-          echo "══════════════════════════════════════"
-          echo "Syncing DB$SOURCE_INDEX → Backup DB (SUPABASE_DB_URL)..."
-
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "Warning: SUPABASE_DB_URL is empty. Skipping backup DB sync."
-          else
-            BACKUP_URL=$(to_session_url "$SUPABASE_DB_URL")
-
-            if ! clean_target "$BACKUP_URL"; then
-              echo "Pre-clean failed for Backup DB."
-              RESTORE_FAILED=1
-            else
-              if ! pg_restore --no-owner --no-privileges --schema=public \
-                    --dbname="$BACKUP_URL" db_backup.dump; then
-                echo "Restore to Backup DB failed."
-                RESTORE_FAILED=1
-              else
-                echo "Backup DB synced successfully. ✅"
-              fi
-            fi
-          fi
-
-          echo "══════════════════════════════════════"
-          if [ $RESTORE_FAILED -ne 0 ]; then
-            echo "Synchronization completed WITH errors."
-            exit 1
-          else
-            echo "All 6 databases are synchronized. ✅"
-          fi
+          # The 5 Target Read Replicas
+          SUPABASE_URL_1: ${{ secrets.SUPABASE_URL_1 }}
+          SUPABASE_SERVICE_ROLE_KEY_1: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_1 }}
+          SUPABASE_URL_2: ${{ secrets.SUPABASE_URL_2 }}
+          SUPABASE_SERVICE_ROLE_KEY_2: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_2 }}
+          SUPABASE_URL_3: ${{ secrets.SUPABASE_URL_3 }}
+          SUPABASE_SERVICE_ROLE_KEY_3: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_3 }}
+          SUPABASE_URL_4: ${{ secrets.SUPABASE_URL_4 }}
+          SUPABASE_SERVICE_ROLE_KEY_4: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_4 }}
+          SUPABASE_URL_5: ${{ secrets.SUPABASE_URL_5 }}
+          SUPABASE_SERVICE_ROLE_KEY_5: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_5 }}
+        run: node scripts/sync-databases.js

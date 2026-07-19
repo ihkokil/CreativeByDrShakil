@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server'
 
 async function requireAdmin(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const adminCheck = await requireAdmin(request)
     if (!adminCheck.ok) return adminCheck.response
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { data: config }: { data: any } = await supabase
       .from('PaymentConfig')
       .select('provider, sendMoneyNumber, qrCodeUrl')
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     const qrCodeUrl = qrCodeUrlRaw || '/bkash-qr.png'
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     const { error: upsertError } = await supabase
       .from('PaymentConfig')

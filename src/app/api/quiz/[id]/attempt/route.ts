@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import { shuffleArray } from '@/lib/shuffle';
@@ -17,7 +18,9 @@ export async function POST(
     }
     
     const studentId = payload.sub;
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    const supabase = getSupabase(token);
     
     const { data: rawQuiz } = await supabase
       .from('Quiz')

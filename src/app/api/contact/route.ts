@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import {
   sendContactSubmissionAcknowledgement,
   sendContactSubmissionNotification,
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
         status: 'open',
     };
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { error: insertError } = await supabase.from('ContactSubmission')
 // @ts-ignore
 .insert(insertValues);

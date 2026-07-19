@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 
 const normalizeOptionalText = (value: unknown) =>
   typeof value === 'string' ? value.trim() || null : null;
 
 export async function GET() {
   try {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { data: teachers, error } = await supabase
       .from('User')
       .select('id, fullName, profileImage, designation, institution')

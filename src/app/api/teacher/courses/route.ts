@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, slugify } from '@/lib/teacher-course-builder';
 import { parseDisplayDateToIso } from '@/lib/date-format';
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         ? { teacherId: requestedTeacherId }
         : {};
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     let courses;
 
     try {
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sale price must be a valid positive number.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     const { data: teacher } = await supabase
       .from('User')
@@ -166,6 +166,8 @@ export async function POST(request: NextRequest) {
         timezone: 'Asia/Dhaka',
         curriculumJson: '[]',
         releaseGroupDates: '{}',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
     } as any);
     
     if (insertError) throw insertError;

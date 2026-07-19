@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
 
         const { fullName, email, designation, institution, degrees, profileImage } = await request.json();
 
-        const supabase = getSupabase();
+        const supabase = getSupabaseAdmin();
         
         const { error: updateError } = await supabase
             .from('User')
@@ -67,7 +67,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
         }
 
         const { reassignToId } = await request.json();
-        const supabase = getSupabase();
+        const supabase = getSupabaseAdmin();
 
         const { data: teacherToDelete }: { data: any } = await supabase
             .from('User')

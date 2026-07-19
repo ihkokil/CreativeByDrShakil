@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
+import { scopedToUser, scopedToStudent } from '@/lib/db-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +18,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: user, error: userError } = await supabase
       .from('User')
@@ -34,11 +36,10 @@ export async function GET(request: NextRequest) {
     const isAdmin = (user as any).role === 'admin';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
-    const { data: rawOrders = [] } = await supabase
-      .from('Order')
-      .select('*')
-      .eq('userId', (user as any).id)
-      .order('createdAt', { ascending: false });
+    const { data: rawOrders = [] } = await scopedToUser(
+      supabase.from('Order').select('*'),
+      (user as any).id
+    ).order('createdAt', { ascending: false });
 
     const orderCourseIds = (rawOrders || []).map((o: any) => o.courseId);
     const orderIds = (rawOrders || []).map((o: any) => o.id);
@@ -121,11 +122,14 @@ export async function GET(request: NextRequest) {
     const courseIds = enrolledCourses.map((c) => c.courseId);
     
     const progressRes = courseIds.length
-      ? await supabase.from('LessonProgress').select('courseId, lessonNodeId').eq('userId', (user as any).id).in('courseId', courseIds)
+      ? await scopedToUser(
+          supabase.from('LessonProgress').select('courseId, lessonNodeId'),
+          (user as any).id
+        ).in('courseId', courseIds)
       : { data: [] };
     const progressRows = progressRes.data || [];
 
-    const progressByCourse = progressRows.reduce<Record<string, Set<string>>>((acc: any, row: any) => {
+    const progressByCourse = (progressRows as any[]).reduce((acc: Record<string, Set<string>>, row: any) => {
       if (!acc[row.courseId]) {
         acc[row.courseId] = new Set<string>();
       }
@@ -174,13 +178,12 @@ export async function GET(request: NextRequest) {
       .select('id, title')
       .eq('status', 'published');
 
-    const { data: rawAttempts = [] } = await supabase
-      .from('QuizAttempt')
-      .select('*')
-      .eq('studentId', (user as any).id)
-      .order('submittedAt', { ascending: false });
+    const { data: rawAttempts = [] } = await scopedToStudent(
+      supabase.from('QuizAttempt').select('*'),
+      (user as any).id
+    ).order('submittedAt', { ascending: false });
 
-    const attemptQuizIds = Array.from(new Set((rawAttempts || []).map((a: any) => a.quizId)));
+    const attemptQuizIds = Array.from(new Set<string>((rawAttempts as any[] || []).map((a: any) => a.quizId)));
 
     const quizzesRes = attemptQuizIds.length > 0
       ? await supabase.from('Quiz').select('id, title').in('id', attemptQuizIds)
@@ -194,15 +197,15 @@ export async function GET(request: NextRequest) {
       quiz: quizzesMap.get(a.quizId) || null,
     }));
 
-    const completedAttempts = studentAttempts.filter(a => a.status === 'submitted' || a.status === 'auto_submitted');
-    const completedQuizIds = new Set(completedAttempts.map(a => a.quizId));
+    const completedAttempts = studentAttempts.filter((a: any) => a.status === 'submitted' || a.status === 'auto_submitted');
+    const completedQuizIds = new Set(completedAttempts.map((a: any) => a.quizId));
     const completedCount = completedQuizIds.size;
-    const availableCount = (publishedQuizzes || []).filter(q => !completedQuizIds.has(q.id)).length;
+    const availableCount = (publishedQuizzes || []).filter((q: any) => !completedQuizIds.has(q.id)).length;
     const averageScore = completedAttempts.length > 0 
-      ? Math.round(completedAttempts.reduce((sum, a) => sum + a.percentageScore, 0) / completedAttempts.length)
+      ? Math.round(completedAttempts.reduce((sum: number, a: any) => sum + a.percentageScore, 0) / completedAttempts.length)
       : 0;
 
-    const recentQuizAttempts = completedAttempts.slice(0, 3).map(a => ({
+    const recentQuizAttempts = completedAttempts.slice(0, 3).map((a: any) => ({
       id: a.id,
       quizId: a.quizId,
       quizTitle: a.quiz?.title || 'Unknown Quiz',

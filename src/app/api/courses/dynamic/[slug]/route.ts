@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { formatLastUpdated } from '@/lib/date-format';
@@ -16,7 +17,9 @@ export async function GET(
 ) {
   const { slug } = await params;
   try {
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    const supabase = getSupabase(token);
 
     const { data: course, error: courseError } = await supabase
       .from('Course')

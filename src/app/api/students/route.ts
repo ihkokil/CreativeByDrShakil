@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
@@ -19,7 +19,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: studentsList = [] } = await supabase
       .from('User')
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -14,7 +15,9 @@ export async function GET(
     }
 
     const { slug } = await params;
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    const supabase = getSupabase(token);
 
     const { data: course, error: courseError }: { data: any; error: any } = await supabase
       .from('Course')
@@ -65,7 +68,10 @@ export async function POST(
       return NextResponse.json({ error: 'lessonNodeId is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+
+    const supabase = getSupabase(token);
 
     const { data: course, error: courseError }: { data: any; error: any } = await supabase
       .from('Course')
@@ -130,7 +136,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'lessonNodeId is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+
+    const supabase = getSupabase(token);
 
     const { data: course }: { data: any } = await supabase
       .from('Course')

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: enrollmentsData = [] } = await supabase
       .from('Order')
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course ID is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Verify course exists
     const { data: course }: { data: any } = await supabase
@@ -323,7 +323,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Order ID is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     await supabase.from('Order').delete().eq('id', orderId);
 
     return NextResponse.json({

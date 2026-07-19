@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 
 function normalizeSubmission(submission: any) {
@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || undefined;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     let query = supabase.from('ContactSubmission').select('*').order('createdAt', { ascending: false });
 
     if (status) {
-      query = query.eq('status', status);
+      query = query.eq('status', status as "open" | "in_review" | "responded" | "closed");
     }
 
     const { data: submissions = [], error } = await query;

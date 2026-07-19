@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'courseId is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Verify the course exists and is published
     const { data: course, error: courseError }: { data: any; error: any } = await supabase

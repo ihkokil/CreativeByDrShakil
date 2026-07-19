@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 export async function GET(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden: Admin access required.' }, { status: 403 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { data: students = [], error } = await supabase
       .from('User')
       .select('id, fullName, role, createdAt, email, phone, profileImage, bmdcNumber, emailVerified')

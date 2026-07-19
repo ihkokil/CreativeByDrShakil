@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 
 export async function GET(request: NextRequest) {
@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const adminCheck = await requireAdmin(request);
     if (!adminCheck.ok) return adminCheck.response;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const [coursesRes, studentsRes, teachersRes, ordersRes, pendingRes, quizzesRes] = await Promise.all([
       supabase.from('Course').select('id, status, price', { count: 'exact' }),

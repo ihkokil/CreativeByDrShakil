@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const courseIdParam = request.nextUrl.searchParams.get('courseId');
     const teacherCourses = await getTeacherCourses(payload.sub, payload.role, supabase);
 
@@ -295,7 +295,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'courseId, userId, and lessonNodeId are required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { data: course } = await supabase.from('Course').select('id').eq('id', courseId).limit(1).maybeSingle();
 
     if (!course) {
@@ -321,7 +321,8 @@ export async function PATCH(request: NextRequest) {
         .eq('userId', userId)
         .eq('lessonNodeId', lessonNodeId);
         
-      await supabase.from('StudentModuleAvailability')
+      const nowStr = new Date().toISOString();
+      const { error: insertError } = await supabase.from('StudentModuleAvailability')
 // @ts-ignore
 .insert({
         id: crypto.randomUUID(),
@@ -330,7 +331,10 @@ export async function PATCH(request: NextRequest) {
         lessonNodeId,
         availabilityMode,
         availableAt: nextAvailableAt ? nextAvailableAt.toISOString() : null,
+        createdAt: nowStr,
+        updatedAt: nowStr,
       } as any);
+      if (insertError) throw insertError;
     }
 
     return NextResponse.json({ success: true });

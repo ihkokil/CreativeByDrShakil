@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -24,7 +24,7 @@ export async function GET(
     }
 
     const { id: studentId, courseId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const [studentRes, courseRes, orderRes] = await Promise.all([
       supabase.from('User').select('id, fullName, email, profileImage').eq('id', studentId).limit(1).maybeSingle(),

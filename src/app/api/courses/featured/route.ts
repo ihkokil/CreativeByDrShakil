@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 
 const formatPrice = (price: number) => {
   if (price <= 0) {
@@ -11,7 +11,7 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     // Perform a PostgREST join by specifying User relation in the select query.
     // Relational mapping uses the foreign key from Course(teacherId) to User(id).

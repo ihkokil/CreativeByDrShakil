@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import {
   collectSecondChildGroups,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { courseId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     const { data: courseRow } = await supabase.from('Course').select('*').eq('id', courseId).limit(1).maybeSingle();
 
@@ -84,7 +84,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const { courseId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const existingCourse = await getCourseForPayload(courseId, payload.sub, payload.role, supabase);
 
     if (!existingCourse) {
@@ -92,7 +92,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const body = await request.json();
-    const updateData: Record<string, unknown> = {};
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+    };
 
     if (typeof body.title === 'string' && body.title.trim()) {
       const normalizedTitle = body.title.trim();
@@ -197,7 +199,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const { courseId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const existingCourse = await getCourseForPayload(courseId, payload.sub, payload.role, supabase);
 
     if (!existingCourse) {

@@ -103,6 +103,8 @@ export async function POST(request: NextRequest) {
       emailVerified,
       emailVerificationTokenHash: tokenHash,
       emailVerificationExpires: verifyExpiry?.toISOString() || null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const { error: insertError } = await supabase.from('User')

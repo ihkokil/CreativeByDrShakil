@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function PUT(
@@ -13,7 +14,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
     
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    
+    const supabase = getSupabase(token);
 
     const { data: existingQuiz } = await supabase
       .from('Quiz')
@@ -108,7 +112,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
     
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    
+    const supabase = getSupabase(token);
 
     const { data: existingQuiz } = await supabase
       .from('Quiz')

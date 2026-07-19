@@ -9,6 +9,9 @@ export interface AuthTokenPayload extends JWTPayload {
   role: 'admin' | 'teacher' | 'student';
   email: string;
   sessionId?: string;
+  isBanned?: boolean;
+  isSessionLockedExempt?: boolean;
+  deviceHash?: string;
   user_metadata?: {
     full_name: string | null;
     phone: string | null;
@@ -27,7 +30,16 @@ function getJwtSecret(): Uint8Array {
 }
 
 
-export async function signAuthToken(payload: { sub: string; role: 'admin' | 'teacher' | 'student'; email: string; sessionId?: string; user_metadata?: any }) {
+export async function signAuthToken(payload: { 
+  sub: string; 
+  role: 'admin' | 'teacher' | 'student'; 
+  email: string; 
+  sessionId?: string; 
+  isBanned?: boolean;
+  isSessionLockedExempt?: boolean;
+  deviceHash?: string;
+  user_metadata?: any 
+}) {
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
 
   return new SignJWT(payload)
@@ -66,12 +78,14 @@ export async function getSession() {
     
     if (payload.sessionId) {
       const { isSessionValid } = await import('@/lib/session-manager');
-      const sessionValid = await isSessionValid(payload.sessionId);
+      const headersList = await headers();
+      const xDeviceHash = headersList.get('x-device-hash');
+      const sessionValid = await isSessionValid(payload.sessionId, payload.sub, xDeviceHash);
       if (!sessionValid) return null;
     }
 
-    const { getSupabase } = await import('./db');
-    const supabase = getSupabase();
+    const { getSupabaseAdmin } = await import('./db');
+    const supabase = getSupabaseAdmin();
     
     const { data: userRecord, error }: { data: any, error: any } = await supabase
       .from('User')

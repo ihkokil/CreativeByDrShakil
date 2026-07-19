@@ -1,4 +1,4 @@
-import { getSupabase } from './db';
+import { getSupabaseAdmin } from './db';
 import { DeviceType } from './client-fingerprint';
 
 export interface CreateSessionOptions {
@@ -40,44 +40,44 @@ function mapDate(d: string | null): Date | null {
 }
 
 export async function createDeviceSession(options: CreateSessionOptions): Promise<SessionInfo> {
-  const id = crypto.randomUUID();
-  const insertValues = {
-    id,
-    userId: options.userId,
-    deviceType: options.deviceType,
-    browserName: options.browserName,
-    userAgent: options.userAgent,
-    ipAddress: options.ipAddress,
-    deviceHash: options.deviceHash || null,
-    deviceLabel: options.deviceLabel || null,
-    osInfo: options.osInfo || null,
-  };
-  
-  const supabase = getSupabase();
-  const { error } = await supabase.from('DeviceSession')
-// @ts-ignore
-.insert(insertValues as any);
-  if (error) throw error;
+  const supabase = getSupabaseAdmin();
+  const { data: newSession, error } = await supabase.rpc('fn_create_device_session', {
+    p_user_id: options.userId,
+    p_device_type: options.deviceType,
+    p_browser_name: options.browserName,
+    p_user_agent: options.userAgent,
+    p_ip_address: options.ipAddress,
+    p_device_hash: options.deviceHash || '',
+    p_device_label: options.deviceLabel || '',
+    p_os_info: options.osInfo || '',
+  });
+
+  if (error) {
+    if (error.message.includes('device_category_locked')) {
+      throw new Error('device_category_locked');
+    }
+    throw error;
+  }
 
   return {
-    id,
-    userId: options.userId,
-    deviceType: options.deviceType as DeviceType,
-    browserName: options.browserName,
-    ipAddress: options.ipAddress,
-    isLocked: false,
+    id: newSession.id,
+    userId: newSession.userId,
+    deviceType: newSession.deviceType as DeviceType,
+    browserName: newSession.browserName,
+    ipAddress: newSession.ipAddress,
+    isLocked: newSession.isLocked,
     loggedOutAt: null,
-    createdAt: new Date(),
-    lastActivityAt: new Date(),
-    deviceHash: options.deviceHash || null,
-    deviceLabel: options.deviceLabel || null,
-    osInfo: options.osInfo || null,
-    lockedByDeviceLabel: null,
+    createdAt: new Date(newSession.createdAt),
+    lastActivityAt: new Date(newSession.lastActivityAt),
+    deviceHash: newSession.deviceHash,
+    deviceLabel: newSession.deviceLabel,
+    osInfo: newSession.osInfo,
+    lockedByDeviceLabel: newSession.lockedByDeviceLabel,
   };
 }
 
 export async function getActiveSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: sessions, error } = await supabase
     .from('DeviceSession')
     .select('*')
@@ -106,7 +106,7 @@ export async function getActiveSessionsForUser(userId: string): Promise<SessionI
 }
 
 export async function getAllSessionsForUser(userId: string): Promise<SessionInfo[]> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: sessions, error } = await supabase
     .from('DeviceSession')
     .select('*')
@@ -133,7 +133,7 @@ export async function getAllSessionsForUser(userId: string): Promise<SessionInfo
 }
 
 export async function getActiveSessionByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo | null> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: session, error }: { data: any, error: any } = await supabase
     .from('DeviceSession')
     .select('*')
@@ -165,7 +165,7 @@ export async function getActiveSessionByDeviceType(userId: string, deviceType: D
 }
 
 export async function getActiveSessionsByDeviceType(userId: string, deviceType: DeviceType): Promise<SessionInfo[]> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: sessions, error } = await supabase
     .from('DeviceSession')
     .select('*')
@@ -202,10 +202,9 @@ export async function terminateActiveSessionsByDeviceType(userId: string, device
     return [];
   }
 
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from('DeviceSession')
-    // @ts-ignore: Supabase types expect never for update on untyped schema
     .update({ loggedOutAt: new Date().toISOString() })
     .in('id', sessionIds);
 
@@ -215,7 +214,7 @@ export async function terminateActiveSessionsByDeviceType(userId: string, device
 }
 
 export async function getFirstDeviceForCategory(userId: string, deviceType: DeviceType): Promise<SessionInfo | null> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: session, error }: { data: any, error: any } = await supabase
     .from('DeviceSession')
     .select('*')
@@ -247,7 +246,7 @@ export async function getFirstDeviceForCategory(userId: string, deviceType: Devi
 }
 
 export async function getSessionById(sessionId: string): Promise<SessionInfo | null> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: session, error }: { data: any, error: any } = await supabase
     .from('DeviceSession')
     .select('*')
@@ -276,18 +275,16 @@ export async function getSessionById(sessionId: string): Promise<SessionInfo | n
 }
 
 export async function terminateSession(sessionId: string): Promise<void> {
-  const supabase = getSupabase();
-  const { error } = await supabase
-    .from('DeviceSession')
-    // @ts-ignore: Supabase types expect never for update on untyped schema
-    .update({ loggedOutAt: new Date().toISOString() })
-    .eq('id', sessionId);
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.rpc('fn_logout_device_session', {
+    p_session_id: sessionId
+  });
   
   if (error) throw error;
 }
 
 export async function lockSession(sessionId: string, lockedBy: string = 'Administrator'): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from('DeviceSession')
     // @ts-ignore: Supabase types expect never for update on untyped schema
@@ -298,7 +295,7 @@ export async function lockSession(sessionId: string, lockedBy: string = 'Adminis
 }
 
 export async function updateSessionDeviceHash(sessionId: string, deviceHash: string): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from('DeviceSession')
     // @ts-ignore: Supabase types expect never for update on untyped schema
@@ -309,7 +306,7 @@ export async function updateSessionDeviceHash(sessionId: string, deviceHash: str
 }
 
 export async function unlockSession(sessionId: string): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from('DeviceSession')
     // @ts-ignore: Supabase types expect never for update on untyped schema
@@ -319,21 +316,32 @@ export async function unlockSession(sessionId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function isSessionValid(sessionId: string): Promise<boolean> {
-  const supabase = getSupabase();
+export async function isSessionValid(sessionId: string, jwtSub?: string, xDeviceHash?: string | null): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
   const { data: session, error }: { data: any, error: any } = await supabase
     .from('DeviceSession')
-    .select('isLocked, loggedOutAt')
+    .select('isLocked, loggedOutAt, deviceHash, userId, User(isBanned, isSessionLockedExempt)')
     .eq('id', sessionId)
     .limit(1)
     .maybeSingle();
 
   if (error || !session) return false;
-  return !session.isLocked && !session.loggedOutAt;
+  if (session.isLocked || session.loggedOutAt) return false;
+  if (jwtSub && session.userId !== jwtSub) return false;
+
+  const user = Array.isArray(session.User) ? session.User[0] : session.User;
+  if (user?.isBanned) return false;
+
+  const isExempt = user?.isSessionLockedExempt || false;
+  if (xDeviceHash && !isExempt && session.deviceHash && session.deviceHash !== xDeviceHash) {
+    return false;
+  }
+
+  return true;
 }
 
 export async function updateSessionActivity(sessionId: string): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from('DeviceSession')
     // @ts-ignore: Supabase types expect never for update on untyped schema
@@ -349,7 +357,7 @@ export async function getAutoLockSetting(userId: string): Promise<boolean> {
 }
 
 export async function setAutoLockSetting(userId: string, enabled: boolean): Promise<void> {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { data: existing, error: getError }: { data: any, error: any } = await supabase
         .from('SessionLockSettings')
         .select('*')
@@ -390,7 +398,7 @@ export interface GlobalSessionSettings {
 }
 
 export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: setting, error }: { data: any, error: any } = await supabase
     .from('GlobalSessionLockSettings')
     .select('*')
@@ -410,7 +418,7 @@ export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings>
 }
 
 export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSettings>): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data: existing, error: getError }: { data: any, error: any } = await supabase
     .from('GlobalSessionLockSettings')
     .select('*')
@@ -464,7 +472,7 @@ export async function setGlobalAutoLockSetting(enabled: boolean): Promise<void> 
 }
 
 export async function resolveAutoLockSetting(userId: string): Promise<AutoLockResolution> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const [userRes, globalAutoLockFirstBrowser] = await Promise.all([
     supabase.from('SessionLockSettings').select('*').eq('userId', userId).limit(1).maybeSingle(),
     getGlobalAutoLockSetting(),
@@ -487,14 +495,14 @@ export async function resolveAutoLockSetting(userId: string): Promise<AutoLockRe
 }
 
 export async function getAllSessionLockSettings() {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const { data, error }: { data: any, error: any } = await supabase.from('SessionLockSettings').select('*') as any;
   if (error) throw error;
   return data || [];
 }
 
 export async function terminateAllSessions(): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   // Only terminate sessions belonging to students (not admin/teacher)
   const { data: students, error: userError }: { data: any, error: any } = await supabase
     .from('User')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest) {
@@ -25,7 +26,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'New password must be different from current password.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+    const supabase = getSupabase(token);
 
     // Query user and check current password hash
     const { data: user, error: userError } = await supabase

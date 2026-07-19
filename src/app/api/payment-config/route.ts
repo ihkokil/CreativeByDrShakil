@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getSupabase } from '@/lib/db'
+import { getSupabaseAdmin } from '@/lib/db'
 
 export async function GET() {
   try {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     const { data: config } = await supabase
       .from('PaymentConfig')

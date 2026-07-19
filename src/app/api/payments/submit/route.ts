@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import { sendPaymentVerificationEmail } from '@/lib/payment-emails';
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'phoneNumber is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Verify the order exists and belongs to this user
     const { data: order, error: orderError }: { data: any; error: any } = await supabase
@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
       amount: order.totalAmount || order.amount || 0,
       status: 'pending',
       submittedAt: nowStr,
-      createdAt: nowStr,
     } as any);
 
     if (paymentError) throw paymentError;

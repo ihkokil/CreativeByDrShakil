@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 import { requireTeacherPayload } from '@/lib/route-auth';
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course ID is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     // Verify course belongs to this teacher
     const { data: course } = await supabase
@@ -148,10 +148,15 @@ export async function POST(request: NextRequest) {
 
     let order;
     if (existingOrder) {
-      await supabase
+      const nowStr = new Date().toISOString();
+      const { error: updateError } = await supabase
         .from('Order')
-        .update({ status: 'approved', totalAmount: 0 } as any)
+        .update({ status: 'approved', totalAmount: 0, updatedAt: nowStr, enrolledAt: nowStr } as any)
         .eq('id', (existingOrder as any).id);
+      
+      if (updateError) {
+        throw new Error(`Failed to update order: ${updateError.message}`);
+      }
         
       const { data: existingOrderFull } = await supabase.from('Order').select('*').eq('id', (existingOrder as any).id).limit(1).maybeSingle();
       
@@ -168,8 +173,9 @@ export async function POST(request: NextRequest) {
       }
       order = existingOrderFull ? { ...(existingOrderFull as any), course: orderCourse, user: orderUser } : null;
     } else {
+      const nowStr = new Date().toISOString();
       const newOrderId = crypto.randomUUID();
-      await supabase.from('Order')
+      const { error: orderInsertError } = await supabase.from('Order')
 // @ts-ignore
 .insert({
           id: newOrderId,
@@ -177,7 +183,13 @@ export async function POST(request: NextRequest) {
           courseId,
           status: 'approved',
           totalAmount: 0,
+          createdAt: nowStr,
+          updatedAt: nowStr,
       } as any);
+      
+      if (orderInsertError) {
+        throw new Error(`Failed to create order: ${orderInsertError.message}`);
+      }
       
       const { data: newOrderFull } = await supabase.from('Order').select('*').eq('id', newOrderId).limit(1).maybeSingle();
       
@@ -227,7 +239,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     const { data: enrollmentsData = [] } = await supabase
       .from('Order')
@@ -282,7 +294,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Order ID is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { data: existingOrder } = await supabase.from('Order').select('*').eq('id', orderId).limit(1).maybeSingle();
     
     let existingOrderCourse = null;
