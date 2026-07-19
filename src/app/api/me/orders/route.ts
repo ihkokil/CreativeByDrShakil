@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
 
     let ordersWithRelations = orders || [];
     if (ordersWithRelations.length > 0) {
-      const courseIds = [...new Set(ordersWithRelations.map((o: any) => o.courseId))];
-      const orderIds = ordersWithRelations.map((o: any) => o.id);
+      const courseIds = [...new Set(ordersWithRelations.map((o: any) => o.courseId).filter(Boolean))] as string[];
+      const orderIds = ordersWithRelations.map((o: any) => o.id) as string[];
       
       const coursesPromise = courseIds.length 
         ? supabase.from('Course').select('*').in('id', courseIds) 
