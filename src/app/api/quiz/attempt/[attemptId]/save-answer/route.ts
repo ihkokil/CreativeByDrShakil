@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -21,7 +22,10 @@ export async function POST(
       return NextResponse.json({ error: 'questionId is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+
+    const supabase = getSupabase(token);
 
     // Verify attempt
     const { data: attempt }: { data: any } = await supabase

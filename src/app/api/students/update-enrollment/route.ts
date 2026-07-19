@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import type { Database } from '@/types/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'orderId is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: order, error: orderError }: { data: any; error: any } = await supabase
       .from('Order')
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Order not found.' }, { status: 404 });
     }
 
-    const updateData: Record<string, unknown> = {
+    const updateData: Database['public']['Tables']['Order']['Update'] = {
       updatedAt: new Date().toISOString(),
     };
 
@@ -44,7 +46,6 @@ export async function POST(request: NextRequest) {
 
     const { error: updateError } = await supabase
       .from('Order')
-      // @ts-ignore
       .update(updateData)
       .eq('id', orderId);
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Run a fast, lightweight query to warm up the serverless database instance
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     const { data: result } = await supabase.from('Course').select('id').limit(1);
 
     return NextResponse.json({

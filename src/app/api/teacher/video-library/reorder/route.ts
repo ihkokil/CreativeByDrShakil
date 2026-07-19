@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest) {
@@ -16,18 +16,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'orderedIds must be an array of node IDs.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Update sort order for each node
     for (let i = 0; i < orderedIds.length; i++) {
       const nodeId = orderedIds[i];
       if (typeof nodeId !== 'string') continue;
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('VideoLibraryNode')
         // @ts-ignore
-        .update({ sortOrder: i })
+        .update({ sortOrder: i, updatedAt: new Date().toISOString() })
         .eq('id', nodeId);
+      
+      if (updateError) throw updateError;
     }
 
     return NextResponse.json({ success: true });

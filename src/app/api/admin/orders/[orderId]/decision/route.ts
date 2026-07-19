@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requirePaymentManager } from '@/lib/admin-auth';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 import { sendTelegramEnrollmentNotification } from '@/lib/telegram';
@@ -13,7 +13,7 @@ export async function GET(
     if (!adminCheck.ok) return adminCheck.response;
 
     const { orderId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: order, error: orderError }: { data: any; error: any } = await supabase
       .from('Order')
@@ -68,7 +68,7 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid decision. Must be "approve" or "reject".' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: order, error: orderError }: { data: any; error: any } = await supabase
       .from('Order')

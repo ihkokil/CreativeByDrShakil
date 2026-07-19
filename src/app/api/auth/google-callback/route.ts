@@ -4,10 +4,6 @@ import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
   createDeviceSession,
-  getActiveSessionsByDeviceType,
-  terminateActiveSessionsByDeviceType,
-  getAutoLockSetting,
-  getFirstDeviceForCategory,
 } from '@/lib/session-manager';
 
 /**
@@ -133,6 +129,8 @@ export async function GET(request: NextRequest) {
         emailVerified: true,
         profileImage: googleUser.picture || null,
         role: 'student' as 'admin' | 'teacher' | 'student',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const { error: insertError } = await supabase.from('User')
@@ -154,7 +152,7 @@ export async function GET(request: NextRequest) {
       if (!user.profileImage && googleUser.picture) {
         const { error: updateError } = await supabase
           .from('User')
-          .update({ profileImage: googleUser.picture })
+          .update({ profileImage: googleUser.picture, updatedAt: new Date().toISOString() } as any)
           .eq('id', user.id);
 
         if (updateError) throw updateError;
@@ -190,7 +188,7 @@ export async function GET(request: NextRequest) {
     const deviceInfo = parseUserAgent(userAgent);
 
     // Fetch global settings
-    const { getGlobalSessionSettings, getActiveSessionsForUser, terminateSession, lockSession } = await import('@/lib/session-manager');
+    const { getGlobalSessionSettings } = await import('@/lib/session-manager');
     const globalSettings = await getGlobalSessionSettings();
 
     // Enforce allowed device type restrictions (students only)
@@ -222,56 +220,27 @@ export async function GET(request: NextRequest) {
 
     const deviceLabel = existingSessionWithLabel?.deviceLabel || baseDeviceLabel;
 
-    // Check for existing active sessions
-    const activeSessions = await getActiveSessionsForUser(user.id);
-    const isSessionRestrictionExempt = isPrivilegedRole || !!user.isSessionLockedExempt;
-
-    // Graceful browser switch on same device
-    const existingActiveSameDevice = activeSessions.find(s => s.deviceHash === deviceHash);
-    if (existingActiveSameDevice) {
-      await terminateSession(existingActiveSameDevice.id);
-      const index = activeSessions.findIndex(s => s.id === existingActiveSameDevice.id);
-      if (index > -1) {
-        activeSessions.splice(index, 1);
+    // Create new device session atomically via RPC
+    let newSession;
+    try {
+      newSession = await createDeviceSession({
+        userId: user.id,
+        deviceType,
+        browserName: deviceInfo.browserName,
+        userAgent,
+        ipAddress,
+        deviceHash,
+        deviceLabel,
+        osInfo,
+      });
+    } catch (error: any) {
+      if (error.message === 'device_category_locked') {
+        const categoryName = deviceType === 'desktop' ? 'Desktop/Laptop' :
+                             deviceType === 'tablet' ? 'Tablet' : 'Mobile';
+        return NextResponse.redirect(`${appUrl}/?auth=login&error=${encodeURIComponent(`This account is already linked to a different ${categoryName.toLowerCase()} device. Only the original device in this category can log in.`)}`);
       }
+      throw error;
     }
-
-    // Auto-lock first-browser per device category (students only)
-    if (!isSessionRestrictionExempt) {
-      const autoLockSetting = await getAutoLockSetting(user.id);
-      if (autoLockSetting) {
-        const firstDevice = await getFirstDeviceForCategory(user.id, deviceType);
-        if (firstDevice && firstDevice.deviceHash && firstDevice.deviceHash !== deviceHash) {
-          const categoryName = deviceType === 'desktop' ? 'Desktop/Laptop' :
-                               deviceType === 'tablet' ? 'Tablet' : 'Mobile';
-          return NextResponse.redirect(`${appUrl}/?auth=login&error=${encodeURIComponent(`This account is already linked to a different ${categoryName.toLowerCase()} device. Only the original device in this category can log in.`)}`);
-        }
-      }
-    }
-
-    // Enforce concurrent session limits
-    if (!isSessionRestrictionExempt) {
-      const limit = globalSettings.maxConcurrentSessions;
-      if (activeSessions.length >= limit) {
-        const numToLock = activeSessions.length - limit + 1;
-        const sessionsToLock = activeSessions.slice(activeSessions.length - numToLock);
-        for (const sessionToLock of sessionsToLock) {
-          await lockSession(sessionToLock.id, deviceLabel);
-        }
-      }
-    }
-
-    // Create new device session
-    const newSession = await createDeviceSession({
-      userId: user.id,
-      deviceType,
-      browserName: deviceInfo.browserName,
-      userAgent,
-      ipAddress,
-      deviceHash,
-      deviceLabel,
-      osInfo,
-    });
 
     const safeProfileImage = user.profileImage && user.profileImage.length > 500 
       ? null 
@@ -283,6 +252,9 @@ export async function GET(request: NextRequest) {
       role: user.role as 'admin' | 'teacher' | 'student',
       email: user.email,
       sessionId: newSession.id,
+      isBanned: user.isBanned || false,
+      isSessionLockedExempt: !!user.isSessionLockedExempt,
+      deviceHash,
       user_metadata: {
         full_name: user.fullName,
         phone: user.phone,

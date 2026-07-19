@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import { slugify } from '@/lib/teacher-course-builder';
@@ -15,7 +15,7 @@ export async function POST(
     }
 
     const { courseId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: original, error: fetchError }: { data: any; error: any } = await supabase
       .from('Course')
@@ -77,7 +77,7 @@ export async function POST(
 
     if (instructors && instructors.length > 0) {
       for (const inst of instructors as any[]) {
-        await supabase.from('CourseInstructor')
+        const { error: instError } = await supabase.from('CourseInstructor')
 // @ts-ignore
 .insert({
           id: nanoid(),
@@ -88,6 +88,7 @@ export async function POST(
           sortOrder: inst.sortOrder,
           createdAt: nowStr,
         } as any);
+        if (instError) throw instError;
       }
     }
 

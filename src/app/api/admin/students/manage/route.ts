@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 import { nanoid } from '@/lib/nanoid';
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action } = body;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     if (action === 'enroll') {
       const { userId, courseId } = body;
@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
             .update({
               passwordResetTokenHash: tokenHash,
               passwordResetExpires: resetExpiry.toISOString(),
+              updatedAt: new Date().toISOString(),
             })
             .eq('id', userId);
 
@@ -154,3 +155,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
+

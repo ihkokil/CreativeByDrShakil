@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     }
 
     const query = request.nextUrl.searchParams.get('q') || '';
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     let dbQuery = supabase
       .from('User')

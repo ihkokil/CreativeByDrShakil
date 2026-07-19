@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, BuilderCurriculumNode, createNodeId } from '@/lib/teacher-course-builder';
 
@@ -21,7 +21,7 @@ export async function POST(
       return NextResponse.json({ error: 'sourceCourseId is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Fetch both courses
     const [targetRes, sourceRes] = await Promise.all([

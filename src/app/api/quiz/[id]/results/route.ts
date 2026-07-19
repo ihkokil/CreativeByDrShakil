@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 
 export async function GET(
@@ -9,7 +10,9 @@ export async function GET(
   try {
     const { id } = await params;
     const payload = await getAuthPayload(request);
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    const supabase = getSupabase(token);
     
     const { data: quizData } = await supabase
       .from('Quiz')

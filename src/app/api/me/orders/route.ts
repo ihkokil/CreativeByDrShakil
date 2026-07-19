@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth'
+import { scopedToUser } from '@/lib/db-helpers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,20 +10,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
-    const { data: orders = [], error: ordersError } = await supabase
-      .from('Order')
-      .select('*')
-      .eq('userId', payload.sub)
-      .order('createdAt', { ascending: false });
+    const { data: orders = [], error: ordersError } = await scopedToUser(
+      supabase.from('Order').select('*'),
+      payload.sub
+    ).order('createdAt', { ascending: false });
       
     if (ordersError) throw ordersError;
 
     let ordersWithRelations = orders || [];
     if (ordersWithRelations.length > 0) {
-      const courseIds = [...new Set(ordersWithRelations.map((o: any) => o.courseId))];
-      const orderIds = ordersWithRelations.map((o: any) => o.id);
+      const courseIds = [...new Set(ordersWithRelations.map((o: any) => o.courseId).filter(Boolean))] as string[];
+      const orderIds = ordersWithRelations.map((o: any) => o.id) as string[];
       
       const coursesPromise = courseIds.length 
         ? supabase.from('Course').select('*').in('id', courseIds) 

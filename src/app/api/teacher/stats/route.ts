@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function GET(request: NextRequest) {
@@ -9,15 +9,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Get all courses
-    const { data: courses = [] } = await supabase
+    const { data: rawCourses } = await supabase
       .from('Course')
-      .select('id, title, status, price, createdAt')
+      .select('id, title, status, price, createdAt, curriculumJson')
       .order('createdAt', { ascending: false });
+      
+    const courses = rawCourses || [];
 
-    const courseIds = (courses || []).map((c: any) => c.id);
+    const courseIds = courses.map((c: any) => c.id);
 
     // Get all approved orders
     const ordersPromise = courseIds.length > 0
@@ -45,6 +47,13 @@ export async function GET(request: NextRequest) {
     const totalEnrollments = approvedOrders.length;
     const publishedCourses = (courses || []).filter((c: any) => c.status === 'published').length;
 
+    // Get progress rows for all approved courses to calculate average progress
+    const progressResponse = courseIds.length > 0 
+      ? await supabase.from('LessonProgress').select('courseId, userId').in('courseId', courseIds)
+      : { data: [] };
+      
+    const progressRows = progressResponse.data || [];
+
     // Per-course stats
     const enrollmentsByCourse: Record<string, number> = {};
     const revenueByCourse: Record<string, number> = {};
@@ -52,6 +61,9 @@ export async function GET(request: NextRequest) {
       enrollmentsByCourse[order.courseId] = (enrollmentsByCourse[order.courseId] || 0) + 1;
       revenueByCourse[order.courseId] = (revenueByCourse[order.courseId] || 0) + (order.totalAmount || 0);
     }
+
+    const { parseCurriculumJson, countLessons } = require('@/lib/teacher-course-builder');
+    const { populateMediaVaultNodes } = require('@/lib/media-vault-populator');
 
     const courseStats = (courses || []).map((c: any) => ({
       id: c.id,
@@ -61,6 +73,47 @@ export async function GET(request: NextRequest) {
       revenue: revenueByCourse[c.id] || 0,
     }));
 
+    // Pre-hydrate all curriculums
+    const hydratedCourses = await Promise.all(
+      (courses || []).map(async (c: any) => {
+        let parsed = [];
+        try {
+          parsed = c.curriculumJson ? parseCurriculumJson(c.curriculumJson) : [];
+        } catch(e){}
+        const hydrated = await populateMediaVaultNodes(parsed, supabase);
+        return {
+          ...c,
+          hydratedCurriculum: hydrated
+        };
+      })
+    );
+
+    let totalPossibleLessonsForAll = 0;
+    let totalCompletedLessonsForAll = 0;
+
+    const courseProgress = courseStats.map(cs => {
+      const course = hydratedCourses.find((c: any) => c.id === cs.id);
+      const totalLessons = course ? countLessons(course.hydratedCurriculum) : 0;
+      const maxPossibleCompleted = cs.enrollments * totalLessons;
+      
+      const actualCompleted = progressRows.filter((p: any) => p.courseId === cs.id).length;
+      const avgProgress = maxPossibleCompleted > 0 ? Math.round((actualCompleted / maxPossibleCompleted) * 100) : 0;
+
+      totalPossibleLessonsForAll += maxPossibleCompleted;
+      totalCompletedLessonsForAll += actualCompleted;
+
+      return {
+        courseId: cs.id,
+        courseTitle: cs.title,
+        enrollmentCount: cs.enrollments,
+        avgProgress,
+      };
+    });
+
+    const aggregateProgress = totalPossibleLessonsForAll > 0 
+      ? Math.round((totalCompletedLessonsForAll / totalPossibleLessonsForAll) * 100)
+      : 0;
+
     return NextResponse.json({
       totalCourses: (courses || []).length,
       publishedCourses,
@@ -69,6 +122,8 @@ export async function GET(request: NextRequest) {
       totalRevenue,
       pendingOrders: pendingCount,
       courseStats,
+      courseProgress,
+      aggregateProgress,
     });
   } catch (error: any) {
     console.error('[teacher/stats] error:', error);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'overrides must be an array.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')
@@ -56,7 +56,8 @@ export async function POST(request: NextRequest) {
           .eq('userId', userId)
           .eq('lessonNodeId', lessonNodeId);
 
-        await supabase.from('StudentModuleAvailability')
+        const nowStr = new Date().toISOString();
+        const { error: insertError } = await supabase.from('StudentModuleAvailability')
 // @ts-ignore
 .insert({
           id: crypto.randomUUID(),
@@ -65,7 +66,10 @@ export async function POST(request: NextRequest) {
           lessonNodeId,
           availabilityMode: availabilityMode || 'available',
           availableAt: availableAt ? new Date(availableAt).toISOString() : null,
+          createdAt: nowStr,
+          updatedAt: nowStr,
         } as any);
+        if (insertError) throw insertError;
       }
       processed++;
     }

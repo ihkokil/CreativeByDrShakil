@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -7,7 +8,10 @@ export async function GET(request: NextRequest) {
   try {
     const payload = await getAuthPayload(request);
     
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    
+    const supabase = getSupabase(token);
     const { data: categories = [] } = await supabase
       .from('QuizCategory')
       .select('*')
@@ -34,7 +38,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name and display name are required.' }, { status: 400 });
     }
     
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    
+    const supabase = getSupabase(token);
     const { data: existing } = await supabase
       .from('QuizCategory')
       .select('id')

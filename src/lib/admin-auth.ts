@@ -51,8 +51,8 @@ export async function requirePaymentManager(request: NextRequest) {
 
   if (payload.role === 'teacher') {
     // Check database to see if the teacher has the canManagePayments flag
-    const { getSupabase } = await import('@/lib/db');
-    const supabase = getSupabase();
+    const { getSupabaseAdmin } = await import('@/lib/db');
+    const supabase = getSupabaseAdmin();
     const { data: user, error: userError }: { data: any, error: any } = await supabase
       .from('User')
       .select('canManagePayments')

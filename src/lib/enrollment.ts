@@ -1,4 +1,4 @@
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { nanoid } from '@/lib/nanoid';
 
 export async function ensureCourseEnrollment(
@@ -11,7 +11,7 @@ export async function ensureCourseEnrollment(
   enrolledAt?: Date,
   expiresAt?: Date
 ): Promise<void> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
   const dateStr = enrolledAt ? enrolledAt.toISOString() : new Date().toISOString();
   
   // Create order for the course
@@ -26,20 +26,24 @@ export async function ensureCourseEnrollment(
     
   if (!existingOrder) {
     const orderId = nanoid();
-    await supabase.from('Order')
+    const { error } = await supabase.from('Order')
 // @ts-ignore
 .insert({
       id: orderId,
       userId,
       courseId,
-      amount: 0,
-      paymentMethod: enrolledByAdmin ? 'admin_enrolled' : 'system_enrolled',
+      totalAmount: 0,
       status: 'approved',
       enrolledAt: dateStr,
       expiresAt: expiresAt ? expiresAt.toISOString() : null,
       createdAt: dateStr,
       updatedAt: dateStr,
     } as any);
+
+    if (error) {
+      console.error('[ensureCourseEnrollment] Error inserting order:', error);
+      throw new Error(`Failed to insert order: ${error.message}`);
+    }
   }
 
   // Handle basics bundle logic if the title is "Basics" or something similar

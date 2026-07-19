@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, BuilderCurriculumNode, createNodeId } from '@/lib/teacher-course-builder';
 
@@ -46,7 +46,7 @@ export async function GET(
     }
 
     const { courseId, nodeId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')
@@ -84,7 +84,7 @@ export async function PUT(
 
     const { courseId, nodeId } = await params;
     const body = await request.json();
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')
@@ -145,7 +145,7 @@ export async function DELETE(
     }
 
     const { courseId, nodeId } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')

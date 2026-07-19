@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { BuilderCurriculumNode, parseCurriculumJson } from '@/lib/teacher-course-builder';
 
 const formatPrice = (price: number) => {
@@ -12,7 +12,7 @@ const formatPrice = (price: number) => {
 
 export async function GET() {
   try {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // 1. Fetch courses and orders in parallel
     const [coursesRes, ordersRes] = await Promise.all([

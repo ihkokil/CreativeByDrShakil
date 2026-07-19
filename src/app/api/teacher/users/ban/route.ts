@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 export async function POST(request: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'action must be "ban" or "unban".' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: user, error: userError }: { data: any; error: any } = await supabase
       .from('User')
@@ -39,13 +39,20 @@ export async function POST(request: NextRequest) {
 
     const isBanned = action === 'ban';
 
-    const { error: updateError } = await supabase
-      .from('User')
-      // @ts-ignore
-      .update({ isBanned, updatedAt: new Date().toISOString() })
-      .eq('id', userId);
-
-    if (updateError) throw updateError;
+    if (isBanned) {
+      const { error: banError } = await supabase.rpc('fn_ban_user', {
+        p_user_id: userId,
+        p_banned_by_label: `Teacher (${payload.email})`
+      });
+      if (banError) throw banError;
+    } else {
+      const { error: updateError } = await supabase
+        .from('User')
+        // @ts-ignore
+        .update({ isBanned: false, updatedAt: new Date().toISOString() })
+        .eq('id', userId);
+      if (updateError) throw updateError;
+    }
 
     return NextResponse.json({
       success: true,

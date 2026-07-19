@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -14,7 +15,9 @@ export async function POST(
     }
 
     const { id: quizId } = await params;
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+    const supabase = getSupabase(token);
 
     const { data: original, error: fetchError }: { data: any; error: any } = await supabase
       .from('Quiz')

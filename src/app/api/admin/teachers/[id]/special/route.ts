@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 
 export async function GET(
@@ -11,7 +11,7 @@ export async function GET(
     if (!adminCheck.ok) return adminCheck.response;
 
     const { id } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: teacher, error }: { data: any; error: any } = await supabase
       .from('User')
@@ -60,7 +60,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     const { data: teacher, error: fetchError }: { data: any; error: any } = await supabase
       .from('User')

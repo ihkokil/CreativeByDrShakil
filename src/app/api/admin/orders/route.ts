@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requirePaymentManager } from '@/lib/admin-auth';
 
 const ALLOWED_STATUSES = new Set(['pending', 'approved', 'rejected']);
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const requestedStatus = (searchParams.get('status') || 'pending').toLowerCase();
     const status = ALLOWED_STATUSES.has(requestedStatus) ? requestedStatus : 'pending';
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     const { data: orders = [], error } = await supabase
       .from('Order')

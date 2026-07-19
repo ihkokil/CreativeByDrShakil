@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getSession } from '@/lib/auth-server';
 import { getGlobalSessionSettings, resolveAutoLockSetting } from '@/lib/session-manager';
 
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'lastActive';
     const offset = (page - 1) * limit;
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     let query = supabase
       .from('User')

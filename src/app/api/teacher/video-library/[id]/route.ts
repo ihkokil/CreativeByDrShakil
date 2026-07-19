@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
@@ -35,7 +35,7 @@ export async function PATCH(
         if (!authCheck.ok) return authCheck.response;
 
         const { id } = await params;
-        const supabase = getSupabase();
+        const supabase = getSupabaseAdmin();
 
         const { data: existing } = await supabase
             .from('VideoLibraryNode')
@@ -68,6 +68,8 @@ export async function PATCH(
             return NextResponse.json({ error: 'No valid fields to update.' }, { status: 400 });
         }
 
+        data.updatedAt = new Date().toISOString();
+
         // @ts-ignore
         const { error: updateError } = await supabase.from('VideoLibraryNode').update(data).eq('id', id);
         if (updateError) throw updateError;
@@ -95,7 +97,7 @@ export async function DELETE(
         if (!authCheck.ok) return authCheck.response;
 
         const { id } = await params;
-        const supabase = getSupabase();
+        const supabase = getSupabaseAdmin();
 
         const { data: existing } = await supabase
             .from('VideoLibraryNode')

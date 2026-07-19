@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { decompressUuid } from '@/lib/telegram';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
@@ -47,7 +47,20 @@ export async function POST(request: NextRequest) {
     const callbackQuery = body?.callback_query;
 
     if (!callbackQuery) {
-      // Not a callback query — might be a regular message, just acknowledge
+      const message = body?.message;
+      if (message && message.text) {
+        const text = message.text;
+        const chatId = message.chat.id;
+        
+        if (text === '/start' || text === '/help') {
+          await sendTelegramReply(chatId, `Hello! 👋\n\nYour Telegram Chat ID is: <code>${chatId}</code>\n\nYou can use this ID in your environment variables to receive notifications.`);
+        } else if (text === '/chatid') {
+          await sendTelegramReply(chatId, `Your Chat ID: <code>${chatId}</code>`);
+        } else {
+          // Acknowledge other commands/messages quietly
+          await sendTelegramReply(chatId, `Command received: ${text}\nYour Chat ID: <code>${chatId}</code>`);
+        }
+      }
       return NextResponse.json({ ok: true });
     }
 
@@ -59,7 +72,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Handle "en:{compressedUserId}" — Show course list for enrollment
     if (callbackData.startsWith('en:')) {

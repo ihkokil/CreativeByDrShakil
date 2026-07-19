@@ -17,8 +17,10 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "seed:teachers": "node scripts/seed-teachers.mjs",
     "seed:videos": "node scripts/seed-video-library.mjs",
-    "db:migrate-all": "node scripts/migrate-all-dbs.mjs"
-
+    "db:migrate-all": "node scripts/migrate-all-dbs.mjs",
+    "db:types": "npx supabase gen types typescript --project-id phteovnvzuhlrvczmems > src/types/supabase.ts",
+    "check:migration": "grep -r 'drizzle-orm' src/ || true && grep -r '@/db/schema' src/ || true && grep -r 'MIGRATION_STUB' src/ || true",
+    "check:db": "node scripts/check-db-usage.js"
   },
   "repository": {
     "type": "git",
@@ -34,6 +36,7 @@
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",
     "@opennextjs/cloudflare": "^1.19.11",
+    "@supabase/supabase-js": "^2.48.0",
     "@tinymce/tinymce-react": "^6.3.0",
     "@vidstack/react": "^1.12.11",
     "bcryptjs": "^2.4.3",
@@ -45,12 +48,12 @@
     "lru-cache": "^11.3.5",
     "lucide-react": "^0.575.0",
     "next": "^16.1.6",
+    "pg": "^8.22.0",
     "postgres": "^3.4.9",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-easy-crop": "^6.0.2",
     "resend": "^6.12.4",
-    "@supabase/supabase-js": "^2.48.0",
     "unenv": "^2.0.0-rc.24",
     "vidstack": "^1.12.11",
     "ws": "^8.21.0",
@@ -62,7 +65,6 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.3",
-
     "eslint-config-next": "^16.1.6",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",

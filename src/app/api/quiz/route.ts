@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
+import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -19,7 +20,10 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit;
 
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+
+    const supabase = getSupabase(token);
     
     // We'll first get the count and IDs of the quizzes matching the filter
     let query = supabase.from('Quiz').select('id', { count: 'exact' });
@@ -41,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status && isTeacher) {
-      query = query.eq('status', status);
+      query = query.eq('status', status as 'draft' | 'published' | 'archived');
     }
 
     if (categoryId) {
@@ -86,7 +90,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status && isTeacher) {
-      dataQuery = dataQuery.eq('status', status);
+      dataQuery = dataQuery.eq('status', status as 'draft' | 'published' | 'archived');
     }
 
     if (categoryId) {
@@ -229,7 +233,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title, duration, and number of questions to serve are required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const token = await extractCookieToken();
+
+
+    const supabase = getSupabase(token);
 
     if (categoryId) {
       const { data: category } = await supabase.from('QuizCategory').select('id').eq('id', categoryId).limit(1).maybeSingle();

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { nanoid } from '@/lib/nanoid';
 import { createTokenPair, hashToken } from '@/lib/token-utils';
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'fullName is required.' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
 
     // Check if user with this email already exists
     const { data: existingUser }: { data: any } = await supabase
@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
         .update({
           passwordResetTokenHash: tokenHash,
           passwordResetExpires: resetExpiry.toISOString(),
+          updatedAt: new Date().toISOString(),
         })
         .eq('id', teacherId);
 
