@@ -75,24 +75,6 @@ export function getSupabaseAdmin(env?: any): SupabaseClient<Database> {
  * This function is kept for reference only. Emits console.warn on call.
  */
 export function getSupabase(token?: string | null, env?: any): SupabaseClient<Database> {
-  console.warn('WARNING: getSupabase() is deprecated. Custom JWT auth uses middleware + DeviceSession validation. Use getSupabaseAdmin() instead.');
-  const e = env || process.env;
-  
-  const url = e.SUPABASE_URL;
-  const anonKey = e.SUPABASE_ANON_KEY;
-
-  if (!url || !anonKey) {
-    throw new Error(`Missing Supabase anon credentials for BACKUP database`);
-  }
-
-  return createClient<Database>(url, anonKey, {
-    global: {
-      fetch: fetchWithTimeout(8000),
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  console.warn('WARNING: getSupabase() is deprecated. Custom JWT auth uses middleware + DeviceSession validation. Falling back to getSupabaseAdmin().');
+  return getSupabaseAdmin(env);
 }
