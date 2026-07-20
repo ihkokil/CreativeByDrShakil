@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status && isTeacher) {
-      query = query.eq('status', status);
+      query = query.eq('status', status as 'draft' | 'published' | 'archived');
     }
 
     if (categoryId) {
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status && isTeacher) {
-      dataQuery = dataQuery.eq('status', status);
+      dataQuery = dataQuery.eq('status', status as 'draft' | 'published' | 'archived');
     }
 
     if (categoryId) {

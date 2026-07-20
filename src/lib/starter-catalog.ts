@@ -5,6 +5,7 @@ export async function getStarterCatalogFromDB(): Promise<any[]> {
   const supabase = getSupabase();
 
   const { data: starterCourses = [] } = await supabase
+    // @ts-ignore: StarterCatalog might be missing from generated types
     .from('StarterCatalog')
     .select('*')
     .order('sortOrder', { ascending: true });

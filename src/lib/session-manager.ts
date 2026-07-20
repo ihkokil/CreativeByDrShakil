@@ -58,21 +58,26 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
     }
     throw error;
   }
+  if (!newSession) {
+    throw new Error('Failed to create device session: No data returned from database');
+  }
+
+  const sessionData = newSession as any;
 
   return {
-    id: newSession.id,
-    userId: newSession.userId,
-    deviceType: newSession.deviceType as DeviceType,
-    browserName: newSession.browserName,
-    ipAddress: newSession.ipAddress,
-    isLocked: newSession.isLocked,
+    id: sessionData.id,
+    userId: sessionData.userId,
+    deviceType: sessionData.deviceType as DeviceType,
+    browserName: sessionData.browserName,
+    ipAddress: sessionData.ipAddress,
+    isLocked: sessionData.isLocked,
     loggedOutAt: null,
-    createdAt: new Date(newSession.createdAt),
-    lastActivityAt: new Date(newSession.lastActivityAt),
-    deviceHash: newSession.deviceHash,
-    deviceLabel: newSession.deviceLabel,
-    osInfo: newSession.osInfo,
-    lockedByDeviceLabel: newSession.lockedByDeviceLabel,
+    createdAt: new Date(sessionData.createdAt),
+    lastActivityAt: new Date(sessionData.lastActivityAt),
+    deviceHash: sessionData.deviceHash,
+    deviceLabel: sessionData.deviceLabel,
+    osInfo: sessionData.osInfo,
+    lockedByDeviceLabel: sessionData.lockedByDeviceLabel,
   };
 }
 
