@@ -1,7 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET || 'default-secret-change-me';
+  let secret = process.env.JWT_SECRET || 'default-secret-change-me';
+  if (secret.length < 32) {
+    secret = secret.padEnd(32, '_');
+  }
   return new TextEncoder().encode(secret);
 }
 

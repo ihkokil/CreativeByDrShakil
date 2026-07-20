@@ -42,9 +42,12 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    const secret = process.env.JWT_SECRET;
+    let secret = process.env.JWT_SECRET;
     if (!secret) {
       throw new Error('Missing JWT_SECRET');
+    }
+    if (secret.length < 32) {
+      secret = secret.padEnd(32, '_');
     }
 
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));

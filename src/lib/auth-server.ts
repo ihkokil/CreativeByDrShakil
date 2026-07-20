@@ -22,9 +22,12 @@ export interface AuthTokenPayload extends JWTPayload {
 }
 
 function getJwtSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
+  let secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error('Missing JWT_SECRET environment variable.');
+  }
+  if (secret.length < 32) {
+    secret = secret.padEnd(32, '_');
   }
   return new TextEncoder().encode(secret);
 }
