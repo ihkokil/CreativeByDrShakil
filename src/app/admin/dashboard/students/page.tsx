@@ -1,6 +1,6 @@
 "use client";
 import StudentsManager from "@/components/Shared/StudentsManager";
-import styles from "../../AdminDashboard.module.css";
+import styles from "../AdminDashboard.module.css";
 
 export default function StudentsPage() {
     return (

@@ -1,6 +1,6 @@
 "use client";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
-import styles from "../../AdminDashboard.module.css";
+import styles from "../AdminDashboard.module.css";
 
 export default function SupportPage() {
     return (

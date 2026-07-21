@@ -1,6 +1,6 @@
 "use client";
 import UsersManager from "@/components/Shared/UsersManager";
-import styles from "../../AdminDashboard.module.css";
+import styles from "../AdminDashboard.module.css";
 
 export default function UsersPage() {
     return (

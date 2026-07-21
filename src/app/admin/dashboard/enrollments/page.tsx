@@ -1,6 +1,6 @@
 "use client";
 import EnrollmentsManager from "@/components/Shared/EnrollmentsManager";
-import styles from "../../AdminDashboard.module.css";
+import styles from "../AdminDashboard.module.css";
 
 export default function EnrollmentsPage() {
     return (

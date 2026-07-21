@@ -1,6 +1,6 @@
 "use client";
 import BkashSettings from "@/components/Admin/BkashSettings";
-import styles from "../../AdminDashboard.module.css";
+import styles from "../AdminDashboard.module.css";
 
 export default function SettingsPage() {
     return (
