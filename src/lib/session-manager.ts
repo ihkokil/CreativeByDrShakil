@@ -58,7 +58,6 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
     }
     throw error;
   }
-
   if (!newSession) {
     throw new Error('Failed to create device session: No data returned from database');
   }
