@@ -4,13 +4,7 @@ import { jwtVerify } from 'jose';
 
 // Define the public paths that do not require authentication
 const publicPaths = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/google-callback',
-  '/api/auth/logout',
-  '/api/auth/reset-password',
-  '/api/auth/session',
-  '/api/auth/check-email',
+  '/api/auth',
   '/api/public',
   '/api/webhooks',
   '/api/courses',

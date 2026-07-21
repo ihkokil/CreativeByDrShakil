@@ -1,8 +1,14 @@
 import { signVerificationToken } from './token-utils';
 import { getAppUrl } from './email';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
-const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '');
+// Read env variables dynamically to ensure compatibility with Cloudflare Workers / Serverless edge
+function getTelegramToken() {
+  return process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+}
+
+function getChatIdsEnv() {
+  return process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '');
+}
 
 export function compressUuid(id: string): string {
   if (!id) return id;
@@ -45,13 +51,15 @@ function escapeTelegramHtml(value: string) {
 }
 
 function getTelegramChatIds() {
-  if (!TELEGRAM_CHAT_ID) return [];
-  return TELEGRAM_CHAT_ID.split(',').map(id => id.trim()).filter(Boolean);
+  const envChatIds = getChatIdsEnv();
+  if (!envChatIds) return [];
+  return envChatIds.split(',').map(id => id.trim()).filter(Boolean);
 }
 
 function getTelegramApiUrl(method: string) {
-  if (!TELEGRAM_BOT_TOKEN) return null;
-  return `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
+  const token = getTelegramToken();
+  if (!token) return null;
+  return `https://api.telegram.org/bot${token}/${method}`;
 }
 
 async function buildApproveRejectKeyboard(orderId: string) {

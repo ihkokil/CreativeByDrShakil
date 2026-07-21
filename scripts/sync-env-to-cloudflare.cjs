@@ -23,10 +23,13 @@ function parseEnv(filePath) {
       const key = match[1].trim();
       let value = match[2].trim();
       
-      if (value.startsWith('"') && value.endsWith('"')) {
-        value = value.substring(1, value.length - 1);
-      } else if (value.startsWith("'") && value.endsWith("'")) {
-        value = value.substring(1, value.length - 1);
+      if (value.startsWith('"') && value.indexOf('"', 1) !== -1) {
+        value = value.substring(1, value.indexOf('"', 1));
+      } else if (value.startsWith("'") && value.indexOf("'", 1) !== -1) {
+        value = value.substring(1, value.indexOf("'", 1));
+      } else {
+        // Remove trailing comment if there are no quotes
+        value = value.split(' #')[0].trim();
       }
       
       env[key] = value;

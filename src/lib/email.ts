@@ -1,7 +1,6 @@
 import { Resend } from "resend";
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+// Resend will be instantiated inside the function to ensure process.env is read dynamically
 
 export async function sendMail({
   to,
@@ -24,10 +23,13 @@ export async function sendMail({
   }
 
   try {
-    if (!resend) {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
       console.warn("RESEND_API_KEY is missing. Email not sent.");
       return;
     }
+    
+    const resend = new Resend(resendApiKey);
 
     const result = await resend.emails.send({
       from,

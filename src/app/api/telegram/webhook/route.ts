@@ -3,13 +3,16 @@ import { getSupabaseAdmin } from '@/lib/db';
 import { decompressUuid } from '@/lib/telegram';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+function getTelegramToken() {
+  return process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+}
 
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
-  if (!TELEGRAM_BOT_TOKEN) return;
+  const token = getTelegramToken();
+  if (!token) return;
 
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+    await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -23,10 +26,11 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
 }
 
 async function sendTelegramReply(chatId: string | number, text: string, replyMarkup?: any) {
-  if (!TELEGRAM_BOT_TOKEN) return;
+  const token = getTelegramToken();
+  if (!token) return;
 
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
