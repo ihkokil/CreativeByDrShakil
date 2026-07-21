@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-    LayoutDashboard, 
-    Users, 
-    Smartphone, 
+import {
+    LayoutDashboard,
+    Users,
+    Smartphone,
     CreditCard,
-    ChevronLeft, 
+    ChevronLeft,
     LogOut,
     GraduationCap,
     ChevronRight,
@@ -85,7 +85,7 @@ export default function AdminSidebar({
                             <Image src="/logo/logo_black.webp" alt="Admin Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-light-theme" />
                         </>
                     ) : (
-                        <Image src="/favicon.png" alt="Admin Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
+                        <Image src="/favicon.webp" alt="Admin Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
                     )}
                 </Link>
                 <button className={styles.toggleBtn} onClick={onToggleExpand}>

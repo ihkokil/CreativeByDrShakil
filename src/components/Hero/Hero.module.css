@@ -88,9 +88,17 @@
 }
 
 @keyframes dotPulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 50%, transparent); }
-  70%  { box-shadow: 0 0 0 10px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 
 /* ── Headline ── */
@@ -157,7 +165,7 @@
   text-decoration: none;
   min-height: 54px;
   transition: transform var(--duration-fast) var(--ease-premium),
-              box-shadow var(--duration-fast) var(--ease-premium);
+    box-shadow var(--duration-fast) var(--ease-premium);
 }
 
 .ctaPrimary:hover {
@@ -181,8 +189,8 @@
   text-decoration: none;
   min-height: 54px;
   transition: background var(--duration-fast),
-              border-color var(--duration-fast),
-              transform var(--duration-fast);
+    border-color var(--duration-fast),
+    transform var(--duration-fast);
 }
 
 .ctaSecondary:hover {

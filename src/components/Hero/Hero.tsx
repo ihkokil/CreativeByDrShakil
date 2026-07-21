@@ -7,40 +7,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ParticleBackground from "./ParticleBackground";
 
-interface HeroCourse {
-    id: string;
-    title: string;
-    tag?: string;
-    image?: string;
-    slug?: string;
+interface Props {
+    courseCount?: number;
 }
 
-export default function Hero() {
-    const [courses, setCourses] = useState<HeroCourse[]>([]);
-
-    useEffect(() => {
-        let cancelled = false;
-        const load = async () => {
-            try {
-                const res = await fetch("/api/courses/dynamic");
-                const data = await res.json();
-                if (!cancelled && res.ok && data.courses) {
-                    const heroCourses = data.courses.slice(0, 3).map((c: any, i: number) => ({
-                        id: c.id,
-                        title: c.title,
-                        tag: i === 0 ? "Best Seller" : i === 1 ? "High Yield" : "New",
-                        image: c.image || "/placeholder.svg",
-                        slug: c.slug
-                    }));
-                    setCourses(heroCourses);
-                }
-            } catch {
-                // Fallback handled by empty state
-            }
-        };
-        load();
-        return () => { cancelled = true; };
-    }, []);
+export default function Hero({ courseCount }: Props) {
 
     return (
         <section className={styles.hero}>
@@ -116,7 +87,7 @@ export default function Hero() {
                     <div className={styles.statItem}>
                         <div className={styles.statIcon}><BookOpen size={22} /></div>
                         <div className={styles.statContent}>
-                            <span className={styles.statNumber}>{courses.length > 0 ? `${courses.length}+` : "20+"}</span>
+                            <span className={styles.statNumber}>{courseCount && courseCount > 0 ? `${courseCount}+` : "20+"}</span>
                             <span className={styles.statLabel}>Expert Courses</span>
                         </div>
                     </div>

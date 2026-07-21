@@ -312,7 +312,7 @@ export default function StudyCoursePage() {
             <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarActive : ""}`}>
                 <div className={styles.sidebarHeader}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
-                        <Link href="/dashboard?tab=courses" className={styles.backBtn} style={{ marginBottom: 0 }}>
+                        <Link href="/dashboard/courses" className={styles.backBtn} style={{ marginBottom: 0 }}>
                             <ArrowLeft size={18} /> Exit Study
                         </Link>
                         <button 

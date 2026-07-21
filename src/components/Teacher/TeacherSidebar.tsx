@@ -34,8 +34,8 @@ interface TeacherSidebarProps {
     totalCourses?: number;
 }
 
-export default function TeacherSidebar({ 
-    activeTab, 
+export default function TeacherSidebar({
+    activeTab,
     setActiveTab,
     teacherName,
     teacherEmail = "teacher@example.com",
@@ -81,7 +81,7 @@ export default function TeacherSidebar({
                             <Image src="/logo/logo_black.webp" alt="Teacher Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-light-theme" />
                         </>
                     ) : (
-                        <Image src="/favicon.png" alt="Teacher Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
+                        <Image src="/favicon.webp" alt="Teacher Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
                     )}
                 </Link>
                 <button className={styles.toggleBtn} onClick={onToggleExpand}>

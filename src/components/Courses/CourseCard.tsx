@@ -20,15 +20,15 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
                     src={course.image || "/placeholder.svg"}
                     alt={course.title}
                     fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     style={{ objectFit: "cover" }}
-                    unoptimized
                 />
             </Link>
 
             <div className={styles.cardInfo}>
                 <div className={styles.instructorSection}>
                     <div className={styles.instructorAvatar}>
-                        <Image src={course.mainInstructor.image || "/placeholder-square.svg"} alt={course.mainInstructor.name} fill unoptimized />
+                        <Image src={course.mainInstructor.image || "/placeholder-square.svg"} alt={course.mainInstructor.name} fill sizes="40px" />
                     </div>
                     <span className={styles.instructorName}>{course.mainInstructor.name}</span>
                 </div>
@@ -39,10 +39,10 @@ export default function CourseCard({ course, viewMode = "grid" }: Props) {
 
                 <div className={styles.meta}>
                     <div className={styles.metaItem}>
-                        <BookOpen size={14} /> {course.lessonCount || 0} Lessons
+                        <BookOpen size={14} aria-hidden="true" /> {course.lessonCount || 0} Lessons
                     </div>
                     <div className={styles.metaItem}>
-                        <Clock size={14} /> {course.duration}
+                        <Clock size={14} aria-hidden="true" /> {course.duration}
                     </div>
 
                 </div>

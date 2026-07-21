@@ -18,12 +18,26 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-    title: "Creative By Dr. Shakil | Medical Education Simplified",
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://creativebydrshakil.com'),
+    title: {
+        default: "Creative By Dr. Shakil | Medical Education Simplified",
+        template: "%s | Creative By Dr. Shakil"
+    },
     description: "Creative By Dr. Shakil (creativebydrshakil.com) — a premium learning platform for doctors.",
     icons: {
         icon: "/favicon.ico",
-        apple: "/icons/apple-touch-icon.png",
+        apple: `${process.env.NEXT_PUBLIC_FILE_URL}/icons/apple-touch-icon.png`,
     },
+    openGraph: {
+        type: "website",
+        locale: "en_US",
+        url: "/",
+        siteName: "Creative By Dr. Shakil",
+        images: [{ url: `${process.env.NEXT_PUBLIC_FILE_URL}/og-image.webp`, width: 1200, height: 630 }],
+    },
+    twitter: {
+        card: "summary_large_image",
+    }
 };
 
 export default function RootLayout({

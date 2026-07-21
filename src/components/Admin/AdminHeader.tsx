@@ -82,7 +82,7 @@ export default function AdminHeader({ title, user, onToggleSidebar }: AdminHeade
                                         className={styles.dropdownItem} 
                                         onClick={() => {
                                             setIsOpen(false);
-                                            router.push("/admin/dashboard?tab=settings");
+                                            router.push("/admin/dashboard/settings");
                                         }}
                                     >
                                         <User size={18} />
@@ -92,7 +92,7 @@ export default function AdminHeader({ title, user, onToggleSidebar }: AdminHeade
                                         className={styles.dropdownItem} 
                                         onClick={() => {
                                             setIsOpen(false);
-                                            router.push("/admin/dashboard?tab=security");
+                                            router.push("/admin/dashboard/security");
                                         }}
                                     >
                                         <Settings size={18} />

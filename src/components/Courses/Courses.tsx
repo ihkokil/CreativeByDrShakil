@@ -11,10 +11,15 @@ import { PublicTeacher, enrichCoursesWithTeachers } from "@/lib/teacher-director
 import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
 import CourseCardSkeleton from "./CourseCardSkeleton";
 
-export default function Courses() {
-    const [teachers, setTeachers] = useState<PublicTeacher[]>([]);
-    const [dynamicCourses, setDynamicCourses] = useState<Course[]>([]);
-    const [loading, setLoading] = useState(true);
+interface Props {
+    initialCourses?: Course[];
+    initialTeachers?: PublicTeacher[];
+}
+
+export default function Courses({ initialCourses = [], initialTeachers = [] }: Props) {
+    const [teachers, setTeachers] = useState<PublicTeacher[]>(initialTeachers);
+    const [dynamicCourses, setDynamicCourses] = useState<Course[]>(initialCourses);
+    const [loading, setLoading] = useState(initialCourses.length === 0);
 
     useEffect(() => {
         let cancelled = false;
@@ -33,12 +38,14 @@ export default function Courses() {
             }
         };
 
-        loadDynamicCourses();
+        if (initialCourses.length === 0) {
+            loadDynamicCourses();
+        }
 
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [initialCourses.length]);
 
     useEffect(() => {
         let cancelled = false;
@@ -55,12 +62,14 @@ export default function Courses() {
             }
         };
 
-        loadTeachers();
+        if (initialTeachers.length === 0) {
+            loadTeachers();
+        }
 
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [initialTeachers.length]);
 
     const displayCourses = useMemo(() => enrichCoursesWithTeachers(dynamicCourses, teachers), [dynamicCourses, teachers]);
     const filtered = displayCourses.slice(0, 3);

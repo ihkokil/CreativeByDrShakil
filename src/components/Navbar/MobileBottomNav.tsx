@@ -20,7 +20,7 @@ export default function MobileBottomNav() {
       </Link>
 
       <Link
-        href="/dashboard?tab=courses"
+        href="/dashboard/courses"
         className={`${styles.navItem} ${pathname === "/dashboard" ? styles.active : ""}`}
         aria-label="Courses"
       >

@@ -3,12 +3,12 @@
 import { useState } from "react";
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-    LayoutDashboard, 
-    UserCog, 
-    BookOpen, 
+import {
+    LayoutDashboard,
+    UserCog,
+    BookOpen,
     ReceiptText,
-    ChevronLeft, 
+    ChevronLeft,
     LogOut,
     ChevronRight,
     ShieldCheck,
@@ -71,7 +71,7 @@ export default function StudentSidebar({
                             <Image src="/logo/logo_black.webp" alt="Student Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-light-theme" />
                         </>
                     ) : (
-                        <Image src="/favicon.png" alt="Student Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
+                        <Image src="/favicon.webp" alt="Student Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
                     )}
                 </Link>
                 <button className={styles.toggleBtn} onClick={onToggleExpand}>

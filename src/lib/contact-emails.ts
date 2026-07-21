@@ -105,7 +105,7 @@ export function getContactAdminRecipientsList() {
 export async function sendContactSubmissionNotification(submission: ContactSubmissionEmailPayload) {
   const appUrl = getAppUrl();
   const issueLabel = formatIssueLabel(submission.issueType);
-  const detailsUrl = `${appUrl}/admin/dashboard?tab=support`;
+  const detailsUrl = `${appUrl}/admin/dashboard/support`;
   const safeImages = submission.imageUrls
     .map((url) => `<li><a href="${escapeHtml(url)}" style="color:#1d4ed8;word-break:break-all;">${escapeHtml(url)}</a></li>`)
     .join('');

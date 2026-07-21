@@ -25,7 +25,7 @@ export default function Navbar() {
         ? "/admin/dashboard"
         : role === "teacher"
             ? "/teacher/dashboard"
-            : "/dashboard?tab=courses";
+            : "/dashboard/courses";
 
     const getInitials = (name: string | undefined, fallback: string) => {
         if (!name) return fallback;
@@ -256,7 +256,7 @@ export default function Navbar() {
                     } else if (userRole === "teacher") {
                         router.push("/teacher/dashboard");
                     } else {
-                        router.push("/dashboard?tab=courses");
+                        router.push("/dashboard/courses");
                     }
                 }}
             />

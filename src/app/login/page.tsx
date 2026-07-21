@@ -123,7 +123,7 @@ function LoginContent() {
                     } else if (userRole === "teacher") {
                         router.push("/teacher/dashboard");
                     } else {
-                        router.push("/dashboard?tab=courses");
+                        router.push("/dashboard/courses");
                     }
                 }, 1000);
             }
