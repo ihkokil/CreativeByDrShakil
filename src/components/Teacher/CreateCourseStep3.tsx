@@ -53,10 +53,9 @@ function formatDisplayDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-function CreateCourseStep3Content() {
+function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const courseId = searchParams.get("courseId");
   const tab = searchParams.get("tab");
 
   const [loading, setLoading] = useState(true);
@@ -337,7 +336,7 @@ function CreateCourseStep3Content() {
         }
       }
 
-      router.push(`/teacher/dashboard/courses/create/review?courseId=${courseId}`);
+      router.push(`/teacher/dashboard/courses/${courseId}/review`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save module and media options");
     } finally {
@@ -361,7 +360,7 @@ function CreateCourseStep3Content() {
           </div>
           <button
             type="button"
-            onClick={() => router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}`)}
+            onClick={() => router.push(`/teacher/dashboard/courses/${courseId}/outline`)}
             style={{
               padding: "12px 32px", background: "var(--primary)", color: "white", border: "none",
               borderRadius: "10px", cursor: "pointer", fontWeight: "700", fontSize: "1.05rem",
@@ -461,7 +460,7 @@ function CreateCourseStep3Content() {
             </div>
             <button
               type="button"
-              onClick={() => router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}&tab=library`)}
+              onClick={() => router.push(`/teacher/dashboard/courses/${courseId}/outline?tab=library`)}
               style={{
                 padding: "12px 24px", background: "var(--primary)", color: "white", border: "none", borderRadius: "8px",
                 cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "1rem", fontWeight: "600",
@@ -532,7 +531,7 @@ function CreateCourseStep3Content() {
         <div className={styles.actions}>
           <button
             type="button"
-            onClick={() => router.push("/teacher/dashboard")}
+            onClick={() => router.push("/teacher/dashboard/courses")}
             className={styles.cancelBtn}
             disabled={saving}
           >
@@ -542,7 +541,7 @@ function CreateCourseStep3Content() {
           <button
             type="button"
             onClick={() =>
-              router.push(`/teacher/dashboard/courses/create/content?courseId=${courseId}`)
+              router.push(`/teacher/dashboard/courses/${courseId}/content`)
             }
             className={styles.backBtn}
             disabled={saving}
@@ -564,10 +563,10 @@ function CreateCourseStep3Content() {
   );
 }
 
-export default function CreateCourseStep3() {
+export default function CreateCourseStep3({ courseId }: { courseId?: string }) {
   return (
-    <Suspense fallback={<div style={{ padding: "20px" }}>Loading...</div>}>
-      <CreateCourseStep3Content />
+    <Suspense fallback={<div className={styles.loading}>Loading...</div>}>
+      <CreateCourseStep3Content courseId={courseId} />
     </Suspense>
   );
 }

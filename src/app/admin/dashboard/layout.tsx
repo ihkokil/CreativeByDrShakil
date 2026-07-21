@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminHeader from "@/components/Admin/AdminHeader";
@@ -37,7 +37,17 @@ function AdminDashboardLayoutContent({
         }
     }, []);
 
-    const activeTab = (searchParams.get("tab") as any) || "overview";
+    const pathname = usePathname();
+
+    const activeTab = (() => {
+        if (pathname === "/admin/dashboard") return "overview";
+        const pathParts = pathname?.split("/") || [];
+        const lastPart = pathParts[pathParts.length - 1];
+        if (["students", "teachers", "payments", "support", "enrollments", "settings", "security", "profile"].includes(lastPart)) {
+            return lastPart;
+        }
+        return "overview";
+    })();
 
     useEffect(() => {
         if (!loading && (!user || role !== "admin")) {
@@ -46,9 +56,11 @@ function AdminDashboardLayoutContent({
     }, [user, loading, role, router]);
 
     const setActiveTab = (tab: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`/admin/dashboard?${params.toString()}`);
+        if (tab === "overview") {
+            router.push(`/admin/dashboard`);
+        } else {
+            router.push(`/admin/dashboard/${tab}`);
+        }
     };
 
     const mobileNavItems = [

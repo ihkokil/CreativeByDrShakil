@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 
 export const AUTH_COOKIE_NAME = 'session_token';
@@ -67,13 +67,22 @@ export function extractBearerToken(request: NextRequest): string | null {
 
 export async function extractCookieToken() {
   const cookieStore = await cookies();
-  return cookieStore.get(AUTH_COOKIE_NAME)?.value || null;
-}
+  let token = cookieStore.get(AUTH_COOKIE_NAME)?.value || null;
 
-import { headers } from 'next/headers';
+  if (!token) {
+    const headersList = await headers();
+    const authHeader = headersList.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7);
+    }
+  }
+
+  return token;
+}
 
 export async function getSession() {
   const token = await extractCookieToken();
+
   if (!token) return null;
 
   try {

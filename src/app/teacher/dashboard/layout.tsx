@@ -16,7 +16,7 @@ function TeacherDashboardLayoutContent({
 }: {
     children: React.ReactNode;
 }) {
-    const { user, loading } = useAuth();
+    const { user, loading, role } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
@@ -29,23 +29,27 @@ function TeacherDashboardLayoutContent({
 
     const pathname = usePathname();
     const activeTab = (() => {
-        const tab = searchParams.get("tab");
-        if (tab) return tab;
-        if (pathname?.includes("/courses")) return "courses";
-        if (pathname?.includes("/quizzes")) return "quizzes";
+        if (pathname === "/teacher/dashboard") return "overview";
+        const pathParts = pathname?.split("/") || [];
+        const lastPart = pathParts[pathParts.length - 1];
+        if (["courses", "library", "live", "exams", "students", "profile", "security"].includes(lastPart)) {
+            return lastPart;
+        }
         return "overview";
     })();
 
     useEffect(() => {
-        if (!loading && !user) {
+        if (!loading && (!user || role !== "teacher")) {
             router.push("/");
         }
-    }, [user, loading, router]);
+    }, [user, loading, role, router]);
 
     const setActiveTab = (tab: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`/teacher/dashboard?${params.toString()}`);
+        if (tab === "overview") {
+            router.push(`/teacher/dashboard`);
+        } else {
+            router.push(`/teacher/dashboard/${tab}`);
+        }
     };
 
     const mobileNavItems = [

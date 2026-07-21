@@ -21,10 +21,9 @@ interface CourseData {
   instructors: Array<{ name: string; designation?: string; imageUrl?: string }>;
 }
 
-function CreateCourseStep4Content() {
+function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const courseId = searchParams.get("courseId");
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +91,7 @@ function CreateCourseStep4Content() {
         throw new Error(publishError.error || "Failed to publish");
       }
 
-      router.push("/teacher/dashboard?tab=courses");
+      router.push("/teacher/dashboard/courses");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to publish course");
     } finally {
@@ -231,7 +230,7 @@ function CreateCourseStep4Content() {
         <div className={styles.actions}>
           <button
             type="button"
-            onClick={() => router.push("/teacher/dashboard")}
+            onClick={() => router.push("/teacher/dashboard/courses")}
             className={styles.cancelBtn}
             disabled={publishing || hasErrors}
           >
@@ -241,7 +240,7 @@ function CreateCourseStep4Content() {
           <button
             type="button"
             onClick={() =>
-              router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}`)
+              router.push(`/teacher/dashboard/courses/${courseId}/outline`)
             }
             className={styles.backBtn}
             disabled={publishing || hasErrors}
@@ -271,10 +270,10 @@ function CreateCourseStep4Content() {
   );
 }
 
-export default function CreateCourseStep4() {
+export default function CreateCourseStep4({ courseId }: { courseId?: string }) {
   return (
-    <Suspense fallback={<div style={{ padding: "20px" }}>Loading...</div>}>
-      <CreateCourseStep4Content />
+    <Suspense fallback={<div className={styles.loading}>Loading...</div>}>
+      <CreateCourseStep4Content courseId={courseId} />
     </Suspense>
   );
 }

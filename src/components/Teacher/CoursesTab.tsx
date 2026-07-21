@@ -282,7 +282,7 @@ export default function CoursesTab() {
                                             </button>
                                             <button 
                                                 className={styles.iconAction} 
-                                                onClick={() => router.push(`/teacher/dashboard/courses/create?courseId=${course.id}`)} 
+                                                onClick={() => router.push(`/teacher/dashboard/courses/${course.id}/edit`)} 
                                                 title="Edit"
                                             >
                                                 <Edit2 size={18} />

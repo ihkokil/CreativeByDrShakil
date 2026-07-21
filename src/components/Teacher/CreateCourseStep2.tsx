@@ -21,10 +21,9 @@ interface SessionUser {
   };
 }
 
-function CreateCourseStep2Content() {
+function CreateCourseStep2Content({ courseId }: { courseId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const courseId = searchParams.get("courseId");
 
   const [loading, setLoading] = useState(!courseId);
   const [submitting, setSubmitting] = useState(false);
@@ -160,7 +159,7 @@ function CreateCourseStep2Content() {
       }
 
       // Redirect to step 3
-      router.push(`/teacher/dashboard/courses/create/outline?courseId=${courseId}`);
+      router.push(`/teacher/dashboard/courses/${courseId}/outline`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save content");
     } finally {
@@ -278,7 +277,7 @@ function CreateCourseStep2Content() {
         <div className={styles.actions}>
           <button
             type="button"
-            onClick={() => router.push("/teacher/dashboard")}
+            onClick={() => router.push("/teacher/dashboard/courses")}
             className={styles.cancelBtn}
             disabled={submitting || loading}
           >
@@ -288,7 +287,7 @@ function CreateCourseStep2Content() {
           <button
             type="button"
             onClick={() =>
-              router.push(`/teacher/dashboard/courses/create?courseId=${courseId}`)
+              router.push(`/teacher/dashboard/courses/${courseId}/edit`)
             }
             className={styles.backBtn}
             disabled={submitting}
@@ -310,10 +309,10 @@ function CreateCourseStep2Content() {
   );
 }
 
-export default function CreateCourseStep2() {
+export default function CreateCourseStep2({ courseId }: { courseId?: string }) {
   return (
-    <Suspense fallback={<div style={{ padding: "20px" }}>Loading...</div>}>
-      <CreateCourseStep2Content />
+    <Suspense fallback={<div className={styles.loading}>Loading...</div>}>
+      <CreateCourseStep2Content courseId={courseId} />
     </Suspense>
   );
 }

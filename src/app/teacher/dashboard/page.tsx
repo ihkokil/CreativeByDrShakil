@@ -75,82 +75,18 @@ function TeacherDashboardContent() {
 
     return (
         <div className={styles.stack}>
-            {activeTab === "overview" && (
-                <>
-                    {statsLoading ? (
-                        <Loader text="Syncing performance data..." fullScreen={false} />
-                    ) : (
-                        <TeacherOverview 
-                            totalCourses={stats?.totalCourses || 0}
-                            totalStudents={stats?.totalStudents || 0}
-                            totalEnrollments={stats?.totalEnrollments || 0}
-                            courseProgress={stats?.courseProgress || []}
-                            aggregateProgress={stats?.aggregateProgress || 0}
-                            teacherName={user.user_metadata?.full_name || "Teacher"}
-                            onTabChange={setActiveTab}
-                        />
-                    )}
-                </>
-            )}
-
-            {activeTab === "enrollments" && (
-                <section className={styles.panel}>
-                    <div className={styles.sectionHeader}>
-                        <div>
-                            <h2 className={styles.sectionTitle}>Bulk Enrollment Manager</h2>
-                            <p className={styles.subtitle}>Select multiple students to batch assign courses.</p>
-                        </div>
-                    </div>
-                    <EnrollmentsManager />
-                </section>
-            )}
-
-            {activeTab === "courses" && (
-                <CoursesTab />
-            )}
-
-            {activeTab === "library" && (
-                <section className={styles.panelNoPad}>
-                    <ModuleLibraryManager />
-                </section>
-            )}
-
-            {activeTab === "security" && (
-                <PasswordManager />
-            )}
-
-            {activeTab === "profile" && (
-                <ProfileTab />
-            )}
-
-            {activeTab === "users" && (
-                <section className={styles.panel}>
-                    <div className={styles.sectionHeader}>
-                        <div>
-                            <h2 className={styles.sectionTitle}>User Directory</h2>
-                            <p className={styles.subtitle}>Active device sessions and enrolled programs</p>
-                        </div>
-                    </div>
-                    <UsersManager />
-                </section>
-            )}
-
-            {activeTab === "students" && (
-                <section className={styles.panel}>
-                    <div className={styles.sectionHeader}>
-                        <div>
-                            <h2 className={styles.sectionTitle}>Student Directory</h2>
-                            <p className={styles.subtitle}>Enrolled students and user accounts</p>
-                        </div>
-                    </div>
-                    <StudentsManager />
-                </section>
-            )}
-
-            {activeTab === "payments" && user?.user_metadata?.canManagePayments && (
-                <section className={styles.panelNoPad}>
-                    <PaymentsManager />
-                </section>
+            {statsLoading ? (
+                <Loader text="Syncing performance data..." fullScreen={false} />
+            ) : (
+                <TeacherOverview 
+                    totalCourses={stats?.totalCourses || 0}
+                    totalStudents={stats?.totalStudents || 0}
+                    totalEnrollments={stats?.totalEnrollments || 0}
+                    courseProgress={stats?.courseProgress || []}
+                    aggregateProgress={stats?.aggregateProgress || 0}
+                    teacherName={user.user_metadata?.full_name || "Teacher"}
+                    onTabChange={setActiveTab}
+                />
             )}
         </div>
     );
@@ -158,7 +94,7 @@ function TeacherDashboardContent() {
 
 export default function TeacherDashboard() {
     return (
-        <Suspense fallback={<Loader text="Loading Teacher Dashboard..." />}>
+        <Suspense fallback={<Loader text="Loading dashboard..." />}>
             <TeacherDashboardContent />
         </Suspense>
     );

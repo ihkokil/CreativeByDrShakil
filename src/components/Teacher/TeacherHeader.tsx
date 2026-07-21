@@ -83,7 +83,7 @@ export default function TeacherHeader({ title, user, onToggleSidebar }: TeacherH
                                         className={styles.dropdownItem} 
                                         onClick={() => {
                                             setIsOpen(false);
-                                            router.push("/teacher/dashboard?tab=profile");
+                                            router.push("/teacher/dashboard/profile");
                                         }}
                                     >
                                         <User size={18} />
@@ -93,7 +93,7 @@ export default function TeacherHeader({ title, user, onToggleSidebar }: TeacherH
                                         className={styles.dropdownItem} 
                                         onClick={() => {
                                             setIsOpen(false);
-                                            router.push("/teacher/dashboard?tab=security");
+                                            router.push("/teacher/dashboard/security");
                                         }}
                                     >
                                         <Settings size={18} />

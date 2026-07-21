@@ -7,10 +7,9 @@ import Image from "next/image";
 import styles from "./CreateCourseStep1.module.css";
 import { formatDisplayDate, parseDisplayDateToIso } from "@/lib/date-format";
 
-function CreateCourseStep1Content() {
+function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const courseId = searchParams.get("courseId");
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -124,7 +123,7 @@ function CreateCourseStep1Content() {
       const newCourseId = courseId || data.course.id;
 
       // Navigate to step 2
-      router.push(`/teacher/dashboard/courses/create/content?courseId=${newCourseId}`);
+      router.push(`/teacher/dashboard/courses/${newCourseId}/content`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save course");
     } finally {
@@ -286,7 +285,7 @@ function CreateCourseStep1Content() {
         <div className={styles.actions}>
           <button
             type="button"
-            onClick={() => router.push("/teacher/dashboard")}
+            onClick={() => router.push("/teacher/dashboard/courses")}
             className={styles.cancelBtn}
             disabled={submitting || loading}
           >
@@ -306,10 +305,10 @@ function CreateCourseStep1Content() {
   );
 }
 
-export default function CreateCourseStep1() {
+export default function CreateCourseStep1({ courseId }: { courseId?: string }) {
   return (
-    <Suspense fallback={<div style={{ padding: "20px" }}>Loading...</div>}>
-      <CreateCourseStep1Content />
+    <Suspense fallback={<div className={styles.loading}>Loading...</div>}>
+      <CreateCourseStep1Content courseId={courseId} />
     </Suspense>
   );
 }
