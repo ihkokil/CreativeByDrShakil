@@ -47,6 +47,23 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
+            <head>
+                <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+                <link rel="preconnect" href="https://www.youtube.com" />
+                <link rel="preconnect" href="https://i.ytimg.com" />
+                <link rel="preconnect" href="https://s.ytimg.com" />
+                <link rel="preconnect" href="https://googlevideo.com" />
+                <link rel="preconnect" href="https://googleads.g.doubleclick.net" />
+                <link rel="preconnect" href="https://static.doubleclick.net" />
+                <link rel="preconnect" href="https://player.vimeo.com" />
+                <link rel="preconnect" href="https://i.vimeocdn.com" />
+                <link rel="preconnect" href="https://f.vimeocdn.com" />
+                <link rel="preconnect" href="https://fresnel.vimeocdn.com" />
+                <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+                <link rel="dns-prefetch" href="https://www.youtube.com" />
+                <link rel="dns-prefetch" href="https://player.vimeo.com" />
+                <link rel="dns-prefetch" href="https://googlevideo.com" />
+            </head>
             <body className={outfit.className} suppressHydrationWarning>
                 <AuthProvider>
                     <ContentProtection />

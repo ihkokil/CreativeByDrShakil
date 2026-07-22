@@ -206,7 +206,6 @@ export default function LessonPlayer({ lesson, nextLesson, onComplete }: LessonP
     return (
         <div className={styles.playerContainer} onContextMenu={handleContextMenu}>
             <MediaPlayer
-                key={lesson.id}
                 ref={playerRef}
                 src={playerSrc}
                 viewType="video"
