@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
-import { decompressUuid } from '@/lib/telegram';
+import { decompressUuid, compressUuid } from '@/lib/telegram';
 import { ensureCourseEnrollment } from '@/lib/enrollment';
 
 function getTelegramToken() {
   return process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+}
+
+function escapeHtml(value: string) {
+  if (!value) return '';
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
@@ -53,13 +62,72 @@ export async function POST(request: NextRequest) {
     if (!callbackQuery) {
       const message = body?.message;
       if (message && message.text) {
-        const text = message.text;
+        const text = message.text.trim();
         const chatId = message.chat.id;
-        
+
         if (text === '/start' || text === '/help') {
           await sendTelegramReply(chatId, `Hello! 👋\n\nYour Telegram Chat ID is: <code>${chatId}</code>\n\nYou can use this ID in your environment variables to receive notifications.`);
         } else if (text === '/chatid') {
           await sendTelegramReply(chatId, `Your Chat ID: <code>${chatId}</code>`);
+        } else if (text.startsWith('/student')) {
+          const query = text.replace(/^\/student(@\w+)?\s*/i, '').trim();
+
+          if (!query) {
+            await sendTelegramReply(
+              chatId,
+              `ℹ️ <b>Student Lookup Usage:</b>\n<code>/student &lt;email, phone, or name&gt;</code>\n\n<b>Example:</b>\n<code>/student ihkokil@gmail.com</code>`
+            );
+          } else {
+            const supabase = getSupabaseAdmin();
+            const { data: matchedUsers } = await supabase
+              .from('User')
+              .select('id, fullName, email, phone, role, createdAt')
+              .or(`email.ilike.%${query}%,phone.ilike.%${query}%,fullName.ilike.%${query}%`)
+              .limit(5);
+
+            if (!matchedUsers || matchedUsers.length === 0) {
+              await sendTelegramReply(chatId, `❌ <b>No student found</b> matching "<code>${escapeHtml(query)}</code>".`);
+            } else {
+              for (const user of matchedUsers) {
+                const { data: orders = [] } = await supabase
+                  .from('Order')
+                  .select('courseId')
+                  .eq('userId', user.id)
+                  .eq('status', 'approved');
+
+                const courseIds = [...new Set((orders || []).map((o: any) => o.courseId).filter(Boolean))];
+                const { data: courses = [] } = courseIds.length > 0
+                  ? await supabase.from('Course').select('title').in('id', courseIds)
+                  : { data: [] };
+
+                const courseTitles = (courses || []).map((c: any) => c.title).join(', ') || 'None';
+
+                const replyText = [
+                  '👤 <b>Student Details Found</b>',
+                  '',
+                  `<b>Name:</b> ${escapeHtml(user.fullName)}`,
+                  `<b>Email:</b> ${escapeHtml(user.email)}`,
+                  `<b>Phone:</b> ${escapeHtml(user.phone || 'N/A')}`,
+                  `<b>ID:</b> <code>${user.id}</code>`,
+                  `<b>Role:</b> ${escapeHtml(user.role)}`,
+                  `<b>Enrolled Courses:</b> ${escapeHtml(courseTitles)}`,
+                  '',
+                  'Select an action below:'
+                ].join('\n');
+
+                const keyboard = {
+                  inline_keyboard: [
+                    [
+                      { text: '📚 Enroll in Course', callback_data: `en:${compressUuid(user.id)}` },
+                      { text: '⚙️ Module Availability', callback_data: `av:${compressUuid(user.id)}` }
+                    ]
+                  ]
+                };
+
+                await sendTelegramReply(chatId, replyText, keyboard);
+              }
+            }
+          }
         } else {
           // Acknowledge other commands/messages quietly
           await sendTelegramReply(chatId, `Command received: ${text}\nYour Chat ID: <code>${chatId}</code>`);

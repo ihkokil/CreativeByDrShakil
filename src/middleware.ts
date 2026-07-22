@@ -7,6 +7,7 @@ const publicPaths = [
   '/api/auth',
   '/api/public',
   '/api/webhooks',
+  '/api/telegram',
   '/api/courses',
   '/api/teachers',
 ];
