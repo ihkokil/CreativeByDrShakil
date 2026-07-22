@@ -76,80 +76,92 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const originalFetch = window.fetch;
         window.fetch = async function (input, init) {
+            let hash = '';
+            let os = '';
+            let category: "mobile" | "tablet" | "desktop" | "" = '';
+            let label = '';
+            
             try {
-                const hash = await getDeviceHash();
+                hash = await getDeviceHash();
                 const userAgent = navigator.userAgent;
-                const os = detectOS(userAgent);
-                const category = getDeviceCategory(
+                os = detectOS(userAgent);
+                category = getDeviceCategory(
                     userAgent,
                     navigator.maxTouchPoints || 0,
                     window.screen ? window.screen.width : 1024,
                     window.screen ? window.screen.height : 768
-                );
-                const label = getDeviceLabel(userAgent, category);
-
-                let response;
-                let url: string;
-
-                if (input instanceof Request) {
-                    url = input.url;
-                    const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
-                    const isSameOrigin = url.startsWith(window.location.origin);
-
-                    if (isRelative || isSameOrigin) {
-                        const headers = new Headers(input.headers);
-                        headers.set('X-Device-Hash', hash);
-                        headers.set('X-Device-Label', label);
-                        headers.set('X-Device-OS', os);
-                        headers.set('X-Device-Category', category);
-                        
-                        const clonedRequest = new Request(input, { headers });
-                        response = await originalFetch(clonedRequest, init);
-                    } else {
-                        response = await originalFetch(input, init);
-                    }
-                } else {
-                    url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as any).url || '');
-                    const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
-                    const isSameOrigin = url.startsWith(window.location.origin);
-
-                    if (isRelative || isSameOrigin) {
-                        const headers = new Headers(init?.headers);
-                        headers.set('X-Device-Hash', hash);
-                        headers.set('X-Device-Label', label);
-                        headers.set('X-Device-OS', os);
-                        headers.set('X-Device-Category', category);
-                        
-                        response = await originalFetch(input, {
-                            ...init,
-                            headers
-                        });
-                    } else {
-                        response = await originalFetch(input, init);
-                    }
-                }
-
-                if (response.status === 401) {
-                    const isLoginOrAuth = url.includes('/api/auth/login') ||
-                                          url.includes('/api/auth/register') ||
-                                          url.includes('/api/auth/reset-password') ||
-                                          url.includes('/api/auth/session');
-
-                    if (!isLoginOrAuth && localStorage.getItem('auth_token')) {
-                        setUser(null);
-                        setRole(null);
-                        setSession(null);
-                        setSessionId(null);
-                        localStorage.removeItem('auth_token');
-                        window.location.href = '/?auth=login';
-                    }
-                }
-
-                return response;
-            } catch (err) {
-                console.error('[Fetch Interceptor Error]', err);
-                return originalFetch(input, init);
+                ) as "mobile" | "tablet" | "desktop";
+                label = getDeviceLabel(userAgent, category);
+            } catch (fpErr) {
+                // Proceed without device headers if fingerprinting fails
             }
+
+            let response;
+            let url: string;
+
+            if (input instanceof Request) {
+                url = input.url;
+                const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
+                const isSameOrigin = url.startsWith(window.location.origin);
+
+                if (isRelative || isSameOrigin) {
+                    const headers = new Headers(input.headers);
+                    if (hash) headers.set('X-Device-Hash', hash);
+                    if (label) headers.set('X-Device-Label', label);
+                    if (os) headers.set('X-Device-OS', os);
+                    if (category) headers.set('X-Device-Category', category);
+                    
+                    const clonedRequest = new Request(input, { headers });
+                    response = await originalFetch(clonedRequest, init);
+                } else {
+                    try {
+                        response = await originalFetch(input, init);
+                    } catch (err) {
+                        return new Response(null, { status: 500, statusText: 'Fetch Failed' });
+                    }
+                }
+            } else {
+                url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as any).url || '');
+                const isRelative = !url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('//');
+                const isSameOrigin = url.startsWith(window.location.origin);
+
+                if (isRelative || isSameOrigin) {
+                    const headers = new Headers(init?.headers);
+                    if (hash) headers.set('X-Device-Hash', hash);
+                    if (label) headers.set('X-Device-Label', label);
+                    if (os) headers.set('X-Device-OS', os);
+                    if (category) headers.set('X-Device-Category', category);
+                    
+                    response = await originalFetch(input, {
+                        ...init,
+                        headers
+                    });
+                } else {
+                    try {
+                        response = await originalFetch(input, init);
+                    } catch (err) {
+                        return new Response(null, { status: 500, statusText: 'Fetch Failed' });
+                    }
+                }
+            }
+
+            if (response.status === 401) {
+                const isLoginOrAuth = url.includes('/api/auth/login') ||
+                                      url.includes('/api/auth/register') ||
+                                      url.includes('/api/auth/reset-password') ||
+                                      url.includes('/api/auth/session');
+
+                if (!isLoginOrAuth && localStorage.getItem('auth_token')) {
+                    setUser(null);
+                    setRole(null);
+                    setSession(null);
+                    setSessionId(null);
+                    localStorage.removeItem('auth_token');
+                    window.location.href = '/?auth=login';
+                }
+            }
+
+            return response;
         };
 
         return () => {

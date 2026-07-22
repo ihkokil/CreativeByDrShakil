@@ -236,10 +236,9 @@ export default function StudyCoursePage() {
                 throw new Error(data.error || "Failed to mark lesson complete.");
             }
 
-            const updatedIds = Array.isArray(data.progress?.completedLessonIds)
-                ? data.progress.completedLessonIds
-                : [];
-            setCompletedLessonIds(updatedIds);
+            if (data.success) {
+                setCompletedLessonIds(prev => Array.from(new Set([...prev, activeLesson.id])));
+            }
         } catch (err: any) {
             setProgressError(err.message || "Could not update progress right now.");
         } finally {

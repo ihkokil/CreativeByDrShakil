@@ -1,9 +1,9 @@
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 
 export async function populateMediaVaultNodes(nodes: any[], customSupabase?: any): Promise<any[]> {
   if (!nodes || nodes.length === 0) return nodes;
 
-  const supabase = customSupabase || getSupabase();
+  const supabase = customSupabase || getSupabaseAdmin();
   const folderIds: string[] = [];
 
   const collectFolderIds = (items: any[]) => {

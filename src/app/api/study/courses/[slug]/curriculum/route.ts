@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
@@ -25,9 +25,7 @@ export async function GET(
     }
 
     const { slug } = await params;
-    const token = await extractCookieToken();
-
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: course, error: courseError }: { data: any; error: any } = await supabase
       .from('Course')

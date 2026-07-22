@@ -1,4 +1,4 @@
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export default async function DebugPage() {
   let studentCount: number | null = null;
 
   try {
-    const supabase = getSupabase();
+    const supabase = getSupabaseAdmin();
     
     // Test basic query to check connection
     const { count: coursesCountRes, error: coursesError } = await supabase

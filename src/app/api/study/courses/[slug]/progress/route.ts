@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
@@ -15,9 +15,7 @@ export async function GET(
     }
 
     const { slug } = await params;
-    const token = await extractCookieToken();
-
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: course, error: courseError }: { data: any; error: any } = await supabase
       .from('Course')
@@ -68,10 +66,7 @@ export async function POST(
       return NextResponse.json({ error: 'lessonNodeId is required.' }, { status: 400 });
     }
 
-    const token = await extractCookieToken();
-
-
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: course, error: courseError }: { data: any; error: any } = await supabase
       .from('Course')
@@ -106,6 +101,7 @@ export async function POST(
         lessonNodeId,
         completedAt: nowStr,
         createdAt: nowStr,
+        updatedAt: nowStr,
       } as any);
 
       if (insertError) throw insertError;
@@ -136,10 +132,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'lessonNodeId is required.' }, { status: 400 });
     }
 
-    const token = await extractCookieToken();
-
-
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: course }: { data: any } = await supabase
       .from('Course')

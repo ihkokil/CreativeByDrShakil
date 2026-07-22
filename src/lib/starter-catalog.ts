@@ -1,8 +1,8 @@
-import { getSupabase } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 
 export async function getStarterCatalogFromDB(): Promise<any[]> {
-  const supabase = getSupabase();
+  const supabase = getSupabaseAdmin();
 
   const { data: starterCourses = [] } = await supabase
     // @ts-ignore: StarterCatalog might be missing from generated types
