@@ -48,6 +48,7 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <head>
+                <script src="/polyfills.js" />
                 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
                 <link rel="preconnect" href="https://www.youtube.com" />
                 <link rel="preconnect" href="https://i.ytimg.com" />
@@ -65,6 +66,55 @@ export default function RootLayout({
                 <link rel="dns-prefetch" href="https://googlevideo.com" />
             </head>
             <body className={outfit.className} suppressHydrationWarning>
+                <noscript>
+                    <div style={{ padding: '2rem', textAlign: 'center', fontFamily: '-apple-system, sans-serif' }}>
+                        <h1>JavaScript Required</h1>
+                        <p>Please enable JavaScript to use this application.</p>
+                    </div>
+                </noscript>
+                <div
+                    id="legacy-browser-warning"
+                    style={{
+                        display: 'none',
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 99999,
+                        backgroundColor: '#0a0a0a',
+                        color: '#ffffff',
+                        padding: '2rem',
+                        textAlign: 'center',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                    }}
+                >
+                    <div style={{ maxWidth: '400px', margin: '20vh auto 0' }}>
+                        <h1 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+                            Browser Update Required
+                        </h1>
+                        <p style={{ color: '#aaa', lineHeight: 1.6 }}>
+                            Your browser is too old to run this application.
+                            Please update your iPhone/iPad to iOS 14 or later
+                            in Settings → General → Software Update.
+                        </p>
+                    </div>
+                </div>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            (function() {
+                                try {
+                                    if (
+                                        typeof Promise.allSettled !== 'function' &&
+                                        typeof Promise.withResolvers !== 'function'
+                                    ) {}
+                                    var test = eval('var o = {}; o?.x');
+                                    eval('var x = null ?? 1');
+                                } catch(e) {
+                                    document.getElementById('legacy-browser-warning').style.display = 'block';
+                                }
+                            })();
+                        `,
+                    }}
+                />
                 <AuthProvider>
                     <ContentProtection />
                     {children}

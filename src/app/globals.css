@@ -1,3 +1,38 @@
+/* Safari < 15 doesn't support aspect-ratio */
+@supports not (aspect-ratio: 1) {
+  .aspect-video {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    overflow: hidden;
+  }
+  .aspect-video > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* Safari < 14.1 needs flex-gap fallbacks */
+@supports not (gap: 1rem) {
+  .flex-gap > * + * {
+    margin-left: 1rem;
+  }
+}
+
+/* Ensure dvh/svh fallbacks */
+:root {
+  --vh-fallback: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --vh-fallback: 100dvh;
+  }
+}
+
 :root {
   /* Dark Mode (Default) — Premium OLED Palette */
   --background: #050505;

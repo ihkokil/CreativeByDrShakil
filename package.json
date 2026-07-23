@@ -33,6 +33,13 @@
     "url": "https://github.com/ihkokil/CreativeByDrShakil/issues"
   },
   "homepage": "https://github.com/ihkokil/CreativeByDrShakil#readme",
+  "browserslist": [
+    "iOS >= 14",
+    "Safari >= 14",
+    "> 0.5%",
+    "not dead",
+    "not op_mini all"
+  ],
   "dependencies": {
     "@distube/ytdl-core": "^4.16.12",
     "@opennextjs/cloudflare": "^1.19.11",

@@ -1,5 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // Suppress known unhandled rejections from Video providers 
+    // by keeping pages in buffer longer during development navigation
+    onDemandEntries: {
+        maxInactiveAge: 25 * 1000,
+        pagesBufferLength: 2,
+    },
+    transpilePackages: [
+        'framer-motion',
+        'lucide-react',
+        '@vidstack/react',
+        'vidstack',
+        '@supabase/supabase-js',
+        'jose',
+        'zod',
+    ],
     serverExternalPackages: ['@prisma/client', '.prisma/client'],
     experimental: {
         optimizePackageImports: ['lucide-react', 'framer-motion', '@vidstack/react', 'vidstack', 'zod', 'bcryptjs'],

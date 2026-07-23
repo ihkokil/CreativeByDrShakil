@@ -23,7 +23,7 @@ export async function getDeviceHash(): Promise<string> {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
       touchSupport: 'ontouchstart' in window || navigator.maxTouchPoints > 0,
       maxTouchPoints: navigator.maxTouchPoints || 0,
-      deviceMemory: (navigator as any).deviceMemory || 0,
+      deviceMemory: 'deviceMemory' in navigator ? (navigator as any).deviceMemory || 0 : 0,
     };
 
     const rawString = [
@@ -37,7 +37,7 @@ export async function getDeviceHash(): Promise<string> {
 
     const cryptoApi = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
 
-    if (cryptoApi && cryptoApi.subtle) {
+    if (cryptoApi && cryptoApi.subtle && typeof cryptoApi.subtle.digest === 'function') {
       const encoder = new TextEncoder();
       const data = encoder.encode(rawString);
       const hashBuffer = await cryptoApi.subtle.digest('SHA-256', data);
@@ -56,6 +56,9 @@ export async function getDeviceHash(): Promise<string> {
 }
 
 export function detectOS(userAgent: string): string {
+  if (typeof navigator !== 'undefined' && 'userAgentData' in navigator && (navigator as any).userAgentData && (navigator as any).userAgentData.platform) {
+    return (navigator as any).userAgentData.platform;
+  }
   const ua = userAgent.toLowerCase();
   if (ua.includes('windows')) return 'Windows';
   if (ua.includes('macintosh') || ua.includes('mac intel') || ua.includes('mac os')) return 'macOS';
@@ -71,6 +74,9 @@ export function getDeviceCategory(
   screenWidth: number,
   screenHeight: number
 ): 'mobile' | 'tablet' | 'desktop' {
+  if (typeof navigator !== 'undefined' && 'userAgentData' in navigator && (navigator as any).userAgentData) {
+    return (navigator as any).userAgentData.mobile ? 'mobile' : 'desktop';
+  }
   const ua = userAgent.toLowerCase();
 
   // iPad desktop mode
