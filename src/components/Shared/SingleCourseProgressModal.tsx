@@ -122,7 +122,7 @@ export default function SingleCourseProgressModal({
     );
   };
 
-  const topLevelFolders = data?.curriculum?.filter(n => n.type === 'folder') || [];
+  const topLevelFolders = data?.curriculum?.filter(n => n.type === 'folder' && !n.locked) || [];
 
   const getInitials = (name: string) => {
     if (!name) return 'S';
@@ -207,8 +207,8 @@ export default function SingleCourseProgressModal({
           ) : (
             <div className={styles.emptyState}>
               <Folder size={48} style={{ marginBottom: '12px' }} />
-              <h3>Empty Course</h3>
-              <p>This course does not have any modules yet.</p>
+              <h3>No Available Modules</h3>
+              <p>The student does not have access to any modules yet.</p>
             </div>
           )}
         </div>

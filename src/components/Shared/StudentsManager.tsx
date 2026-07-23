@@ -172,8 +172,12 @@ function StudentProgramsCell({ student, onCourseClick }: { student: StudentProfi
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
-        if (res.ok && isMounted && data.progress) {
-          setProgressMap(data.progress);
+        if (res.ok && isMounted && data.courses) {
+          const map: Record<string, number> = {};
+          data.courses.forEach((c: any) => {
+            map[c.courseId] = c.progressPercent;
+          });
+          setProgressMap(map);
         }
       } catch (err) {}
     };
