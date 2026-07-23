@@ -140,3 +140,39 @@
 .attachmentCard:hover .attAction {
     background: var(--primary-dark, #2563eb);
 }
+
+/* ─── Custom Big Pause Overlay ──────────────────────── */
+
+.pauseOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none; /* Let clicks pass through except on the button itself */
+    z-index: 50; 
+}
+
+.bigPlayBtn {
+    pointer-events: auto; /* Make the button clickable */
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: rgba(239, 68, 68, 0.9); /* red-500 */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.4);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+    padding-left: 6px; /* Offset to center the triangle visually */
+    backdrop-filter: blur(4px);
+}
+
+.bigPlayBtn:hover {
+    transform: scale(1.1);
+    background-color: rgba(220, 38, 38, 1); /* red-600 */
+}
+

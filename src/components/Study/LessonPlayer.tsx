@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./LessonPlayer.module.css";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
-import { Lock, FileText, Video as VideoIcon } from "lucide-react";
+import { Lock, FileText, Video as VideoIcon, Play } from "lucide-react";
 
-import { MediaPlayer, MediaProvider, Poster } from "@vidstack/react";
+import { MediaPlayer, MediaProvider, Poster, PlayButton, useMediaState, type MediaPlayerInstance } from "@vidstack/react";
 import { DefaultVideoLayout, defaultLayoutIcons } from "@vidstack/react/player/layouts/default";
 import "@vidstack/react/player/styles/default/theme.css";
 import "@vidstack/react/player/styles/default/layouts/video.css";
@@ -23,31 +23,27 @@ interface LessonPlayerProps {
     onComplete?: () => void;
 }
 
+function CustomPauseOverlay() {
+    const paused = useMediaState('paused');
+    const started = useMediaState('started');
+    const ended = useMediaState('ended');
+    const seeking = useMediaState('seeking');
+
+    // Only show the big play button if the video has started playing, is currently paused, 
+    // has not ended, and the user is not actively scrubbing/seeking.
+    if (!started || !paused || ended || seeking) return null;
+
+    return (
+        <div className={styles.pauseOverlay}>
+            <PlayButton className={styles.bigPlayBtn}>
+                <Play size={48} fill="currentColor" strokeWidth={1.5} />
+            </PlayButton>
+        </div>
+    );
+}
+
 export default function LessonPlayer({ lesson, nextLesson, onComplete }: LessonPlayerProps) {
     const playerRef = useRef(null);
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    // Suppress Vidstack internal provider destroyed promise rejections on lesson switch / unmount
-    useEffect(() => {
-        const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-            const reasonMsg = typeof event.reason === "string"
-                ? event.reason
-                : event.reason?.message || "";
-
-            if (reasonMsg.includes("provider destroyed") || reasonMsg.includes("destroyed")) {
-                event.preventDefault();
-            }
-        };
-
-        window.addEventListener("unhandledrejection", handleUnhandledRejection);
-        return () => {
-            window.removeEventListener("unhandledrejection", handleUnhandledRejection);
-        };
-    }, []);
 
     const getYoutubeId = (rawUrl: string) => {
         if (!rawUrl) return null;
@@ -188,23 +184,14 @@ export default function LessonPlayer({ lesson, nextLesson, onComplete }: LessonP
         );
     }
 
-    // --- Vidstack Player for YouTube, Vimeo, and Self-hosted ---
     const playerSrc = getPlayerSrc();
     const posterUrl = getPosterUrl();
 
-    if (!isMounted) {
-        return (
-            <div className={styles.playerContainer} onContextMenu={handleContextMenu}>
-                <div className={styles.mockVideo}>
-                    <VideoIcon size={60} />
-                    <span>Loading player...</span>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className={styles.playerContainer} onContextMenu={handleContextMenu}>
+            {/* Protective Overlay for Branding/Link Protection */}
+            <div className={styles.vidstackShield} />
+
             <MediaPlayer
                 ref={playerRef}
                 src={playerSrc}
@@ -222,15 +209,18 @@ export default function LessonPlayer({ lesson, nextLesson, onComplete }: LessonP
                 }}
             >
                 <MediaProvider>
-                    {posterUrl && <Poster className="vds-poster" />}
+                    <Poster className="vds-poster" />
                 </MediaProvider>
                 <DefaultVideoLayout seekStep={10} icons={defaultLayoutIcons} />
-            </MediaPlayer>
 
-            {/* Watermark overlay — stays on top of everything */}
-            <div className={styles.watermarkWrapper}>
-                <VideoWatermark />
-            </div>
+                {/* Big red play button overlay on pause */}
+                <CustomPauseOverlay />
+
+                {/* Watermark overlay — stays on top of everything */}
+                <div className={styles.watermarkWrapper}>
+                    <VideoWatermark />
+                </div>
+            </MediaPlayer>
         </div>
     );
 }
