@@ -107,18 +107,21 @@ export async function GET(request: NextRequest) {
     const creatorIds = (dbQuizzes || []).map((q: any) => q.createdBy);
     const quizIds = (dbQuizzes || []).map((q: any) => q.id);
 
-    const [categoriesResponse, creatorsResponse, questionsResponse] = await Promise.all([
+    const [categoriesResponse, creatorsResponse, questionsResponse, attemptsResponse] = await Promise.all([
       categoryIds.length > 0 ? supabase.from('QuizCategory').select('*').in('id', categoryIds) : Promise.resolve({ data: [] }),
       creatorIds.length > 0 ? supabase.from('User').select('id, fullName').in('id', creatorIds) : Promise.resolve({ data: [] }),
       quizIds.length > 0 ? supabase.from('Question').select('quizId, id').in('quizId', quizIds) : Promise.resolve({ data: [] }),
+      quizIds.length > 0 && isTeacher ? supabase.from('QuizAttempt').select('quizId, studentId').in('quizId', quizIds) : Promise.resolve({ data: [] }),
     ]);
 
     const categories = categoriesResponse.data || [];
     const creators = creatorsResponse.data || [];
     const questions = questionsResponse.data || [];
+    const attempts = attemptsResponse.data || [];
 
     const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
     const creatorMap = new Map(creators.map((c: any) => [c.id, c]));
+    
     const questionsMap = new Map<string, { id: string }[]>();
     for (const q of questions) {
       const list = questionsMap.get((q as any).quizId) || [];
@@ -126,12 +129,30 @@ export async function GET(request: NextRequest) {
       questionsMap.set((q as any).quizId, list);
     }
 
+    const attemptsCountMap = new Map<string, number>();
+    const uniqueUsersMap = new Map<string, Set<string>>();
+    
+    for (const a of attempts) {
+      const qId = (a as any).quizId;
+      const sId = (a as any).studentId;
+      attemptsCountMap.set(qId, (attemptsCountMap.get(qId) || 0) + 1);
+      
+      if (!uniqueUsersMap.has(qId)) {
+        uniqueUsersMap.set(qId, new Set<string>());
+      }
+      if (sId) {
+        uniqueUsersMap.get(qId)!.add(sId);
+      }
+    }
+
     const quizzes = (dbQuizzes || []).map((q: any) => ({
       ...q,
       category: q.categoryId ? categoryMap.get(q.categoryId) || null : null,
       creator: creatorMap.get(q.createdBy) || null,
       questions: questionsMap.get(q.id) || [],
-      _count: { questions: (questionsMap.get(q.id) || []).length }
+      _count: { questions: (questionsMap.get(q.id) || []).length },
+      attemptsCount: attemptsCountMap.get(q.id) || 0,
+      uniqueUsersCount: uniqueUsersMap.get(q.id)?.size || 0,
     }));
 
     if (!isTeacher && payload && quizzes.length > 0) {

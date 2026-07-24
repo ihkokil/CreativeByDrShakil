@@ -37,6 +37,7 @@ interface Quiz {
   publishedAt: string | null;
   _count: { questions: number };
   attemptsCount: number;
+  uniqueUsersCount?: number;
 }
 
 export default function TeacherQuizzesPage() {
@@ -138,7 +139,7 @@ export default function TeacherQuizzesPage() {
       const res = await fetch(`/api/quiz/${id}/duplicate`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to duplicate');
-      router.push(`/teacher/dashboard/quizzes/${data.quiz.id}/edit`);
+      router.push(`/teacher/dashboard/quizzes/${data.quizId}/edit`);
     } catch (err: any) {
       alert(err.message);
     }
@@ -272,7 +273,7 @@ export default function TeacherQuizzesPage() {
                   <th scope="col">Quiz</th>
                   <th scope="col">Questions</th>
                   <th scope="col">Duration</th>
-                  <th scope="col">Attempts</th>
+                  <th scope="col">Attempts / Users</th>
                   <th scope="col">Status</th>
                   <th scope="col">Created</th>
                   <th scope="col"><span className={styles.visuallyHidden}>Actions</span></th>
@@ -298,7 +299,9 @@ export default function TeacherQuizzesPage() {
                     </td>
                     <td>{formatDuration(quiz.durationMinutes)}</td>
                     <td>
-                      <span className={styles.attemptsCount}>{quiz.attemptsCount}</span>
+                      <span className={styles.attemptsCount} title={`${quiz.attemptsCount} total attempts across ${quiz.uniqueUsersCount || 0} users`}>
+                        {quiz.attemptsCount} / {quiz.uniqueUsersCount || 0} users
+                      </span>
                     </td>
                     <td>{getStatusBadge(quiz.status)}</td>
                     <td className={styles.dateCell}>

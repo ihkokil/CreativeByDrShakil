@@ -38,7 +38,7 @@ function StudentDashboardLayoutContent({
     })();
 
     useEffect(() => {
-        if (!loading && (!user || role !== "student")) {
+        if (!loading && (!user || (role !== "student" && role !== "teacher" && role !== "admin"))) {
             router.push("/");
         }
     }, [user, loading, role, router]);

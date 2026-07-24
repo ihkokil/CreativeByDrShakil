@@ -1125,3 +1125,161 @@
     break-inside: avoid !important;
   }
 }
+
+/* Summary Grid CSS */
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.summaryCard {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cardIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-color);
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.breakdownItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.breakdownLabel {
+  color: var(--text-secondary);
+}
+
+.breakdownValue {
+  font-weight: 600;
+}
+
+.breakdownTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.timeAnalysis {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timeItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.timeLabel {
+  color: var(--text-secondary);
+}
+
+.timeValue {
+  font-weight: 600;
+}
+
+.rankInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rankMain {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.rankLabel {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.rankValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.rankMethod {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pieChartContainer {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.pieChartWrapper {
+  flex-shrink: 0;
+}
+
+.pieChart {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+}
+
+.pieChartLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legendLabel {
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.legendValue {
+  font-weight: 600;
+}

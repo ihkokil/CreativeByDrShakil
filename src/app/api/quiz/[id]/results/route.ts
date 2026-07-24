@@ -101,7 +101,7 @@ export async function GET(
           let isPartial = false;
           
           if (studentAns && q.correctOption) {
-            if (q.questionType === 'sba') {
+            if (q.questionType === 'sba' || q.questionType === 'true_false') {
               isCorrect = studentAns === q.correctOption;
             } else if (q.questionType === 'mcq') {
               if (studentAns === q.correctOption) {
@@ -370,28 +370,169 @@ export async function GET(
     const perQuestionAnalytics = questionStatsWithAnswers.map(q => {
       const answers = q.attemptAnswers;
       const total = answers.length;
-      const correct = answers.filter((a: any) => a.isCorrect).length;
-      const optionCounts = { A: 0, B: 0, C: 0, D: 0, E: 0 };
       
+      let correct = 0;
       for (const a of answers) {
-        if (a.selectedOption) {
-          optionCounts[a.selectedOption as keyof typeof optionCounts] = 
-            (optionCounts[a.selectedOption as keyof typeof optionCounts] || 0) + 1;
+        const studentAns = a.selectedOption;
+        if (studentAns && q.correctOption) {
+          if (q.questionType === 'sba') {
+            if (studentAns === q.correctOption) correct++;
+          } else if (q.questionType === 'mcq') {
+            if (studentAns === q.correctOption) {
+              correct++;
+            } else {
+              let correctStems = 0;
+              let length = q.correctOption.length || 5;
+              for (let i = 0; i < length; i++) {
+                if (studentAns[i] === q.correctOption[i]) {
+                  correctStems++;
+                }
+              }
+              if (correctStems === length) {
+                correct++;
+              }
+            }
+          }
+        } else if (a.isCorrect === true || a.isCorrect === 'true') {
+          correct++;
         }
+      }
+      
+      let optionDistribution: any = {};
+      let mostCommonWrongOption: string | null = null;
+      
+      if (q.questionType === 'mcq') {
+        optionDistribution = {
+          A: { T: 0, F: 0, S: 0 },
+          B: { T: 0, F: 0, S: 0 },
+          C: { T: 0, F: 0, S: 0 },
+          D: { T: 0, F: 0, S: 0 },
+          E: { T: 0, F: 0, S: 0 }
+        };
+        const stems = ['A', 'B', 'C', 'D', 'E'];
+        for (const a of answers) {
+          const answerString = (a.selectedOption || '').padEnd(5, '-');
+          for (let i = 0; i < 5; i++) {
+            const char = answerString[i];
+            const stem = stems[i];
+            if (char === 'T') optionDistribution[stem].T++;
+            else if (char === 'F') optionDistribution[stem].F++;
+            else optionDistribution[stem].S++;
+          }
+        }
+      } else {
+        optionDistribution = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+        for (const a of answers) {
+          if (a.selectedOption) {
+            optionDistribution[a.selectedOption] = (optionDistribution[a.selectedOption] || 0) + 1;
+          }
+        }
+        mostCommonWrongOption = Object.entries(optionDistribution)
+          .filter(([opt]) => opt !== q.correctOption)
+          .sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || null;
       }
       
       return {
         questionId: q.id,
+        questionType: q.questionType,
         questionText: q.questionText,
         totalAttempts: total,
         correctCount: correct,
         correctPercentage: total > 0 ? (correct / total) * 100 : 0,
-        optionDistribution: optionCounts,
-        mostCommonWrongOption: Object.entries(optionCounts)
-          .filter(([opt]) => opt !== q.correctOption)
-          .sort((a, b) => b[1] - a[1])[0]?.[0] || null,
+        optionDistribution,
+        mostCommonWrongOption,
+        options: [
+          { letter: 'A', text: q.optionA },
+          { letter: 'B', text: q.optionB },
+          { letter: 'C', text: q.optionC },
+          { letter: 'D', text: q.optionD },
+          { letter: 'E', text: q.optionE },
+        ].filter(o => o.text !== null && o.text !== undefined && o.text !== ''),
+        correctOption: q.correctOption,
       };
     });
+    
+    const requestedAttemptId = request.nextUrl.searchParams.get('attempt');
+    let requestedAttemptDetails: any = null;
+    
+    if (requestedAttemptId) {
+      const targetAttempt = attemptsWithRelations.find((a: any) => a.id === requestedAttemptId);
+      if (targetAttempt) {
+        const answerMap = new Map(targetAttempt.answers.map((a: any) => [a.questionId, a]));
+        const questionsReview = targetAttempt.questionMappings
+          .sort((a: any, b: any) => a.displayOrder - b.displayOrder)
+          .map((m: any) => {
+            const q = m.question!;
+            const answer = answerMap.get(q.id);
+            let options = [
+              { letter: 'A', text: q.optionA },
+              { letter: 'B', text: q.optionB },
+              { letter: 'C', text: q.optionC },
+              { letter: 'D', text: q.optionD },
+              { letter: 'E', text: q.optionE },
+            ].filter(o => o.text !== null && o.text !== undefined && o.text !== '');
+            
+            if (m.optionOrder && Array.isArray(m.optionOrder)) {
+              options = m.optionOrder.map((idx: number) => options[idx]).filter(Boolean);
+            }
+            
+            const studentAns = (answer as any)?.selectedOption || null;
+            let isCorrect = false;
+            let isPartial = false;
+            
+            if (studentAns && q.correctOption) {
+              if (q.questionType === 'sba' || q.questionType === 'true_false') {
+                isCorrect = studentAns === q.correctOption;
+              } else if (q.questionType === 'mcq') {
+                if (studentAns === q.correctOption) {
+                  isCorrect = true;
+                } else {
+                  let correctStems = 0;
+                  let length = q.correctOption.length || 5;
+                  for (let i = 0; i < length; i++) {
+                    if (studentAns[i] === q.correctOption[i]) {
+                      correctStems++;
+                    }
+                  }
+                  if (correctStems === length) {
+                    isCorrect = true;
+                  } else if (correctStems > 0) {
+                    isPartial = true;
+                  }
+                }
+              }
+            }
+
+            return {
+              questionId: q.id,
+              questionText: q.questionText,
+              questionType: q.questionType,
+              options,
+              correctOption: q.correctOption,
+              explanation: q.explanation,
+              studentAnswer: studentAns,
+              isCorrect: isCorrect,
+              isPartial: isPartial,
+              isSkipped: !studentAns,
+            };
+          });
+          
+        requestedAttemptDetails = {
+          id: targetAttempt.id,
+          netScore: targetAttempt.netScore,
+          percentageScore: targetAttempt.percentageScore,
+          correctCount: targetAttempt.correctCount,
+          wrongCount: targetAttempt.wrongCount,
+          skippedCount: targetAttempt.skippedCount,
+          negativeMarks: targetAttempt.negativeMarks,
+          timeTakenSeconds: targetAttempt.timeTakenSeconds,
+          submittedAt: targetAttempt.submittedAt,
+          attemptNumber: targetAttempt.attemptNumber,
+          isAutoSubmitted: targetAttempt.status === 'auto_submitted',
+          questionsReview,
+        };
+      }
+    }
     
     return NextResponse.json({
       quiz: {
@@ -409,6 +550,7 @@ export async function GET(
       },
       leaderboard,
       perQuestionAnalytics,
+      attempt: requestedAttemptDetails,
     });
   } catch (error: any) {
     console.error('GET /api/quiz/[id]/results error:', error);
