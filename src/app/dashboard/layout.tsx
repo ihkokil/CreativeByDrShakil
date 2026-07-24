@@ -29,11 +29,11 @@ function StudentDashboardLayoutContent({
 
     const activeTab = (() => {
         if (pathname === "/dashboard") return "overview";
-        const pathParts = pathname?.split("/") || [];
-        const lastPart = pathParts[pathParts.length - 1];
-        if (["courses", "purchases", "profile", "security"].includes(lastPart)) {
-            return lastPart;
-        }
+        if (pathname.startsWith("/dashboard/courses")) return "courses";
+        if (pathname.startsWith("/dashboard/purchases")) return "purchases";
+        if (pathname.startsWith("/dashboard/quizzes")) return "quizzes";
+        if (pathname.startsWith("/dashboard/profile")) return "profile";
+        if (pathname.startsWith("/dashboard/security")) return "security";
         return "overview";
     })();
 
@@ -55,6 +55,7 @@ function StudentDashboardLayoutContent({
         { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'courses', label: 'Courses', icon: BookOpen },
         { id: 'purchases', label: 'Payments', icon: ReceiptText },
+        { id: 'quizzes', label: 'Quizzes', icon: ClipboardList },
         { id: 'profile', label: 'Profile', icon: UserCog },
         { id: 'security', label: 'Security', icon: ShieldCheck },
     ];

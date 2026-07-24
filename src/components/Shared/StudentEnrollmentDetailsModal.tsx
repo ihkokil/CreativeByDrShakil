@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { X, Calendar, Settings, XCircle, Loader2, BookX, ChevronDown } from 'lucide-react';
+import { X, Calendar, Settings, XCircle, BookX, ChevronDown } from 'lucide-react';
+import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './StudentEnrollmentDetailsModal.module.css';
 import { formatDateGMT6 } from '@/lib/date-format';
@@ -168,7 +169,7 @@ export default function StudentEnrollmentDetailsModal({
           <div className={styles.courseList}>
             {loading ? (
               <div className={styles.loadingState}>
-                <Loader2 size={32} className="animate-spin" style={{ marginBottom: '12px' }} />
+                <Loader variant="inline" text="Loading enrollment data..." />
                 Loading progress...
               </div>
             ) : student.enrolledCourses.length === 0 ? (

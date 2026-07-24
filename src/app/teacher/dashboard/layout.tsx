@@ -30,16 +30,19 @@ function TeacherDashboardLayoutContent({
     const pathname = usePathname();
     const activeTab = (() => {
         if (pathname === "/teacher/dashboard") return "overview";
-        const pathParts = pathname?.split("/") || [];
-        const lastPart = pathParts[pathParts.length - 1];
-        if (["courses", "library", "live", "exams", "students", "profile", "security"].includes(lastPart)) {
-            return lastPart;
-        }
+        if (pathname.startsWith("/teacher/dashboard/courses")) return "courses";
+        if (pathname.startsWith("/teacher/dashboard/library")) return "library";
+        if (pathname.startsWith("/teacher/dashboard/live")) return "live";
+        if (pathname.startsWith("/teacher/dashboard/exams")) return "exams";
+        if (pathname.startsWith("/teacher/dashboard/students")) return "students";
+        if (pathname.startsWith("/teacher/dashboard/profile")) return "profile";
+        if (pathname.startsWith("/teacher/dashboard/security")) return "security";
+        if (pathname.startsWith("/teacher/dashboard/quizzes")) return "quizzes";
         return "overview";
     })();
 
     useEffect(() => {
-        if (!loading && (!user || role !== "teacher")) {
+        if (!loading && (!user || (role !== "teacher" && role !== "admin"))) {
             router.push("/");
         }
     }, [user, loading, role, router]);

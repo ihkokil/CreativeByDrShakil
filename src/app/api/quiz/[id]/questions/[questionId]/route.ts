@@ -47,7 +47,7 @@ export async function PUT(
     }
     
     const body = await request.json();
-    const { questionText, questionType, optionA, optionB, optionC, optionD, correctOption, explanation } = body;
+    const { questionText, questionType, optionA, optionB, optionC, optionD, optionE, correctOption, explanation } = body;
     
     if (questionText !== undefined && !questionText.trim()) {
       return NextResponse.json({ error: 'Question text cannot be empty.' }, { status: 400 });
@@ -57,24 +57,33 @@ export async function PUT(
     const newOptionB = optionB !== undefined ? optionB : (existingQuestion as any).optionB;
     const newOptionC = optionC !== undefined ? optionC : (existingQuestion as any).optionC;
     const newOptionD = optionD !== undefined ? optionD : (existingQuestion as any).optionD;
+    const newOptionE = optionE !== undefined ? optionE : (existingQuestion as any).optionE;
     const newCorrectOption = correctOption !== undefined ? correctOption : (existingQuestion as any).correctOption;
     
-    const options = [newOptionA, newOptionB, newOptionC, newOptionD].filter(o => o && (typeof o === 'string' ? o.trim() : true));
+    const options = [newOptionA, newOptionB, newOptionC, newOptionD, newOptionE].filter(o => o && (typeof o === 'string' ? o.trim() : true));
     if (options.length < 2) {
       return NextResponse.json({ error: 'At least 2 options are required.' }, { status: 400 });
     }
     
-    if (!options.includes(newCorrectOption)) {
-      return NextResponse.json({ error: 'Correct option must match one of the provided options.' }, { status: 400 });
+    const newQuestionType = questionType !== undefined ? questionType : (existingQuestion as any).questionType;
+    if (newQuestionType === 'sba' || newQuestionType === 'true_false') {
+      if (!options.includes(newCorrectOption)) {
+        return NextResponse.json({ error: 'Correct option must match one of the provided options.' }, { status: 400 });
+      }
+    } else if (newQuestionType === 'mcq') {
+      if (!/^[TF]+$/i.test(newCorrectOption)) {
+        return NextResponse.json({ error: 'For MCQ, correct option must be a string of T and F.' }, { status: 400 });
+      }
     }
     
     const updateData: any = { updatedAt: new Date().toISOString() };
     if (questionText !== undefined) updateData.questionText = questionText.trim();
-    if (questionType !== undefined) updateData.questionType = questionType as 'mcq' | 'true_false';
+    if (questionType !== undefined) updateData.questionType = questionType as 'mcq' | 'true_false' | 'sba';
     if (optionA !== undefined) updateData.optionA = optionA?.trim() || null;
     if (optionB !== undefined) updateData.optionB = optionB?.trim() || null;
     if (optionC !== undefined) updateData.optionC = optionC?.trim() || null;
     if (optionD !== undefined) updateData.optionD = optionD?.trim() || null;
+    if (optionE !== undefined) updateData.optionE = optionE?.trim() || null;
     if (correctOption !== undefined) updateData.correctOption = correctOption.trim();
     if (explanation !== undefined) updateData.explanation = explanation?.trim() || null;
     

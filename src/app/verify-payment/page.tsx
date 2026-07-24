@@ -8,13 +8,14 @@ import {
   ClipboardList,
   CreditCard,
   Info,
-  Loader2,
+  RefreshCcw,
   ShieldCheck,
   Sparkles,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
+import Loader from "@/components/UI/Loader";
 import styles from "./page.module.css";
 
 function getStatusCopy(status: string | null, action: string | null, message: string | null) {
@@ -53,7 +54,7 @@ function getStatusCopy(status: string | null, action: string | null, message: st
 
   return {
     tone: "loading",
-    icon: Loader2,
+    icon: RefreshCcw,
     eyebrow: "Preparing",
     title: "Checking verification details",
     body: "Please wait while we load the payment verification summary.",
@@ -194,7 +195,7 @@ export default function VerifyPaymentPage() {
     <Suspense fallback={
       <main className={styles.pageShell}>
         <div className={styles.loadingCard}>
-          <Loader2 className={styles.loadingIcon} />
+          <Loader variant="inline" text="Processing..." />
           <p>Loading verification details...</p>
         </div>
       </main>

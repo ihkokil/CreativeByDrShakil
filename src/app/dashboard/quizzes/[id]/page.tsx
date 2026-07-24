@@ -90,14 +90,14 @@ export default function QuizDetailPage() {
       const data = await res.json();
       
       if (!res.ok) {
-        if (data.attempt?.id) {
-          router.push(`/dashboard/quizzes/${quizId}/attempt/${data.attempt.id}`);
+        if (data.attemptId) {
+          router.push(`/dashboard/quizzes/${quizId}/attempt/${data.attemptId}`);
           return;
         }
         throw new Error(data.error || 'Failed to start quiz');
       }
       
-      router.push(`/dashboard/quizzes/${quizId}/attempt/${data.attempt.id}`);
+      router.push(`/dashboard/quizzes/${quizId}/attempt/${data.attemptId}`);
     } catch (err: any) {
       alert(err.message || 'Failed to start quiz');
     } finally {
@@ -115,9 +115,9 @@ export default function QuizDetailPage() {
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+      return mins > 0 ? `${hours}h ${mins} mins` : `${hours}h`;
     }
-    return `${minutes}m`;
+    return `${minutes} mins`;
   };
 
   const getPositionTypeLabel = (type: string) => {
@@ -224,7 +224,7 @@ export default function QuizDetailPage() {
                 <span className={styles.ruleLabel}>Negative Marking</span>
                 <span className={styles.ruleValue}>
                   {quiz.allowNegativeMarking 
-                    ? `-${quiz.negativeValue * quiz.marksPerCorrect} per wrong`
+                    ? `-${(quiz.negativeValue <= 1 && quiz.negativeValue > 0 ? quiz.negativeValue * 100 : quiz.negativeValue).toFixed(0)}% per wrong`
                     : 'Not applicable'
                   }
                 </span>
@@ -256,7 +256,7 @@ export default function QuizDetailPage() {
               <h3>Instructions</h3>
               <ul>
                 <li>This quiz consists of <strong>{quiz.numQuestionsToServe} questions</strong> to be completed in <strong>{formatDuration(quiz.durationMinutes)}</strong>.</li>
-                <li>Each correct answer carries <strong>{quiz.marksPerCorrect} mark{quiz.marksPerCorrect !== 1 ? 's' : ''}</strong>.{quiz.allowNegativeMarking ? ` Wrong answers will deduct ${quiz.negativeValue * quiz.marksPerCorrect} marks.` : ' There is no negative marking.'}</li>
+                <li>Each correct answer carries <strong>{quiz.marksPerCorrect} mark{quiz.marksPerCorrect !== 1 ? 's' : ''}</strong>.{quiz.allowNegativeMarking ? ` Wrong answers will deduct ${quiz.negativeValue <= 1 && quiz.negativeValue > 0 ? quiz.negativeValue * 100 : quiz.negativeValue}% of the marks (${quiz.marksPerCorrect * (quiz.negativeValue <= 1 && quiz.negativeValue > 0 ? quiz.negativeValue : quiz.negativeValue / 100)} marks).` : ' There is no negative marking.'}</li>
                 <li>Once you select an answer, it <strong>cannot be changed</strong>.</li>
                 <li>The quiz will be <strong>auto-submitted</strong> when the timer runs out.</li>
                 <li>Do not <strong>close, refresh, or switch tabs</strong> during the quiz.</li>

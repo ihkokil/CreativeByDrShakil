@@ -14,6 +14,8 @@ import {
   Lock,
   RotateCcw,
   Shuffle,
+  Check,
+  X,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -98,11 +100,16 @@ export default function QuizTakePage() {
         if (data.existingAnswers) {
           data.existingAnswers.forEach((ans: any) => {
             if (initialAnswers[ans.questionId]) {
+              // For MCQ, isLocked stays false (per-option locking via T/F/- string)
+              // For SBA/true_false, isLocked = true if answered
+              const question = (data.questions || []).find((q: any) => q.id === ans.questionId);
+              const isMcq = question?.questionType === 'mcq';
+              
               initialAnswers[ans.questionId] = {
                 ...initialAnswers[ans.questionId],
                 selectedOption: ans.selectedOption,
                 isCorrect: ans.isCorrect,
-                isLocked: !!ans.selectedOption,
+                isLocked: isMcq ? false : !!ans.selectedOption,
                 saved: true,
               };
             }
@@ -277,24 +284,69 @@ export default function QuizTakePage() {
     };
   }, [answers, saveAnswers]);
 
-  const handleAnswerSelect = (questionId: string, optionLetter: string) => {
+  const handleAnswerSelect = (questionId: string, optionLetter: string, mcqSelection?: 'T' | 'F') => {
+    const q = questions.find(q => q.id === questionId);
+    if (!q) return;
+
+    let newSelectedForSave = optionLetter;
+
     setAnswers(prev => {
       const current = prev[questionId];
-      if (current?.isLocked) return prev;
       
-      return {
-        ...prev,
-        [questionId]: {
-          ...current,
-          selectedOption: optionLetter,
-          isLocked: true,
-          saved: false,
-        },
-      };
+      if (q.questionType === 'mcq') {
+        const idx = optionLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
+        const currentStr = current?.selectedOption || '-'.repeat(q.options.length);
+        
+        // Per-option lock: if this option is already marked (T or F), don't allow change
+        if (currentStr[idx] !== '-') return prev;
+        
+        const newArr = currentStr.split('');
+        newArr[idx] = mcqSelection || 'T';
+        const newSelectedOption = newArr.join('');
+        newSelectedForSave = newSelectedOption;
+
+        return {
+          ...prev,
+          [questionId]: {
+            ...current,
+            selectedOption: newSelectedOption,
+            isLocked: false, // MCQ uses per-option locking, not whole-question
+            saved: false,
+          },
+        };
+      } else {
+        // SBA / true_false: lock entire question on first selection
+        if (current?.isLocked) return prev;
+        
+        newSelectedForSave = optionLetter;
+        return {
+          ...prev,
+          [questionId]: {
+            ...current,
+            selectedOption: optionLetter,
+            isLocked: true,
+            saved: false,
+          },
+        };
+      }
     });
     
     // Immediately persist to server
-    saveAnswerImmediately(questionId, optionLetter);
+    // Need to compute the value outside setState since setState is async
+    setTimeout(() => {
+      const currentAnswer = answers[questionId];
+      if (q.questionType === 'mcq') {
+        const idx = optionLetter.charCodeAt(0) - 65;
+        const currentStr = currentAnswer?.selectedOption || '-'.repeat(q.options.length);
+        if (currentStr[idx] !== '-') return; // already locked, don't save again
+        const newArr = currentStr.split('');
+        newArr[idx] = mcqSelection || 'T';
+        saveAnswerImmediately(questionId, newArr.join(''));
+      } else {
+        if (currentAnswer?.isLocked) return;
+        saveAnswerImmediately(questionId, optionLetter);
+      }
+    }, 0);
   };
 
   const handleAutoSubmit = useCallback(async () => {
@@ -488,65 +540,136 @@ export default function QuizTakePage() {
                     <span className={styles.questionNumber}>Q{index + 1}</span>
                     {q.questionText}
                   </h2>
-                  {answers[q.id]?.isLocked && (
-                    <span className={styles.lockedBadge}>
-                      <Lock className={styles.lockedIcon} /> Answer Locked
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    <span className={styles.lockedBadge} style={{ 
+                      background: q.questionType === 'mcq' ? 'rgba(14, 165, 233, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                      color: q.questionType === 'mcq' ? '#0ea5e9' : '#a855f7',
+                    }}>
+                      {q.questionType === 'mcq' ? '✓✗ True / False' : '○ Single Best Answer'}
                     </span>
-                  )}
+                    {q.questionType !== 'mcq' && answers[q.id]?.isLocked && (
+                      <span className={styles.lockedBadge}>
+                        <Lock className={styles.lockedIcon} /> Locked
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className={styles.optionsGrid} role="radiogroup" aria-label={`Options for question ${index + 1}`}>
-                  {q.options.map((option) => {
-                    const answer = answers[q.id];
-                    const isSelected = answer?.selectedOption === option.letter;
-                    const isLocked = answer?.isLocked;
-                    const showResult = showResults && answer?.selectedOption !== undefined;
-                    
-                    let optionClass = styles.optionCard;
-                    if (isSelected && !showResults) optionClass += ` ${styles.optionSelected}`;
-                    if (isLocked && !showResults) optionClass += ` ${styles.optionLocked}`;
-                    
-                    if (showResults) {
-                      if (option.letter === q.correctOption) {
-                        optionClass += ` ${styles.optionCorrect}`;
-                      } else if (isSelected) {
-                        optionClass += ` ${styles.optionIncorrect}`;
+                  {q.questionType === 'mcq' ? (
+                    q.options.map((option, idx) => {
+                      const answer = answers[q.id];
+                      const currentStr = answer?.selectedOption || '-'.repeat(q.options.length);
+                      const originalIdx = option.letter.charCodeAt(0) - 65;
+                      const isT = currentStr[originalIdx] === 'T';
+                      const isF = currentStr[originalIdx] === 'F';
+                      const isOptionLocked = currentStr[originalIdx] !== '-'; // per-option lock
+                      
+                      const correctStr = q.correctOption || 'F'.repeat(q.options.length);
+                      const isCorrectT = correctStr[originalIdx] === 'T';
+                      const isCorrectF = correctStr[originalIdx] === 'F';
+                      
+                      let optionClass = styles.mcqMatrixRow;
+                      if (isOptionLocked && !showResults) {
+                        optionClass += ` ${styles.optionLocked}`;
                       }
-                    }
-                    
-                    return (
-                      <button
-                        key={`${q.id}-${option.letter}`}
-                        onClick={() => !isLocked && handleAnswerSelect(q.id, option.letter)}
-                        disabled={isLocked || showResults}
-                        className={optionClass}
-                        role="radio"
-                        aria-checked={isSelected}
-                        aria-disabled={isLocked || showResults}
-                      >
-                        <span className={styles.optionLetter}>{option.letter}</span>
-                        <span className={styles.optionText}>{option.text}</span>
-                        
-                        {isSelected && !showResults && (
-                          <span className={styles.optionCheck}>
-                            <CheckCircle className={styles.checkIcon} />
-                          </span>
-                        )}
-                        
-                        {showResults && option.letter === q.correctOption && (
-                          <span className={styles.optionResultIcon}>
-                            <CheckCircle className={styles.resultIcon} />
-                          </span>
-                        )}
-                        
-                        {showResults && isSelected && option.letter !== q.correctOption && (
-                          <span className={styles.optionResultIconError}>
-                            <XCircle className={styles.resultIcon} />
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                      if (showResults) {
+                        if ((isT && isCorrectT) || (isF && isCorrectF)) {
+                           optionClass += ` ${styles.optionCorrect}`;
+                        } else if (isT || isF) {
+                           optionClass += ` ${styles.optionIncorrect}`;
+                        }
+                      }
+                      
+                      return (
+                        <div key={`${q.id}-${option.letter}`} className={optionClass}>
+                          <div className={styles.mcqMatrixButtons}>
+                            <button
+                              onClick={() => !isOptionLocked && handleAnswerSelect(q.id, option.letter, 'T')}
+                              disabled={isOptionLocked || showResults}
+                              className={`${styles.mcqBtn} ${isT ? styles.mcqBtnSelected : ''} ${showResults && isCorrectT ? styles.mcqBtnCorrect : ''} ${showResults && isT && !isCorrectT ? styles.mcqBtnWrong : ''}`}
+                              title="True"
+                            ><Check size={18} /></button>
+                            <button
+                              onClick={() => !isOptionLocked && handleAnswerSelect(q.id, option.letter, 'F')}
+                              disabled={isOptionLocked || showResults}
+                              className={`${styles.mcqBtn} ${isF ? styles.mcqBtnSelected : ''} ${showResults && isCorrectF ? styles.mcqBtnCorrect : ''} ${showResults && isF && !isCorrectF ? styles.mcqBtnWrong : ''}`}
+                              title="False"
+                            ><X size={18} /></button>
+                          </div>
+                          
+                          <div className={styles.mcqMatrixLabel}>
+                            <span className={styles.optionLetter}>{option.letter}</span>
+                            <span className={styles.optionText}>{option.text}</span>
+                          </div>
+                          
+                          {isOptionLocked && !showResults && (
+                            <span className={styles.lockedBadge} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                              <Lock className={styles.lockedIcon} />
+                            </span>
+                          )}
+                          
+                          {showResults && (
+                             <span className={styles.mcqMatrixResult}>
+                               {((isT && isCorrectT) || (isF && isCorrectF)) ? <CheckCircle className={styles.resultIcon} /> : ((isT || isF) ? <XCircle className={styles.resultIcon} /> : null)}
+                             </span>
+                          )}
+                        </div>
+                      )
+                    })
+                  ) : (
+                    q.options.map((option) => {
+                      const answer = answers[q.id];
+                      const isSelected = answer?.selectedOption === option.letter;
+                      const isLocked = answer?.isLocked;
+                      const showResult = showResults && answer?.selectedOption !== undefined;
+                      
+                      let optionClass = styles.optionCard;
+                      if (isSelected && !showResults) optionClass += ` ${styles.optionSelected}`;
+                      if (isLocked && !showResults) optionClass += ` ${styles.optionLocked}`;
+                      
+                      if (showResults) {
+                        if (option.letter === q.correctOption) {
+                          optionClass += ` ${styles.optionCorrect}`;
+                        } else if (isSelected) {
+                          optionClass += ` ${styles.optionIncorrect}`;
+                        }
+                      }
+                      
+                      return (
+                        <button
+                          key={`${q.id}-${option.letter}`}
+                          onClick={() => !isLocked && handleAnswerSelect(q.id, option.letter)}
+                          disabled={isLocked || showResults}
+                          className={optionClass}
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-disabled={isLocked || showResults}
+                        >
+                          <span className={styles.optionLetter}>{option.letter}</span>
+                          <span className={styles.optionText}>{option.text}</span>
+                          
+                          {isSelected && !showResults && (
+                            <span className={styles.optionCheck}>
+                              <CheckCircle className={styles.checkIcon} />
+                            </span>
+                          )}
+                          
+                          {showResults && option.letter === q.correctOption && (
+                            <span className={styles.optionResultIcon}>
+                              <CheckCircle className={styles.resultIcon} />
+                            </span>
+                          )}
+                          
+                          {showResults && isSelected && option.letter !== q.correctOption && (
+                            <span className={styles.optionResultIconError}>
+                              <XCircle className={styles.resultIcon} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
 
                 {showResults && answers[q.id] && q.explanation && (

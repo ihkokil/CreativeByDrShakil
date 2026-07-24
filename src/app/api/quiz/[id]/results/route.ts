@@ -84,13 +84,45 @@ export async function GET(
         .map((m: any) => {
           const q = m.question!;
           const answer = answerMap.get(q.id);
-          const options = [
+          let options = [
             { letter: 'A', text: q.optionA },
             { letter: 'B', text: q.optionB },
             { letter: 'C', text: q.optionC },
             { letter: 'D', text: q.optionD },
+            { letter: 'E', text: q.optionE },
           ].filter(o => o.text !== null && o.text !== undefined && o.text !== '');
           
+          if (m.optionOrder && Array.isArray(m.optionOrder)) {
+            options = m.optionOrder.map((idx: number) => options[idx]).filter(Boolean);
+          }
+          
+          const studentAns = (answer as any)?.selectedOption || null;
+          let isCorrect = false;
+          let isPartial = false;
+          
+          if (studentAns && q.correctOption) {
+            if (q.questionType === 'sba') {
+              isCorrect = studentAns === q.correctOption;
+            } else if (q.questionType === 'mcq') {
+              if (studentAns === q.correctOption) {
+                isCorrect = true;
+              } else {
+                let correctStems = 0;
+                let length = q.correctOption.length || 5;
+                for (let i = 0; i < length; i++) {
+                  if (studentAns[i] === q.correctOption[i]) {
+                    correctStems++;
+                  }
+                }
+                if (correctStems === length) {
+                  isCorrect = true;
+                } else if (correctStems > 0) {
+                  isPartial = true;
+                }
+              }
+            }
+          }
+
           return {
             questionId: q.id,
             questionText: q.questionText,
@@ -98,9 +130,10 @@ export async function GET(
             options,
             correctOption: q.correctOption,
             explanation: q.explanation,
-            studentAnswer: (answer as any)?.selectedOption || null,
-            isCorrect: (answer as any)?.isCorrect || false,
-            isSkipped: !(answer as any)?.selectedOption,
+            studentAnswer: studentAns,
+            isCorrect: isCorrect,
+            isPartial: isPartial,
+            isSkipped: !studentAns,
           };
         });
       
@@ -338,7 +371,7 @@ export async function GET(
       const answers = q.attemptAnswers;
       const total = answers.length;
       const correct = answers.filter((a: any) => a.isCorrect).length;
-      const optionCounts = { A: 0, B: 0, C: 0, D: 0 };
+      const optionCounts = { A: 0, B: 0, C: 0, D: 0, E: 0 };
       
       for (const a of answers) {
         if (a.selectedOption) {

@@ -212,8 +212,8 @@
   padding: 8px;
   width: 100%;
   max-width: 600px;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
 }
 
 .statItem {

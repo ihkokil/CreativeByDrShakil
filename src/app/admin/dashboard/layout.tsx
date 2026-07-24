@@ -41,11 +41,15 @@ function AdminDashboardLayoutContent({
 
     const activeTab = (() => {
         if (pathname === "/admin/dashboard") return "overview";
-        const pathParts = pathname?.split("/") || [];
-        const lastPart = pathParts[pathParts.length - 1];
-        if (["students", "teachers", "payments", "support", "enrollments", "settings", "security", "profile"].includes(lastPart)) {
-            return lastPart;
-        }
+        if (pathname.startsWith("/admin/dashboard/students")) return "students";
+        if (pathname.startsWith("/admin/dashboard/teachers")) return "teachers";
+        if (pathname.startsWith("/admin/dashboard/users")) return "users";
+        if (pathname.startsWith("/admin/dashboard/quizzes")) return "quizzes";
+        if (pathname.startsWith("/admin/dashboard/payments")) return "payments";
+        if (pathname.startsWith("/admin/dashboard/support")) return "support";
+        if (pathname.startsWith("/admin/dashboard/settings")) return "settings";
+        if (pathname.startsWith("/admin/dashboard/security")) return "security";
+        if (pathname.startsWith("/admin/dashboard/profile")) return "profile";
         return "overview";
     })();
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, ArrowRight, CheckCircle2, Loader2, Send, X } from 'lucide-react';
+import Loader from "@/components/UI/Loader";
+import { AlertCircle, ArrowRight, CheckCircle2, Send, X } from 'lucide-react';
 import styles from './ContactRequestsManager.module.css';
 
 type ContactIssueType = 'query' | 'technical_assistance' | 'billing' | 'course_access' | 'other';
@@ -147,7 +148,7 @@ export default function ContactRequestModal({
             Close
           </button>
           <button className={styles.primaryBtn} onClick={handleUpdate} disabled={isSaving}>
-            {isSaving ? <Loader2 size={16} className={styles.spin} /> : <Send size={16} />}
+            {isSaving ? <Loader variant="button" /> : <Send size={16} />}
             {replyDraft.trim() ? 'Send reply' : 'Save status'}
             {!isSaving ? <ArrowRight size={16} /> : null}
           </button>

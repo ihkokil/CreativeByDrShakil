@@ -46,8 +46,7 @@ export async function GET(
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
 
-    const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
-    const studentReleaseStartAt = courseAnchor || order.enrolledAt || order.updatedAt;
+    const studentReleaseStartAt = order.enrolledAt || course.releaseStartAt || course.courseStartDate || order.updatedAt;
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
+import Loader from "@/components/UI/Loader";
 import { useAuth } from '@/context/AuthContext';
 import styles from './ContactRequestsManager.module.css';
-import { AlertCircle, Inbox, Loader2, RefreshCw, ArrowRight, CheckCircle2, Send } from 'lucide-react';
+import { AlertCircle, Inbox, RefreshCw, ArrowRight, CheckCircle2, Send } from 'lucide-react';
 import ContactRequestModal from './ContactRequestModal';
 
 type ContactIssueType = 'query' | 'technical_assistance' | 'billing' | 'course_access' | 'other';
@@ -181,7 +182,7 @@ export default function ContactRequestsManager() {
             ))}
           </select>
           <button className={styles.ghostBtn} onClick={fetchSubmissions} disabled={loading}>
-            {loading ? <Loader2 size={16} className={styles.spin} /> : <RefreshCw size={16} />}
+            {loading ? <Loader variant="button" /> : <RefreshCw size={16} />}
             Refresh
           </button>
         </div>
@@ -200,7 +201,7 @@ export default function ContactRequestsManager() {
         <div className={styles.listPane}>
           {loading ? (
             <div className={styles.emptyState}>
-              <Loader2 size={18} className={styles.spin} /> Loading contact requests...
+              <Loader variant="inline" text="Loading contact requests..." />
             </div>
           ) : visibleSubmissions.length === 0 ? (
             <div className={styles.emptyState}>
@@ -303,7 +304,7 @@ export default function ContactRequestsManager() {
                   Reset
                 </button>
                 <button className={styles.primaryBtn} onClick={() => updateSubmission(statusDraft, replyDraft)} disabled={saving} type="button">
-                  {saving ? <Loader2 size={16} className={styles.spin} /> : <Send size={16} />}
+                  {saving ? <Loader variant="button" /> : <Send size={16} />}
                   {replyDraft.trim() ? 'Send reply' : 'Save status'}
                   {!saving ? <ArrowRight size={16} /> : null}
                 </button>

@@ -14,13 +14,14 @@ import {
     User as UserIcon,
     GraduationCap,
     Inbox,
+    FileQuestion,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type TabType = 'overview' | 'enrollments' | 'courses' | 'library' | 'security' | 'profile' | 'payments' | 'users' | 'students';
+type TabType = 'overview' | 'enrollments' | 'courses' | 'quizzes' | 'library' | 'security' | 'profile' | 'payments' | 'users' | 'students';
 
 interface TeacherSidebarProps {
     activeTab: TabType;
@@ -50,8 +51,8 @@ export default function TeacherSidebar({
 
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-        { id: 'enrollments', label: 'Enrollments', icon: <Inbox size={20} /> },
         { id: 'courses', label: 'Courses', icon: <BookOpen size={20} /> },
+        { id: 'quizzes', label: 'Quizzes', icon: <FileQuestion size={20} /> },
         { id: 'students', label: 'Students', icon: <GraduationCap size={20} /> },
         { id: 'users', label: 'Users', icon: <Users size={20} /> },
         { id: 'library', label: 'Media Vault', icon: <Video size={20} /> },

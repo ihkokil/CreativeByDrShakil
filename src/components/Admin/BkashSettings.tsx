@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import Loader from "@/components/UI/Loader"
+import { Eye, EyeOff, Save, Key, Wallet, HelpCircle, CheckCircle2 } from "lucide-react";
 import styles from './BkashSettings.module.css'
 
 interface BkashConfig {
@@ -100,7 +102,7 @@ export default function BkashSettings() {
   }
 
   if (loading) {
-    return <div className={styles.loader}>Loading settings...</div>
+    return <Loader variant="inline" text="Loading settings..." />
   }
 
   return (

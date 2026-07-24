@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import styles from "./EnrollStudentModal.module.css";
+import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap, Loader2 } from "lucide-react";
+import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap } from "lucide-react";
 
 interface Student {
     id: string;
@@ -304,7 +305,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
                                 disabled={loading || (activeTab === "existing" ? !selectedStudent : (!newStudentEmail || !newStudentName))}
                             >
                                 {loading ? (
-                                    <><Loader2 size={18} className="animate-spin" /> Enrolling...</>
+                                    <><Loader variant="button" /> Enrolling...</>
                                 ) : activeTab === "new" ? (
                                     "Register & Enroll Student"
                                 ) : (

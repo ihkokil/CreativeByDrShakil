@@ -157,7 +157,7 @@ export async function POST(
     };
     
     const mappings = selectedQuestions.map((q, index) => {
-      const options = [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean);
+      const options = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE].filter(Boolean);
       const optionOrder = quizData.shuffleOptions ? shuffleArray(options.map((_, i) => i)) : options.map((_, i) => i);
       
       return {

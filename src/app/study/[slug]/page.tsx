@@ -10,6 +10,8 @@ import {
     Lock,
     Menu,
     X,
+    Check,
+    CheckCheck,
 } from "lucide-react";
 import Link from "next/link";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
@@ -19,6 +21,7 @@ import LessonPlayer from "@/components/Study/LessonPlayer";
 import Loader from "@/components/UI/Loader";
 import { getStudentModuleView } from "@/lib/module-scheduling";
 import AuthModal from "@/components/Auth/AuthModal";
+import ThemeToggle from "@/components/ThemeToggle/ThemeToggle";
 
 const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
     for (const node of nodes) {
@@ -353,18 +356,25 @@ export default function StudyCoursePage() {
                             <Menu size={20} />
                         </button>
                         <div className={styles.breadcrumbs}>
-                            <span>{courseTitle}</span> <ChevronRight size={14} /> <span>{breadcrumbs}</span>
+                            <span>{breadcrumbs}</span>
                         </div>
                     </div>
-                    {activeLesson && !activeLesson.locked && activeLesson.type !== "folder" && (
-                        <button
-                            className={styles.completeBtn}
-                            onClick={handleMarkComplete}
-                            disabled={markingComplete}
-                        >
-                            {markingComplete ? "Saving..." : completedLessonIds.includes(activeLesson.id) ? "Completed" : "Mark as Complete"}
-                        </button>
-                    )}
+                    
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <ThemeToggle />
+                        
+                        {activeLesson && !activeLesson.locked && activeLesson.type !== "folder" && (
+                            <button
+                                className={`${styles.completeBtn} ${completedLessonIds.includes(activeLesson.id) ? styles.completedState : ''}`}
+                                onClick={handleMarkComplete}
+                                disabled={markingComplete}
+                                title={completedLessonIds.includes(activeLesson.id) ? "Completed" : "Mark as Complete"}
+                            >
+                                {completedLessonIds.includes(activeLesson.id) ? <CheckCheck size={16} /> : <Check size={16} />}
+                                {markingComplete ? "Saving..." : completedLessonIds.includes(activeLesson.id) ? "Completed" : "Complete"}
+                            </button>
+                        )}
+                    </div>
                 </header>
 
                 <div className={styles.contentArea}>

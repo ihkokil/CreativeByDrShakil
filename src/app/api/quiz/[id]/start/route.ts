@@ -103,15 +103,16 @@ export async function POST(
       quizId,
       studentId: payload.sub,
       status: 'in_progress',
+      attemptNumber: (existingAttempts || []).length + 1,
       startedAt: nowStr,
-      totalQuestions: selectedQuestions.length,
       createdAt: nowStr,
+      updatedAt: nowStr,
     } as any);
 
     if (attemptError) throw attemptError;
 
     // Create question mappings with optional option shuffling
-    const optionLetters = ['A', 'B', 'C', 'D'];
+    const optionLetters = ['A', 'B', 'C', 'D', 'E'];
     for (let i = 0; i < selectedQuestions.length; i++) {
       const q = selectedQuestions[i] as any;
       const optionOrder = quiz.shuffleOptions ? shuffleArray([...optionLetters]) : [...optionLetters];

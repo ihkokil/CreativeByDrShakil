@@ -724,6 +724,11 @@
   box-shadow: 0 0 0 1px var(--success-light);
 }
 
+.reviewCard.partial {
+  border-color: var(--info-color);
+  box-shadow: 0 0 0 1px var(--info-light);
+}
+
 .reviewCard.incorrect {
   border-color: var(--error-color);
   box-shadow: 0 0 0 1px var(--error-light);
@@ -763,6 +768,7 @@
 }
 
 .reviewStatus.correct { background: var(--success-light); color: var(--success-color); }
+.reviewStatus.partial { background: var(--info-light); color: var(--info-color); }
 .reviewStatus.incorrect { background: var(--error-light); color: var(--error-color); }
 .reviewStatus.skipped { background: var(--warning-light); color: var(--warning-color); }
 
@@ -1093,5 +1099,29 @@
   .downloadBtn,
   .secondaryBtn {
     width: 100%;
+  }
+}
+
+@media print {
+  /* Hide navigation, buttons and tabs */
+  .header, .tabNav, .actions, .backLink {
+    display: none !important;
+  }
+  
+  /* Reset container for printing */
+  .container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Prevent page breaks inside cards */
+  .scoreCard, .summaryCard, .reviewCard {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }

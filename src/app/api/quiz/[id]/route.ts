@@ -115,6 +115,7 @@ export async function GET(
         { letter: 'B', text: q.optionB },
         { letter: 'C', text: q.optionC },
         { letter: 'D', text: q.optionD },
+        { letter: 'E', text: q.optionE },
       ].filter(o => o.text !== null && o.text !== undefined && o.text !== ''),
     }));
     
@@ -271,11 +272,12 @@ export async function PUT(
       for (const q of questions) {
         const questionData = {
           questionText: q.questionText.trim(),
-          questionType: (q.questionType === 'true_false' ? 'true_false' : 'mcq') as 'true_false' | 'mcq',
+          questionType: q.questionType,
           optionA: q.optionA.trim(),
           optionB: q.optionB.trim(),
           optionC: q.optionC?.trim() || null,
           optionD: q.optionD?.trim() || null,
+          optionE: q.optionE?.trim() || null,
           correctOption: q.correctOption.trim(),
           explanation: q.explanation?.trim() || null,
           updatedAt: nowStr,

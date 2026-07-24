@@ -12,8 +12,9 @@ import {
     Filter, 
     ExternalLink,
     Users,
+    Settings,
+    MoreVertical,
     ChevronRight,
-    Loader2,
     Eye,
     Copy,
     Archive
@@ -21,6 +22,7 @@ import {
 import Image from "next/image";
 import styles from "./CoursesTab.module.css";
 import { motion, AnimatePresence } from "framer-motion";
+import Loader from "@/components/UI/Loader";
 import CourseStudentsModal from "./CourseStudentsModal";
 
 interface Course {
@@ -159,7 +161,7 @@ export default function CoursesTab() {
     if (loading) {
         return (
             <div className={styles.loading}>
-                <Loader2 size={32} className={styles.spinner} />
+                <Loader variant="inline" text="Loading courses..." />
                 <span>Syncing course data...</span>
             </div>
         );

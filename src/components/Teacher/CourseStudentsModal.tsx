@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { X, Search, Users, Loader2, UserPlus } from "lucide-react";
+import { X, Search, Users, UserPlus } from "lucide-react";
+import Loader from "@/components/UI/Loader";
 import Image from "next/image";
 import styles from "./CourseStudentsModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
@@ -128,7 +129,7 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                 <div className={styles.body}>
                     {loading ? (
                         <div className={styles.loadingState}>
-                            <Loader2 size={32} className="animate-spin" />
+                            <Loader variant="inline" text="Loading students..." />
                             <p>Loading students...</p>
                         </div>
                     ) : filteredStudents.length === 0 ? (

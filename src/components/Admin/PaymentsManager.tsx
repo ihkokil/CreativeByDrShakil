@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Loader from "@/components/UI/Loader";
+import { formatDateGMT6 } from "@/lib/date-format";
 import styles from "@/app/admin/dashboard/AdminDashboard.module.css";
-import { CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle } from "lucide-react";
 
 type PaymentStatus = "pending" | "approved" | "rejected";
 
@@ -142,7 +144,7 @@ export default function PaymentsManager() {
         <div className={styles.infoBox}>{error}</div>
       ) : loading ? (
         <div className={styles.loader}>
-          <Loader2 className={styles.spinner} /> Loading payments...
+          <Loader variant="inline" text="Loading payments..." />
         </div>
       ) : orders.length === 0 ? (
         <div className={styles.infoBox}>No payments found for this status.</div>

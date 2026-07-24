@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Check } from "lucide-react";
+import { X, Check } from "lucide-react";
+import Loader from "@/components/UI/Loader";
+import { useAuth } from "@/context/AuthContext";
 import styles from "./StudentRulesModal.module.css";
 import { motion } from "framer-motion";
 import { formatDateInputGMT6 } from "@/lib/date-format";
@@ -232,7 +234,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                             Cancel
                         </button>
                         <button className={styles.saveBtn} onClick={handleSave} disabled={loading}>
-                            {loading ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : <><Check size={16} /> Save Rules</>}
+                            {loading ? <><Loader variant="button" /> Saving...</> : <><Check size={16} /> Save Rules</>}
                         </button>
                     </div>
                 </div>

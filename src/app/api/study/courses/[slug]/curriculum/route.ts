@@ -68,7 +68,7 @@ export async function GET(
 
     // Compute release dates
     const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
-    const releaseStart = isAdmin ? courseAnchor : (courseAnchor || enrolledAt);
+    const releaseStart = isAdmin ? courseAnchor : (enrolledAt || courseAnchor);
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,

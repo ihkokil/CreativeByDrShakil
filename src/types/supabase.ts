@@ -634,6 +634,7 @@ export type Database = {
           optionB: string
           optionC: string | null
           optionD: string | null
+          optionE: string | null
           questionText: string
           questionType: Database["public"]["Enums"]["QuestionType"]
           quizId: string
@@ -648,6 +649,7 @@ export type Database = {
           optionB: string
           optionC?: string | null
           optionD?: string | null
+          optionE?: string | null
           questionText: string
           questionType: Database["public"]["Enums"]["QuestionType"]
           quizId: string
@@ -662,6 +664,7 @@ export type Database = {
           optionB?: string
           optionC?: string | null
           optionD?: string | null
+          optionE?: string | null
           questionText?: string
           questionType?: Database["public"]["Enums"]["QuestionType"]
           quizId?: string
@@ -1214,7 +1217,7 @@ export type Database = {
         | "explicit_dates"
         | "instant"
       DeviceType: "desktop" | "mobile" | "tablet"
-      QuestionType: "mcq" | "true_false"
+      QuestionType: "mcq" | "true_false" | "sba"
       QuizPositionType: "best_attempt" | "last_attempt" | "first_attempt"
       QuizStatus: "draft" | "published" | "archived"
       UserRole: "admin" | "teacher" | "student"
@@ -1368,7 +1371,7 @@ export const Constants = {
         "instant",
       ],
       DeviceType: ["desktop", "mobile", "tablet"],
-      QuestionType: ["mcq", "true_false"],
+      QuestionType: ["mcq", "true_false", "sba"],
       QuizPositionType: ["best_attempt", "last_attempt", "first_attempt"],
       QuizStatus: ["draft", "published", "archived"],
       UserRole: ["admin", "teacher", "student"],

@@ -175,9 +175,9 @@ export default function TeacherQuizzesPage() {
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+      return mins > 0 ? `${hours}h ${mins} mins` : `${hours}h`;
     }
-    return `${minutes}m`;
+    return `${minutes} mins`;
   };
 
   const getStatusBadge = (status: string) => {
