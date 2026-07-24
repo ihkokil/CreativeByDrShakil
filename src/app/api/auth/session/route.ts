@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
     payload = await verifyAuthToken(token);
   } catch {
     // Token is expired or invalid — treat as unauthenticated, not a server error
-    const response = NextResponse.json({ user: null, role: null }, { status: 200 });
-    response.cookies.delete(AUTH_COOKIE_NAME);
-    return response;
+    const cookieStore = await import('next/headers').then(m => m.cookies());
+    cookieStore.delete(AUTH_COOKIE_NAME);
+    return NextResponse.json({ user: null, role: null }, { status: 200 });
   }
 
   if (payload.sessionId) {
@@ -26,9 +26,9 @@ export async function GET(request: NextRequest) {
     const sessionValid = await isSessionValid(payload.sessionId);
     if (!sessionValid) {
       // Session has been revoked or logged out
-      const response = NextResponse.json({ user: null, role: null }, { status: 200 });
-      response.cookies.delete(AUTH_COOKIE_NAME);
-      return response;
+      const cookieStore = await import('next/headers').then(m => m.cookies());
+      cookieStore.delete(AUTH_COOKIE_NAME);
+      return NextResponse.json({ user: null, role: null }, { status: 200 });
     }
   }
 
@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (error || !userRecord || userRecord.isBanned) {
-      const response = NextResponse.json({ user: null, role: null }, { status: 200 });
-      response.cookies.delete(AUTH_COOKIE_NAME);
-      return response;
+      const cookieStore = await import('next/headers').then(m => m.cookies());
+      cookieStore.delete(AUTH_COOKIE_NAME);
+      return NextResponse.json({ user: null, role: null }, { status: 200 });
     }
 
     if (payload.sessionId) {

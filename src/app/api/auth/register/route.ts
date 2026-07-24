@@ -224,7 +224,8 @@ export async function POST(request: NextRequest) {
         sessionId: newSession.id,
       });
 
-      response.cookies.set(AUTH_COOKIE_NAME, authToken, {
+      const cookieStore = await import('next/headers').then(m => m.cookies());
+      cookieStore.set(AUTH_COOKIE_NAME, authToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

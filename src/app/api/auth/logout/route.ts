@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AUTH_COOKIE_NAME, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { cookies } from 'next/headers';
+import { extractCookieToken, verifyAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { terminateSession } from '@/lib/session-manager';
 
 export async function POST(request: NextRequest) {
@@ -23,25 +24,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const response = NextResponse.json({ success: true });
-    response.cookies.set(AUTH_COOKIE_NAME, '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    });
-    return response;
+    const cookieStore = await cookies();
+    cookieStore.delete(AUTH_COOKIE_NAME);
+    
+    return NextResponse.json({ success: true });
   } catch {
     // Still logout even if there's an error
-    const response = NextResponse.json({ success: true });
-    response.cookies.set(AUTH_COOKIE_NAME, '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    });
-    return response;
+    const cookieStore = await cookies();
+    cookieStore.delete(AUTH_COOKIE_NAME);
+    return NextResponse.json({ success: true });
   }
 }
