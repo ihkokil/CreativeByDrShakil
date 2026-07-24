@@ -213,6 +213,10 @@ export default function QuizResultPage() {
       const scoreElement = document.getElementById('score-section');
       if (scoreElement) await addElementToPdf(scoreElement);
       
+      // 1.5 Capture Summary Grid
+      const summaryGrid = document.getElementById('summary-grid-section');
+      if (summaryGrid) await addElementToPdf(summaryGrid);
+      
       // 2. Capture Review Header
       const reviewHeader = document.getElementById('review-header-section');
       if (reviewHeader) await addElementToPdf(reviewHeader);
@@ -389,7 +393,7 @@ export default function QuizResultPage() {
           {/* Summary Tab */}
           {activeTab === 'summary' && (
             <div className={styles.tabPanel} role="tabpanel">
-              <div className={styles.summaryGrid}>
+              <div id="summary-grid-section" className={styles.summaryGrid}>
                 <div className={styles.summaryCard}>
                   <h3 className={styles.cardTitle}>
                     <TrendingUp className={styles.cardIcon} />
@@ -588,10 +592,10 @@ export default function QuizResultPage() {
                              return (
                                <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px' }}>
                                  <div style={{ display: 'flex', gap: '8px', fontWeight: 600 }}>
-                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isT ? 'var(--primary-color)' : 'var(--bg-tertiary)', color: isT ? 'white' : 'var(--text-muted)' }}>
+                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectT ? 'var(--success-color)' : (isT ? 'transparent' : 'var(--bg-tertiary)'), border: (isT && !isCorrectT) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectT ? 'white' : (isT ? 'var(--error-color)' : 'var(--text-muted)') }}>
                                      <Check size={18} />
                                    </div>
-                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isF ? 'var(--primary-color)' : 'var(--bg-tertiary)', color: isF ? 'white' : 'var(--text-muted)' }}>
+                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectF ? 'var(--success-color)' : (isF ? 'transparent' : 'var(--bg-tertiary)'), border: (isF && !isCorrectF) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectF ? 'white' : (isF ? 'var(--error-color)' : 'var(--text-muted)') }}>
                                      <X size={18} />
                                    </div>
                                  </div>
