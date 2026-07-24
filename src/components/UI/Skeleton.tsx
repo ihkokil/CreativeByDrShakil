@@ -32,7 +32,7 @@ export default function Skeleton({
 // A pre-built skeleton for a standard card
 export function CardSkeleton() {
     return (
-        <div style={{ padding: '20px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
+        <div style={{ padding: '20px', border: '1px solid var(--glass-border)', borderRadius: '8px', background: 'var(--card-bg)' }}>
             <Skeleton height="150px" borderRadius="8px" style={{ marginBottom: '16px' }} />
             <Skeleton height="24px" width="70%" style={{ marginBottom: '12px' }} />
             <Skeleton height="16px" width="100%" style={{ marginBottom: '8px' }} />
@@ -48,7 +48,7 @@ export function CardSkeleton() {
 // A pre-built skeleton for a list item
 export function ListItemSkeleton() {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid var(--glass-border)' }}>
             <Skeleton width="48px" height="48px" borderRadius="50%" style={{ marginRight: '16px', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
                 <Skeleton height="20px" width="40%" style={{ marginBottom: '8px' }} />

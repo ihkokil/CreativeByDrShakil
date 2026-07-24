@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Loader from "@/components/UI/Loader";
 import { 
-  X, Loader2, Folder, Calendar, Settings, XCircle, Mail, Phone, FileText
+  X, Folder, Calendar, Settings, XCircle, Mail, Phone, FileText
 } from 'lucide-react';
 import styles from './SingleCourseProgressModal.module.css';
 import { formatDateGMT6 } from '@/lib/date-format';
@@ -122,7 +123,18 @@ export default function SingleCourseProgressModal({
     );
   };
 
-  const topLevelFolders = data?.curriculum?.filter(n => n.type === 'folder' && !n.locked) || [];
+  const topLevelFolders = [...(data?.curriculum?.filter(n => n.type === 'folder') || [])].sort((a, b) => {
+    const getSortValue = (node: BuilderNode) => {
+      if (node.availableAt) {
+        return new Date(node.availableAt).getTime();
+      }
+      if (node.locked) {
+        return Infinity;
+      }
+      return 0;
+    };
+    return getSortValue(a) - getSortValue(b);
+  });
 
   const getInitials = (name: string) => {
     if (!name) return 'S';
@@ -191,7 +203,7 @@ export default function SingleCourseProgressModal({
         <div className={styles.body}>
           {loading ? (
             <div className={styles.loadingState}>
-              <Loader2 size={32} className="animate-spin" style={{ marginBottom: '12px' }} />
+              <Loader variant="inline" text="Loading progress..." />
               Loading course modules...
             </div>
           ) : error ? (

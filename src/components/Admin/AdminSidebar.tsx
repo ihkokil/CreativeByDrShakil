@@ -18,12 +18,16 @@ import {
     Shield,
     ShieldCheck,
     Settings,
-    UserCog
+    UserCog,
+    X,
+    ClipboardList,
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+
+type TabType = 'overview' | 'users' | 'students' | 'teachers' | 'quizzes' | 'payments' | 'support' | 'settings' | 'security' | 'profile';
 
 interface AdminSidebarProps {
     activeTab: string;
@@ -56,10 +60,10 @@ export default function AdminSidebar({
 
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-        { id: 'enrollments', label: 'Enrollments', icon: <BookOpen size={20} /> },
         { id: 'students', label: 'Students', icon: <GraduationCap size={20} /> },
         { id: 'users', label: 'Users', icon: <Users size={20} /> },
         { id: 'teachers', label: 'Teachers', icon: <UserCog size={20} /> },
+        { id: 'quizzes', label: 'Quizzes', icon: <ClipboardList size={20} /> },
         { id: 'payments', label: 'Payments', icon: <CreditCard size={20} /> },
         { id: 'support', label: 'Contact Help', icon: <Inbox size={20} /> },
     ];

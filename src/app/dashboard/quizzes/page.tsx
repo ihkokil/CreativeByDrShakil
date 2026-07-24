@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Loader from "@/components/UI/Loader";
 import Link from 'next/link';
-import { Search, Filter, ArrowUpDown, Clock, Trophy, AlertCircle, CheckCircle, Clock as ClockIcon, Loader2, HelpCircle, Target, Play, RotateCcw, FileText } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Clock, Trophy, AlertCircle, CheckCircle, Clock as ClockIcon, HelpCircle, Target, Play, RotateCcw, FileText } from 'lucide-react';
 import styles from './QuizzesPage.module.css';
 
 interface Quiz {
@@ -89,16 +90,16 @@ export default function QuizzesPage() {
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+      return mins > 0 ? `${hours}h ${mins} mins` : `${hours}h`;
     }
-    return `${minutes}m`;
+    return `${minutes} mins`;
   };
 
   if (loading) {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
-          <Loader2 className={styles.spinner} />
+          <Loader variant="inline" text="Loading quizzes..." />
           <p>Loading quizzes...</p>
         </div>
       </div>

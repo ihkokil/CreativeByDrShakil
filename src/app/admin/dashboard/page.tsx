@@ -33,7 +33,6 @@ import AddStudentToCourseModal from "@/components/Admin/AddStudentToCourseModal"
 import Image from "next/image";
 import UsersManager from "@/components/Shared/UsersManager";
 import StudentsManager from "@/components/Shared/StudentsManager";
-import EnrollmentsManager from "@/components/Shared/EnrollmentsManager";
 import ContactRequestsManager from "@/components/Admin/ContactRequestsManager";
 import BkashSettings from "@/components/Admin/BkashSettings";
 import AdminOverview from "@/components/Admin/AdminOverview";
@@ -317,10 +316,6 @@ function AdminDashboardContent() {
                             </button>
                         </div>
                         <div className={styles.actionGrid}>
-                            <article className={styles.actionCard} onClick={() => { setActiveTab("enrollments"); setIsAddStudentToCourseOpen(true); }}>
-                                <GraduationCap size={18} />
-                                <div><h3>Enroll Student</h3><p>Add student to any course.</p></div>
-                            </article>
                             <article className={styles.actionCard} onClick={() => { setActiveTab("teachers"); setIsAddTeacherOpen(true); }}>
                                 <UserPlus size={18} />
                                 <div><h3>Invite Teacher</h3><p>Send onboarding invite with role setup.</p></div>
@@ -420,18 +415,6 @@ function AdminDashboardContent() {
                         </div>
                     </div>
                     <StudentsManager />
-                </section>
-            )}
-
-            {activeTab === "enrollments" && (
-                <section className={styles.panel}>
-                    <div className={styles.panelHeader}>
-                        <div>
-                            <h2 className={styles.panelTitle}>Enrollments Manager</h2>
-                            <p className={styles.subtitle}>Manage student course enrollments and progress.</p>
-                        </div>
-                    </div>
-                    <EnrollmentsManager />
                 </section>
             )}
 

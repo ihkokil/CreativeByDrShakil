@@ -72,13 +72,14 @@ export async function GET(
         { letter: 'B', text: q.optionB },
         { letter: 'C', text: q.optionC },
         { letter: 'D', text: q.optionD },
+        { letter: 'E', text: q.optionE },
       ].filter(o => o.text !== null && o.text !== undefined && o.text !== '');
       
       let orderedOptions = originalOptions;
       if (Array.isArray(m.optionOrder)) {
         orderedOptions = m.optionOrder.map((key: any) => {
           if (typeof key === 'number') {
-            const letters = ['A', 'B', 'C', 'D'];
+            const letters = ['A', 'B', 'C', 'D', 'E'];
             const letter = letters[key];
             return originalOptions.find(o => o.letter === letter);
           } else if (typeof key === 'string') {

@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
-import { X, Crop, Loader2 } from "lucide-react";
+import { X, Crop } from "lucide-react";
+import Loader from "@/components/UI/Loader";
 import styles from "./ImageCropper.module.css";
 
 interface ImageCropperProps {
@@ -129,7 +130,7 @@ export default function ImageCropper({ imageSrc, onClose, onCropComplete }: Imag
                         Cancel
                     </button>
                     <button className={styles.confirmBtn} onClick={extractCroppedImage} disabled={isCropping}>
-                        {isCropping ? <Loader2 size={18} className="spinner" /> : <Crop size={18} />}
+                        {isCropping ? <Loader variant="button" /> : <Crop size={18} />}
                         {isCropping ? "Optimizing..." : "Crop & Upload"}
                     </button>
                 </div>

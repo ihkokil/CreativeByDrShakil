@@ -16,10 +16,12 @@ export async function POST(
 
     const { attemptId } = await params;
     const body = await request.json();
-    const { questionId, selectedOption } = body;
+    const { questionId, selectedOption, answers } = body;
 
-    if (!questionId || typeof questionId !== 'string') {
-      return NextResponse.json({ error: 'questionId is required.' }, { status: 400 });
+    const answersToSave = answers || (questionId ? [{ questionId, selectedOption }] : []);
+
+    if (!answersToSave || answersToSave.length === 0) {
+      return NextResponse.json({ error: 'questionId or answers is required.' }, { status: 400 });
     }
 
     const token = await extractCookieToken();
@@ -46,36 +48,44 @@ export async function POST(
     }
 
     const nowStr = new Date().toISOString();
+    const results = [];
 
-    // Upsert draft answer (selectedOption can be null to clear)
-    const { data: existingAnswer }: { data: any } = await supabase
-      .from('AttemptAnswer')
-      .select('id')
-      .eq('attemptId', attemptId)
-      .eq('questionId', questionId)
-      .limit(1)
-      .maybeSingle();
-
-    if (existingAnswer) {
-      await supabase
+    for (const ans of answersToSave) {
+      const qId = ans.questionId;
+      const opt = ans.selectedOption;
+      
+      const { data: existingAnswer }: { data: any } = await supabase
         .from('AttemptAnswer')
-        // @ts-ignore
-        .update({ selectedOption: selectedOption || null, updatedAt: nowStr })
-        .eq('id', existingAnswer.id);
-    } else if (selectedOption) {
-      await supabase.from('AttemptAnswer')
-// @ts-ignore
-.insert({
-        id: nanoid(),
-        attemptId,
-        questionId,
-        selectedOption,
-        createdAt: nowStr,
-        updatedAt: nowStr,
-      } as any);
+        .select('id')
+        .eq('attemptId', attemptId)
+        .eq('questionId', qId)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingAnswer) {
+        const { error: updateError } = await supabase
+          .from('AttemptAnswer')
+          .update({ selectedOption: opt || null })
+          .eq('id', existingAnswer.id);
+        
+        if (updateError) throw updateError;
+      } else if (opt) {
+        const { error: insertError } = await supabase.from('AttemptAnswer')
+          .insert({
+            id: nanoid(),
+            attemptId,
+            questionId: qId,
+            selectedOption: opt,
+            createdAt: nowStr,
+          } as any);
+        
+        if (insertError) throw insertError;
+      }
+      
+      results.push({ questionId: qId, saved: true });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, results });
   } catch (error: any) {
     console.error('[quiz/save-answer] error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

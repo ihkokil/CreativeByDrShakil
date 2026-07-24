@@ -11,12 +11,12 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
 
   const { data: questions = [] } = await supabase
     .from('Question')
-    .select('id, correctOption')
+    .select('id, correctOption, questionType')
     .eq('quizId', quizId);
 
   const { data: quiz }: { data: any } = await supabase
     .from('Quiz')
-    .select('marksPerCorrect, allowNegativeMarking, negativeValue')
+    .select('marksPerCorrect, allowNegativeMarking, negativeValue, durationMinutes')
     .eq('id', quizId)
     .limit(1)
     .maybeSingle();
@@ -24,6 +24,7 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
   const marksPerCorrect = quiz?.marksPerCorrect ?? 1;
   const allowNegativeMarking = quiz?.allowNegativeMarking ?? false;
   const negativeValue = quiz?.negativeValue ?? 0;
+  const timeTakenSeconds = quiz?.durationMinutes ? quiz.durationMinutes * 60 : 0;
 
   const correctMap = new Map((questions || []).map((q: any) => [q.id, q.correctOption]));
   const answersMap = new Map((answers || []).map((a: any) => [a.questionId, a.selectedOption]));
@@ -31,21 +32,59 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
   let correctCount = 0;
   let incorrectCount = 0;
   let unansweredCount = 0;
+  
+  let grossScore = 0;
+  let penalty = 0;
 
-  for (const [qId, correctOption] of correctMap) {
-    const selected = answersMap.get(qId);
+  for (const q of questions) {
+    const qId = q.id;
+    const correctOption = q.correctOption as string;
+    const qType = q.questionType;
+    const selected = answersMap.get(qId) as string;
+
     if (!selected) {
       unansweredCount++;
-    } else if (selected === correctOption) {
-      correctCount++;
+      continue;
+    }
+
+    if (qType === 'mcq') {
+      let correctStems = 0;
+      let incorrectStems = 0;
+      const length = correctOption.length || 5;
+      
+      for (let i = 0; i < length; i++) {
+        const selChar = selected[i] || '-';
+        if (selChar === correctOption[i]) {
+          correctStems++;
+        } else if (selChar !== '-' && selChar !== ' ') {
+          incorrectStems++;
+        }
+      }
+      
+      if (correctStems === length) correctCount++;
+      else if (incorrectStems > 0) incorrectCount++;
+      
+      grossScore += (correctStems / length) * marksPerCorrect;
+      if (allowNegativeMarking) {
+        const percentage = negativeValue <= 1 && negativeValue > 0 ? negativeValue : negativeValue / 100;
+        const marksPerStem = marksPerCorrect / length;
+        penalty += incorrectStems * (marksPerStem * percentage);
+      }
     } else {
-      incorrectCount++;
+      if (selected === correctOption) {
+        correctCount++;
+        grossScore += marksPerCorrect;
+      } else {
+        incorrectCount++;
+        if (allowNegativeMarking) {
+          const percentage = negativeValue <= 1 && negativeValue > 0 ? negativeValue : negativeValue / 100;
+          penalty += marksPerCorrect * percentage;
+        }
+      }
     }
   }
 
-  const totalQuestions = correctMap.size;
-  const grossScore = correctCount * marksPerCorrect;
-  const penalty = allowNegativeMarking ? incorrectCount * negativeValue : 0;
+  const totalQuestions = questions.length;
   const netScore = grossScore - penalty;
   const maxScore = totalQuestions * marksPerCorrect;
   const percentageScore = maxScore > 0 ? Math.round((Math.max(0, netScore) / maxScore) * 100) : 0;
@@ -59,11 +98,11 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
       status: 'auto_submitted',
       submittedAt: nowStr,
       correctCount,
-      incorrectCount,
-      unansweredCount,
-      totalQuestions,
-      grossScore,
+      wrongCount: incorrectCount,
+      skippedCount: unansweredCount,
       netScore,
+      negativeMarks: penalty,
+      timeTakenSeconds: timeTakenSeconds,
       percentageScore,
       updatedAt: nowStr,
     })
@@ -71,7 +110,7 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
 
   if (updateError) throw updateError;
 
-  return { correctCount, incorrectCount, unansweredCount, totalQuestions, grossScore, netScore, percentageScore };
+  return { correctCount, wrongCount: incorrectCount, skippedCount: unansweredCount, totalQuestions, netScore, percentageScore };
 }
 
 export async function POST(

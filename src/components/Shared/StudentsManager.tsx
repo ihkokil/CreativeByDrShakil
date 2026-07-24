@@ -3,13 +3,14 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { 
-  Search, Loader2, Edit, Trash2, GraduationCap, X, 
+  Search, Edit, Trash2, GraduationCap, X, 
   User, Mail, Phone, FileText, ImagePlus, Send, Calendar,
   ChevronDown, Filter, Eye, BookPlus, Trash, CalendarClock,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import dashStyles from '@/app/admin/dashboard/AdminDashboard.module.css';
 import styles from './StudentsManager.module.css';
+import Loader from "@/components/UI/Loader";
 import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
 import SingleCourseProgressModal from './SingleCourseProgressModal';
@@ -159,34 +160,6 @@ function CircularProgress({ progress }: { progress: number }) {
 }
 
 function StudentProgramsCell({ student, onCourseClick }: { student: StudentProfile, onCourseClick?: (courseId: string) => void }) {
-  const [progressMap, setProgressMap] = useState<Record<string, number> | null>(null);
-
-  useEffect(() => {
-    if (student.enrolledCourses.length === 0) return;
-    
-    let isMounted = true;
-    const fetchProgress = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
-        const res = await fetch(`/api/students/${student.id}/progress`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        const data = await res.json();
-        if (res.ok && isMounted && data.courses) {
-          const map: Record<string, number> = {};
-          data.courses.forEach((c: any) => {
-            map[c.courseId] = c.progressPercent;
-          });
-          setProgressMap(map);
-        }
-      } catch (err) {}
-    };
-    
-    fetchProgress();
-    
-    return () => { isMounted = false; };
-  }, [student.id, student.enrolledCourses.length]);
-
   if (student.enrolledCourses.length === 0) {
     return <span className={styles.noCoursesPill}>No courses</span>;
   }
@@ -194,7 +167,6 @@ function StudentProgramsCell({ student, onCourseClick }: { student: StudentProfi
   return (
     <div className={styles.courseCards}>
       {student.enrolledCourses.slice(0, 2).map((c) => {
-        const progress = progressMap ? (progressMap[c.courseId] || 0) : null;
         return (
           <div 
             key={c.courseId} 
@@ -211,11 +183,6 @@ function StudentProgramsCell({ student, onCourseClick }: { student: StudentProfi
                 <span>Start: {c.enrolledAt ? formatDateGMT6(c.enrolledAt) : '—'}</span>
                 <span>Expires: {c.expiresAt ? formatDateGMT6(c.expiresAt) : '—'}</span>
               </div>
-              {progress !== null ? (
-                <CircularProgress progress={progress} />
-              ) : (
-                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
-              )}
             </div>
           </div>
         );
@@ -881,7 +848,7 @@ export default function StudentsManager() {
 
       {loading ? (
         <div className={dashStyles.loader}>
-          <Loader2 className={dashStyles.spinner} />
+          <Loader variant="inline" text="Loading students..." />
           Loading students...
         </div>
       ) : filteredStudents.length > 0 ? (
@@ -1146,7 +1113,7 @@ export default function StudentsManager() {
                         disabled={isSubmitting || batchCourseIds.length === 0}
                         style={{ padding: '0 20px', height: '42px', width: '100%', justifyContent: 'center' }}
                       >
-                        {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> Enrolling...</> : 'Enroll Now'}
+                        {isSubmitting ? <><Loader variant="button" /> Enrolling...</> : 'Enroll Now'}
                       </button>
                     </div>
                   </div>
@@ -1193,7 +1160,7 @@ export default function StudentsManager() {
                         disabled={isSubmitting || !datePanelCourseId}
                         style={{ padding: '0 20px', height: '42px', width: '100%', justifyContent: 'center' }}
                       >
-                        {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> Updating...</> : 'Update Dates'}
+                        {isSubmitting ? <><Loader variant="button" /> Updating...</> : 'Update Dates'}
                       </button>
                     </div>
                   </div>
@@ -1232,7 +1199,7 @@ export default function StudentsManager() {
                         disabled={isSubmitting || !removeCourseId}
                         style={{ padding: '0 20px', height: '42px', width: '100%', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.15)' }}
                       >
-                        {isSubmitting ? <><Loader2 size={14} className="animate-spin" /> Removing...</> : 'Remove Students'}
+                        {isSubmitting ? <><Loader variant="button" /> Removing...</> : 'Remove Students'}
                       </button>
                     </div>
                   </div>

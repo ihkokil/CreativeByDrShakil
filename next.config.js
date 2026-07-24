@@ -38,11 +38,11 @@ const nextConfig = {
     async headers() {
         const cspHeader = `
             default-src 'self';
-            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://player.vimeo.com;
+            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://player.vimeo.com https://static.cloudflareinsights.com;
             style-src 'self' 'unsafe-inline';
             img-src 'self' blob: data: https://files.creativebydrshakil.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com https://i.vimeocdn.com;
             font-src 'self' data:;
-            connect-src 'self' https://*.supabase.co wss://*.supabase.co;
+            connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com;
             media-src 'self' blob: data: https://files.creativebydrshakil.com;
             object-src 'none';
             base-uri 'self';

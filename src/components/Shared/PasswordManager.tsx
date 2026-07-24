@@ -1,5 +1,6 @@
 "use client";
 
+import Loader from "@/components/UI/Loader";
 import { useState } from "react";
 import { 
   KeyRound, 
@@ -8,10 +9,10 @@ import {
   RefreshCcw, 
   AlertCircle, 
   CheckCircle2, 
-  Loader2,
   ShieldAlert,
   Smartphone
 } from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from "./PasswordManager.module.css";
 
 export default function PasswordManager() {
@@ -171,7 +172,7 @@ export default function PasswordManager() {
             )}
 
             <button type="submit" className={styles.submitButton} disabled={loading}>
-              {loading ? <Loader2 size={18} className="spinner" /> : <RefreshCcw size={18} />}
+              {loading ? <Loader variant="button" /> : <RefreshCcw size={18} />}
               {loading ? "Syncing Credentials..." : "Update Password"}
             </button>
           </form>

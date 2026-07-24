@@ -1023,13 +1023,14 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   z-index: 2000;
   animation: fadeIn 0.2s ease;
+  backdrop-filter: none;
 }
 
 @keyframes fadeIn {
@@ -1038,15 +1039,16 @@
 }
 
 .modal {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  background: #121214;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
   border-radius: 16px;
   max-width: 600px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   animation: slideUp 0.3s ease;
+  backdrop-filter: none;
 }
 
 @keyframes slideUp {
@@ -1109,7 +1111,8 @@
 }
 
 .dropZone {
-  border: 2px dashed var(--border-color);
+  border: 2px dashed var(--border-color, rgba(255, 255, 255, 0.2));
+  background: #1a1a1d;
   border-radius: 12px;
   padding: 40px 20px;
   text-align: center;

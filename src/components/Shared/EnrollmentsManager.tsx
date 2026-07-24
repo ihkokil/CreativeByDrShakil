@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Search, Filter, Loader2, Eye, Users, X } from 'lucide-react';
+import { Search, Filter, Eye, Users, X } from 'lucide-react';
 import dashStyles from '@/app/admin/dashboard/AdminDashboard.module.css';
 import styles from './EnrollmentsManager.module.css';
 import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
-import { formatDateInputGMT6 } from '@/lib/date-format';
+import Loader from "@/components/UI/Loader";
+import { formatDisplayDate, formatDateInputGMT6 } from '@/lib/date-format';
 
 interface EnrolledCourse {
   orderId: string;
@@ -507,7 +508,7 @@ export default function EnrollmentsManager() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" style={{ marginRight: '8px' }} />
+                  <Loader variant="button" />
                   Processing...
                 </>
               ) : (
@@ -549,7 +550,7 @@ export default function EnrollmentsManager() {
 
         {loading ? (
           <div className={dashStyles.loader}>
-            <Loader2 className={dashStyles.spinner} />
+            <Loader variant="inline" text="Loading enrollments..." />
             Loading enrollments...
           </div>
         ) : filteredStudents.length > 0 ? (

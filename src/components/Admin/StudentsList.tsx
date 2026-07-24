@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Loader from "@/components/UI/Loader";
+import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { Search, Loader2, Edit, Trash2, GraduationCap, X, User, Mail, Phone, FileText, ImagePlus, Send } from "lucide-react";
+import { Search, Edit, Trash2, GraduationCap, X, User, Mail, Phone, FileText, ImagePlus, Send } from "lucide-react";
 import dashStyles from "@/app/admin/dashboard/AdminDashboard.module.css";
 import localStyles from "./StudentsList.module.css";
 
@@ -199,7 +201,7 @@ export default function StudentsList() {
 
             {loading ? (
                 <div className={dashStyles.loader}>
-                    <Loader2 className={dashStyles.spinner} />
+                    <Loader variant="inline" text="Loading students..." />
                     Loading students...
                 </div>
             ) : filteredStudents.length > 0 ? (

@@ -71,7 +71,8 @@
         right: 0;
         height: 72px;
         background: var(--glass);
-        backdrop-filter: blur(20px);
+        backdrop-filter: blur(48px);
+        -webkit-backdrop-filter: blur(48px);
         border-top: 1px solid var(--glass-border);
         z-index: 1001;
         padding: 0 10px;
@@ -106,7 +107,7 @@
         right: 0;
         bottom: 0;
         background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(16px);
         z-index: 999;
     }
 }

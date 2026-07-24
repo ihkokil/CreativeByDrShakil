@@ -47,6 +47,7 @@ export async function GET(
         { letter: 'B', text: q.optionB },
         { letter: 'C', text: q.optionC },
         { letter: 'D', text: q.optionD },
+        { letter: 'E', text: q.optionE },
       ].filter(o => o.text !== null && o.text !== undefined && o.text !== ''),
     }));
     
@@ -89,7 +90,7 @@ export async function POST(
     }
     
     const body = await request.json();
-    const { questionText, questionType, optionA, optionB, optionC, optionD, correctOption, explanation } = body;
+    const { questionText, questionType, optionA, optionB, optionC, optionD, optionE, correctOption, explanation } = body;
     
     if (!questionText || !questionText.trim()) {
       return NextResponse.json({ error: 'Question text is required.' }, { status: 400 });
@@ -107,16 +108,22 @@ export async function POST(
       return NextResponse.json({ error: 'Correct option is required.' }, { status: 400 });
     }
     
-    const options = [optionA, optionB, optionC, optionD].filter(o => o && o.trim());
+    const options = [optionA, optionB, optionC, optionD, optionE].filter(o => o && o.trim());
     if (options.length < 2) {
       return NextResponse.json({ error: 'At least 2 options are required.' }, { status: 400 });
     }
     
-    if (!options.includes(correctOption)) {
-      return NextResponse.json({ error: 'Correct option must match one of the provided options.' }, { status: 400 });
-    }
+    const questionTypeTyped: 'mcq' | 'true_false' | 'sba' = questionType === 'true_false' ? 'true_false' : (questionType === 'sba' ? 'sba' : 'mcq');
     
-    const questionTypeTyped: 'mcq' | 'true_false' = questionType === 'true_false' ? 'true_false' : 'mcq';
+    if (questionTypeTyped === 'sba' || questionTypeTyped === 'true_false') {
+      if (!options.includes(correctOption)) {
+        return NextResponse.json({ error: 'Correct option must match one of the provided options.' }, { status: 400 });
+      }
+    } else if (questionTypeTyped === 'mcq') {
+      if (!/^[TF]+$/i.test(correctOption)) {
+        return NextResponse.json({ error: 'For MCQ, correct option must be a string of T and F.' }, { status: 400 });
+      }
+    }
     const nowStr = new Date().toISOString();
     
     const questionId = crypto.randomUUID();
@@ -129,6 +136,7 @@ export async function POST(
       optionB: optionB.trim(),
       optionC: optionC?.trim() || null,
       optionD: optionD?.trim() || null,
+      optionE: optionE?.trim() || null,
       correctOption: correctOption.trim(),
       explanation: explanation?.trim() || null,
       createdAt: nowStr,

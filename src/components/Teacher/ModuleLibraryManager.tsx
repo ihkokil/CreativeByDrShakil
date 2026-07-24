@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import Loader from "@/components/UI/Loader";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, Loader2, ArrowUp, ArrowDown, GripVertical, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type ContentType = 'youtube' | 'vimeo' | 'self-hosted' | 'document';
@@ -541,7 +542,7 @@ export default function ModuleLibraryManager() {
         return (
             <div className={styles.managerContainer}>
                 <div className={styles.emptyState}>
-                    <Loader2 size={48} className={styles.emptyIcon} style={{ animation: 'spin 1s linear infinite' }} />
+                    <Loader variant="inline" text="Loading modules..." />
                     <h3>Loading Module Library...</h3>
                     <p>Fetching your organized content.</p>
                 </div>

@@ -14,7 +14,6 @@ import PaymentsManager from "@/components/Admin/PaymentsManager";
 import Loader from "@/components/UI/Loader";
 import UsersManager from "@/components/Shared/UsersManager";
 import StudentsManager from "@/components/Shared/StudentsManager";
-import EnrollmentsManager from "@/components/Shared/EnrollmentsManager";
 
 interface TeacherStats {
     totalCourses: number;

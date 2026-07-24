@@ -83,7 +83,8 @@
     right: 0;
     width: 240px;
     background: rgba(20, 20, 20, 0.95);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(48px);
+    -webkit-backdrop-filter: blur(48px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 12px;

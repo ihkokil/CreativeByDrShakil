@@ -37,11 +37,12 @@ interface Question {
   id: string;
   tempId?: string;
   questionText: string;
-  questionType: 'mcq' | 'true_false';
+  questionType: 'mcq' | 'true_false' | 'sba';
   optionA: string;
   optionB: string;
   optionC: string;
   optionD: string;
+  optionE: string;
   correctOption: string;
   explanation: string;
   collapsed: boolean;
@@ -105,8 +106,8 @@ export default function QuizBuilderPage() {
     allowMultipleAttempts: true,
     maxAttempts: 0,
     allowNegativeMarking: false,
-    negativeValue: 0.25,
-    marksPerCorrect: 1,
+    negativeValue: 20,
+    marksPerCorrect: 2,
     startDatetime: '',
     endDatetime: '',
     shuffleQuestions: true,
@@ -146,6 +147,9 @@ export default function QuizBuilderPage() {
             (newFormData as any)[key] = data.quiz[key] ? new Date(data.quiz[key]).toISOString().slice(0, 16) : '';
           } else if (key === 'maxAttempts' && data.quiz[key] === null) {
             (newFormData as any)[key] = 0;
+          } else if (key === 'negativeValue') {
+            const val = data.quiz[key] as number;
+            (newFormData as any)[key] = (val > 0 && val <= 1) ? val * 100 : val;
           } else {
             (newFormData as any)[key] = data.quiz[key];
           }
@@ -154,8 +158,8 @@ export default function QuizBuilderPage() {
       setFormData(newFormData);
       
       // Populate questions
-      if (data.questions && data.questions.length > 0) {
-        const loadedQuestions = data.questions.map((q: any, index: number) => ({
+      if (data.quiz.questions && data.quiz.questions.length > 0) {
+        const loadedQuestions = data.quiz.questions.map((q: any, index: number) => ({
           id: q.id,
           questionText: q.questionText,
           questionType: q.questionType,
@@ -163,6 +167,7 @@ export default function QuizBuilderPage() {
           optionB: q.optionB,
           optionC: q.optionC || '',
           optionD: q.optionD || '',
+          optionE: q.optionE || '',
           correctOption: q.correctOption,
           explanation: q.explanation || '',
           collapsed: false,
@@ -186,11 +191,12 @@ export default function QuizBuilderPage() {
       id: newId,
       tempId: newId,
       questionText: '',
-      questionType: 'mcq',
+      questionType: 'sba',
       optionA: '',
       optionB: '',
       optionC: '',
       optionD: '',
+      optionE: '',
       correctOption: '',
       explanation: '',
       collapsed: false,
@@ -255,6 +261,7 @@ export default function QuizBuilderPage() {
       if (!res.ok) throw new Error(data.error || 'Import failed');
       
       const mappedValid = (data.validRows || []).map((r: any) => ({
+        questionType: r.questionType || 'sba',
         questionText: r.questionText,
         explanation: r.explanation,
         correctOption: r.correctOption,
@@ -262,17 +269,20 @@ export default function QuizBuilderPage() {
         optionB: r.optionB,
         optionC: r.optionC,
         optionD: r.optionD,
+        optionE: r.optionE,
         valid: true,
         errors: [],
       }));
       const mappedInvalid = (data.invalidRows || []).map((r: any) => ({
         questionText: r.data?.[0] || 'Empty Question',
-        explanation: r.data?.[1] || '',
-        correctOption: r.data?.[2] || '',
-        optionA: r.data?.[3] || '',
-        optionB: r.data?.[4] || '',
-        optionC: r.data?.[5] || '',
-        optionD: r.data?.[6] || '',
+        optionA: r.data?.[1] || '',
+        optionB: r.data?.[2] || '',
+        optionC: r.data?.[3] || '',
+        optionD: r.data?.[4] || '',
+        optionE: r.data?.[5] || '',
+        correctOption: r.data?.[6] || '',
+        explanation: r.data?.[7] || '',
+        questionType: r.data?.[6] && /^[TF]{5}$/i.test(r.data[6]) ? 'mcq' : 'sba',
         valid: false,
         errors: r.errors || [],
       }));
@@ -295,16 +305,16 @@ export default function QuizBuilderPage() {
     
     const newQuestions = validQuestionsOnly.map((q: any, idx: number) => {
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const isTrueFalse = q.optionC === null || q.optionC === undefined || q.optionC === '';
       return {
         id: tempId,
         tempId,
         questionText: q.questionText,
-        questionType: isTrueFalse ? 'true_false' : 'mcq',
+        questionType: q.questionType || 'sba',
         optionA: q.optionA,
         optionB: q.optionB,
         optionC: q.optionC || '',
         optionD: q.optionD || '',
+        optionE: q.optionE || '',
         correctOption: q.correctOption,
         explanation: q.explanation || '',
         collapsed: false,
@@ -347,11 +357,19 @@ export default function QuizBuilderPage() {
         setError(`Question "${q.questionText.slice(0, 30)}..." requires a correct answer`);
         return false;
       }
-      // Check that the selected correctOption letter ('A', 'B', 'C', or 'D') refers to a non-empty option
-      const selectedOptionVal = q[`option${q.correctOption}` as keyof typeof q] as string;
-      if (!selectedOptionVal || !selectedOptionVal.trim()) {
-        setError(`Correct option for "${q.questionText.slice(0, 30)}..." doesn't match any option`);
-        return false;
+      
+      if (q.questionType === 'sba' || q.questionType === 'true_false') {
+        // Check that the selected correctOption letter refers to a non-empty option
+        const selectedOptionVal = q[`option${q.correctOption}` as keyof typeof q] as string;
+        if (!selectedOptionVal || !selectedOptionVal.trim()) {
+          setError(`Correct option for "${q.questionText.slice(0, 30)}..." doesn't match any option`);
+          return false;
+        }
+      } else if (q.questionType === 'mcq') {
+        if (!/^[TF]+$/i.test(q.correctOption)) {
+          setError(`MCQ "${q.questionText.slice(0, 30)}..." requires True/False selection for options`);
+          return false;
+        }
       }
     }
     
@@ -377,6 +395,7 @@ export default function QuizBuilderPage() {
           optionB: q.optionB,
           optionC: q.optionC || null,
           optionD: q.optionD || null,
+          optionE: q.optionE || null,
           correctOption: q.correctOption,
           explanation: q.explanation || null,
           displayOrder: index + 1,
@@ -646,20 +665,19 @@ export default function QuizBuilderPage() {
                 </label>
 
                 <div style={{ opacity: formData.allowNegativeMarking ? 1 : 0.4, transition: 'opacity 0.2s', pointerEvents: formData.allowNegativeMarking ? 'auto' : 'none' }}>
-                  <label htmlFor="negativeValue" className={styles.label}>Penalty per Wrong Answer</label>
+                  <label htmlFor="negativeValue" className={styles.label}>Penalty per Wrong Answer (%)</label>
                   <input
                     id="negativeValue"
                     type="number"
-                    step="0.05"
                     min="0"
-                    max="1"
+                    max="100"
                     value={formData.negativeValue}
-                    onChange={e => updateFormData('negativeValue', parseFloat(e.target.value) || 0.25)}
+                    onChange={e => updateFormData('negativeValue', parseInt(e.target.value) || 20)}
                     className={styles.input}
                     disabled={!formData.allowNegativeMarking}
                     style={{ background: formData.allowNegativeMarking ? 'var(--input-bg)' : 'rgba(0,0,0,0.2)' }}
                   />
-                  <p className={styles.helper} style={{ marginTop: '8px' }}>Fraction of marks (e.g., 0.25 = 25%)</p>
+                  <p className={styles.helper} style={{ marginTop: '8px' }}>Percentage of marks (e.g., 25 = 25%)</p>
                 </div>
               </div>
 
@@ -858,7 +876,7 @@ export default function QuizBuilderPage() {
                           <tr key={i} className={row.valid ? '' : styles.invalidRow}>
                             <td>{i + 1}</td>
                             <td title={row.questionText}>{row.questionText?.slice(0, 45)}{row.questionText?.length > 45 ? '...' : ''}</td>
-                            <td>{row.optionC ? 'MCQ' : 'True/False'}</td>
+                            <td>{row.questionType}</td>
                             <td>{row.correctOption}</td>
                             <td>
                               {row.valid ? (
@@ -923,14 +941,19 @@ function QuestionCard({
     { letter: 'B', value: question.optionB },
     { letter: 'C', value: question.optionC },
     { letter: 'D', value: question.optionD },
-  ].filter(o => o.value.trim());
+    { letter: 'E', value: question.optionE },
+  ].filter(o => o.value && o.value.trim());
   
-  const isTrueFalse = options.length === 2 && 
-    options.some(o => o.value.toLowerCase() === 'true') && 
-    options.some(o => o.value.toLowerCase() === 'false');
+  const typeLabel = question.questionType === 'sba' ? 'SBA' : (question.questionType === 'mcq' ? 'MCQ (Matrix)' : 'True/False');
   
-  const validOptions = options.filter(o => o.value.trim());
-  const hasCorrectOption = validOptions.some(o => o.letter === question.correctOption);
+  const validOptions = options.filter(o => o.value && o.value.trim());
+  
+  let hasCorrectOption = false;
+  if (question.questionType === 'mcq') {
+    hasCorrectOption = /^[TF]+$/i.test(question.correctOption);
+  } else {
+    hasCorrectOption = validOptions.some(o => o.letter === question.correctOption);
+  }
 
   return (
     <article 
@@ -951,7 +974,7 @@ function QuestionCard({
         
         <div className={styles.questionInfo}>
           <span className={styles.questionNumber}>Q{index + 1}</span>
-          <span className={styles.questionTypeBadge}>{isTrueFalse ? 'True/False' : 'MCQ'}</span>
+          <span className={styles.questionTypeBadge}>{typeLabel}</span>
         </div>
         
         <div className={styles.questionActions}>
@@ -980,21 +1003,74 @@ function QuestionCard({
             />
           </div>
           
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Question Type</label>
+            <select
+              value={question.questionType}
+              onChange={e => {
+                const newType = e.target.value as 'sba' | 'mcq' | 'true_false';
+                onUpdate(question.id, 'questionType', newType);
+                if (newType === 'true_false') {
+                  onUpdate(question.id, 'optionA', 'True');
+                  onUpdate(question.id, 'optionB', 'False');
+                  onUpdate(question.id, 'optionC', '');
+                  onUpdate(question.id, 'optionD', '');
+                  onUpdate(question.id, 'optionE', '');
+                  if (question.correctOption !== 'A' && question.correctOption !== 'B') {
+                    onUpdate(question.id, 'correctOption', 'A');
+                  }
+                } else if (newType === 'mcq') {
+                  if (!/^[TF]+$/i.test(question.correctOption)) {
+                    onUpdate(question.id, 'correctOption', 'FFFFF');
+                  }
+                } else if (newType === 'sba') {
+                  if (question.correctOption?.length !== 1) {
+                    onUpdate(question.id, 'correctOption', 'A');
+                  }
+                }
+              }}
+              className={styles.select}
+            >
+              <option value="sba">SBA (Single Best Answer)</option>
+              <option value="mcq">MCQ (Multiple True/False Matrix)</option>
+              <option value="true_false">True/False</option>
+            </select>
+          </div>
+          
           <div className={styles.optionsGrid}>
-            {['A', 'B', 'C', 'D'].map(letter => {
+            {['A', 'B', 'C', 'D', 'E'].map((letter, idx) => {
               const option = question[`option${letter}` as keyof typeof question] as string;
+              if (question.questionType === 'true_false' && idx > 1) return null;
+              
+              const isMCQ = question.questionType === 'mcq';
+              const correctStr = question.correctOption || 'FFFFF';
+              const isOptionCorrect = isMCQ ? correctStr[idx] === 'T' : question.correctOption === letter;
+              
               return (
-                <div key={letter} className={`${styles.optionRow} ${question.correctOption === letter ? styles.correctOption : ''}`}>
+                <div key={letter} className={`${styles.optionRow} ${isOptionCorrect ? styles.correctOption : ''}`}>
                   <label className={styles.optionRadio}>
-                    <input
-                      type="radio"
-                      name={`correct-${question.id}`}
-                      value={letter}
-                      checked={question.correctOption === letter}
-                      onChange={() => onUpdate(question.id, 'correctOption', letter)}
-                      className={styles.radioInput}
-                    />
-                    <span className={styles.radioMark}></span>
+                    {isMCQ ? (
+                      <input
+                        type="checkbox"
+                        checked={isOptionCorrect}
+                        onChange={(e) => {
+                          const newArr = (correctStr.padEnd(5, 'F')).split('');
+                          newArr[idx] = e.target.checked ? 'T' : 'F';
+                          onUpdate(question.id, 'correctOption', newArr.join(''));
+                        }}
+                        className={styles.checkbox}
+                      />
+                    ) : (
+                      <input
+                        type="radio"
+                        name={`correct-${question.id}`}
+                        value={letter}
+                        checked={isOptionCorrect}
+                        onChange={() => onUpdate(question.id, 'correctOption', letter)}
+                        className={styles.radioInput}
+                      />
+                    )}
+                    <span className={isMCQ ? styles.checkmark : styles.radioMark} style={{ top: isMCQ ? '0' : '50%' }}></span>
                   </label>
                   <span className={styles.optionLetter}>{letter}</span>
                   <input
@@ -1003,22 +1079,23 @@ function QuestionCard({
                     onChange={e => onUpdate(question.id, `option${letter}`, e.target.value)}
                     placeholder={`Option ${letter}`}
                     className={styles.optionInput}
+                    disabled={question.questionType === 'true_false'}
                   />
                 </div>
               );
             })}
           </div>
           
-          {validOptions.length < 4 && (
+          {validOptions.length < 5 && question.questionType !== 'true_false' && (
             <p className={styles.addOptionHint}>
-              Add options C and D to make this a full MCQ. Leave blank for True/False.
+              You can leave trailing options blank if you don't need all 5.
             </p>
           )}
           
           {!hasCorrectOption && validOptions.length > 0 && (
             <p className={styles.warning}>
               <AlertCircle className={styles.warningIcon} />
-              Please select a correct answer from the available options
+              Please select the correct answer(s)
             </p>
           )}
           

@@ -19,6 +19,8 @@ import {
   Filter,
   FileText,
   Search,
+  Check,
+  X,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -41,12 +43,15 @@ interface LeaderboardEntry {
 
 interface QuestionAnalytics {
   questionId: string;
+  questionType: string;
   questionText: string;
   totalAttempts: number;
   correctCount: number;
   correctPercentage: number;
-  optionDistribution: Record<string, number>;
+  optionDistribution: Record<string, any>;
   mostCommonWrongOption: string | null;
+  options: any[];
+  correctOption: string;
 }
 
 interface QuizData {
@@ -68,6 +73,7 @@ interface AttemptData {
   submittedAt: string;
   attemptNumber: number;
   isAutoSubmitted: boolean;
+  questionsReview?: any[];
 }
 
 interface ResultsData {
@@ -106,10 +112,10 @@ export default function TeacherQuizResultsPage() {
     try {
       const params = new URLSearchParams();
       if (attemptId) params.set('attempt', attemptId);
-      
+
       const res = await fetch(`/api/quiz/${quizId}/results?${params.toString()}`);
       const result = await res.json();
-      
+
       if (!res.ok) {
         if (res.status === 403 || res.status === 404) {
           router.push('/teacher/dashboard/quizzes');
@@ -117,7 +123,7 @@ export default function TeacherQuizResultsPage() {
         }
         throw new Error(result.error || 'Failed to load results');
       }
-      
+
       setData(result);
     } catch (err: any) {
       setError(err.message);
@@ -153,7 +159,7 @@ export default function TeacherQuizResultsPage() {
   };
 
   const filteredLeaderboard = data?.leaderboard
-    ?.filter(entry => 
+    ?.filter(entry =>
       entry.studentName.toLowerCase().includes(search.toLowerCase())
     )
     ?.sort((a, b) => {
@@ -221,7 +227,7 @@ export default function TeacherQuizResultsPage() {
               <User className={styles.metaIcon} /> {summary.totalAttempts} Attempts
             </span>
           </div>
-          
+
           {isViewingAttempt && attempt && (
             <div className={styles.attemptBadge}>
               <AlertCircle className={styles.badgeIcon} />
@@ -248,7 +254,7 @@ export default function TeacherQuizResultsPage() {
                     <div className={styles.cardLabel}>Total Attempts</div>
                   </div>
                 </div>
-                
+
                 <div className={styles.summaryCard}>
                   <div className={styles.cardIcon}>
                     <BarChart2 className={styles.cardIconSvg} />
@@ -258,7 +264,7 @@ export default function TeacherQuizResultsPage() {
                     <div className={styles.cardLabel}>Average Score</div>
                   </div>
                 </div>
-                
+
                 <div className={styles.summaryCard}>
                   <div className={styles.cardIcon}>
                     <Trophy className={styles.cardIconSvg} />
@@ -268,7 +274,7 @@ export default function TeacherQuizResultsPage() {
                     <div className={styles.cardLabel}>Highest Score</div>
                   </div>
                 </div>
-                
+
                 <div className={styles.summaryCard}>
                   <div className={styles.cardIcon}>
                     <Clock className={styles.cardIconSvg} />
@@ -334,8 +340,8 @@ export default function TeacherQuizResultsPage() {
                           <div key={i} className={styles.scoreBar}>
                             <span className={styles.scoreLabel}>{item.label}</span>
                             <div className={styles.barContainer}>
-                              <div 
-                                className={styles.barFill} 
+                              <div
+                                className={styles.barFill}
                                 style={{ width: `${summary.totalAttempts > 0 ? (item.count / summary.totalAttempts) * 100 : 0}%` }}
                               ></div>
                             </div>
@@ -344,7 +350,7 @@ export default function TeacherQuizResultsPage() {
                         ))}
                       </div>
                     </div>
-                    
+
                     <div className={styles.overviewCard}>
                       <h3 className={styles.overviewTitle}>
                         <Clock className={styles.overviewIcon} />
@@ -354,8 +360,8 @@ export default function TeacherQuizResultsPage() {
                         <div className={styles.timeStat}>
                           <span className={styles.timeLabel}>Fastest</span>
                           <span className={styles.timeValue}>
-                            {leaderboard.length > 0 && leaderboard[0].timeTakenSeconds 
-                              ? formatTime(leaderboard[0].timeTakenSeconds!) 
+                            {leaderboard.length > 0 && leaderboard[0].timeTakenSeconds
+                              ? formatTime(leaderboard[0].timeTakenSeconds!)
                               : 'N/A'}
                           </span>
                         </div>
@@ -366,8 +372,8 @@ export default function TeacherQuizResultsPage() {
                         <div className={styles.timeStat}>
                           <span className={styles.timeLabel}>Slowest</span>
                           <span className={styles.timeValue}>
-                            {leaderboard.length > 0 && leaderboard[leaderboard.length - 1].timeTakenSeconds 
-                              ? formatTime(leaderboard[leaderboard.length - 1].timeTakenSeconds!) 
+                            {leaderboard.length > 0 && leaderboard[leaderboard.length - 1].timeTakenSeconds
+                              ? formatTime(leaderboard[leaderboard.length - 1].timeTakenSeconds!)
                               : 'N/A'}
                           </span>
                         </div>
@@ -392,7 +398,7 @@ export default function TeacherQuizResultsPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className={styles.tableContainer}>
                     <table className={styles.leaderboardTable} role="table">
                       <thead>
@@ -450,7 +456,7 @@ export default function TeacherQuizResultsPage() {
                               </span>
                             </td>
                             <td>
-                              <Link 
+                              <Link
                                 href={`/teacher/dashboard/quizzes/${quizId}/results?attempt=${entry.attemptId}`}
                                 className={styles.viewBtn}
                               >
@@ -462,7 +468,7 @@ export default function TeacherQuizResultsPage() {
                       </tbody>
                     </table>
                   </div>
-                  
+
                   {leaderboard.length > 20 && (
                     <p className={styles.leaderboardNote}>
                       Showing all {leaderboard.length} participants
@@ -487,26 +493,90 @@ export default function TeacherQuizResultsPage() {
                             <span className={styles.analyticsStat}>{q.totalAttempts} attempts</span>
                           </div>
                         </div>
-                        
+
                         <div className={styles.optionDistribution}>
-                          {Object.entries(q.optionDistribution).map(([option, count]) => {
-                            const percentage = q.totalAttempts > 0 ? (count / q.totalAttempts) * 100 : 0;
-                            const isCorrect = option === q.questionText.split('Correct Option: ')[1]?.split(',')[0] || false;
-                            return (
-                              <div key={option} className={`${styles.optionBar} ${isCorrect ? styles.correctBar : ''}`}>
-                                <div className={styles.optionInfo}>
-                                  <span className={styles.optionLabel}>Option {option}</span>
-                                  <span className={styles.optionCount}>{count} ({percentage.toFixed(1)}%)</span>
+                          {q.questionType === 'mcq' ? (
+                            Object.entries(q.optionDistribution).map(([stem, counts]: [string, any], optIdx: number) => {
+                              const totalStemResponses = counts.T + counts.F + counts.S;
+                              const tPercentage = totalStemResponses > 0 ? (counts.T / totalStemResponses) * 100 : 0;
+                              const fPercentage = totalStemResponses > 0 ? (counts.F / totalStemResponses) * 100 : 0;
+                              const sPercentage = totalStemResponses > 0 ? (counts.S / totalStemResponses) * 100 : 0;
+
+                              const optionData = q.options?.find((o: any) => o.letter === stem);
+                              const optionText = optionData?.text || `Stem ${stem}`;
+                              const correctAns = q.correctOption?.[optIdx] === 'T' ? 'True' : 'False';
+
+                              return (
+                                <div key={stem} className={styles.tfStemBar}>
+                                  <div className={styles.tfStemHeader}>
+                                    <span className={styles.tfStemLabel}>
+                                      {stem}. {optionText}
+                                      <span style={{ color: 'var(--success-color)', marginLeft: '6px', fontWeight: 600 }}>
+                                        - Correct: {correctAns}
+                                      </span>
+                                    </span>
+                                  </div>
+                                  <div className={styles.tfBarContainer}>
+                                    <div className={styles.tfBarFillT} style={{ width: `${tPercentage}%` }} title={`True: ${counts.T}`}>
+                                      {tPercentage > 15 && `${tPercentage.toFixed(0)}%`}
+                                    </div>
+                                    <div className={styles.tfBarFillF} style={{ width: `${fPercentage}%` }} title={`False: ${counts.F}`}>
+                                      {fPercentage > 15 && `${fPercentage.toFixed(0)}%`}
+                                    </div>
+                                    <div className={styles.tfBarFillS} style={{ width: `${sPercentage}%` }} title={`Skipped: ${counts.S}`}>
+                                      {sPercentage > 15 && `${sPercentage.toFixed(0)}%`}
+                                    </div>
+                                  </div>
+                                  <div className={styles.tfLegend}>
+                                    <span className={styles.legendItem}><span className={styles.legendDotT}></span> {counts.T} True</span>
+                                    <span className={styles.legendItem}><span className={styles.legendDotF}></span> {counts.F} False</span>
+                                    {counts.S > 0 && <span className={styles.legendItem}><span className={styles.legendDotS}></span> {counts.S} Skipped</span>}
+                                  </div>
                                 </div>
-                                <div 
-                                  className={styles.optionBarFill} 
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                            );
-                          })}
+                              );
+                            })
+                          ) : (
+                            q.options?.map((optionData: any) => {
+                              const option = optionData.letter;
+                              const count = q.optionDistribution?.[option] || 0;
+                              const percentage = q.totalAttempts > 0 ? (count / q.totalAttempts) * 100 : 0;
+                              const isCorrect = q.correctOption === option;
+
+                              return (
+                                <div key={option} className={styles.tfStemBar}>
+                                  <div className={styles.tfStemHeader}>
+                                    <span className={styles.tfStemLabel}>
+                                      {option}: {optionData.text}
+                                      {isCorrect && (
+                                        <span style={{ color: 'var(--success-color)', marginLeft: '6px', fontWeight: 600 }}>
+                                          - Correct Option
+                                        </span>
+                                      )}
+                                    </span>
+                                    <span className={styles.tfLegend} style={{ marginTop: 0 }}>
+                                      <span className={styles.legendItem} style={{ fontSize: '14px', color: 'var(--text-color)' }}>
+                                        Selected by {count} ({percentage.toFixed(1)}%)
+                                      </span>
+                                    </span>
+                                  </div>
+                                  <div className={styles.tfBarContainer}>
+                                    <div
+                                      className={isCorrect ? styles.tfBarFillT : styles.tfBarFillF}
+                                      style={{ width: `${percentage}%` }}
+                                      title={`Selected by: ${count}`}
+                                    >
+                                      {percentage > 5 && `${percentage.toFixed(0)}%`}
+                                    </div>
+                                    <div className={styles.tfBarFillS} style={{ width: `${100 - percentage}%` }} title={`Not Selected: ${q.totalAttempts - count}`}>
+                                      {(100 - percentage) > 15 && `${(100 - percentage).toFixed(0)}%`}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
                         </div>
-                        
+
                         {q.mostCommonWrongOption && (
                           <div className={styles.wrongNote}>
                             <XCircle className={styles.wrongIcon} />
@@ -522,54 +592,165 @@ export default function TeacherQuizResultsPage() {
           </>
         )}
 
-          {/* Single Attempt View */}
-          {isViewingAttempt && attempt && (
-            <div className={styles.attemptView}>
-              <div className={styles.attemptHeader}>
-                <div>
-                  <h2 className={styles.attemptTitle}>Attempt Details</h2>
-                  <p className={styles.attemptSubtitle}>
-                    Attempt #{attempt.attemptNumber} • {attempt.isAutoSubmitted ? 'Auto-submitted' : 'Submitted'} • {formatTime(attempt.timeTakenSeconds)}
-                  </p>
-                </div>
-                <Link href={`/teacher/dashboard/quizzes/${quizId}/results`} className={styles.backToResults}>
-                  <ChevronLeft className={styles.btnIcon} />
-                  Back to Leaderboard
-                </Link>
+        {/* Single Attempt View */}
+        {isViewingAttempt && attempt && (
+          <div className={styles.attemptView}>
+            <div className={styles.attemptHeader}>
+              <div>
+                <h2 className={styles.attemptTitle}>Attempt Details</h2>
+                <p className={styles.attemptSubtitle}>
+                  Attempt #{attempt.attemptNumber} • {attempt.isAutoSubmitted ? 'Auto-submitted' : 'Submitted'} • {formatTime(attempt.timeTakenSeconds)}
+                </p>
               </div>
-              
-              <div className={styles.attemptSummary}>
-                <div className={styles.attemptScoreCard}>
-                  <div className={`${styles.attemptScoreValue} ${getScoreColor(attempt.percentageScore)}`}>
-                    {attempt.percentageScore.toFixed(1)}%
-                  </div>
-                  <div className={styles.attemptScoreLabel}>Final Score</div>
-                </div>
-                <div className={styles.attemptStats}>
-                  <div className={`${styles.attemptStat} text-success`}>
-                    <div className={styles.attemptStatValue}>{attempt.correctCount}</div>
-                    <div className={styles.attemptStatLabel}>Correct</div>
-                  </div>
-                  <div className={`${styles.attemptStat} text-error`}>
-                    <div className={styles.attemptStatValue}>{attempt.wrongCount}</div>
-                    <div className={styles.attemptStatLabel}>Wrong</div>
-                  </div>
-                  <div className={`${styles.attemptStat} text-warning`}>
-                    <div className={styles.attemptStatValue}>{attempt.skippedCount}</div>
-                    <div className={styles.attemptStatLabel}>Skipped</div>
-                  </div>
-                  {attempt.negativeMarks > 0 && (
-                    <div className={`${styles.attemptStat} text-error`}>
-                      <div className={styles.attemptStatValue}>-{attempt.negativeMarks.toFixed(2)}</div>
-                      <div className={styles.attemptStatLabel}>Penalty</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Would show detailed question review here */}
+              <Link href={`/teacher/dashboard/quizzes/${quizId}/results`} className={styles.backToResults}>
+                <ChevronLeft className={styles.btnIcon} />
+                Back to Leaderboard
+              </Link>
             </div>
-          )}
+
+            <div className={styles.attemptSummary}>
+              <div className={styles.attemptScoreCard}>
+                <div className={`${styles.attemptScoreValue} ${getScoreColor(attempt.percentageScore)}`}>
+                  {attempt.percentageScore.toFixed(1)}%
+                </div>
+                <div className={styles.attemptScoreLabel}>Final Score</div>
+              </div>
+              <div className={styles.attemptStats}>
+                <div className={`${styles.attemptStat} text-success`}>
+                  <div className={styles.attemptStatValue}>{attempt.correctCount}</div>
+                  <div className={styles.attemptStatLabel}>Correct</div>
+                </div>
+                <div className={`${styles.attemptStat} text-error`}>
+                  <div className={styles.attemptStatValue}>{attempt.wrongCount}</div>
+                  <div className={styles.attemptStatLabel}>Wrong</div>
+                </div>
+                <div className={`${styles.attemptStat} text-warning`}>
+                  <div className={styles.attemptStatValue}>{attempt.skippedCount}</div>
+                  <div className={styles.attemptStatLabel}>Skipped</div>
+                </div>
+                {attempt.negativeMarks > 0 && (
+                  <div className={`${styles.attemptStat} text-error`}>
+                    <div className={styles.attemptStatValue}>-{attempt.negativeMarks.toFixed(2)}</div>
+                    <div className={styles.attemptStatLabel}>Penalty</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Answer Review Section */}
+            <div id="answer-review-section" className={styles.reviewSectionWrapper} style={{ marginTop: '40px', borderTop: '1px solid var(--border-color)', paddingTop: '32px', background: 'var(--bg-primary)' }}>
+              <div id="review-header-section" className={styles.reviewHeader}>
+                <h2 className={styles.reviewTitle}>Answer Review</h2>
+                <div className={styles.reviewStats}>
+                  <span className={`${styles.reviewStat} text-success`}>
+                    <CheckCircle className={styles.reviewIcon} /> {attempt.questionsReview?.filter((q: any) => q.isCorrect).length || 0} Correct
+                  </span>
+                  {attempt.questionsReview?.some((q: any) => q.isPartial) && (
+                    <span className={`${styles.reviewStat} text-info`} style={{ color: 'var(--info-color)', background: 'var(--info-light)' }}>
+                      <CheckCircle className={styles.reviewIcon} /> {attempt.questionsReview?.filter((q: any) => q.isPartial).length || 0} Partial
+                    </span>
+                  )}
+                  <span className={`${styles.reviewStat} text-error`}>
+                    <XCircle className={styles.reviewIcon} /> {attempt.questionsReview?.filter((q: any) => !q.isCorrect && !q.isPartial && !q.isSkipped).length || 0} Wrong
+                  </span>
+                  <span className={`${styles.reviewStat} text-warning`}>
+                    <HelpCircle className={styles.reviewIcon} /> {attempt.questionsReview?.filter((q: any) => q.isSkipped).length || 0} Skipped
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.reviewList}>
+                {attempt.questionsReview?.map((question: any, index: number) => (
+                  <article key={question.questionId} className={`${styles.reviewCard} pdf-question-card ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                    <div className={styles.reviewHeader}>
+                      <div className={styles.reviewQuestionInfo}>
+                        <span className={styles.reviewNumber}>Q{index + 1}</span>
+                        <span className={`${styles.reviewStatus} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                          {question.isSkipped ? 'Skipped' : question.isPartial ? 'Partial' : question.isCorrect ? 'Correct' : 'Incorrect'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
+
+                    <div className={styles.reviewOptions}>
+                      {question.questionType === 'mcq' ? (
+                        question.options?.map((option: any) => {
+                          const studentStr = question.studentAnswer || '-'.repeat(question.options.length);
+                          const correctStr = question.correctOption || 'F'.repeat(question.options.length);
+                          const originalIdx = option.letter.charCodeAt(0) - 65;
+                          const isT = studentStr[originalIdx] === 'T';
+                          const isF = studentStr[originalIdx] === 'F';
+                          const isCorrectT = correctStr[originalIdx] === 'T';
+                          const isCorrectF = correctStr[originalIdx] === 'F';
+                          const answered = isT || isF;
+                          const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
+
+                          let optionClass = styles.reviewOption;
+                          if (answered) {
+                            if (isCorrect) optionClass += ` ${styles.optionStudentCorrect}`;
+                            else optionClass += ` ${styles.optionIncorrect}`;
+                          }
+
+                          return (
+                            <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px' }}>
+                              <div style={{ display: 'flex', gap: '8px', fontWeight: 600 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectT ? 'var(--success-color)' : (isT ? 'transparent' : 'var(--bg-tertiary)'), border: (isT && !isCorrectT) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectT ? 'white' : (isT ? 'var(--error-color)' : 'var(--text-muted)') }}>
+                                  <Check size={18} />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectF ? 'var(--success-color)' : (isF ? 'transparent' : 'var(--bg-tertiary)'), border: (isF && !isCorrectF) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectF ? 'white' : (isF ? 'var(--error-color)' : 'var(--text-muted)') }}>
+                                  <X size={18} />
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                                <span className={styles.optionLetter}>{option.letter}</span>
+                                <span className={styles.optionText}>{option.text}</span>
+                              </div>
+                              <div style={{ width: '60px', textAlign: 'right' }}>
+                                {answered && isCorrect && <span className={styles.correctBadge}>Correct</span>}
+                                {answered && !isCorrect && <span className={styles.wrongBadge}>Wrong</span>}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        question.options?.map((option: any) => {
+                          const isStudentAnswer = option.letter === question.studentAnswer;
+                          const isCorrectAnswer = option.letter === question.correctOption;
+
+                          let optionClass = styles.reviewOption;
+                          if (isCorrectAnswer) optionClass += ` ${styles.optionCorrect}`;
+                          if (isStudentAnswer && !isCorrectAnswer) optionClass += ` ${styles.optionIncorrect}`;
+                          if (isStudentAnswer && isCorrectAnswer) optionClass += ` ${styles.optionStudentCorrect}`;
+
+                          return (
+                            <div key={`${question.questionId}-${option.letter}`} className={optionClass}>
+                              <span className={styles.optionLetter}>{option.letter}</span>
+                              <span className={styles.optionText}>{option.text}</span>
+                              {isCorrectAnswer && <span className={styles.correctBadge}>Correct</span>}
+                              {isStudentAnswer && !isCorrectAnswer && <span className={styles.wrongBadge}>Your Answer</span>}
+                              {isStudentAnswer && isCorrectAnswer && <span className={styles.correctBadge}>Your Answer</span>}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {question.explanation && question.explanation.trim() !== '' && (
+                      <div className={styles.explanation}>
+                        <HelpCircle className={styles.explanationIcon} />
+                        <div>
+                          <strong>Explanation:</strong>
+                          <p>{question.explanation}</p>
+                        </div>
+                      </div>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

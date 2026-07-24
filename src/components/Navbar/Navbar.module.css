@@ -10,8 +10,8 @@
   width: 100%;
   padding: 10px var(--layout-gutter-mobile);
   background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   border-bottom: 1px solid var(--glass-border);
   transition: background var(--duration-base) var(--ease-premium),
               box-shadow var(--duration-base) var(--ease-premium);

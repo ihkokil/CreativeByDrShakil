@@ -413,7 +413,8 @@
 
 .batchBar {
   background: rgba(15, 23, 42, 0.92);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 14px 20px;
   border-radius: 16px;
@@ -519,7 +520,8 @@
 /* ===== Batch Enrollment Panel ===== */
 .enrollPanel {
   background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(48px);
+  -webkit-backdrop-filter: blur(48px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 20px;

@@ -2,8 +2,10 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import Image from "next/image";
+import LoaderComponent from "@/components/UI/Loader";
+import Confetti from "react-confetti";
 import styles from "./CreateCourseStep3.module.css";
 import { formatDisplayDate } from "@/lib/date-format";
 
@@ -256,7 +258,7 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
           >
             {publishing ? (
               <>
-                <Loader size={20} className={styles.spinner} /> Publishing...
+                <LoaderComponent variant="button" /> Publishing...
               </>
             ) : (
               <>

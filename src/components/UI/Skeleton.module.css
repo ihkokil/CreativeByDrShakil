@@ -1,10 +1,10 @@
 .skeleton {
-    background: #e2e8f0;
+    background: var(--surface-soft);
     background: linear-gradient(
         90deg,
-        #e2e8f0 25%,
-        #f1f5f9 50%,
-        #e2e8f0 75%
+        var(--surface-soft) 25%,
+        var(--surface-strong) 50%,
+        var(--surface-soft) 75%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;

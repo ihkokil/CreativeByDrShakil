@@ -61,22 +61,23 @@ export async function POST(
     const nowStr = new Date().toISOString();
 
     if (existingAnswer) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('AttemptAnswer')
-        // @ts-ignore
-        .update({ selectedOption, updatedAt: nowStr })
+        .update({ selectedOption })
         .eq('id', existingAnswer.id);
+      
+      if (updateError) throw updateError;
     } else {
-      await supabase.from('AttemptAnswer')
-// @ts-ignore
-.insert({
-        id: nanoid(),
-        attemptId,
-        questionId,
-        selectedOption,
-        createdAt: nowStr,
-        updatedAt: nowStr,
-      } as any);
+      const { error: insertError } = await supabase.from('AttemptAnswer')
+        .insert({
+          id: nanoid(),
+          attemptId,
+          questionId,
+          selectedOption,
+          createdAt: nowStr,
+        } as any);
+      
+      if (insertError) throw insertError;
     }
 
     return NextResponse.json({ success: true, questionId, selectedOption });

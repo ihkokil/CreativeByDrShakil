@@ -83,6 +83,7 @@ export async function POST(
         optionB: q.optionB,
         optionC: q.optionC,
         optionD: q.optionD,
+        optionE: q.optionE,
         correctOption: q.correctOption,
         explanation: q.explanation,
         createdAt: nowStr,

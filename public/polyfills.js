@@ -185,5 +185,5 @@
     };
   }
 
-  console.log('[Polyfills] Legacy Safari support loaded');
+  // console.log('[Polyfills] Legacy Safari support loaded');
 })();
