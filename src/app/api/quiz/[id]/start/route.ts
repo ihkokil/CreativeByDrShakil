@@ -33,17 +33,23 @@ export async function POST(
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
     }
 
-    if (quiz.status !== 'published') {
-      return NextResponse.json({ error: 'Quiz is not available.' }, { status: 400 });
-    }
+    const isTeacher = payload.role === 'teacher' || payload.role === 'admin';
 
-    // Time window check
     const now = new Date();
-    if (quiz.startDatetime && new Date(quiz.startDatetime) > now) {
-      return NextResponse.json({ error: 'Quiz has not started yet.' }, { status: 403 });
-    }
-    if (quiz.endDatetime && new Date(quiz.endDatetime) < now) {
-      return NextResponse.json({ error: 'Quiz has ended.' }, { status: 403 });
+    if (!isTeacher) {
+      if (quiz.status !== 'published') {
+        return NextResponse.json({ error: 'Quiz is not available.' }, { status: 400 });
+      }
+
+      // Time window check
+      if (quiz.startDatetime && new Date(quiz.startDatetime) > now) {
+        return NextResponse.json({ error: 'Quiz has not started yet.' }, { status: 403 });
+      }
+      if (quiz.endDatetime && new Date(quiz.endDatetime) < now) {
+        return NextResponse.json({ error: 'Quiz has ended.' }, { status: 403 });
+      }
+    } else if (payload.role === 'teacher' && quiz.createdBy !== payload.sub) {
+      return NextResponse.json({ error: 'Not authorized to preview this quiz.' }, { status: 403 });
     }
 
     // Check existing attempts

@@ -503,9 +503,11 @@ export default function QuizTakePage() {
       {!showResults && (
         <header className={styles.topBar}>
           <div className={styles.topBarProgress}>
-            <Clock className={styles.topBarProgressIcon} />
+            <CheckCircle className={styles.topBarProgressIcon} />
             <span>{answeredCount}/{totalQuestions}</span>
           </div>
+
+          <div className={styles.topBarDivider} />
 
           <div className={`${styles.topBarTimer} ${timeRemaining !== null && timeRemaining <= 300 && timeRemaining !== Infinity ? styles.timerWarning : ''}`}>
             <Clock className={styles.topBarTimerIcon} />
@@ -517,7 +519,8 @@ export default function QuizTakePage() {
             disabled={submitting}
             className={styles.topBarSubmitBtn}
           >
-            {submitting ? 'Submitting...' : 'Submit Quiz'}
+            <Check size={16} />
+            {submitting ? 'Submitting...' : 'Submit'}
           </button>
         </header>
       )}

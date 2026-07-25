@@ -157,8 +157,8 @@
 .mainContent {
   display: flex;
   justify-content: center;
-  padding: 40px 16px 60px;
-  min-height: calc(100vh - 70px);
+  padding: 16px 16px 60px;
+  min-height: calc(100vh - 100px);
 }
 
 /* Removed Navigation Sidebar Styles */
@@ -516,20 +516,29 @@
 /* Top Header Bar */
 .topBar {
   position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 16px;
+  margin: 0 auto 24px auto;
+  width: max-content;
+  max-width: 95%;
   height: 56px;
   background: var(--card-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-bottom: 2px solid var(--primary-color);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 100px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  gap: 20px;
+  padding: 0 10px 0 24px;
   z-index: 1000;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+:global([data-theme='light']) .topBar {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
 .topBarProgress {
@@ -539,49 +548,44 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-color);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .topBarProgressIcon {
   width: 18px;
   height: 18px;
+  color: var(--primary-color);
+}
+
+.topBarDivider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color);
 }
 
 .topBarTimer {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fdf6e3;
-  color: #d93025;
-  padding: 6px 16px;
-  border-radius: 8px;
+  color: var(--text-color);
   font-size: 16px;
   font-weight: 700;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-:global([data-theme='light']) .topBarTimer {
-  border: 1px solid #e0e0e0;
+  font-variant-numeric: tabular-nums;
 }
 
 .timerWarning {
-  animation: pulseBg 1.5s infinite;
+  color: var(--error-color);
+  animation: pulseText 1.5s infinite;
 }
 
-@keyframes pulseBg {
-  0%, 100% { background: #fdf6e3; color: #d93025; }
-  50% { background: #d93025; color: #fff; }
+@keyframes pulseText {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .topBarTimerIcon {
   width: 18px;
   height: 18px;
+  color: inherit;
 }
 
 .topBarSubmitBtn {
@@ -591,23 +595,26 @@
   background: #10b981;
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 100px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .topBarSubmitBtn:hover:not(:disabled) {
   background: #059669;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
 }
 
 .topBarSubmitBtn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* Modal */
@@ -753,6 +760,18 @@
 }
 
 @media (max-width: 640px) {
+  .topBar {
+    width: calc(100% - 32px);
+    max-width: none;
+    border-radius: 16px;
+    padding: 0 12px 0 16px;
+    gap: 12px;
+  }
+  
+  .topBarSubmitBtn {
+    padding: 0 16px;
+  }
+
   .floatingDockContainer {
     padding: 16px;
   }

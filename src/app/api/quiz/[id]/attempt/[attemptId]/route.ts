@@ -11,8 +11,8 @@ export async function GET(
     const { id: quizId, attemptId } = await params;
     const payload = await getAuthPayload(request);
     
-    if (!payload || payload.role !== 'student') {
-      return NextResponse.json({ error: 'Unauthorized. Student access required.' }, { status: 401 });
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
     
     const studentId = payload.sub;
