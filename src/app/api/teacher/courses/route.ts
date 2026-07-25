@@ -172,6 +172,29 @@ export async function POST(request: NextRequest) {
     
     if (insertError) throw insertError;
 
+    // Create a root folder in the Media Vault (VideoLibraryNode) for this new course
+    const folderId = crypto.randomUUID();
+    const { data: maxSort } = await supabase
+      .from('VideoLibraryNode')
+      .select('sortOrder')
+      .is('parentId', null)
+      .order('sortOrder', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextOrder = maxSort?.sortOrder !== undefined ? maxSort.sortOrder + 1 : 0;
+    const nowStr = new Date().toISOString();
+
+    await supabase.from('VideoLibraryNode').insert({
+      id: folderId,
+      title: title,
+      type: 'folder',
+      parentId: null,
+      sortOrder: nextOrder,
+      createdAt: nowStr,
+      updatedAt: nowStr,
+    });
+
     const { data: courseRow } = await supabase.from('Course').select('*').eq('id', courseId).limit(1).maybeSingle();
     let courseInstructors: any[] = [];
     if (courseRow) {

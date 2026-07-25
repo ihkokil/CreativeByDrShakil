@@ -144,7 +144,7 @@ function CreateCourseStep2Content({ courseId }: { courseId?: string }) {
       }));
 
       const response = await fetch(`/api/teacher/courses/${courseId}/content`, {
-        method: "POST",
+        method: "PUT",
         body: JSON.stringify({
           overview,
           learningOutcomes,

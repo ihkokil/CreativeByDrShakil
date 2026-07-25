@@ -16,6 +16,17 @@ export interface CurriculumNode {
     children?: CurriculumNode[];
 }
 
+const findNodeInTree = (nodes: CurriculumNode[], id: string): CurriculumNode | undefined => {
+    for (const node of nodes) {
+        if (node.id === id) return node;
+        if (node.children) {
+            const found = findNodeInTree(node.children, id);
+            if (found) return found;
+        }
+    }
+    return undefined;
+};
+
 interface FlatNode {
     id: string;
     title: string;
@@ -414,6 +425,10 @@ export default function ModuleLibraryManager() {
     };
 
     const handleRootClick = (node: CurriculumNode) => { setActiveRootId(node.id); setPath([node]); };
+    const handleChildFolderClick = (node: CurriculumNode) => {
+        setActiveRootId(node.id);
+        setPath([...path, node]);
+    };
     const handleBreadcrumbClick = (index: number) => {
         if (index === -1) { setActiveRootId(null); setPath([]); }
         else { const nextPath = path.slice(0, index + 1); setPath(nextPath); setActiveRootId(nextPath[nextPath.length - 1].id); }
@@ -536,7 +551,7 @@ export default function ModuleLibraryManager() {
         }
     };
 
-    const activeRootNode = libraryData.find(root => root.id === activeRootId);
+    const activeRootNode = activeRootId ? findNodeInTree(libraryData, activeRootId) : undefined;
 
     if (isLoading) {
         return (
@@ -638,6 +653,97 @@ export default function ModuleLibraryManager() {
                         </div>
                     )}
                 </>
+            ) : path.length === 1 ? (
+                <motion.div className={styles.treeContainer} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
+                    <div className={styles.breadcrumbBar}>
+                        <button className={styles.breadcrumbLink} onClick={() => handleBreadcrumbClick(-1)}>Library</button>
+                        {path.map((node, i) => (
+                            <span key={node.id}>
+                                <ChevronRight size={14} className={styles.breadcrumbSep} />
+                                <button className={`${styles.breadcrumbLink} ${i === path.length - 1 ? styles.active : ''}`} onClick={() => handleBreadcrumbClick(i)}>{node.title}</button>
+                            </span>
+                        ))}
+                    </div>
+
+                    <div className={styles.activeViewHeader}>
+                        <button className={styles.backBtn} onClick={() => handleBreadcrumbClick(path.length - 2)}>
+                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back
+                        </button>
+                        <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
+                        
+                        <div className={styles.toolbar}>
+                            <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Create Folder">
+                                <Folder size={16} /> Folder
+                            </button>
+
+                            <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Video">
+                                <Video size={16} /> Video
+                            </button>
+
+                            <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId)} title="Add Document">
+                                <FileText size={16} /> Document
+                            </button>
+                        </div>
+                    </div>
+
+                    {(!activeRootNode?.children || activeRootNode.children.length === 0) ? (
+                        <div className={styles.emptyState}>
+                            <FolderOpen size={48} className={styles.emptyIcon} />
+                            <h3>Folder is Empty</h3>
+                            <p>Add subfolders or modules to construct this section.</p>
+                        </div>
+                    ) : (
+                        <div className={styles.libraryGrid} style={{ padding: '20px' }}>
+                            {activeRootNode.children.map(node => (
+                                <motion.div
+                                    key={node.id}
+                                    className={styles.rootCard}
+                                    onClick={() => node.type === 'folder' ? handleChildFolderClick(node) : null}
+                                    layoutId={`card-${node.id}`}
+                                >
+                                    <div className={styles.rootActions}>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title="Move Up"
+                                            onClick={(e) => { e.stopPropagation(); handleMoveItem(node.id, 'up'); }}
+                                        >
+                                            <ArrowUp size={14} />
+                                        </button>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title="Move Down"
+                                            onClick={(e) => { e.stopPropagation(); handleMoveItem(node.id, 'down'); }}
+                                        >
+                                            <ArrowDown size={14} />
+                                        </button>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title="Edit"
+                                            onClick={(e) => handleEditClick(node, e)}
+                                        >
+                                            <Edit2 size={14} />
+                                        </button>
+                                        <button
+                                            className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                                            onClick={(e) => handleDeleteClick(node.id, e)}
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+
+                                    <div className={styles.rootIconWrapper}>
+                                        {node.type === 'folder' ? <FolderOpen size={28} /> : (node.type === 'document' ? <FileText size={28} /> : <PlayCircle size={28} />)}
+                                    </div>
+                                    <div>
+                                        <h3 className={styles.rootTitle}>{node.title}</h3>
+                                        <span className={styles.rootMeta}>{node.type === 'folder' ? `${node.children?.length || 0} items inside` : (node.duration ? `Duration: ${node.duration}` : 'Document')}</span>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
+                </motion.div>
             ) : (
                 <motion.div className={styles.treeContainer} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
                     <div className={styles.breadcrumbBar}>
@@ -651,8 +757,8 @@ export default function ModuleLibraryManager() {
                     </div>
 
                     <div className={styles.activeViewHeader}>
-                        <button className={styles.backBtn} onClick={() => setActiveRootId(null)}>
-                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back to Root Folders
+                        <button className={styles.backBtn} onClick={() => handleBreadcrumbClick(path.length - 2)}>
+                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back
                         </button>
                         <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
                         
