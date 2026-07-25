@@ -102,8 +102,19 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     });
   };
 
-  const buildHierarchyFromLibraryNodes = (nodes: LibraryNode[]): StarterMainTopic[] => {
-    const topLevelFolders = nodes.filter(n => !n.parentId && n.type === "folder");
+  const buildHierarchyFromLibraryNodes = (nodes: LibraryNode[], courseTitle?: string): StarterMainTopic[] => {
+    let topLevelFolders: LibraryNode[] = [];
+
+    if (courseTitle) {
+      const courseFolder = nodes.find(n => !n.parentId && n.type === "folder" && n.title.trim().toLowerCase() === courseTitle.trim().toLowerCase());
+      if (courseFolder) {
+        topLevelFolders = nodes.filter(n => n.parentId === courseFolder.id && n.type === "folder");
+      }
+    }
+
+    if (topLevelFolders.length === 0) {
+      topLevelFolders = nodes.filter(n => !n.parentId && n.type === "folder");
+    }
     
     return topLevelFolders.map(folder => {
       const subTopics = collectItemsRecursively(nodes, folder.id);
@@ -155,7 +166,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         if (videoResponse.ok) {
           const videoData = await videoResponse.json();
           const nodes: LibraryNode[] = Array.isArray(videoData.nodes) ? videoData.nodes : [];
-          const libraryTopics = buildHierarchyFromLibraryNodes(nodes);
+          const libraryTopics = buildHierarchyFromLibraryNodes(nodes, loadedCourseData?.course?.title);
           libraryTopics.forEach(lt => {
             const normTitle = lt.title ? lt.title.trim().toLowerCase() : '';
             if (!seenIds.has(lt.id) && !seenTitles.has(normTitle)) {
@@ -173,8 +184,14 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
           try {
             const curriculum = JSON.parse(loadedCourseData.course.curriculumJson);
             
+            let topicsToProcess = curriculum;
+            const courseTitle = loadedCourseData?.course?.title || "";
+            if (curriculum.length === 1 && curriculum[0].title && curriculum[0].title.trim().toLowerCase() === courseTitle.trim().toLowerCase()) {
+                topicsToProcess = curriculum[0].children || [];
+            }
+            
             // Reconstruct chronological order from saved JSON
-            curriculum.forEach((topicNode: any) => {
+            topicsToProcess.forEach((topicNode: any) => {
               let matchedId = topicNode.mediaVaultFolderId || topicNode.id;
               const normTitle = topicNode.title ? topicNode.title.trim().toLowerCase() : '';
               

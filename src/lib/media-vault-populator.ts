@@ -23,7 +23,18 @@ export async function populateMediaVaultNodes(nodes: any[], customSupabase?: any
 
   const uniqueFolderIds = [...new Set(folderIds)];
 
-  // Fetch all media vault nodes for these folders
+  // Fetch the folders themselves to update their titles
+  const { data: folderNodes = [] }: { data: any[] | null } = await supabase
+    .from('VideoLibraryNode')
+    .select('id, title')
+    .in('id', uniqueFolderIds);
+
+  const folderTitleMap = new Map<string, string>();
+  for (const fn of folderNodes || []) {
+    folderTitleMap.set(fn.id, fn.title);
+  }
+
+  // Fetch all media vault nodes for these folders (children)
   const { data: mediaNodes = [] }: { data: any[] | null } = await supabase
     .from('VideoLibraryNode')
     .select('id, title, type, url, duration, parentId, sortOrder, attachments')
@@ -38,33 +49,39 @@ export async function populateMediaVaultNodes(nodes: any[], customSupabase?: any
     nodesByFolder.set(node.parentId, list);
   }
 
-  // Recursively inject children from media vault
+  // Recursively inject children from media vault and update folder titles
   const populate = (items: any[]): any[] => {
     return items.map(item => {
-      if (item.mediaVaultFolderId && nodesByFolder.has(item.mediaVaultFolderId)) {
-        const vaultChildren = nodesByFolder.get(item.mediaVaultFolderId)!.map(vn => ({
-          id: vn.id,
-          title: vn.title,
-          type: vn.type || 'self-hosted',
-          url: vn.url || null,
-          attachments: vn.attachments || null,
-          duration: vn.duration || null,
-          children: [],
-        }));
+      let updatedItem = { ...item };
 
-        // Merge vault children with any existing children
-        const existingChildren = item.children && Array.isArray(item.children) ? item.children : [];
-        return {
-          ...item,
-          children: [...existingChildren, ...vaultChildren],
-        };
+      if (updatedItem.mediaVaultFolderId) {
+        // Sync the folder title if it was found
+        if (folderTitleMap.has(updatedItem.mediaVaultFolderId)) {
+          updatedItem.title = folderTitleMap.get(updatedItem.mediaVaultFolderId);
+        }
+
+        if (nodesByFolder.has(updatedItem.mediaVaultFolderId)) {
+          const vaultChildren = nodesByFolder.get(updatedItem.mediaVaultFolderId)!.map(vn => ({
+            id: vn.id,
+            title: vn.title,
+            type: vn.type || 'self-hosted',
+            url: vn.url || null,
+            attachments: vn.attachments || null,
+            duration: vn.duration || null,
+            children: [],
+          }));
+
+          // Merge vault children with any existing children
+          const existingChildren = updatedItem.children && Array.isArray(updatedItem.children) ? updatedItem.children : [];
+          updatedItem.children = [...existingChildren, ...vaultChildren];
+        }
       }
 
-      if (item.children && Array.isArray(item.children)) {
-        return { ...item, children: populate(item.children) };
+      if (updatedItem.children && Array.isArray(updatedItem.children)) {
+        updatedItem.children = populate(updatedItem.children);
       }
 
-      return item;
+      return updatedItem;
     });
   };
 
