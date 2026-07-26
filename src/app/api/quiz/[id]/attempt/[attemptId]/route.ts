@@ -87,6 +87,14 @@ export async function GET(
           }
           return null;
         }).filter(Boolean) as any[];
+        
+        // Safety fallback: if there are original options missing from the ordered list, append them
+        const orderedLetters = new Set(orderedOptions.map(o => o.letter));
+        originalOptions.forEach(o => {
+          if (!orderedLetters.has(o.letter)) {
+            orderedOptions.push(o);
+          }
+        });
       }
       
       return {

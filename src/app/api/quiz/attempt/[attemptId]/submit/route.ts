@@ -19,7 +19,7 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
   // Fetch quiz settings
   const { data: quiz }: { data: any } = await supabase
     .from('Quiz')
-    .select('marksPerCorrect, allowNegativeMarking, negativeValue')
+    .select('marksPerCorrect, allowNegativeMarking, negativeValue, sbaMarks, sbaNegative, tfMarks, tfNegative')
     .eq('id', quizId)
     .limit(1)
     .maybeSingle();
@@ -27,6 +27,14 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
   const marksPerCorrect = quiz?.marksPerCorrect ?? 1;
   const allowNegativeMarking = quiz?.allowNegativeMarking ?? false;
   const negativeValue = quiz?.negativeValue ?? 0;
+  
+  const sbaMarks = quiz?.sbaMarks ?? marksPerCorrect;
+  const sbaNegativePct = quiz?.sbaNegative ?? (allowNegativeMarking ? (negativeValue <= 1 && negativeValue > 0 ? negativeValue * 100 : negativeValue) : 0);
+  const tfMarks = quiz?.tfMarks ?? (marksPerCorrect / 5);
+  const tfNegativePct = quiz?.tfNegative ?? (allowNegativeMarking ? (negativeValue <= 1 && negativeValue > 0 ? negativeValue * 100 : negativeValue) : 0);
+  
+  const sbaNegativeAbsolute = sbaMarks * (sbaNegativePct / 100);
+  const tfNegativeAbsolute = tfMarks * (tfNegativePct / 100);
 
   const correctMap = new Map((questions || []).map((q: any) => [q.id, q.correctOption]));
   const answersMap = new Map((answers || []).map((a: any) => [a.questionId, a.selectedOption]));
@@ -68,30 +76,34 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
       if (correctStems === length) correctCount++;
       else if (incorrectStems > 0) incorrectCount++;
       
-      grossScore += (correctStems / length) * marksPerCorrect;
-      if (allowNegativeMarking) {
-        const percentage = negativeValue <= 1 && negativeValue > 0 ? negativeValue : negativeValue / 100;
-        const marksPerStem = marksPerCorrect / length;
-        penalty += incorrectStems * (marksPerStem * percentage);
-      }
+      grossScore += correctStems * tfMarks;
+      penalty += incorrectStems * tfNegativeAbsolute;
     } else {
-      // sba (Single Best Answer)
+      // sba (Best option selection [SBA])
       if (selected === correctOption) {
         correctCount++;
-        grossScore += marksPerCorrect;
+        grossScore += sbaMarks;
       } else {
         incorrectCount++;
-        if (allowNegativeMarking) {
-          const percentage = negativeValue <= 1 && negativeValue > 0 ? negativeValue : negativeValue / 100;
-          penalty += marksPerCorrect * percentage;
-        }
+        penalty += sbaNegativeAbsolute;
       }
     }
   }
 
   const totalQuestions = questions.length;
   const netScore = grossScore - penalty;
-  const maxScore = totalQuestions * marksPerCorrect;
+  
+  // Calculate max possible score
+  let maxScore = 0;
+  for (const q of questions) {
+    if (q.questionType === 'mcq') {
+      const length = (q.correctOption as string)?.length || 5;
+      maxScore += length * tfMarks;
+    } else {
+      maxScore += sbaMarks;
+    }
+  }
+  
   const percentageScore = maxScore > 0 ? Math.round((Math.max(0, netScore) / maxScore) * 100) : 0;
 
   const nowStr = new Date().toISOString();

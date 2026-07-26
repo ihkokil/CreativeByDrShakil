@@ -157,8 +157,14 @@ export async function POST(
     };
     
     const mappings = selectedQuestions.map((q, index) => {
-      const options = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE].filter(Boolean);
-      const optionOrder = quizData.shuffleOptions ? shuffleArray(options.map((_, i) => i)) : options.map((_, i) => i);
+      const validIndices: number[] = [];
+      if (q.optionA) validIndices.push(0);
+      if (q.optionB) validIndices.push(1);
+      if (q.optionC) validIndices.push(2);
+      if (q.optionD) validIndices.push(3);
+      if (q.optionE) validIndices.push(4);
+      
+      const optionOrder = quizData.shuffleOptions ? shuffleArray([...validIndices]) : validIndices;
       
       return {
         id: nanoid(),

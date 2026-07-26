@@ -187,6 +187,10 @@ export async function PUT(
       allowNegativeMarking,
       negativeValue,
       marksPerCorrect,
+      sbaMarks,
+      sbaNegative,
+      tfMarks,
+      tfNegative,
       startDatetime,
       endDatetime,
       shuffleQuestions,
@@ -227,6 +231,10 @@ export async function PUT(
     if (allowNegativeMarking !== undefined) updateData.allowNegativeMarking = allowNegativeMarking;
     if (negativeValue !== undefined) updateData.negativeValue = negativeValue;
     if (marksPerCorrect !== undefined) updateData.marksPerCorrect = marksPerCorrect;
+    if (sbaMarks !== undefined) updateData.sbaMarks = sbaMarks;
+    if (sbaNegative !== undefined) updateData.sbaNegative = sbaNegative;
+    if (tfMarks !== undefined) updateData.tfMarks = tfMarks;
+    if (tfNegative !== undefined) updateData.tfNegative = tfNegative;
     if (startDatetime !== undefined) updateData.startDatetime = startDatetime ? new Date(startDatetime).toISOString() : null;
     if (endDatetime !== undefined) updateData.endDatetime = endDatetime ? new Date(endDatetime).toISOString() : null;
     if (shuffleQuestions !== undefined) updateData.shuffleQuestions = shuffleQuestions;

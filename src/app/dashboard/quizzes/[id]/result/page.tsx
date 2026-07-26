@@ -573,8 +573,8 @@ export default function QuizResultPage() {
                       <div className={styles.reviewOptions}>
                         {question.questionType === 'mcq' ? (
                           question.options.map((option, idx) => {
-                             const studentStr = question.studentAnswer || '-'.repeat(question.options.length);
-                             const correctStr = question.correctOption || 'F'.repeat(question.options.length);
+                             const studentStr = question.studentAnswer || '-'.repeat(5);
+                             const correctStr = question.correctOption || 'F'.repeat(5);
                              const originalIdx = option.letter.charCodeAt(0) - 65;
                              const isT = studentStr[originalIdx] === 'T';
                              const isF = studentStr[originalIdx] === 'F';

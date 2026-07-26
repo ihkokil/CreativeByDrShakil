@@ -110,8 +110,8 @@ export async function POST(
         if (!correctOption) errors.push('Correct option missing');
         if (!optionA) errors.push('Option A missing');
         if (!optionB) errors.push('Option B missing');
-        if (questionType === 'mcq' && correctOption.length !== 5) errors.push('True/False answer must be exactly 5 characters of T and F');
-        if (questionType === 'sba' && !/^[A-E]$/.test(correctOption)) errors.push('MCQ answer must be a single letter from A to E');
+        if (questionType === 'mcq' && correctOption.length !== 5) errors.push('T_F answer must be exactly 5 characters of T and F');
+        if (questionType === 'sba' && !/^[A-E]$/.test(correctOption)) errors.push('SBA answer must be a single letter from A to E');
         
         if (errors.length > 0) {
           invalidRows.push({
