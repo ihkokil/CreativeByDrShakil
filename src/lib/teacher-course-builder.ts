@@ -74,12 +74,17 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
 
   const id = normalizeNullableText(raw.id) || createNodeId('node');
   const title = normalizeNullableText(raw.title);
-  const rawType = normalizeNullableText(raw.type) as CurriculumContentType | null;
+  if (!title) return null;
 
-  if (!title || !rawType) return null;
-  if (!['folder', 'youtube', 'self-hosted', 'document'].includes(rawType)) return null;
+  let finalType: CurriculumContentType = 'folder';
+  const parsedType = normalizeNullableText(raw.type) as CurriculumContentType | null;
+  if (parsedType && ['folder', 'youtube', 'self-hosted', 'document'].includes(parsedType)) {
+    finalType = parsedType;
+  }
 
-  const childrenRaw = Array.isArray(raw.children) ? raw.children : [];
+  const childrenRaw: unknown[] = Array.isArray(raw.children)
+    ? raw.children
+    : (Array.isArray((raw as any).subTopics) ? (raw as any).subTopics : []);
   const children = childrenRaw
     .map(normalizeNode)
     .filter((node): node is BuilderCurriculumNode => Boolean(node));
@@ -87,7 +92,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
   return {
     id,
     title,
-    type: rawType,
+    type: finalType,
     duration: normalizeNullableText(raw.duration),
     url: normalizeNullableText(raw.url),
     storagePath: normalizeNullableText(raw.storagePath),
