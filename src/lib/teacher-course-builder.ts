@@ -74,25 +74,29 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
 
   const id = normalizeNullableText(raw.id) || createNodeId('node');
   const title = normalizeNullableText(raw.title);
+  let rawType = normalizeNullableText(raw.type) as CurriculumContentType | null;
+
   if (!title) return null;
 
-  let finalType: CurriculumContentType = 'folder';
-  const parsedType = normalizeNullableText(raw.type) as CurriculumContentType | null;
-  if (parsedType && ['folder', 'youtube', 'self-hosted', 'document'].includes(parsedType)) {
-    finalType = parsedType;
+  if (!rawType) {
+    rawType = 'folder';
+  }
+  if (!['folder', 'youtube', 'self-hosted', 'document'].includes(rawType)) {
+    rawType = 'folder';
   }
 
-  const childrenRaw: unknown[] = Array.isArray(raw.children)
-    ? raw.children
+  const childrenRaw: unknown[] = Array.isArray((raw as any).children)
+    ? (raw as any).children
     : (Array.isArray((raw as any).subTopics) ? (raw as any).subTopics : []);
+
   const children = childrenRaw
-    .map(normalizeNode)
-    .filter((node): node is BuilderCurriculumNode => Boolean(node));
+    .map((node) => normalizeNode(node))
+    .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
 
   return {
     id,
     title,
-    type: finalType,
+    type: rawType,
     duration: normalizeNullableText(raw.duration),
     url: normalizeNullableText(raw.url),
     storagePath: normalizeNullableText(raw.storagePath),
@@ -360,11 +364,11 @@ const pinTo10pmBST = (date: Date): Date => {
   return pinned;
 };
 
-const getNextTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
+const getPreviousTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
   const dhaka = new Date(date.getTime() + 6 * 60 * 60 * 1000);
   const day = dhaka.getUTCDay(); 
-  const diff = (targetDay - day + 7) % 7;
-  dhaka.setUTCDate(dhaka.getUTCDate() + diff);
+  const diff = (day - targetDay + 7) % 7;
+  dhaka.setUTCDate(dhaka.getUTCDate() - diff);
   return new Date(Date.UTC(
     dhaka.getUTCFullYear(),
     dhaka.getUTCMonth(),
@@ -402,8 +406,8 @@ export function computeReleaseGroupDates(
     const GLOBAL_START_DATE = new Date(Date.UTC(2026, 5, 12, 16, 0, 0));
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     
-    const startSnapped = getNextTargetDayDhaka(startDate, targetDay);
-    const globalSnapped = getNextTargetDayDhaka(GLOBAL_START_DATE, targetDay);
+    const startSnapped = getPreviousTargetDayDhaka(startDate, targetDay);
+    const globalSnapped = getPreviousTargetDayDhaka(GLOBAL_START_DATE, targetDay);
     
     const diffMs = startSnapped.getTime() - globalSnapped.getTime();
     let weeksSinceGlobalStart = Math.round(diffMs / ONE_WEEK_MS);
@@ -413,10 +417,6 @@ export function computeReleaseGroupDates(
     // for this student based on which week they joined relative to the global cycle.
     const rotationOffset = weeksSinceGlobalStart % N;
     
-    // Assign unlock dates so that:
-    //   - The module at rotationOffset unlocks on the student's start week (week 0 for them)
-    //   - The next module in rotation order unlocks 1 week later, etc.
-    // This guarantees at least one module is always unlocked from enrollment.
     groups.forEach((group, i) => {
       // How many weeks after the student's start week does group i unlock?
       let weeksAfterStart = i - rotationOffset;
@@ -424,9 +424,8 @@ export function computeReleaseGroupDates(
       
       const unlockDate = new Date(startSnapped.getTime() + weeksAfterStart * ONE_WEEK_MS);
       
-      dates[group.id] = pinTo10pmBST(unlockDate).toISOString();
+      dates[group.id] = unlockDate.toISOString();
     });
-    return dates;
   }
 
   if (mode === 'fixed_interval') {
@@ -498,16 +497,28 @@ export function computeReleaseGroupDates(
     });
   }
 
-  // For non-explicit modes, do NOT apply the stored releaseGroupDates map on top of
-  // the computed schedule — doing so would overwrite correct interval/week/day-of-week
-  // dates with stale admin-preview dates, making all modules appear unlocked.
-
-  // Pin all computed dates to 10:00 PM GMT+6 (16:00 UTC) on their calendar day.
-  // Modules become available at night (10 PM Bangladesh time) on the scheduled date.
+  // Pin computed dates to 10:00 PM GMT+6 (16:00 UTC) on their scheduled day.
+  // Exception: If a date is on or before startDate (e.g. current/first module),
+  // ensure it is set to a past date (00:00 BST) so it unlocks immediately.
   for (const groupId of Object.keys(dates)) {
     const raw = normalizeDate(dates[groupId]);
     if (raw) {
-      dates[groupId] = pinTo10pmBST(raw).toISOString();
+      if (raw.getTime() <= startDate.getTime()) {
+        const dhakaTime = new Date(raw.getTime() + 6 * 60 * 60 * 1000);
+        // Pin to 00:00 GMT+6 (18:00 UTC previous day) so it is unlocked all day
+        const pinnedMidnight = new Date(Date.UTC(
+          dhakaTime.getUTCFullYear(),
+          dhakaTime.getUTCMonth(),
+          dhakaTime.getUTCDate() - 1,
+          18,
+          0,
+          0,
+          0
+        ));
+        dates[groupId] = pinnedMidnight.toISOString();
+      } else {
+        dates[groupId] = pinTo10pmBST(raw).toISOString();
+      }
     }
   }
 
