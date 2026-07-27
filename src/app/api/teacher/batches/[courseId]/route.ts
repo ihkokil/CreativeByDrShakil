@@ -3,14 +3,14 @@ import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 // GET batches for a specific course
-export async function GET(request: NextRequest, { params }: { params: { courseId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
   try {
     const payload = await requireTeacherPayload(request);
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { courseId } = params;
+    const { courseId } = await params;
     const supabase = getSupabaseAdmin();
     
     // Verify course access
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
     if (batchError) throw batchError;
 
     // Format batches
-    const formattedBatches = (batches || []).map(batch => ({
+    const formattedBatches = (batches || []).map((batch: any) => ({
       ...batch,
       studentCount: batch.orders ? batch.orders.length : 0,
       orders: undefined, // remove full orders array from response
@@ -49,14 +49,14 @@ export async function GET(request: NextRequest, { params }: { params: { courseId
 }
 
 // POST create a new batch for a specific course
-export async function POST(request: NextRequest, { params }: { params: { courseId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
   try {
     const payload = await requireTeacherPayload(request);
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { courseId } = params;
+    const { courseId } = await params;
     const body = await request.json();
     const { name, startDate } = body;
 
