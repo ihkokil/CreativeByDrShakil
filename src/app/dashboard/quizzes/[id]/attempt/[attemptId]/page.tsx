@@ -75,7 +75,7 @@ export default function QuizTakePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/quiz/${quizId}/attempt/${attemptId}`);
+        const res = await fetch(`/api/quiz/${quizId}/attempt/${attemptId}`, { cache: 'no-store' });
         const data = await res.json();
         
         if (!res.ok) {

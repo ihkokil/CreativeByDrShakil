@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('.next',{ recursive: true, force: true })\"",
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "dev:turbo": "next dev --turbo",
     "dev:webpack": "next dev --webpack",
     "dev:worker": "npm run build:worker && npm run preview",

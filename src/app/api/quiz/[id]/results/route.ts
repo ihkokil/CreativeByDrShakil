@@ -108,7 +108,7 @@ export async function GET(
                 isCorrect = true;
               } else {
                 let correctStems = 0;
-                let length = q.correctOption.length || 5;
+                let length = options.length;
                 for (let i = 0; i < length; i++) {
                   if (studentAns[i] === q.correctOption[i]) {
                     correctStems++;
@@ -410,7 +410,8 @@ export async function GET(
               correct++;
             } else {
               let correctStems = 0;
-              let length = q.correctOption.length || 5;
+              let length = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE]
+                .filter(o => o !== null && o !== undefined && String(o).trim() !== '').length || 5;
               for (let i = 0; i < length; i++) {
                 if (studentAns[i] === q.correctOption[i]) {
                   correctStems++;
@@ -516,7 +517,7 @@ export async function GET(
                   isCorrect = true;
                 } else {
                   let correctStems = 0;
-                  let length = q.correctOption.length || 5;
+                  let length = options.length;
                   for (let i = 0; i < length; i++) {
                     if (studentAns[i] === q.correctOption[i]) {
                       correctStems++;

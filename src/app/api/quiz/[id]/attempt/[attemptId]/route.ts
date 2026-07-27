@@ -67,13 +67,16 @@ export async function GET(
     
     const mappedQuestions = mappingsWithQuestions.map((m) => {
       const q = m.question;
-      const originalOptions = [
+      let originalOptions = [
         { letter: 'A', text: q.optionA },
         { letter: 'B', text: q.optionB },
         { letter: 'C', text: q.optionC },
         { letter: 'D', text: q.optionD },
         { letter: 'E', text: q.optionE },
-      ].filter(o => o.text !== null && o.text !== undefined && o.text !== '');
+      ];
+      if (q.questionType !== 'mcq') {
+        originalOptions = originalOptions.filter(o => o.text !== null && o.text !== undefined && String(o.text).trim() !== '');
+      }
       
       let orderedOptions = originalOptions;
       if (Array.isArray(m.optionOrder)) {

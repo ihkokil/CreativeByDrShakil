@@ -13,7 +13,7 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
   // Fetch all questions for this quiz
   const { data: questions = [] } = await supabase
     .from('Question')
-    .select('id, correctOption, questionType')
+    .select('id, correctOption, questionType, optionA, optionB, optionC, optionD, optionE')
     .eq('quizId', quizId);
 
   // Fetch quiz settings
@@ -62,7 +62,8 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
       let correctStems = 0;
       let incorrectStems = 0;
       
-      const length = correctOption.length || 5;
+      const length = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE]
+        .filter(o => o !== null && o !== undefined && String(o).trim() !== '').length || 5;
       
       for (let i = 0; i < length; i++) {
         const selChar = selected[i] || '-';
@@ -97,7 +98,8 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
   let maxScore = 0;
   for (const q of questions) {
     if (q.questionType === 'mcq') {
-      const length = (q.correctOption as string)?.length || 5;
+      const length = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE]
+        .filter(o => o !== null && o !== undefined && String(o).trim() !== '').length || 5;
       maxScore += length * tfMarks;
     } else {
       maxScore += sbaMarks;

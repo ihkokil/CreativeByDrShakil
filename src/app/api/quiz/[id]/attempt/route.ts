@@ -158,11 +158,15 @@ export async function POST(
     
     const mappings = selectedQuestions.map((q, index) => {
       const validIndices: number[] = [];
-      if (q.optionA) validIndices.push(0);
-      if (q.optionB) validIndices.push(1);
-      if (q.optionC) validIndices.push(2);
-      if (q.optionD) validIndices.push(3);
-      if (q.optionE) validIndices.push(4);
+      if (q.questionType === 'mcq') {
+        validIndices.push(0, 1, 2, 3, 4);
+      } else {
+        if (q.optionA) validIndices.push(0);
+        if (q.optionB) validIndices.push(1);
+        if (q.optionC) validIndices.push(2);
+        if (q.optionD) validIndices.push(3);
+        if (q.optionE) validIndices.push(4);
+      }
       
       const optionOrder = quizData.shuffleOptions ? shuffleArray([...validIndices]) : validIndices;
       
