@@ -75,7 +75,7 @@ export default function QuizTakePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch(`/api/quiz/${quizId}/attempt/${attemptId}`);
+        const res = await fetch(`/api/quiz/${quizId}/attempt/${attemptId}`, { cache: 'no-store' });
         const data = await res.json();
         
         if (!res.ok) {
@@ -295,7 +295,7 @@ export default function QuizTakePage() {
       
       if (q.questionType === 'mcq') {
         const idx = optionLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
-        const currentStr = current?.selectedOption || '-'.repeat(q.options.length);
+        const currentStr = current?.selectedOption || '-'.repeat(5);
         
         // Per-option lock: if this option is already marked (T or F), don't allow change
         if (currentStr[idx] !== '-') return prev;
@@ -337,7 +337,7 @@ export default function QuizTakePage() {
       const currentAnswer = answers[questionId];
       if (q.questionType === 'mcq') {
         const idx = optionLetter.charCodeAt(0) - 65;
-        const currentStr = currentAnswer?.selectedOption || '-'.repeat(q.options.length);
+        const currentStr = currentAnswer?.selectedOption || '-'.repeat(5);
         if (currentStr[idx] !== '-') return; // already locked, don't save again
         const newArr = currentStr.split('');
         newArr[idx] = mcqSelection || 'T';
@@ -548,7 +548,7 @@ export default function QuizTakePage() {
                       background: q.questionType === 'mcq' ? 'rgba(14, 165, 233, 0.15)' : 'rgba(168, 85, 247, 0.15)',
                       color: q.questionType === 'mcq' ? '#0ea5e9' : '#a855f7',
                     }}>
-                      {q.questionType === 'mcq' ? '✓✗ True / False' : '○ Single Best Answer'}
+                      {q.questionType === 'mcq' ? '✓✗ True False selection [T_F]' : '○ Best option selection [SBA]'}
                     </span>
                     {q.questionType !== 'mcq' && answers[q.id]?.isLocked && (
                       <span className={styles.lockedBadge}>
@@ -562,13 +562,13 @@ export default function QuizTakePage() {
                   {q.questionType === 'mcq' ? (
                     q.options.map((option, idx) => {
                       const answer = answers[q.id];
-                      const currentStr = answer?.selectedOption || '-'.repeat(q.options.length);
+                      const currentStr = answer?.selectedOption || '-'.repeat(5);
                       const originalIdx = option.letter.charCodeAt(0) - 65;
                       const isT = currentStr[originalIdx] === 'T';
                       const isF = currentStr[originalIdx] === 'F';
                       const isOptionLocked = currentStr[originalIdx] !== '-'; // per-option lock
                       
-                      const correctStr = q.correctOption || 'F'.repeat(q.options.length);
+                      const correctStr = q.correctOption || 'F'.repeat(5);
                       const isCorrectT = correctStr[originalIdx] === 'T';
                       const isCorrectF = correctStr[originalIdx] === 'F';
                       

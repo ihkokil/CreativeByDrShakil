@@ -108,7 +108,7 @@ export async function GET(
                 isCorrect = true;
               } else {
                 let correctStems = 0;
-                let length = q.correctOption.length || 5;
+                let length = options.length;
                 for (let i = 0; i < length; i++) {
                   if (studentAns[i] === q.correctOption[i]) {
                     correctStems++;
@@ -166,19 +166,33 @@ export async function GET(
       const rankingType = (quizData as any).positionType || 'best_attempt';
       
       attemptsByStudent.forEach((studentAttempts) => {
-        studentAttempts.sort((a, b) => {
-          if (rankingType === 'first_attempt') {
-            return a.attemptNumber - b.attemptNumber;
-          }
-          if (rankingType === 'last_attempt') {
-            return b.attemptNumber - a.attemptNumber;
-          }
-          if (b.netScore !== a.netScore) {
-            return b.netScore - a.netScore;
-          }
-          return (a.timeTakenSeconds || 0) - (b.timeTakenSeconds || 0);
-        });
-        filteredAttempts.push(studentAttempts[0]);
+        if (rankingType === 'average_attempt') {
+          const totalScore = studentAttempts.reduce((sum, a) => sum + Number(a.netScore || 0), 0);
+          const totalTime = studentAttempts.reduce((sum, a) => sum + (a.timeTakenSeconds || 0), 0);
+          const avgScore = totalScore / studentAttempts.length;
+          const avgTime = Math.round(totalTime / studentAttempts.length);
+          
+          const syntheticAttempt = {
+            ...studentAttempts[studentAttempts.length - 1],
+            netScore: avgScore,
+            timeTakenSeconds: avgTime,
+          };
+          filteredAttempts.push(syntheticAttempt);
+        } else {
+          studentAttempts.sort((a, b) => {
+            if (rankingType === 'first_attempt') {
+              return a.attemptNumber - b.attemptNumber;
+            }
+            if (rankingType === 'last_attempt') {
+              return b.attemptNumber - a.attemptNumber;
+            }
+            if (b.netScore !== a.netScore) {
+              return b.netScore - a.netScore;
+            }
+            return (a.timeTakenSeconds || 0) - (b.timeTakenSeconds || 0);
+          });
+          filteredAttempts.push(studentAttempts[0]);
+        }
       });
       
       filteredAttempts.sort((a, b) => {
@@ -291,19 +305,33 @@ export async function GET(
     const teacherRankingType = (quizData as any).positionType || 'best_attempt';
     
     teacherAttemptsByStudent.forEach((studentAttempts) => {
-      studentAttempts.sort((a, b) => {
-        if (teacherRankingType === 'first_attempt') {
-          return a.attemptNumber - b.attemptNumber;
-        }
-        if (teacherRankingType === 'last_attempt') {
-          return b.attemptNumber - a.attemptNumber;
-        }
-        if (b.netScore !== a.netScore) {
-          return b.netScore - a.netScore;
-        }
-        return (a.timeTakenSeconds || 0) - (b.timeTakenSeconds || 0);
-      });
-      teacherFilteredAttempts.push(studentAttempts[0]);
+      if (teacherRankingType === 'average_attempt') {
+        const totalScore = studentAttempts.reduce((sum, a) => sum + Number(a.netScore || 0), 0);
+        const totalTime = studentAttempts.reduce((sum, a) => sum + (a.timeTakenSeconds || 0), 0);
+        const avgScore = totalScore / studentAttempts.length;
+        const avgTime = Math.round(totalTime / studentAttempts.length);
+        
+        const syntheticAttempt = {
+          ...studentAttempts[studentAttempts.length - 1],
+          netScore: avgScore,
+          timeTakenSeconds: avgTime,
+        };
+        teacherFilteredAttempts.push(syntheticAttempt);
+      } else {
+        studentAttempts.sort((a, b) => {
+          if (teacherRankingType === 'first_attempt') {
+            return a.attemptNumber - b.attemptNumber;
+          }
+          if (teacherRankingType === 'last_attempt') {
+            return b.attemptNumber - a.attemptNumber;
+          }
+          if (b.netScore !== a.netScore) {
+            return b.netScore - a.netScore;
+          }
+          return (a.timeTakenSeconds || 0) - (b.timeTakenSeconds || 0);
+        });
+        teacherFilteredAttempts.push(studentAttempts[0]);
+      }
     });
     
     teacherFilteredAttempts.sort((a, b) => {
@@ -382,7 +410,8 @@ export async function GET(
               correct++;
             } else {
               let correctStems = 0;
-              let length = q.correctOption.length || 5;
+              let length = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE]
+                .filter(o => o !== null && o !== undefined && String(o).trim() !== '').length || 5;
               for (let i = 0; i < length; i++) {
                 if (studentAns[i] === q.correctOption[i]) {
                   correctStems++;
@@ -488,7 +517,7 @@ export async function GET(
                   isCorrect = true;
                 } else {
                   let correctStems = 0;
-                  let length = q.correctOption.length || 5;
+                  let length = options.length;
                   for (let i = 0; i < length; i++) {
                     if (studentAns[i] === q.correctOption[i]) {
                       correctStems++;

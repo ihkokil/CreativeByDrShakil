@@ -85,14 +85,24 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-muted);
+  color: var(--text-primary);
   text-decoration: none;
   font-size: 14px;
-  transition: color 0.2s;
+  font-weight: 500;
+  padding: 8px 16px 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px var(--shadow-color);
 }
 
 .backLink:hover {
   color: var(--primary-color);
+  background: var(--primary-light);
+  border-color: var(--primary-color-alpha);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .backIcon {
@@ -249,6 +259,19 @@
   margin: 0;
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .grid4 {
@@ -614,6 +637,71 @@
   box-shadow: 0 0 0 3px var(--primary-color-alpha);
 }
 
+.selectWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.enhancedSelect {
+  padding-right: 36px;
+  appearance: none;
+  background-color: var(--input-bg);
+  cursor: pointer;
+}
+
+.enhancedSelect:hover {
+  border-color: var(--primary-color);
+}
+
+.selectIcon {
+  position: absolute;
+  right: 12px;
+  pointer-events: none;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.segmentedControl {
+  display: flex;
+  background-color: var(--input-bg);
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 8px;
+  gap: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.segmentBtn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 6px 4px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.segmentBtn:hover {
+  color: var(--text-color);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.segmentActive {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.segmentActive:hover {
+  color: white;
+  background-color: var(--primary-color);
+}
+
 .textarea {
   resize: vertical;
   min-height: 80px;
@@ -665,6 +753,10 @@
   background: var(--primary-light);
 }
 
+.checkboxLabel:hover .checkmark {
+  --checkbox-bg: var(--primary-light);
+}
+
 .checkbox {
   position: absolute;
   opacity: 0;
@@ -676,29 +768,143 @@
   position: relative;
   width: 22px;
   height: 22px;
+  background-color: transparent;
   border: 2px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--input-bg);
-  transition: all 0.2s;
+  border-radius: 5px;
+  display: inline-block;
+  box-sizing: border-box;
+  transition: border-color ease 0.2s;
+  cursor: pointer;
   flex-shrink: 0;
   margin-top: 2px;
+  --checkbox-bg: var(--bg-secondary);
 }
 
-.checkbox:checked + .checkmark {
-  background: var(--primary-color);
+.tfCheckboxes {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+}
+
+.tfBox {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  border: 2px solid var(--border-color);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: border-color ease 0.2s, background-color ease 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tfBoxText {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: opacity 0.2s;
+  user-select: none;
+}
+
+.checkbox:checked + .tfBox .tfBoxText {
+  opacity: 0;
+}
+
+.checkbox:checked + .trueBox {
   border-color: var(--primary-color);
 }
 
-.checkbox:checked + .checkmark::after {
-  content: '';
+.checkbox:checked + .falseBox {
+  border-color: var(--error-color);
+  background-color: var(--error-light, #ffe0e2);
+}
+
+.tfTickAnim {
   position: absolute;
-  left: 7px;
-  top: 3px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tfTickAnim::before,
+.tfTickAnim::after {
+  box-sizing: border-box;
+  position: absolute;
+  height: 0;
   width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  background-color: var(--primary-color);
+  display: inline-block;
+  transform-origin: left top;
+  border-radius: 5px;
+  content: " ";
+  transition: opacity ease 0.5s;
+}
+
+.tfTickAnim::before {
+  top: 22px;
+  left: 14px;
+  box-shadow: 0 0 0 1.5px var(--bg-secondary);
+  transform: rotate(-135deg);
+}
+
+.tfTickAnim::after {
+  top: 13px;
+  left: 4px;
+  transform: rotate(-45deg);
+}
+
+.checkbox:checked + .trueBox .tfTickAnim::after {
+  height: 14px;
+  animation: dothabottomcheck 0.2s ease 0s forwards;
+}
+
+.checkbox:checked + .trueBox .tfTickAnim::before {
+  height: 32px;
+  animation: dothatopcheck 0.4s ease 0s forwards;
+}
+
+@keyframes dothabottomcheck {
+  0% { height: 0; }
+  100% { height: 14px; }
+}
+
+@keyframes dothatopcheck {
+  0% { height: 0; }
+  50% { height: 0; }
+  100% { height: 32px; }
+}
+
+.crossSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.crossSvg path {
+  stroke-width: 0;
+  fill: none;
+  stroke: var(--error-color);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.2s ease-in 0s;
+}
+
+.crossSvg path + path {
+  transition: stroke-dashoffset 0.2s ease-out 0.2s;
+}
+
+.checkbox:checked + .falseBox .crossSvg path {
+  stroke-dashoffset: 0;
+  stroke-width: 14px;
 }
 
 .checkboxLabel > div {
@@ -873,6 +1079,26 @@
   background: var(--success-light);
 }
 
+.tfCheckboxes {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-right: 4px;
+}
+
+.tfLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.tfText {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .optionRadio {
   position: relative;
   display: flex;
@@ -975,6 +1201,10 @@
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+.dangerIcon {
+  color: var(--error-color);
 }
 
 /* Empty State */

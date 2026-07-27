@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -22,7 +22,11 @@ import {
   Upload,
   BarChart2,
   Link as LinkIcon,
+  Check,
+  X
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import styles from './TeacherQuizzesPage.module.css';
 
 interface Quiz {
@@ -54,6 +58,9 @@ export default function TeacherQuizzesPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [pdfQuizInfo, setPdfQuizInfo] = useState<{ quiz: Quiz, questions: any[] } | null>(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
   const limit = 10;
 
   useEffect(() => {
@@ -169,6 +176,88 @@ export default function TeacherQuizzesPage() {
       setQuizzes(prev => prev.map(q => q.id === id ? { ...q, status: newStatus, publishedAt: newStatus === 'published' ? new Date().toISOString() : null } : q));
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (pdfQuizInfo && pdfContainerRef.current) {
+      setTimeout(async () => {
+        try {
+          const { quiz } = pdfQuizInfo;
+          const container = pdfContainerRef.current!;
+          
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'px',
+            format: 'a4'
+          });
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const paddingX = 20;
+          const usableWidth = pdfWidth - (paddingX * 2);
+          let currentY = 20;
+          
+          const bodyBgStyle = window.getComputedStyle(document.body).backgroundColor;
+          const rgbMatch = bodyBgStyle.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          const bgColor = rgbMatch ? [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])] : [255, 255, 255];
+          
+          pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+          pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+          
+          const cards = container.querySelectorAll('.pdf-question-card');
+          
+          for (let i = 0; i < cards.length; i++) {
+            const el = cards[i] as HTMLElement;
+            const canvas = await html2canvas(el, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: bodyBgStyle,
+              width: el.scrollWidth,
+              windowWidth: document.documentElement.scrollWidth,
+              scrollX: -window.scrollX,
+              scrollY: -window.scrollY
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            const imgHeight = (canvas.height * usableWidth) / canvas.width;
+            
+            if (currentY + imgHeight > pdfHeight - 20 && currentY > 20) {
+              pdf.addPage();
+              pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+              pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+              currentY = 20;
+            }
+            
+            pdf.addImage(imgData, 'PNG', paddingX, currentY, usableWidth, imgHeight);
+            currentY += imgHeight + 15;
+          }
+          
+          const safeTitle = quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          pdf.save(`quiz_${safeTitle}_questions.pdf`);
+        } catch (err: any) {
+          console.error('PDF generation failed:', err);
+          alert('Failed to generate PDF. Please try again.');
+        } finally {
+          setPdfQuizInfo(null);
+          setGeneratingPdfId(null);
+        }
+      }, 500); // Allow DOM to paint
+    }
+  }, [pdfQuizInfo]);
+
+  const handleDownloadPDF = async (quiz: Quiz) => {
+    try {
+      setGeneratingPdfId(quiz.id);
+      const res = await fetch(`/api/quiz/${quiz.id}/questions`, { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch questions');
+      
+      setPdfQuizInfo({ quiz, questions: data.questions });
+    } catch (err: any) {
+      alert('Error generating PDF: ' + err.message);
+      setGeneratingPdfId(null);
     }
   };
 
@@ -323,6 +412,14 @@ export default function TeacherQuizzesPage() {
                         >
                           <BarChart2 className={styles.rowActionIcon} />
                         </Link>
+                        <button
+                          onClick={() => handleDownloadPDF(quiz)}
+                          disabled={generatingPdfId === quiz.id}
+                          className={styles.rowActionBtn}
+                          title="Download Questions & Answers (PDF)"
+                        >
+                          {generatingPdfId === quiz.id ? <Loader2 className={styles.rowActionIcon} /> : <Download className={styles.rowActionIcon} />}
+                        </button>
                         <Link
                           href={`/dashboard/quizzes/${quiz.id}`}
                           target="_blank"
@@ -416,6 +513,90 @@ export default function TeacherQuizzesPage() {
           </div>
         </div>
       )}
+
+      {/* Hidden container for PDF rendering */}
+      <div 
+        ref={pdfContainerRef} 
+        style={{ 
+          position: 'absolute', 
+          top: '-9999px', 
+          left: '-9999px', 
+          width: '800px',
+          opacity: 0,
+          pointerEvents: 'none'
+        }}
+      >
+        {pdfQuizInfo && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px' }}>
+            <div style={{ background: 'var(--primary)', color: 'white', padding: '20px', borderRadius: '12px' }} className="pdf-question-card">
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quiz: {pdfQuizInfo.quiz.title}</h2>
+              {pdfQuizInfo.quiz.description && <p style={{ opacity: 0.9 }}>{pdfQuizInfo.quiz.description}</p>}
+            </div>
+            {pdfQuizInfo.questions.map((question, index) => (
+              <article key={question.id} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px' }} className="pdf-question-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Q{index + 1}.</span>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600' }}>{question.questionText}</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginLeft: '32px' }}>
+                  {question.questionType === 'mcq' ? (
+                    [
+                      { letter: 'A', text: question.optionA },
+                      { letter: 'B', text: question.optionB },
+                      { letter: 'C', text: question.optionC },
+                      { letter: 'D', text: question.optionD },
+                      { letter: 'E', text: question.optionE },
+                    ].map((option: any) => {
+                      const correctStr = question.correctOption || 'F'.repeat(5);
+                      const originalIdx = option.letter.charCodeAt(0) - 65;
+                      const isCorrectT = correctStr[originalIdx] === 'T';
+                      const isCorrectF = correctStr[originalIdx] === 'F';
+                      
+                      return (
+                        <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', background: isCorrectT ? 'var(--success)' : 'var(--surface-soft)', color: isCorrectT ? 'white' : 'var(--text-muted)' }}>
+                              <Check size={16} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', background: isCorrectF ? 'var(--success)' : 'var(--surface-soft)', color: isCorrectF ? 'white' : 'var(--text-muted)' }}>
+                              <X size={16} />
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '16px' }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    [
+                      { letter: 'A', text: question.optionA },
+                      { letter: 'B', text: question.optionB },
+                      { letter: 'C', text: question.optionC },
+                      { letter: 'D', text: question.optionD },
+                      { letter: 'E', text: question.optionE },
+                    ].filter(o => o.text !== null && o.text !== undefined && String(o.text).trim() !== '').map((option: any) => {
+                      const isCorrect = question.correctOption === option.letter;
+                      return (
+                        <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', borderRadius: '8px', border: isCorrect ? '2px solid var(--success)' : '1px solid var(--border)', background: isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', background: isCorrect ? 'var(--success)' : 'var(--surface-soft)', color: isCorrect ? 'white' : 'var(--text-muted)' }}>
+                            <Check size={16} />
+                          </div>
+                          <span style={{ fontSize: '16px', fontWeight: isCorrect ? 600 : 400 }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                {question.explanation && (
+                  <div style={{ marginTop: '24px', padding: '16px', background: 'var(--surface-soft)', borderRadius: '8px', borderLeft: '4px solid var(--info)' }}>
+                    <h4 style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--info)' }}>Explanation</h4>
+                    <p style={{ fontSize: '15px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{question.explanation}</p>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

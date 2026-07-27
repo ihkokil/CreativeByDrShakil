@@ -56,12 +56,16 @@ interface QuizFormData {
   categoryId: string;
   durationMinutes: number;
   numQuestionsToServe: number;
-  positionType: 'best_attempt' | 'last_attempt' | 'first_attempt';
+  positionType: 'best_attempt' | 'last_attempt' | 'first_attempt' | 'average_attempt';
   allowMultipleAttempts: boolean;
   maxAttempts: number;
   allowNegativeMarking: boolean;
   negativeValue: number;
   marksPerCorrect: number;
+  sbaMarks: number;
+  sbaNegative: number;
+  tfMarks: number;
+  tfNegative: number;
   startDatetime: string;
   endDatetime: string;
   shuffleQuestions: boolean;
@@ -108,6 +112,10 @@ export default function QuizBuilderPage() {
     allowNegativeMarking: false,
     negativeValue: 20,
     marksPerCorrect: 2,
+    sbaMarks: 1,
+    sbaNegative: 0,
+    tfMarks: 1,
+    tfNegative: 0,
     startDatetime: '',
     endDatetime: '',
     shuffleQuestions: true,
@@ -148,8 +156,15 @@ export default function QuizBuilderPage() {
           } else if (key === 'maxAttempts' && data.quiz[key] === null) {
             (newFormData as any)[key] = 0;
           } else if (key === 'negativeValue') {
-            const val = data.quiz[key] as number;
-            (newFormData as any)[key] = (val > 0 && val <= 1) ? val * 100 : val;
+            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 20;
+          } else if (key === 'sbaMarks') {
+            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 1;
+          } else if (key === 'sbaNegative') {
+            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 0;
+          } else if (key === 'tfMarks') {
+            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 1;
+          } else if (key === 'tfNegative') {
+            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 0;
           } else {
             (newFormData as any)[key] = data.quiz[key];
           }
@@ -541,38 +556,104 @@ export default function QuizBuilderPage() {
 
             <div className={styles.miniCard}>
               <div className={styles.miniCardHeader}>
-                <Trophy className={styles.miniCardIcon} />
-                Marks per Correct <span className={styles.required}>*</span>
-              </div>
-              <input
-                type="number"
-                step="0.5"
-                min="0.5"
-                max="10"
-                value={formData.marksPerCorrect}
-                onChange={e => updateFormData('marksPerCorrect', parseFloat(e.target.value) || 1)}
-                className={styles.input}
-                style={{ marginBottom: '8px' }}
-              />
-              <div className={styles.miniCardBody}>Points awarded per correct answer</div>
-            </div>
-
-            <div className={styles.miniCard}>
-              <div className={styles.miniCardHeader}>
                 <TrendingUp className={styles.miniCardIcon} />
                 Ranking Method
               </div>
-              <select
-                value={formData.positionType}
-                onChange={e => updateFormData('positionType', e.target.value as any)}
-                className={styles.select}
-                style={{ marginBottom: '8px' }}
-              >
-                <option value="best_attempt">Best Attempt</option>
-                <option value="last_attempt">Last Attempt</option>
-                <option value="first_attempt">First Attempt</option>
-              </select>
+              <div className={styles.segmentedControl}>
+                {[
+                  { value: 'best_attempt', label: 'Best' },
+                  { value: 'last_attempt', label: 'Last' },
+                  { value: 'first_attempt', label: 'First' },
+                  { value: 'average_attempt', label: 'Average' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`${styles.segmentBtn} ${formData.positionType === opt.value ? styles.segmentActive : ''}`}
+                    onClick={() => updateFormData('positionType', opt.value as any)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
               <div className={styles.miniCardBody}>Tie-breaker: Less time taken ranks higher</div>
+            </div>
+          </div>
+
+          <div className={styles.settingHeader}>
+            <h3>Marking Scheme</h3>
+          </div>
+          <div className={styles.grid2}>
+            {/* SBA Marking Box */}
+            <div className={styles.cardSetting} style={{ margin: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', fontWeight: '600', fontSize: '1.05rem' }}>
+                <CheckCircle className={styles.miniCardIcon} />
+                SBA Marking Scheme
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>SBA Marks Per Question</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={formData.sbaMarks}
+                  onChange={e => updateFormData('sbaMarks', parseFloat(e.target.value) || 0)}
+                  className={styles.input}
+                />
+              </div>
+
+              <div>
+                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>SBA Negative Marks (%)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="100"
+                    value={formData.sbaNegative}
+                    onChange={e => updateFormData('sbaNegative', parseFloat(e.target.value) || 0)}
+                    className={styles.input}
+                  />
+                  <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* T/F Marking Box */}
+            <div className={styles.cardSetting} style={{ margin: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', fontWeight: '600', fontSize: '1.05rem' }}>
+                <CheckCircle className={styles.miniCardIcon} />
+                T/F Marking Scheme
+              </div>
+              
+              <div style={{ marginBottom: '16px' }}>
+                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>T/F Marks Per Option</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={formData.tfMarks}
+                  onChange={e => updateFormData('tfMarks', parseFloat(e.target.value) || 0)}
+                  className={styles.input}
+                />
+              </div>
+
+              <div>
+                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>T/F Negative Marks (%)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="100"
+                    value={formData.tfNegative}
+                    onChange={e => updateFormData('tfNegative', parseFloat(e.target.value) || 0)}
+                    className={styles.input}
+                  />
+                  <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>%</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -644,103 +725,8 @@ export default function QuizBuilderPage() {
             )}
           </div>
 
-          <div className={styles.settingHeader}>
-            <h3>Scoring</h3>
-          </div>
-          <div className={styles.cardSetting}>
-            <div className={styles.scoringLayout}>
-              <div className={styles.scoringMain}>
-                <label className={styles.checkboxLabel} style={{ marginBottom: '8px' }}>
-                  <input
-                    type="checkbox"
-                    checked={formData.allowNegativeMarking}
-                    onChange={e => updateFormData('allowNegativeMarking', e.target.checked)}
-                    className={styles.checkbox}
-                  />
-                  <span className={styles.checkmark}></span>
-                  <div>
-                    <strong>Enable Negative Marking</strong>
-                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>Deduct marks for wrong answers</p>
-                  </div>
-                </label>
 
-                <div style={{ opacity: formData.allowNegativeMarking ? 1 : 0.4, transition: 'opacity 0.2s', pointerEvents: formData.allowNegativeMarking ? 'auto' : 'none' }}>
-                  <label htmlFor="negativeValue" className={styles.label}>Penalty per Wrong Answer (%)</label>
-                  <input
-                    id="negativeValue"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={formData.negativeValue}
-                    onChange={e => updateFormData('negativeValue', parseInt(e.target.value) || 20)}
-                    className={styles.input}
-                    disabled={!formData.allowNegativeMarking}
-                    style={{ background: formData.allowNegativeMarking ? 'var(--input-bg)' : 'rgba(0,0,0,0.2)' }}
-                  />
-                  <p className={styles.helper} style={{ marginTop: '8px' }}>Percentage of marks (e.g., 25 = 25%)</p>
-                </div>
-              </div>
 
-              <div className={styles.scoringInfo}>
-                <AlertCircle className={styles.scoringInfoIcon} />
-                <div>
-                  <h4>How it works</h4>
-                  <p>If enabled, marks will be deducted for each incorrect answer based on the penalty value.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.settingHeader}>
-            <h3>Randomization</h3>
-          </div>
-          <div>
-            <div 
-              className={styles.randomRow} 
-              onClick={() => updateFormData('shuffleQuestions', !formData.shuffleQuestions)}
-            >
-              <div className={styles.randomContent}>
-                <label className={styles.checkboxLabel} style={{ margin: 0 }} onClick={e => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={formData.shuffleQuestions}
-                    onChange={e => updateFormData('shuffleQuestions', e.target.checked)}
-                    className={styles.checkbox}
-                  />
-                  <span className={styles.checkmark}></span>
-                </label>
-                <Shuffle className={styles.randomIcon} />
-                <div className={styles.randomText}>
-                  <span className={styles.randomTitle}>Shuffle Question Order</span>
-                  <span className={styles.randomDesc}>Questions appear in random order for each attempt</span>
-                </div>
-              </div>
-              <ChevronRight className={styles.randomIcon} />
-            </div>
-
-            <div 
-              className={styles.randomRow}
-              onClick={() => updateFormData('shuffleOptions', !formData.shuffleOptions)}
-            >
-              <div className={styles.randomContent}>
-                <label className={styles.checkboxLabel} style={{ margin: 0 }} onClick={e => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={formData.shuffleOptions}
-                    onChange={e => updateFormData('shuffleOptions', e.target.checked)}
-                    className={styles.checkbox}
-                  />
-                  <span className={styles.checkmark}></span>
-                </label>
-                <Shuffle className={styles.randomIcon} />
-                <div className={styles.randomText}>
-                  <span className={styles.randomTitle}>Shuffle Option Order</span>
-                  <span className={styles.randomDesc}>Options within each question are randomized</span>
-                </div>
-              </div>
-              <ChevronRight className={styles.randomIcon} />
-            </div>
-          </div>
         </section>
 
         {/* Questions Section */}
@@ -944,7 +930,7 @@ function QuestionCard({
     { letter: 'E', value: question.optionE },
   ].filter(o => o.value && o.value.trim());
   
-  const typeLabel = question.questionType === 'sba' ? 'SBA' : (question.questionType === 'mcq' ? 'MCQ (Matrix)' : 'True/False');
+  const typeLabel = question.questionType === 'sba' ? 'Best option selection [SBA]' : (question.questionType === 'mcq' ? 'True False selection [T_F]' : 'Legacy True/False');
   
   const validOptions = options.filter(o => o.value && o.value.trim());
   
@@ -1020,20 +1006,19 @@ function QuestionCard({
                     onUpdate(question.id, 'correctOption', 'A');
                   }
                 } else if (newType === 'mcq') {
-                  if (!/^[TF]+$/i.test(question.correctOption)) {
-                    onUpdate(question.id, 'correctOption', 'FFFFF');
+                  if (question.correctOption?.length !== 5) {
+                    onUpdate(question.id, 'correctOption', '-----');
                   }
                 } else if (newType === 'sba') {
                   if (question.correctOption?.length !== 1) {
-                    onUpdate(question.id, 'correctOption', 'A');
+                    onUpdate(question.id, 'correctOption', '');
                   }
                 }
               }}
               className={styles.select}
             >
-              <option value="sba">SBA (Single Best Answer)</option>
-              <option value="mcq">MCQ (Multiple True/False Matrix)</option>
-              <option value="true_false">True/False</option>
+              <option value="sba">Best option selection [SBA]</option>
+              <option value="mcq">True False selection [T_F]</option>
             </select>
           </div>
           
@@ -1043,35 +1028,68 @@ function QuestionCard({
               if (question.questionType === 'true_false' && idx > 1) return null;
               
               const isMCQ = question.questionType === 'mcq';
-              const correctStr = question.correctOption || 'FFFFF';
-              const isOptionCorrect = isMCQ ? correctStr[idx] === 'T' : question.correctOption === letter;
+              const correctStr = question.correctOption || '-----';
+              const isOptionCorrect = isMCQ ? (correctStr[idx] === 'T' || correctStr[idx] === 'F') : question.correctOption === letter;
               
               return (
                 <div key={letter} className={`${styles.optionRow} ${isOptionCorrect ? styles.correctOption : ''}`}>
-                  <label className={styles.optionRadio}>
-                    {isMCQ ? (
+                  {isMCQ ? (
+                    <div className={styles.tfCheckboxes}>
+                      <label className={styles.tfLabel} title="Mark as True">
+                        <input
+                          type="checkbox"
+                          checked={correctStr[idx] === 'T'}
+                          onChange={(e) => {
+                            const newArr = (correctStr.padEnd(5, '-')).split('');
+                            newArr[idx] = e.target.checked ? 'T' : '-';
+                            onUpdate(question.id, 'correctOption', newArr.join(''));
+                          }}
+                          className={styles.checkbox}
+                        />
+                        <span className={`${styles.tfBox} ${styles.trueBox}`}>
+                          <span className={styles.tfBoxText}>T</span>
+                          <span className={styles.tfTickAnim}></span>
+                        </span>
+                      </label>
+                      <label className={styles.tfLabel} title="Mark as False">
+                        <input
+                          type="checkbox"
+                          checked={correctStr[idx] === 'F'}
+                          onChange={(e) => {
+                            const newArr = (correctStr.padEnd(5, '-')).split('');
+                            newArr[idx] = e.target.checked ? 'F' : '-';
+                            onUpdate(question.id, 'correctOption', newArr.join(''));
+                          }}
+                          className={styles.checkbox}
+                        />
+                        <span className={`${styles.tfBox} ${styles.falseBox}`}>
+                          <span className={styles.tfBoxText}>F</span>
+                          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className={styles.crossSvg}>
+                            <path d="M 25 25 L 75 75" strokeDasharray="71" strokeDashoffset="71"></path>
+                            <path d="M 75 25 L 25 75" strokeDasharray="71" strokeDashoffset="71"></path>
+                          </svg>
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <label className={styles.tfLabel}>
                       <input
                         type="checkbox"
-                        checked={isOptionCorrect}
+                        checked={question.correctOption === letter}
                         onChange={(e) => {
-                          const newArr = (correctStr.padEnd(5, 'F')).split('');
-                          newArr[idx] = e.target.checked ? 'T' : 'F';
-                          onUpdate(question.id, 'correctOption', newArr.join(''));
+                          if (e.target.checked) {
+                            onUpdate(question.id, 'correctOption', letter);
+                          } else {
+                            onUpdate(question.id, 'correctOption', '');
+                          }
                         }}
                         className={styles.checkbox}
                       />
-                    ) : (
-                      <input
-                        type="radio"
-                        name={`correct-${question.id}`}
-                        value={letter}
-                        checked={isOptionCorrect}
-                        onChange={() => onUpdate(question.id, 'correctOption', letter)}
-                        className={styles.radioInput}
-                      />
-                    )}
-                    <span className={isMCQ ? styles.checkmark : styles.radioMark} style={{ top: isMCQ ? '0' : '50%' }}></span>
-                  </label>
+                      <span className={`${styles.tfBox} ${styles.trueBox}`}>
+                        <span className={styles.tfTickAnim}></span>
+                      </span>
+                    </label>
+                  )}
                   <span className={styles.optionLetter}>{letter}</span>
                   <input
                     type="text"
