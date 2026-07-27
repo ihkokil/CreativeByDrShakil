@@ -404,14 +404,20 @@ export function computeReleaseGroupDates(
     let weeksSinceGlobalStart = Math.round(diffMs / ONE_WEEK_MS);
     if (weeksSinceGlobalStart < 0) weeksSinceGlobalStart = 0;
     
-    const studentStartWeekIndex = weeksSinceGlobalStart;
+    // Determine the rotation offset — which module index should come first
+    // for this student based on which week they joined relative to the global cycle.
+    const rotationOffset = weeksSinceGlobalStart % N;
     
+    // Assign unlock dates so that:
+    //   - The module at rotationOffset unlocks on the student's start week (week 0 for them)
+    //   - The next module in rotation order unlocks 1 week later, etc.
+    // This guarantees at least one module is always unlocked from enrollment.
     groups.forEach((group, i) => {
-      let k = i - (studentStartWeekIndex % N);
-      if (k < 0) k += N;
+      // How many weeks after the student's start week does group i unlock?
+      let weeksAfterStart = i - rotationOffset;
+      if (weeksAfterStart < 0) weeksAfterStart += N;
       
-      const unlockWeek = studentStartWeekIndex + k;
-      const unlockDate = new Date(GLOBAL_START_DATE.getTime() + unlockWeek * ONE_WEEK_MS);
+      const unlockDate = new Date(startSnapped.getTime() + weeksAfterStart * ONE_WEEK_MS);
       
       dates[group.id] = pinTo10pmBST(unlockDate).toISOString();
     });
