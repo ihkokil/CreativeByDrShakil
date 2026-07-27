@@ -31,6 +31,7 @@ function TeacherDashboardLayoutContent({
     const activeTab = (() => {
         if (pathname === "/teacher/dashboard") return "overview";
         if (pathname.startsWith("/teacher/dashboard/courses")) return "courses";
+        if (pathname.startsWith("/teacher/dashboard/batches")) return "batches";
         if (pathname.startsWith("/teacher/dashboard/library")) return "library";
         if (pathname.startsWith("/teacher/dashboard/live")) return "live";
         if (pathname.startsWith("/teacher/dashboard/exams")) return "exams";
