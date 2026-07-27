@@ -47,7 +47,7 @@ export async function GET(
     if (!isAdmin) {
       const { data: order }: { data: any } = await supabase
         .from('Order')
-        .select('enrolledAt, updatedAt')
+        .select('enrolledAt, updatedAt, batchId')
         .eq('userId', payload.sub)
         .eq('courseId', course.id)
         .eq('status', 'approved')
@@ -57,7 +57,20 @@ export async function GET(
       if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
-      enrolledAt = order.enrolledAt || order.updatedAt;
+      
+      let batchStartDate = null;
+      if (order.batchId) {
+        const { data: batch } = await (supabase as any)
+          .from('Batch')
+          .select('startDate')
+          .eq('id', order.batchId)
+          .maybeSingle();
+        if (batch && batch.startDate) {
+          batchStartDate = batch.startDate;
+        }
+      }
+      
+      enrolledAt = batchStartDate || order.enrolledAt || order.updatedAt;
     }
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);
@@ -121,6 +134,10 @@ export async function GET(
 
     return NextResponse.json({
       courseId: course.id,
+      course: {
+        title: course.title,
+      },
+      enrollmentDate: enrolledAt,
       curriculum: markCompleted(annotatedCurriculum),
     });
   } catch (error: any) {
