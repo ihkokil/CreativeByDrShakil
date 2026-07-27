@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import styles from "../../../../TeacherDashboard.module.css";
+import styles from "../../../TeacherDashboard.module.css";
 import Loader from "@/components/UI/Loader";
 import { ArrowLeft, UserPlus, Users, Calendar, Trash2 } from "lucide-react";
 import { formatDateGMT6 } from "@/lib/date-format";
