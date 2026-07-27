@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseDisplayDateToIso } from '@/lib/date-format';
 
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ courseId: string }> }
 ) {

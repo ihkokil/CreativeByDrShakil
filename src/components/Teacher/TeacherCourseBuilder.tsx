@@ -603,8 +603,13 @@ export default function TeacherCourseBuilder() {
                                 <>
                                     <div className={styles.scheduleGrid}>
                                         <div style={{ gridColumn: "1 / -1", padding: "16px", background: "rgba(var(--primary-rgb), 0.1)", borderRadius: "8px", border: "1px solid var(--glass-border)" }}>
-                                            <h4 style={{ margin: "0 0 8px 0" }}>Global Circular Schedule Active</h4>
-                                            <p style={{ margin: 0, color: "var(--text-muted)" }}>This course follows the Global Circular Schedule starting June 12, 2026. Modules unlock weekly on Fridays at 10:00 PM (GMT+6).</p>
+                                            <h4 style={{ margin: "0 0 8px 0" }}>{releaseMode === 'circular' ? "Global Circular Schedule Active" : "Linear Schedule Active"}</h4>
+                                            <p style={{ margin: 0, color: "var(--text-muted)" }}>
+                                                {releaseMode === 'circular'
+                                                    ? `This course follows the Global Circular Schedule starting June 12, 2026. Modules unlock weekly on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][selectedDays[0] ?? 5]} at 10:00 PM (GMT+6).`
+                                                    : `This course follows a linear/sequential release schedule. Modules unlock progressively.`
+                                                }
+                                            </p>
                                         </div>
                                         <div>
                                             <label>Publish Status</label>

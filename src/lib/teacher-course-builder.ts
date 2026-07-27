@@ -355,10 +355,10 @@ const pinTo10pmBST = (date: Date): Date => {
   return pinned;
 };
 
-const getNextFridayDhaka = (date: Date): Date => {
+const getNextTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
   const dhaka = new Date(date.getTime() + 6 * 60 * 60 * 1000);
-  const day = dhaka.getUTCDay(); // 0 = Sunday, ..., 5 = Friday, 6 = Saturday
-  const diff = (5 - day + 7) % 7;
+  const day = dhaka.getUTCDay(); 
+  const diff = (targetDay - day + 7) % 7;
   dhaka.setUTCDate(dhaka.getUTCDate() + diff);
   return new Date(Date.UTC(
     dhaka.getUTCFullYear(),
@@ -388,12 +388,17 @@ export function computeReleaseGroupDates(
     const N = groups.length;
     if (N === 0) return dates;
     
+    let targetDay = 5; // Friday default
+    if (config.releaseDaysOfWeek && config.releaseDaysOfWeek.length > 0) {
+      targetDay = config.releaseDaysOfWeek[0];
+    }
+    
     // Global start date: June 12, 2026 16:00 UTC (10:00 PM GMT+6)
     const GLOBAL_START_DATE = new Date(Date.UTC(2026, 5, 12, 16, 0, 0));
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     
-    const startSnapped = getNextFridayDhaka(startDate);
-    const globalSnapped = getNextFridayDhaka(GLOBAL_START_DATE);
+    const startSnapped = getNextTargetDayDhaka(startDate, targetDay);
+    const globalSnapped = getNextTargetDayDhaka(GLOBAL_START_DATE, targetDay);
     
     const diffMs = startSnapped.getTime() - globalSnapped.getTime();
     let weeksSinceGlobalStart = Math.round(diffMs / ONE_WEEK_MS);

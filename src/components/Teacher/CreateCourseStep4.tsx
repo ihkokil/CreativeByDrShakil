@@ -84,7 +84,7 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
     try {
       const response = await fetch(`/api/teacher/courses/${courseId}/publish`, {
         method: "POST",
-        body: JSON.stringify({ status: "published" }),
+        body: JSON.stringify({ action: "publish" }),
         headers: getAuthHeaders(),
       });
 

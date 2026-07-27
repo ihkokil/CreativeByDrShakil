@@ -33,8 +33,7 @@
 }
 
 .progressBar {
-  flex: 1;
-  max-width: 300px;
+  width: 300px;
   height: 8px;
   background: var(--glass);
   border-radius: 999px;

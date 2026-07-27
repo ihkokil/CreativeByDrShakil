@@ -2,9 +2,9 @@
 
 import { useEffect, useState, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X, Settings2, Repeat, LayoutList } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
-import { getPreviousFriday, generateModuleSchedule, generatePreviewSchedule } from "@/lib/module-scheduling";
+import { getPreviousTargetDay, generateModuleSchedule, generatePreviewSchedule } from "@/lib/module-scheduling";
 
 export interface StarterItem {
   id: string;
@@ -31,22 +31,16 @@ interface LibraryNode {
 }
 
 // Date Helpers
-function getNextFridayString(): string {
+function getNextTargetDayString(targetDay: number): string {
   const d = new Date();
   const dayOfWeek = d.getDay();
-  const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
-  const daysToAdd = daysUntilFriday === 0 ? 7 : daysUntilFriday;
+  const daysUntil = (targetDay - dayOfWeek + 7) % 7;
+  const daysToAdd = daysUntil === 0 ? 7 : daysUntil;
   d.setDate(d.getDate() + daysToAdd);
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
-}
-
-function getPreviousOrCurrentFriday(dateString: string): Date {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const d = new Date(year, month - 1, day, 12, 0, 0, 0);
-  return getPreviousFriday(d);
 }
 
 function formatDisplayDate(date: Date): string {
@@ -66,9 +60,12 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
   // Chronological order of selected topics
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   
-  // Date Picker state
   const [courseStartDate, setCourseStartDate] = useState<string>("");
   const [previewDate, setPreviewDate] = useState<string>("");
+  
+  const [releaseMode, setReleaseMode] = useState<"fixed_interval" | "circular">("fixed_interval");
+  const [targetDay, setTargetDay] = useState<number>(5);
+
   // Generated schedule: mapping topic ID to scheduled ISO Date string
   const [scheduleMap, setScheduleMap] = useState<Record<string, string>>({});
 
@@ -140,6 +137,17 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         const courseResponse = await fetch(`/api/teacher/courses/${courseId}`, { headers });
         if (courseResponse.ok) {
           loadedCourseData = await courseResponse.json();
+          const loadedMode = loadedCourseData.course?.releaseMode;
+          if (loadedMode === 'circular' || loadedMode === 'fixed_interval') {
+             setReleaseMode(loadedMode);
+          }
+          
+          let initialTargetDay = 5;
+          if (loadedCourseData.course?.releaseDaysOfWeek && loadedCourseData.course.releaseDaysOfWeek.length > 0) {
+             initialTargetDay = loadedCourseData.course.releaseDaysOfWeek[0];
+             setTargetDay(initialTargetDay);
+          }
+
           if (loadedCourseData.course?.courseStartDate) {
             const d = new Date(loadedCourseData.course.courseStartDate);
             const yyyy = d.getFullYear();
@@ -148,12 +156,12 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
             setCourseStartDate(`${yyyy}-${mm}-${dd}`);
             setPreviewDate(`${yyyy}-${mm}-${dd}`);
           } else {
-            const defaultDate = getNextFridayString();
+            const defaultDate = getNextTargetDayString(initialTargetDay);
             setCourseStartDate(defaultDate);
             setPreviewDate(defaultDate);
           }
         } else {
-          const defaultDate = getNextFridayString();
+          const defaultDate = getNextTargetDayString(5);
           setCourseStartDate(defaultDate);
           setPreviewDate(defaultDate);
         }
@@ -249,7 +257,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
 
     const [year, month, day] = courseStartDate.split("-").map(Number);
     const selectedDate = new Date(year, month - 1, day, 12, 0, 0, 0);
-    const snappedFriday = getPreviousFriday(selectedDate);
+    const snappedDay = getPreviousTargetDay(selectedDate, targetDay);
 
     const selectedModules = selectedTopicIds.map(id => {
       const topic = topicOptions.find(t => t.id === id);
@@ -259,7 +267,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
       };
     });
 
-    const schedule = generateModuleSchedule(selectedModules, snappedFriday);
+    const schedule = generateModuleSchedule(selectedModules, snappedDay, targetDay);
 
     const newScheduleMap: Record<string, string> = {};
     schedule.forEach(item => {
@@ -267,7 +275,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     });
 
     setScheduleMap(newScheduleMap);
-  }, [selectedTopicIds, courseStartDate, topicOptions]);
+  }, [selectedTopicIds, courseStartDate, topicOptions, targetDay]);
 
   // Calculate preview schedule based on previewDate
   const previewSchedule = useMemo(() => {
@@ -285,9 +293,13 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
       originalIndex: index
     }));
 
-    const generated = generatePreviewSchedule(scheduleToFilter, baseCourseDate, enrollmentDate);
-    return generated;
-  }, [previewDate, courseStartDate, selectedTopicIds]);
+    if (releaseMode === "circular") {
+      return generatePreviewSchedule(scheduleToFilter, baseCourseDate, enrollmentDate, targetDay);
+    } else {
+      const snappedDay = getPreviousTargetDay(baseCourseDate, targetDay);
+      return generateModuleSchedule(scheduleToFilter, snappedDay, targetDay);
+    }
+  }, [previewDate, courseStartDate, selectedTopicIds, targetDay, releaseMode]);
 
   const toggleLibrarySelection = (topicId: string) => {
     if (selectedTopicIds.includes(topicId)) {
@@ -313,7 +325,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         const topic = topicOptions.find(t => t.id === topicId);
         if (!topic) return null;
 
-        const releaseAt = scheduleMap[topic.id] || null;
+        const releaseAt = releaseMode === 'circular' ? null : (scheduleMap[topic.id] || null);
 
         return {
           id: topic.id,
@@ -330,7 +342,8 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
           method: "PATCH",
           headers,
           body: JSON.stringify({
-            releaseMode: "fixed_interval",
+            releaseMode: releaseMode,
+            releaseDaysOfWeek: [targetDay],
             courseStartDate: courseStartDate, // Keep original start date
             releaseStartAt: courseStartDate,
           }),
@@ -341,15 +354,15 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
           throw new Error(scheduleError.error || "Failed to save publish schedule.");
         }
 
-        const topicImportResponse = await fetch(`/api/teacher/courses/${courseId}/import-topics`, {
-          method: "POST",
+        const curriculumResponse = await fetch(`/api/teacher/courses/${courseId}/curriculum`, {
+          method: "PUT",
           headers,
-          body: JSON.stringify({ topics: topicsPayload }),
+          body: JSON.stringify({ curriculum: topicsPayload }),
         });
 
-        if (!topicImportResponse.ok) {
-          const topicError = await topicImportResponse.json();
-          throw new Error(topicError.error || "Failed to import selected modules.");
+        if (!curriculumResponse.ok) {
+          const curriculumError = await curriculumResponse.json();
+          throw new Error(curriculumError.error || "Failed to save curriculum.");
         }
       }
 
@@ -452,41 +465,172 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         
         {/* Module Selection & Scheduling UI */}
         <div className={styles.contentCard}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "20px" }}>
-            <div>
-              <h2 className={styles.contentTitle}>Scheduled Sequence</h2>
-              <p className={styles.helperText} style={{ marginBottom: "12px", color: "var(--primary)" }}>
-                Preview: What a student would see if they enroll on {previewDate ? formatDisplayDate(new Date(Number(previewDate.split('-')[0]), Number(previewDate.split('-')[1]) - 1, Number(previewDate.split('-')[2]))) : ""}
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(0,0,0,0.2)", padding: "12px", borderRadius: "8px", border: "1px solid var(--glass-border)" }}>
-                <Calendar style={{ color: "var(--primary)" }} size={20} />
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "4px" }}>Simulate Enrollment Date</label>
-                  <input
-                    type="date"
-                    value={previewDate}
-                    min={courseStartDate}
-                    onChange={(e) => setPreviewDate(e.target.value)}
-                    style={{
-                      background: "transparent", color: "var(--foreground)", border: "none", 
-                      fontSize: "1rem", fontWeight: "bold", cursor: "pointer", outline: "none"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+            <h2 className={styles.contentTitle} style={{ margin: 0 }}>Scheduled Sequence</h2>
             <button
               type="button"
               onClick={() => router.push(`/teacher/dashboard/courses/${courseId}/outline?tab=library`)}
               style={{
-                padding: "12px 24px", background: "var(--primary)", color: "white", border: "none", borderRadius: "8px",
-                cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "1rem", fontWeight: "600",
+                padding: "10px 20px", background: "var(--primary)", color: "white", border: "none", borderRadius: "8px",
+                cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.95rem", fontWeight: "600",
                 boxShadow: "0 4px 12px rgba(var(--primary-rgb), 0.3)"
               }}
             >
-              <Plus size={20} /> Add Modules
+              <Plus size={18} /> Add Modules
             </button>
           </div>
+
+          <div style={{
+            background: "rgba(0, 0, 0, 0.25)",
+            border: "1px solid var(--glass-border)",
+            borderRadius: "12px",
+            padding: "24px",
+            marginBottom: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+            width: "100%"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "12px", marginBottom: "4px" }}>
+              <Settings2 size={20} color="var(--primary)" />
+              <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "600", letterSpacing: "0.5px" }}>Release Configuration</h3>
+            </div>
+
+            <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", flexDirection: "column", flex: "1", minWidth: "200px" }}>
+                <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  {releaseMode === 'circular' ? <Repeat size={14} /> : <LayoutList size={14} />} Release Mode
+                </label>
+                <div style={{ 
+                  display: "flex", 
+                  background: "rgba(255,255,255,0.03)", 
+                  border: "1px solid rgba(255,255,255,0.1)", 
+                  borderRadius: "8px", 
+                  padding: "4px",
+                  gap: "4px"
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setReleaseMode("fixed_interval")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: "6px",
+                      background: releaseMode === "fixed_interval" ? "var(--primary)" : "transparent",
+                      color: releaseMode === "fixed_interval" ? "white" : "var(--text-muted)",
+                      fontWeight: "600",
+                      fontSize: "0.9rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    Linear
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReleaseMode("circular")}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      borderRadius: "6px",
+                      background: releaseMode === "circular" ? "var(--primary)" : "transparent",
+                      color: releaseMode === "circular" ? "white" : "var(--text-muted)",
+                      fontWeight: "600",
+                      fontSize: "0.9rem",
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    Circular
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", flex: "1", minWidth: "160px" }}>
+                <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Calendar size={14} /> Module Release Day
+                </label>
+                <select 
+                  value={targetDay}
+                  onChange={(e) => setTargetDay(Number(e.target.value))}
+                  style={{ 
+                    background: "rgba(255,255,255,0.03)", color: "var(--foreground)", 
+                    border: "1px solid rgba(255,255,255,0.1)", padding: "12px 14px", 
+                    borderRadius: "8px", outline: "none", fontSize: "0.95rem",
+                    transition: "border-color 0.2s"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--primary)'}
+                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+                >
+                  <option value={0}>Sunday</option>
+                  <option value={1}>Monday</option>
+                  <option value={2}>Tuesday</option>
+                  <option value={3}>Wednesday</option>
+                  <option value={4}>Thursday</option>
+                  <option value={5}>Friday</option>
+                  <option value={6}>Saturday</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", flex: "1", minWidth: "180px" }}>
+                <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Calendar size={14} /> Course Start Date
+                </label>
+                <div style={{ 
+                  display: "flex", alignItems: "center", gap: "8px", 
+                  background: "rgba(255,255,255,0.03)", padding: "10px 14px", 
+                  borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)",
+                  transition: "border-color 0.2s"
+                }}>
+                  <input
+                    type="date"
+                    value={courseStartDate}
+                    onChange={(e) => setCourseStartDate(e.target.value)}
+                    style={{ background: "transparent", color: "var(--foreground)", border: "none", fontSize: "0.95rem", width: "100%", outline: "none" }}
+                  />
+                </div>
+              </div>
+
+              {releaseMode === 'circular' && (
+                <div style={{ display: "flex", flexDirection: "column", flex: "1", minWidth: "180px", position: "relative" }}>
+                  <div style={{
+                    position: "absolute", top: "-12px", right: "0", background: "var(--primary)", 
+                    color: "white", fontSize: "0.65rem", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold",
+                    letterSpacing: "0.5px", textTransform: "uppercase"
+                  }}>Preview Only</div>
+                  <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Calendar size={14} /> Simulate Enrollment
+                  </label>
+                  <div style={{ 
+                    display: "flex", alignItems: "center", gap: "8px", 
+                    background: "rgba(var(--primary-rgb), 0.05)", padding: "10px 14px", 
+                    borderRadius: "8px", border: "1px dashed var(--primary)"
+                  }}>
+                    <input
+                      type="date"
+                      value={previewDate}
+                      min={courseStartDate}
+                      onChange={(e) => setPreviewDate(e.target.value)}
+                      style={{ background: "transparent", color: "var(--foreground)", border: "none", fontSize: "0.95rem", width: "100%", outline: "none" }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {releaseMode === 'circular' ? (
+            <p className={styles.helperText} style={{ marginBottom: "20px", color: "var(--primary)" }}>
+              Previewing circular rotation for a student enrolling on {previewDate ? formatDisplayDate(new Date(Number(previewDate.split('-')[0]), Number(previewDate.split('-')[1]) - 1, Number(previewDate.split('-')[2]))) : ""}
+            </p>
+          ) : (
+            <p className={styles.helperText} style={{ marginBottom: "20px", color: "var(--primary)" }}>
+              Previewing linear sequence starting on {courseStartDate ? formatDisplayDate(new Date(Number(courseStartDate.split('-')[0]), Number(courseStartDate.split('-')[1]) - 1, Number(courseStartDate.split('-')[2]))) : ""}
+            </p>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {selectedTopicIds.length === 0 ? (

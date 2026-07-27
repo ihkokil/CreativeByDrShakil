@@ -49,7 +49,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { data: instructors = [] } = await supabase.from('CourseInstructor').select('*').eq('courseId', courseId).order('sortOrder', { ascending: true });
-    const course = { ...(courseRow as any), instructors };
+    
+    let parsedReleaseDaysOfWeek = null;
+    try {
+      if (courseRow.releaseDaysOfWeek) {
+        parsedReleaseDaysOfWeek = JSON.parse(courseRow.releaseDaysOfWeek);
+      }
+    } catch (e) {
+      console.error("Failed to parse releaseDaysOfWeek", e);
+    }
+    
+    const course = { 
+      ...(courseRow as any), 
+      instructors,
+      releaseDaysOfWeek: parsedReleaseDaysOfWeek 
+    };
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);
     const curriculum = await populateMediaVaultNodes(rawCurriculum);
@@ -60,7 +74,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseStartAt: course.releaseStartAt || course.courseStartDate,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: (course as any).releaseDaysOfWeek as number[],
+      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
       releaseGroupDates,
     });
 
@@ -183,7 +197,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       if (updateError) throw updateError;
     }
 
-    const { data: course } = await supabase.from('Course').select('*').eq('id', existingCourse.id).limit(1).maybeSingle();
+    const { data: courseRow } = await supabase.from('Course').select('*').eq('id', existingCourse.id).limit(1).maybeSingle();
+
+    let parsedReleaseDaysOfWeek = null;
+    try {
+      if (courseRow?.releaseDaysOfWeek) {
+        parsedReleaseDaysOfWeek = JSON.parse(courseRow.releaseDaysOfWeek);
+      }
+    } catch (e) {
+      console.error("Failed to parse releaseDaysOfWeek", e);
+    }
+    
+    const course = { 
+      ...(courseRow as any), 
+      releaseDaysOfWeek: parsedReleaseDaysOfWeek 
+    };
 
     return NextResponse.json({ course });
   } catch (error: any) {

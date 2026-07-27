@@ -22,36 +22,36 @@ function normalizeDateToNoon(date: Date): Date {
 }
 
 /**
- * Snaps a date to the previous Friday. If the date is already a Friday, returns the date.
+ * Snaps a date to the previous target day. If the date is already the target day, returns the date.
  */
-export function getPreviousFriday(date: Date): Date {
+export function getPreviousTargetDay(date: Date, targetDay: number = 5): Date {
   const d = normalizeDateToNoon(date);
-  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
-  const diff = (day - 5 + 7) % 7;
+  const day = d.getDay();
+  const diff = (day - targetDay + 7) % 7;
   d.setDate(d.getDate() - diff);
   return d;
 }
 
 /**
- * Snaps a date to the next Friday. If the date is already a Friday, returns the date.
+ * Snaps a date to the next target day. If the date is already the target day, returns the date.
  */
-export function getNextFridayOnOrAfter(date: Date): Date {
+export function getNextTargetDayOnOrAfter(date: Date, targetDay: number = 5): Date {
   const d = normalizeDateToNoon(date);
-  const day = d.getDay(); // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
-  const diff = (5 - day + 7) % 7;
+  const day = d.getDay();
+  const diff = (targetDay - day + 7) % 7;
   d.setDate(d.getDate() + diff);
   return d;
 }
 
 /**
  * Generates the weekly schedule for a sequence of modules.
- * The first module is scheduled on the previous/current Friday of the baseDate.
+ * The first module is scheduled on the previous/current target day of the baseDate.
  * Each subsequent module is scheduled +7 days from the last one.
  */
-export function generateModuleSchedule(modules: Module[], baseDate: Date): ScheduledModule[] {
-  const startFriday = getPreviousFriday(baseDate);
+export function generateModuleSchedule(modules: Module[], baseDate: Date, targetDay: number = 5): ScheduledModule[] {
+  const startDay = getPreviousTargetDay(baseDate, targetDay);
   return modules.map((mod, index) => {
-    const d = new Date(startFriday.getTime());
+    const d = new Date(startDay.getTime());
     d.setDate(d.getDate() + index * 7);
     
     // Format as YYYY-MM-DD
@@ -104,11 +104,12 @@ export function calculateStartingModuleIndex(courseStartDate: Date, previewDate:
 export function generatePreviewSchedule(
   modules: Module[], 
   courseStartDate: Date, 
-  previewDate: Date
+  previewDate: Date,
+  targetDay: number = 5
 ): ScheduledModule[] {
   if (modules.length === 0) return [];
   
-  const snappedPreviewDate = getNextFridayOnOrAfter(previewDate);
+  const snappedPreviewDate = getNextTargetDayOnOrAfter(previewDate, targetDay);
   const startingIndex = calculateStartingModuleIndex(courseStartDate, snappedPreviewDate, modules.length);
   
   const schedule: ScheduledModule[] = [];
