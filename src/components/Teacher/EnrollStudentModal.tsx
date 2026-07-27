@@ -15,19 +15,28 @@ interface Student {
 
 interface Props {
     courseId: string;
+    batchId?: string;
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export default function EnrollStudentModal({ courseId, isOpen, onClose, onSuccess }: Props) {
+export default function EnrollStudentModal({ 
+    courseId, 
+    batchId,
+    isOpen, 
+    onClose, 
+    onSuccess 
+}: Props) {
     const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
     
     // Data states
     const [students, setStudents] = useState<Student[]>([]);
+    const [batches, setBatches] = useState<{id: string, name: string, startDate: string}[]>([]);
     
     // Form states
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+    const [selectedBatchId, setSelectedBatchId] = useState<string>(batchId || "");
     const [searchQuery, setSearchQuery] = useState("");
     
     // New student form states
@@ -61,6 +70,24 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery, isOpen, activeTab]);
 
+    useEffect(() => {
+        if (isOpen && !batchId) {
+            // Fetch batches for this course
+            const fetchBatches = async () => {
+                try {
+                    const res = await fetch(`/api/teacher/batches/${courseId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        setBatches(data.batches || []);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch batches", err);
+                }
+            };
+            fetchBatches();
+        }
+    }, [isOpen, courseId, batchId]);
+
     const showMessage = (msg: { type: 'success' | 'error'; text: string }) => {
         setMessage(msg);
         setTimeout(() => {
@@ -79,12 +106,14 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
             
             const requestBody = isNewStudent ? {
                 courseId,
+                batchId: selectedBatchId || undefined,
                 isNewStudent: true,
                 email: newStudentEmail.trim().toLowerCase(),
                 fullName: newStudentName.trim(),
                 phone: newStudentPhone.trim() || undefined,
             } : {
                 courseId,
+                batchId: selectedBatchId || undefined,
                 isNewStudent: false,
                 studentIds: selectedStudents,
             };
@@ -142,6 +171,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
         setNewStudentEmail("");
         setNewStudentName("");
         setNewStudentPhone("");
+        if (!batchId) setSelectedBatchId("");
         setActiveTab("existing");
         onClose();
     };
@@ -199,6 +229,27 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
                         </div>
 
                         <form className={styles.form} onSubmit={handleSubmit}>
+                            {!batchId && (
+                                <div className={styles.fieldGroup} style={{ marginBottom: '1rem' }}>
+                                    <label className={styles.fieldLabel}>
+                                        Select Batch (Optional)
+                                    </label>
+                                    <select 
+                                        className={styles.selectInput}
+                                        value={selectedBatchId}
+                                        onChange={(e) => setSelectedBatchId(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
+                                    >
+                                        <option value="">-- No Batch (Enrolls with today's date) --</option>
+                                        {batches.map(b => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name} (Starts: {new Date(b.startDate).toLocaleDateString()})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             {activeTab === "existing" ? (
                                 <>
                                     {/* Search for existing student */}
