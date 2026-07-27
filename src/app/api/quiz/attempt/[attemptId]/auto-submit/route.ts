@@ -26,10 +26,10 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
   const negativeValue = quiz?.negativeValue ?? 0;
   const timeTakenSeconds = quiz?.durationMinutes ? quiz.durationMinutes * 60 : 0;
   
-  const sbaMarks = quiz?.sbaMarks ?? marksPerCorrect;
-  const sbaNegativePct = quiz?.sbaNegative ?? (allowNegativeMarking ? (negativeValue <= 1 && negativeValue > 0 ? negativeValue * 100 : negativeValue) : 0);
-  const tfMarks = quiz?.tfMarks ?? (marksPerCorrect / 5);
-  const tfNegativePct = quiz?.tfNegative ?? (allowNegativeMarking ? (negativeValue <= 1 && negativeValue > 0 ? negativeValue * 100 : negativeValue) : 0);
+  const sbaMarks = quiz?.sbaMarks || marksPerCorrect;
+  const sbaNegativePct = quiz?.sbaNegative || (allowNegativeMarking ? (negativeValue <= 1 && negativeValue > 0 ? negativeValue * 100 : negativeValue) : 0);
+  const tfMarks = quiz?.tfMarks || (marksPerCorrect / 5);
+  const tfNegativePct = quiz?.tfNegative || (allowNegativeMarking ? (negativeValue <= 1 && negativeValue > 0 ? negativeValue * 100 : negativeValue) : 0);
   
   const sbaNegativeAbsolute = sbaMarks * (sbaNegativePct / 100);
   const tfNegativeAbsolute = tfMarks * (tfNegativePct / 100);
