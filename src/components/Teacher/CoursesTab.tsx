@@ -38,6 +38,7 @@ interface Course {
     instructors: { name: string }[];
     enrolledCount?: number;
     revenue?: number;
+    releaseMode?: string | null;
 }
 
 export default function CoursesTab() {
@@ -234,6 +235,9 @@ export default function CoursesTab() {
                         <tr>
                             <th>Program Name</th>
                             <th>Status</th>
+                            <th>Mode</th>
+                            <th>Price</th>
+                            <th>Start Date</th>
                             <th>Enrolled</th>
                             <th>Actions</th>
                         </tr>
@@ -262,6 +266,28 @@ export default function CoursesTab() {
                                     <td>
                                         <span className={`${styles.statusBadge} ${styles[course.status]}`}>
                                             {course.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={styles.dateText} style={{ fontWeight: 600 }}>
+                                            {!course.releaseMode || course.releaseMode === 'circular' ? "Circular" : "Linear"}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className={styles.priceCol}>
+                                            {course.salePrice ? (
+                                                <>
+                                                    <span className={styles.mainPrice}>৳{course.salePrice}</span>
+                                                    <span className={styles.oldPrice}>৳{course.price}</span>
+                                                </>
+                                            ) : (
+                                                <span className={styles.mainPrice}>৳{course.price}</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span className={styles.dateText}>
+                                            {course.courseStartDate ? new Date(course.courseStartDate).toLocaleDateString() : 'N/A'}
                                         </span>
                                     </td>
                                     <td>

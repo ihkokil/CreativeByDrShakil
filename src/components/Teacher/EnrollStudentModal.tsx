@@ -27,7 +27,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
     const [students, setStudents] = useState<Student[]>([]);
     
     // Form states
-    const [selectedStudent, setSelectedStudent] = useState("");
+    const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     
     // New student form states
@@ -86,7 +86,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
             } : {
                 courseId,
                 isNewStudent: false,
-                studentId: selectedStudent,
+                studentIds: selectedStudents,
             };
 
             if (isNewStudent && (!newStudentEmail || !newStudentName)) {
@@ -95,8 +95,8 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
                 return;
             }
 
-            if (!isNewStudent && !selectedStudent) {
-                showMessage({ type: 'error', text: 'Please select a student.' });
+            if (!isNewStudent && selectedStudents.length === 0) {
+                showMessage({ type: 'error', text: 'Please select at least one student.' });
                 setLoading(false);
                 return;
             }
@@ -118,7 +118,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
                 showMessage({ type: 'success', text: data.message || "Student enrolled successfully!" });
                 
                 // Reset form
-                setSelectedStudent("");
+                setSelectedStudents([]);
                 setNewStudentEmail("");
                 setNewStudentName("");
                 setNewStudentPhone("");
@@ -137,7 +137,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
 
     const handleClose = () => {
         setMessage(null);
-        setSelectedStudent("");
+        setSelectedStudents([]);
         setSearchQuery("");
         setNewStudentEmail("");
         setNewStudentName("");
@@ -228,8 +228,12 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
                                             filteredStudents.slice(0, 5).map((student) => (
                                                 <div
                                                     key={student.id}
-                                                    className={`${styles.studentCard} ${selectedStudent === student.id ? styles.selectedCard : ""}`}
-                                                    onClick={() => setSelectedStudent(student.id)}
+                                                    className={`${styles.studentCard} ${selectedStudents.includes(student.id) ? styles.selectedCard : ""}`}
+                                                    onClick={() => setSelectedStudents(prev => 
+                                                        prev.includes(student.id) 
+                                                            ? prev.filter(id => id !== student.id)
+                                                            : [...prev, student.id]
+                                                    )}
                                                 >
                                                     <div className={styles.studentInfo}>
                                                         <div className={styles.studentAvatar}>
@@ -243,7 +247,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {selectedStudent === student.id && (
+                                                    {selectedStudents.includes(student.id) && (
                                                         <Check size={20} className={styles.checkIcon} />
                                                     )}
                                                 </div>
@@ -302,7 +306,7 @@ export default function EnrollStudentModal({ courseId, isOpen, onClose, onSucces
                             <button 
                                 className={styles.submitBtn} 
                                 type="submit" 
-                                disabled={loading || (activeTab === "existing" ? !selectedStudent : (!newStudentEmail || !newStudentName))}
+                                disabled={loading || (activeTab === "existing" ? selectedStudents.length === 0 : (!newStudentEmail || !newStudentName))}
                             >
                                 {loading ? (
                                     <><Loader variant="button" /> Enrolling...</>

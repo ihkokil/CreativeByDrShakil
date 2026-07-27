@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course not found or unauthorized.' }, { status: 404 });
     }
 
-    let student;
+    let enrolledStudents: any[] = [];
     let isNewRegistration = false;
 
     if (isNewStudent) {
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 .insert(insertValues as any);
       if (insertError) throw insertError;
 
-      student = {
+      const newStudent = {
           ...insertValues,
           createdAt: nowStr,
           updatedAt: nowStr,
@@ -103,129 +103,99 @@ export async function POST(request: NextRequest) {
           institution: null,
       };
 
+      enrolledStudents.push(newStudent);
       isNewRegistration = true;
 
       try {
         await sendPasswordSetupEmail({
-          email: student.email,
-          fullName: student.fullName,
+          email: newStudent.email,
+          fullName: newStudent.fullName,
           token: setupToken,
         });
       } catch (emailError) {
         console.error('Failed to send password setup email:', emailError);
       }
     } else {
-      if (!studentId) {
-        return NextResponse.json({ error: 'Student ID is required for existing students.' }, { status: 400 });
+      const studentIds = body.studentIds || (studentId ? [studentId] : []);
+      if (studentIds.length === 0) {
+        return NextResponse.json({ error: 'Student ID(s) are required for existing students.' }, { status: 400 });
       }
 
-      const { data: foundStudent } = await supabase
+      const { data: foundStudents } = await supabase
         .from('User')
         .select('*')
-        .eq('id', studentId)
-        .eq('role', 'student')
+        .in('id', studentIds)
+        .eq('role', 'student');
+      
+      if (!foundStudents || foundStudents.length === 0) {
+        return NextResponse.json({ error: 'Students not found.' }, { status: 404 });
+      }
+      enrolledStudents = foundStudents;
+    }
+
+    let successfulEnrollments = [];
+
+    for (const student of enrolledStudents) {
+      const { data: existingOrder } = await supabase
+        .from('Order')
+        .select('*')
+        .eq('userId', student.id)
+        .eq('courseId', courseId)
         .limit(1)
         .maybeSingle();
-      
-      student = foundStudent;
 
-      if (!student) {
-        return NextResponse.json({ error: 'Student not found.' }, { status: 404 });
+      if ((existingOrder as any)?.status === 'approved') {
+        continue; // Already enrolled
       }
-    }
 
-    const { data: existingOrder } = await supabase
-      .from('Order')
-      .select('*')
-      .eq('userId', student.id)
-      .eq('courseId', courseId)
-      .limit(1)
-      .maybeSingle();
-
-    if ((existingOrder as any)?.status === 'approved') {
-      return NextResponse.json({ error: 'Student is already enrolled in this course.' }, { status: 409 });
-    }
-
-    let order;
-    if (existingOrder) {
-      const nowStr = new Date().toISOString();
-      const { error: updateError } = await supabase
-        .from('Order')
-        .update({ status: 'approved', totalAmount: 0, updatedAt: nowStr, enrolledAt: nowStr } as any)
-        .eq('id', (existingOrder as any).id);
-      
-      if (updateError) {
-        throw new Error(`Failed to update order: ${updateError.message}`);
-      }
+      let order;
+      if (existingOrder) {
+        const nowStr = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from('Order')
+          .update({ status: 'approved', totalAmount: 0, updatedAt: nowStr, enrolledAt: nowStr } as any)
+          .eq('id', (existingOrder as any).id);
         
-      const { data: existingOrderFull } = await supabase.from('Order').select('*').eq('id', (existingOrder as any).id).limit(1).maybeSingle();
-      
-      let orderCourse = null, orderUser = null;
-      if (existingOrderFull) {
-        if ((existingOrderFull as any).courseId) {
-          const { data } = await supabase.from('Course').select('*').eq('id', (existingOrderFull as any).courseId).limit(1).maybeSingle();
-          orderCourse = data;
+        if (updateError) {
+          console.error(`Failed to update order for ${student.email}: ${updateError.message}`);
+          continue;
         }
-        if ((existingOrderFull as any).userId) {
-          const { data } = await supabase.from('User').select('*').eq('id', (existingOrderFull as any).userId).limit(1).maybeSingle();
-          orderUser = data;
-        }
-      }
-      order = existingOrderFull ? { ...(existingOrderFull as any), course: orderCourse, user: orderUser } : null;
-    } else {
-      const nowStr = new Date().toISOString();
-      const newOrderId = crypto.randomUUID();
-      const { error: orderInsertError } = await supabase.from('Order')
+        order = { ...(existingOrder as any), status: 'approved' };
+      } else {
+        const nowStr = new Date().toISOString();
+        const newOrderId = crypto.randomUUID();
+        const newOrder = {
+            id: newOrderId,
+            userId: student.id,
+            courseId,
+            status: 'approved',
+            totalAmount: 0,
+            createdAt: nowStr,
+            updatedAt: nowStr,
+        };
+        const { error: orderInsertError } = await supabase.from('Order')
 // @ts-ignore
-.insert({
-          id: newOrderId,
-          userId: student.id,
-          courseId,
-          status: 'approved',
-          totalAmount: 0,
-          createdAt: nowStr,
-          updatedAt: nowStr,
-      } as any);
-      
-      if (orderInsertError) {
-        throw new Error(`Failed to create order: ${orderInsertError.message}`);
-      }
-      
-      const { data: newOrderFull } = await supabase.from('Order').select('*').eq('id', newOrderId).limit(1).maybeSingle();
-      
-      let newOrderCourse = null, newOrderUser = null;
-      if (newOrderFull) {
-        if ((newOrderFull as any).courseId) {
-          const { data } = await supabase.from('Course').select('*').eq('id', (newOrderFull as any).courseId).limit(1).maybeSingle();
-          newOrderCourse = data;
+.insert(newOrder as any);
+        
+        if (orderInsertError) {
+          console.error(`Failed to create order for ${student.email}: ${orderInsertError.message}`);
+          continue;
         }
-        if ((newOrderFull as any).userId) {
-          const { data } = await supabase.from('User').select('*').eq('id', (newOrderFull as any).userId).limit(1).maybeSingle();
-          newOrderUser = data;
-        }
+        order = newOrder;
       }
-      order = newOrderFull ? { ...(newOrderFull as any), course: newOrderCourse, user: newOrderUser } : null;
+      successfulEnrollments.push({ student, order });
+    }
+
+    if (successfulEnrollments.length === 0) {
+      return NextResponse.json({ error: 'No students were enrolled. They might already be enrolled in this course.' }, { status: 409 });
     }
 
     return NextResponse.json({
       success: true,
       message: isNewRegistration
-        ? `Student enrolled successfully. A password setup email has been sent to ${student.email}.`
-        : 'Student enrolled successfully.',
-      enrollment: {
-        id: order!.id,
-        student: {
-          id: student.id,
-          fullName: student.fullName,
-          email: student.email,
-          phone: student.phone,
-        },
-        course: {
-          id: (course as any).id,
-          title: (course as any).title,
-        },
-        isNewRegistration,
-      },
+        ? `Student enrolled successfully. A password setup email has been sent to ${enrolledStudents[0].email}.`
+        : `${successfulEnrollments.length} student(s) enrolled successfully.`,
+      enrollmentsCount: successfulEnrollments.length,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

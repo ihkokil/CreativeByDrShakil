@@ -16,9 +16,8 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
-  const [price, setPrice] = useState(0);
+  const [price, setPrice] = useState<number | "">("");
   const [salePrice, setSalePrice] = useState<number | null>(null);
-  const [isFeatured, setIsFeatured] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
 
@@ -37,9 +36,8 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
             const data = await courseResponse.json();
             const course = data.course;
             setTitle(course.title || "");
-            setPrice(course.price || 0);
+            setPrice(course.price ?? "");
             setSalePrice(course.salePrice || null);
-            setIsFeatured(Boolean(course.isFeatured));
             setImagePreview(course.imageUrl || "");
           }
         }
@@ -67,9 +65,7 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSave = async (exitAfterSave: boolean = false) => {
     if (!title.trim()) {
       setError("Title is required");
       return;
@@ -102,11 +98,10 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
         method: courseId ? "PATCH" : "POST",
         body: JSON.stringify({
           title: title.trim(),
-          price: parseFloat(price.toString()),
+          price: price === "" ? 0 : parseFloat(price.toString()),
           salePrice: salePrice ? parseFloat(salePrice.toString()) : null,
           duration: "1 year",
           imageUrl,
-          isFeatured,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -122,13 +117,22 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
       const data = await response.json();
       const newCourseId = courseId || data.course.id;
 
-      // Navigate to step 2
-      router.push(`/teacher/dashboard/courses/${newCourseId}/content`);
+      if (exitAfterSave) {
+        router.push("/teacher/dashboard/courses");
+      } else {
+        // Navigate to step 2
+        router.push(`/teacher/dashboard/courses/${newCourseId}/content`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save course");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSave(false);
   };
 
   if (loading) {
@@ -237,7 +241,7 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
               <input
                 type="number"
                 value={price}
-                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setPrice(e.target.value === "" ? "" : parseFloat(e.target.value))}
                 placeholder="0"
                 className={styles.input}
                 min="0"
@@ -263,24 +267,7 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
           </div>
         </div>
 
-        <div className={styles.formSection}>
-          <h2 className={styles.sectionTitle}>Homepage Feature</h2>
 
-          <div className={styles.durationRow}>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Homepage Feature</label>
-              <label style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={isFeatured}
-                  onChange={(e) => setIsFeatured(e.target.checked)}
-                />
-                <span>Show this course in the homepage upcoming most popular course section</span>
-              </label>
-            </div>
-          </div>
-        </div>
 
         <div className={styles.actions}>
           <button
@@ -290,6 +277,14 @@ function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
             disabled={submitting || loading}
           >
             Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSave(true)}
+            className={styles.draftBtn}
+            disabled={submitting || loading}
+          >
+            Save Draft & Exit
           </button>
           <button
             type="submit"

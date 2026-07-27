@@ -254,6 +254,29 @@
     flex-direction: column;
 }
 
+.priceCol {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mainPrice {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.oldPrice {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-decoration: line-through;
+}
+
+.dateText {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
 .mainStat {
     font-size: 1.1rem;
     font-weight: 700;

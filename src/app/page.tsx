@@ -1,6 +1,5 @@
 import Navbar from "@/components/Navbar/Navbar";
 import Hero from "@/components/Hero/Hero";
-import Upcoming from "@/components/Upcoming/Upcoming";
 import Courses from "@/components/Courses/Courses";
 import FAQ from "@/components/FAQ/FAQ";
 import Footer from "@/components/Footer/Footer";
@@ -45,9 +44,6 @@ export default async function Home() {
             <Navbar />
             <section className={`${styles.sectionShell} ${styles.heroShell}`}>
                 <Hero courseCount={initialCourses.length} />
-            </section>
-            <section className={`${styles.sectionShell} ${styles.upcomingShell}`}>
-                <Upcoming />
             </section>
             <section className={`${styles.sectionShell} ${styles.coursesShell}`}>
                 <Courses initialCourses={initialCourses} initialTeachers={initialTeachers} />

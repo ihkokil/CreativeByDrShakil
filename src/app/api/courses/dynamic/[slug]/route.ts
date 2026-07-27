@@ -75,7 +75,6 @@ export async function GET(
         salePrice: course.salePrice ? formatPrice(course.salePrice) : null,
         priceValue: course.price,
         duration: course.duration,
-        isFeatured: course.isFeatured,
         description: course.overview || course.description,
         overview: course.overview,
         learningOutcomes: course.learningOutcomes,

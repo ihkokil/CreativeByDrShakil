@@ -319,6 +319,30 @@
   color: var(--foreground);
 }
 
+.draftBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.draftBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.draftBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 
 .submitBtn {
   display: flex;

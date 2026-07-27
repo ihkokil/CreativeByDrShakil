@@ -53,7 +53,6 @@ export async function POST(
       teacherId: payload.sub,
       instructor: original.instructor,
       timezone: original.timezone,
-      isFeatured: false,
       releaseMode: original.releaseMode,
       releaseStartAt: null,
       releaseIntervalDays: original.releaseIntervalDays,
