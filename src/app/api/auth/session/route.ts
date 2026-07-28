@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
 
   if (payload.sessionId) {
     const { isSessionValid } = await import('@/lib/session-manager');
-    const sessionValid = await isSessionValid(payload.sessionId);
+    const xDeviceHash = request.headers.get('x-device-hash');
+    const sessionValid = await isSessionValid(payload.sessionId, payload.sub, xDeviceHash);
     if (!sessionValid) {
       // Session has been revoked or logged out
       const cookieStore = await import('next/headers').then(m => m.cookies());
@@ -51,6 +52,34 @@ export async function GET(request: NextRequest) {
       await updateSessionActivity(payload.sessionId);
     }
 
+    let finalToken = token;
+    const xDeviceHash = request.headers.get('x-device-hash');
+
+    if (payload.deviceHash?.startsWith('fallback-') && xDeviceHash) {
+      // Upgrade the JWT to contain the real device hash instead of the fallback
+      const { signAuthToken } = await import('@/lib/auth-server');
+      const { sub, role, email, sessionId, isBanned, isSessionLockedExempt, user_metadata } = payload;
+      
+      finalToken = await signAuthToken({
+        sub: sub as string,
+        role: role as 'admin' | 'teacher' | 'student',
+        email: email as string,
+        sessionId: sessionId as string | undefined,
+        isBanned: isBanned as boolean | undefined,
+        isSessionLockedExempt: isSessionLockedExempt as boolean | undefined,
+        user_metadata,
+        deviceHash: xDeviceHash
+      });
+      const cookieStore = await import('next/headers').then(m => m.cookies());
+      cookieStore.set(AUTH_COOKIE_NAME, finalToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 7 * 24 * 60 * 60,
+      });
+    }
+
     return NextResponse.json({
       user: {
         id: userRecord.id,
@@ -66,7 +95,7 @@ export async function GET(request: NextRequest) {
         },
       },
       role: userRecord.role,
-      token,
+      token: finalToken,
       sessionId: payload.sessionId,
     });
   } catch (error) {
