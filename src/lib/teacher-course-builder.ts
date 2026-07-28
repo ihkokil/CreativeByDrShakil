@@ -74,24 +74,40 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
 
   const id = normalizeNullableText(raw.id) || createNodeId('node');
   const title = normalizeNullableText(raw.title);
-  let rawType = normalizeNullableText(raw.type) as CurriculumContentType | null;
-
+  
   if (!title) return null;
 
-  if (!rawType) {
-    rawType = 'folder';
-  }
-  if (!['folder', 'youtube', 'self-hosted', 'document'].includes(rawType)) {
-    rawType = 'folder';
+  let rawTypeStr = normalizeNullableText(raw.type)?.toLowerCase();
+  if (!rawTypeStr) {
+    if ((raw as any).mediaVaultFolderId || (raw as any).children || (raw as any).subTopics || (raw as any).items) {
+      rawTypeStr = 'folder';
+    } else if ((raw as any).url) {
+      rawTypeStr = 'self-hosted';
+    } else {
+      rawTypeStr = 'folder';
+    }
   }
 
-  const childrenRaw: unknown[] = Array.isArray((raw as any).children)
+  if (rawTypeStr === 'video') rawTypeStr = 'self-hosted';
+  if (rawTypeStr === 'pdf') rawTypeStr = 'document';
+  if (rawTypeStr === 'module') rawTypeStr = 'folder';
+
+  if (!['folder', 'youtube', 'self-hosted', 'document'].includes(rawTypeStr)) {
+    rawTypeStr = 'folder';
+  }
+  const rawType = rawTypeStr as CurriculumContentType;
+
+  const childrenRaw = Array.isArray((raw as any).children)
     ? (raw as any).children
-    : (Array.isArray((raw as any).subTopics) ? (raw as any).subTopics : []);
+    : Array.isArray((raw as any).subTopics)
+    ? (raw as any).subTopics
+    : Array.isArray((raw as any).items)
+    ? (raw as any).items
+    : [];
 
   const children = childrenRaw
-    .map((node) => normalizeNode(node))
-    .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
+    .map(normalizeNode)
+    .filter((node: unknown): node is BuilderCurriculumNode => Boolean(node));
 
   return {
     id,
@@ -120,7 +136,7 @@ export function parseCurriculumJson(raw: unknown): BuilderCurriculumNode[] {
   if (!Array.isArray(data)) return [];
   return data
     .map(normalizeNode)
-    .filter((node): node is BuilderCurriculumNode => Boolean(node));
+    .filter((node: unknown): node is BuilderCurriculumNode => Boolean(node));
 }
 
 export function stripMediaVaultChildren(nodes: BuilderCurriculumNode[]): BuilderCurriculumNode[] {
@@ -351,7 +367,11 @@ const normalizeDate = (value: string | Date | null | undefined): Date | null => 
  * We shift by 6 hours so we pin to the calendar day in Dhaka, not the calendar day in UTC.
  */
 const pinTo10pmBST = (date: Date): Date => {
+  if (!date || Number.isNaN(date.getTime())) {
+    return new Date();
+  }
   const dhakaTime = new Date(date.getTime() + 6 * 60 * 60 * 1000);
+  if (Number.isNaN(dhakaTime.getTime())) return new Date();
   const pinned = new Date(Date.UTC(
     dhakaTime.getUTCFullYear(),
     dhakaTime.getUTCMonth(),
@@ -361,7 +381,7 @@ const pinTo10pmBST = (date: Date): Date => {
     0,
     0
   ));
-  return pinned;
+  return Number.isNaN(pinned.getTime()) ? new Date() : pinned;
 };
 
 const getPreviousTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
@@ -398,8 +418,20 @@ export function computeReleaseGroupDates(
     if (N === 0) return dates;
     
     let targetDay = 5; // Friday default
-    if (config.releaseDaysOfWeek && config.releaseDaysOfWeek.length > 0) {
-      targetDay = config.releaseDaysOfWeek[0];
+    let selectedDays: any = config.releaseDaysOfWeek;
+    if (typeof selectedDays === 'string') {
+      try {
+        selectedDays = JSON.parse(selectedDays);
+      } catch {
+        const parsedNum = parseInt(selectedDays, 10);
+        if (!Number.isNaN(parsedNum)) selectedDays = [parsedNum];
+      }
+    }
+    if (Array.isArray(selectedDays) && selectedDays.length > 0) {
+      const parsedNum = parseInt(selectedDays[0], 10);
+      if (!Number.isNaN(parsedNum)) {
+        targetDay = parsedNum;
+      }
     }
     
     // Global start date: June 12, 2026 16:00 UTC (10:00 PM GMT+6)
@@ -411,7 +443,7 @@ export function computeReleaseGroupDates(
     
     const diffMs = startSnapped.getTime() - globalSnapped.getTime();
     let weeksSinceGlobalStart = Math.round(diffMs / ONE_WEEK_MS);
-    if (weeksSinceGlobalStart < 0) weeksSinceGlobalStart = 0;
+    if (Number.isNaN(weeksSinceGlobalStart) || weeksSinceGlobalStart < 0) weeksSinceGlobalStart = 0;
     
     // Determine the rotation offset — which module index should come first
     // for this student based on which week they joined relative to the global cycle.

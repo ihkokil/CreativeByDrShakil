@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
+
 import { signAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
 import { parseUserAgent, extractClientIp } from '@/lib/device-detection';
 import {
@@ -35,17 +36,19 @@ interface GoogleUserInfo {
   picture?: string;
 }
 
-function getRequestOrigin(request: NextRequest) {
+function getAppUrl(request: NextRequest) {
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
   const proto = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http');
-  if (host) {
-    return `${proto}://${host}`;
+  const origin = host ? `${proto}://${host}` : request.nextUrl.origin;
+
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    return origin;
   }
-  return request.nextUrl.origin;
+  return process.env.NEXT_PUBLIC_APP_URL || origin;
 }
 
 export async function GET(request: NextRequest) {
-  const appUrl = getRequestOrigin(request);
+  const appUrl = getAppUrl(request);
 
   try {
     const { searchParams } = new URL(request.url);
@@ -110,52 +113,47 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
 
     // Step 3: Find or create user in database
-    let { data: user, error: userError } = await supabase
+    let { data: user } = await supabase
       .from('User')
       .select('*')
       .eq('email', googleUser.email)
       .limit(1)
       .maybeSingle();
 
-    if (userError) throw userError;
-
     if (!user) {
       // Create new user
       const userId = crypto.randomUUID();
-      const insertValues = {
-        id: userId,
-        email: googleUser.email,
-        fullName: googleUser.name || 'Google User',
-        emailVerified: true,
-        profileImage: googleUser.picture || null,
-        role: 'student' as 'admin' | 'teacher' | 'student',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      const { error: insertError } = await supabase.from('User')
-// @ts-ignore
-.insert(insertValues);
-      if (insertError) throw insertError;
-
-      const { data: newUser, error: fetchError } = await supabase
+      const { data: newUser, error: createError } = await supabase
         .from('User')
-        .select('*')
-        .eq('id', userId)
-        .limit(1)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
+        .insert({
+          id: userId,
+          email: googleUser.email,
+          fullName: googleUser.name || 'Google User',
+          emailVerified: true,
+          profileImage: googleUser.picture || null,
+          role: 'student',
+          updatedAt: new Date().toISOString(),
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error('[Google OAuth Callback] Create user error:', createError);
+      }
       user = newUser;
     } else {
       // Update profile image from Google if not already set
       if (!user.profileImage && googleUser.picture) {
-        const { error: updateError } = await supabase
+        const { data: updatedUser, error: updateError } = await supabase
           .from('User')
-          .update({ profileImage: googleUser.picture, updatedAt: new Date().toISOString() } as any)
-          .eq('id', user.id);
-
-        if (updateError) throw updateError;
+          .update({ profileImage: googleUser.picture })
+          .eq('id', user.id)
+          .select()
+          .single();
+          
+        if (!updateError && updatedUser) {
+          user = updatedUser;
+        }
       }
     }
 
@@ -205,7 +203,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Look for a custom device name previously saved for this device/browser hash
     const { data: existingSessionWithLabel, error: labelError } = await supabase
       .from('DeviceSession')
       .select('*')
@@ -263,8 +260,13 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Redirect to dashboard with the cookie set
-    const response = NextResponse.redirect(`${appUrl}/dashboard`);
+    const targetDashboard = user.role === 'admin'
+      ? `${appUrl}/admin/dashboard`
+      : user.role === 'teacher'
+        ? `${appUrl}/teacher/dashboard`
+        : `${appUrl}/dashboard/courses`;
+
+    const response = NextResponse.redirect(targetDashboard);
 
     response.cookies.set(AUTH_COOKIE_NAME, token, {
       httpOnly: true,

@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      Batch: {
+        Row: {
+          id: string
+          name: string
+          enrollmentDate: string
+        }
+        Insert: {
+          id: string
+          name: string
+          enrollmentDate: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          enrollmentDate?: string
+        }
+        Relationships: []
+      }
       Account: {
         Row: {
           access_token: string | null
@@ -1028,6 +1046,7 @@ export type Database = {
       }
       User: {
         Row: {
+          batchId: string | null
           bmdcNumber: string | null
           canManagePayments: boolean
           createdAt: string
@@ -1037,6 +1056,7 @@ export type Database = {
           emailVerificationExpires: string | null
           emailVerificationTokenHash: string | null
           emailVerified: boolean
+          enrollmentDate: string | null
           fullName: string
           id: string
           image: string | null
@@ -1053,6 +1073,7 @@ export type Database = {
           updatedAt: string
         }
         Insert: {
+          batchId?: string | null
           bmdcNumber?: string | null
           canManagePayments?: boolean
           createdAt?: string
@@ -1062,6 +1083,7 @@ export type Database = {
           emailVerificationExpires?: string | null
           emailVerificationTokenHash?: string | null
           emailVerified?: boolean
+          enrollmentDate?: string | null
           fullName: string
           id: string
           image?: string | null
@@ -1078,6 +1100,7 @@ export type Database = {
           updatedAt: string
         }
         Update: {
+          batchId?: string | null
           bmdcNumber?: string | null
           canManagePayments?: boolean
           createdAt?: string
@@ -1087,6 +1110,7 @@ export type Database = {
           emailVerificationExpires?: string | null
           emailVerificationTokenHash?: string | null
           emailVerified?: boolean
+          enrollmentDate?: string | null
           fullName?: string
           id?: string
           image?: string | null
@@ -1216,6 +1240,7 @@ export type Database = {
         | "day_of_week"
         | "explicit_dates"
         | "instant"
+        | "circular"
       DeviceType: "desktop" | "mobile" | "tablet"
       QuestionType: "mcq" | "true_false" | "sba"
       QuizPositionType: "best_attempt" | "last_attempt" | "first_attempt"
@@ -1369,6 +1394,7 @@ export const Constants = {
         "day_of_week",
         "explicit_dates",
         "instant",
+        "circular",
       ],
       DeviceType: ["desktop", "mobile", "tablet"],
       QuestionType: ["mcq", "true_false", "sba"],

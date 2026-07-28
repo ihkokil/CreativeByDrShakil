@@ -41,7 +41,6 @@
     "not op_mini all"
   ],
   "dependencies": {
-    "@distube/ytdl-core": "^4.16.12",
     "@opennextjs/cloudflare": "^1.19.11",
     "@supabase/supabase-js": "^2.48.0",
     "@tinymce/tinymce-react": "^6.3.0",

@@ -339,7 +339,12 @@ export async function isSessionValid(sessionId: string, jwtSub?: string, xDevice
 
   const isExempt = user?.isSessionLockedExempt || false;
   if (xDeviceHash && !isExempt && session.deviceHash && session.deviceHash !== xDeviceHash) {
-    return false;
+    if (session.deviceHash.startsWith('fallback-')) {
+      // Auto-upgrade fallback hash to actual client fingerprint on first request
+      updateSessionDeviceHash(sessionId, xDeviceHash).catch(() => {});
+    } else {
+      return false;
+    }
   }
 
   return true;

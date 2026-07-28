@@ -36,7 +36,7 @@ export const formatDisplayDate = (value?: string | Date | null) => {
   }
 
   const parsed = value instanceof Date ? value : parseAsLocalDate(value);
-  if (!parsed) {
+  if (!parsed || Number.isNaN(parsed.getTime())) {
     return "";
   }
 
@@ -57,7 +57,7 @@ export const isDisplayDate = (value: string) => /^\d{2}\/\d{2}\/\d{4}$/.test(val
 export const formatLastUpdated = (value?: string | Date | null) => {
   if (!value) return null;
   const parsed = value instanceof Date ? value : parseAsLocalDate(value);
-  if (!parsed) return null;
+  if (!parsed || Number.isNaN(parsed.getTime())) return null;
   const day = parsed.getDate();
   const month = new Intl.DateTimeFormat("en-US", { month: "long" }).format(parsed);
   const year = parsed.getFullYear();
@@ -124,7 +124,7 @@ export const formatDateGMT6 = (value?: string | Date | null): string => {
 
 export const parseDbDate = (value?: string | Date | null): Date | null => {
   if (!value) return null;
-  if (value instanceof Date) return value;
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
   
   let dateToParse = value.trim();
   if (!dateToParse.endsWith('Z') && !dateToParse.includes('+')) {

@@ -229,7 +229,6 @@ export default function ModuleLibraryManager() {
     const [docAttachments, setDocAttachments] = useState<{ name: string; url?: string; file?: File }[]>([]);
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -311,31 +310,7 @@ export default function ModuleLibraryManager() {
 
     useEffect(() => { fetchLibrary(); }, [fetchLibrary]);
 
-    useEffect(() => {
-        if (!videoUrl) return;
-        if (videoType !== 'youtube' && videoType !== 'vimeo') return;
 
-        // Auto-fetch metadata from backend when a valid URL is pasted
-        const fetchMetadata = async () => {
-            try {
-                setIsFetchingMetadata(true);
-                const res = await fetch(`/api/teacher/video-info?url=${encodeURIComponent(videoUrl)}`, { headers: getAuthHeaders() });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.duration > 0) setVideoDuration(formatDuration(data.duration));
-                    if (data.title && !videoTitle) setVideoTitle(data.title);
-                }
-            } catch (err) {
-                console.error("Failed to fetch video metadata:", err);
-            } finally {
-                setIsFetchingMetadata(false);
-            }
-        };
-
-        // Debounce slightly to wait for the user to finish pasting
-        const timeout = setTimeout(fetchMetadata, 600);
-        return () => clearTimeout(timeout);
-    }, [videoUrl, videoType, getAuthHeaders]);
 
     const handleAddFolderClick = (parentId?: string) => { setActiveParentId(parentId || null); setIsFolderModalOpen(true); };
     const handleAddVideoClick = (parentId: string) => { 

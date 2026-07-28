@@ -102,7 +102,7 @@ export default function StudentOverview({
             {/* 2. Key Metrics */}
             <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
                 <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                    <div className={styles.iconBox} style={{ background: 'rgba(237, 28, 40, 0.1)', color: 'var(--primary)' }}>
                         <BookOpen size={20} />
                     </div>
                 </div>

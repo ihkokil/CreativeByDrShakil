@@ -57,7 +57,6 @@ export async function GET(
       if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
-      
       let batchStartDate = null;
       if (order.batchId) {
         const { data: batch } = await (supabase as any)
@@ -83,12 +82,25 @@ export async function GET(
     const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
     const releaseStart = isAdmin ? courseAnchor : (enrolledAt || courseAnchor);
 
+    let releaseDaysOfWeek: number[] | null = null;
+    if (course.releaseDaysOfWeek) {
+      if (typeof course.releaseDaysOfWeek === 'string') {
+        try {
+          releaseDaysOfWeek = JSON.parse(course.releaseDaysOfWeek);
+        } catch {
+          releaseDaysOfWeek = null;
+        }
+      } else if (Array.isArray(course.releaseDaysOfWeek)) {
+        releaseDaysOfWeek = course.releaseDaysOfWeek;
+      }
+    }
+
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,
       releaseStartAt: releaseStart,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
+      releaseDaysOfWeek,
       releaseGroupDates,
     });
 

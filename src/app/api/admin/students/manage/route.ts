@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'email and fullName are required.' }, { status: 400 });
       }
 
+      if (!body.batchId && !body.enrollmentDate) {
+        return NextResponse.json({ error: 'Either batchId or enrollmentDate is required.' }, { status: 400 });
+      }
+
       let userId: string;
       const { data: existingUser }: { data: any } = await supabase
         .from('User')
@@ -72,6 +76,8 @@ export async function POST(request: NextRequest) {
             phone: phone?.trim() || null,
             role: 'student',
             emailVerified: true,
+            batchId: body.batchId || null,
+            enrollmentDate: body.enrollmentDate ? new Date(body.enrollmentDate).toISOString() : null,
             createdAt: nowStr,
             updatedAt: nowStr,
           } as any);
@@ -148,9 +154,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Default POST behavior: Create new student user (Add Student form)
-    const { email, fullName, phone, bmdcNumber, profileImage } = body;
+    const { email, fullName, phone, bmdcNumber, profileImage, batchId, enrollmentDate } = body;
     if (!email || !fullName) {
       return NextResponse.json({ error: 'Email and full name are required.' }, { status: 400 });
+    }
+
+    if (!batchId && !enrollmentDate) {
+      return NextResponse.json({ error: 'Either batchId or enrollmentDate is required.' }, { status: 400 });
     }
 
     const normalizedEmail = email.trim().toLowerCase();
@@ -180,6 +190,8 @@ export async function POST(request: NextRequest) {
         role: 'student',
         emailVerified: true,
         passwordHash: 'MIGRATED_USER_NO_PASSWORD',
+        batchId: batchId || null,
+        enrollmentDate: enrollmentDate ? new Date(enrollmentDate).toISOString() : null,
         createdAt: nowStr,
         updatedAt: nowStr,
       } as any);
@@ -240,6 +252,8 @@ export async function PUT(request: NextRequest) {
     if (body.phone !== undefined) updateData.phone = body.phone?.trim() || null;
     if (body.bmdcNumber !== undefined) updateData.bmdcNumber = body.bmdcNumber?.trim() || null;
     if (body.profileImage !== undefined) updateData.profileImage = body.profileImage || null;
+    if (body.batchId !== undefined) updateData.batchId = body.batchId || null;
+    if (body.enrollmentDate !== undefined) updateData.enrollmentDate = body.enrollmentDate ? new Date(body.enrollmentDate).toISOString() : null;
 
     const { error: updateError } = await supabase
       .from('User')
