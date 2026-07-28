@@ -102,6 +102,30 @@ export default function RootLayout({
                         __html: `
                             (function() {
                                 try {
+                                    if (typeof window !== 'undefined' && typeof Node !== 'undefined') {
+                                        var origRemove = Node.prototype.removeChild;
+                                        Node.prototype.removeChild = function(child) {
+                                            if (child && child.parentNode !== this) {
+                                                if (child.parentNode) {
+                                                    return child.parentNode.removeChild(child);
+                                                }
+                                                return child;
+                                            }
+                                            return origRemove.call(this, child);
+                                        };
+                                        var origInsert = Node.prototype.insertBefore;
+                                        Node.prototype.insertBefore = function(newNode, referenceNode) {
+                                            if (referenceNode && referenceNode.parentNode !== this) {
+                                                if (referenceNode.parentNode) {
+                                                    return referenceNode.parentNode.insertBefore(newNode, referenceNode);
+                                                }
+                                                return newNode;
+                                            }
+                                            return origInsert.call(this, newNode, referenceNode);
+                                        };
+                                    }
+                                } catch(e) {}
+                                try {
                                     if (
                                         typeof Promise.allSettled !== 'function' &&
                                         typeof Promise.withResolvers !== 'function'

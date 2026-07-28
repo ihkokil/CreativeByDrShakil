@@ -8,18 +8,20 @@ import { NextRequest, NextResponse } from 'next/server';
  * that is compatible with Cloudflare Workers (no Node.js `https.request` dependency).
  */
 
-function getRequestOrigin(request: NextRequest) {
+function getAppUrl(request: NextRequest) {
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
   const proto = request.headers.get('x-forwarded-proto') || (request.nextUrl.protocol === 'https:' ? 'https' : 'http');
-  if (host) {
-    return `${proto}://${host}`;
+  const origin = host ? `${proto}://${host}` : request.nextUrl.origin;
+
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    return origin;
   }
-  return request.nextUrl.origin;
+  return process.env.NEXT_PUBLIC_APP_URL || origin;
 }
 
 function getGoogleOAuthURL(request: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const appUrl = getRequestOrigin(request);
+  const appUrl = getAppUrl(request);
   const redirectUri = `${appUrl}/api/auth/google-callback`;
 
   if (!clientId) {
@@ -44,7 +46,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(url);
   } catch (error) {
     console.error('[Google OAuth] Failed to initiate:', error);
-    const appUrl = getRequestOrigin(request);
+    const appUrl = getAppUrl(request);
     return NextResponse.redirect(`${appUrl}/?auth=login&error=OAuthInitFailed`);
   }
 }

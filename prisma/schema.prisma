@@ -41,6 +41,9 @@ model User {
   sessions                    Session[]
   sessionSettings             SessionLockSettings?
   moduleAvailabilityOverrides StudentModuleAvailability[]
+  batchId                     String?
+  batch                       Batch?                      @relation("StudentBatch", fields: [batchId], references: [id])
+  enrollmentDate              DateTime?
 }
 
 model Course {
@@ -330,6 +333,14 @@ enum CourseReleaseMode {
   day_of_week
   explicit_dates
   instant
+  circular
+}
+
+model Batch {
+  id             String    @id @default(cuid())
+  name           String
+  enrollmentDate DateTime
+  students       User[]    @relation("StudentBatch")
 }
 
 enum ContactIssueType {

@@ -330,6 +330,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         return {
           id: topic.id,
           title: topic.title,
+          type: "folder",
           subTopics: topic.source === "library" ? undefined : topic.subTopics,
           mediaVaultFolderId: topic.source === "library" ? topic.id : undefined,
           source: topic.source,

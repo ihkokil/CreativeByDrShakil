@@ -57,7 +57,33 @@ export async function GET(
       if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
-      enrolledAt = order.enrolledAt || order.updatedAt;
+
+      const { data: user }: { data: any } = await supabase
+        .from('User')
+        .select('enrollmentDate, batchId')
+        .eq('id', payload.sub)
+        .limit(1)
+        .maybeSingle();
+
+      if (user?.batchId) {
+        const { data: batch }: { data: any } = await supabase
+          .from('Batch')
+          .select('enrollmentDate')
+          .eq('id', user.batchId)
+          .limit(1)
+          .maybeSingle();
+        if (batch?.enrollmentDate) {
+          enrolledAt = batch.enrollmentDate;
+        }
+      } 
+      
+      if (!enrolledAt && user?.enrollmentDate) {
+        enrolledAt = user.enrollmentDate;
+      }
+      
+      if (!enrolledAt) {
+        enrolledAt = order.enrolledAt || order.updatedAt;
+      }
     }
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);
@@ -70,12 +96,25 @@ export async function GET(
     const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
     const releaseStart = isAdmin ? courseAnchor : (enrolledAt || courseAnchor);
 
+    let releaseDaysOfWeek: number[] | null = null;
+    if (course.releaseDaysOfWeek) {
+      if (typeof course.releaseDaysOfWeek === 'string') {
+        try {
+          releaseDaysOfWeek = JSON.parse(course.releaseDaysOfWeek);
+        } catch {
+          releaseDaysOfWeek = null;
+        }
+      } else if (Array.isArray(course.releaseDaysOfWeek)) {
+        releaseDaysOfWeek = course.releaseDaysOfWeek;
+      }
+    }
+
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
       releaseMode: course.releaseMode,
       releaseStartAt: releaseStart,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,
-      releaseDaysOfWeek: course.releaseDaysOfWeek as number[],
+      releaseDaysOfWeek,
       releaseGroupDates,
     });
 
@@ -121,6 +160,10 @@ export async function GET(
 
     return NextResponse.json({
       courseId: course.id,
+      course: {
+        title: course.title,
+      },
+      enrollmentDate: enrolledAt,
       curriculum: markCompleted(annotatedCurriculum),
     });
   } catch (error: any) {
