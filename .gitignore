@@ -65,3 +65,5 @@ skills-lock.json
 
 scripts/seed-mass-students.ts
 scripts/update-specific-enrollment.ts
+
+NewPlayer/
