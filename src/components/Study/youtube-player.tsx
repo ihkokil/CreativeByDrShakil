@@ -42,6 +42,7 @@ function buildIframeSrc(src: string, props: Record<string, unknown>): string {
     rel: "0",
     modestbranding: "1",
     iv_load_policy: "3",
+    cc_load_policy: "0",
     origin: "",
   };
   if (props.autoplay) params.autoplay = "1";
@@ -116,6 +117,7 @@ export class YouTubeMedia extends EventTarget {
   #videoHeight = NaN;
   #timeTimer: ReturnType<typeof setInterval> | null = null;
   #progTimer: ReturnType<typeof setInterval> | null = null;
+  #pipActive = false;
 
   get engine() {
     return this.#player;
@@ -437,6 +439,22 @@ export class YouTubeMedia extends EventTarget {
   #onErr(e: any) {
     this.#error = { code: e.data, message: `YouTube error ${e.data}` };
     this.dispatchEvent(new Event("error"));
+  }
+
+  get isPictureInPicture(): boolean {
+    return this.#pipActive;
+  }
+
+  async requestPictureInPicture(): Promise<void> {
+    if (this.#pipActive) return;
+    this.#pipActive = true;
+    this.dispatchEvent(new Event("enterpictureinpicture"));
+  }
+
+  async exitPictureInPicture(): Promise<void> {
+    if (!this.#pipActive) return;
+    this.#pipActive = false;
+    this.dispatchEvent(new Event("leavepictureinpicture"));
   }
 
   async play() {
