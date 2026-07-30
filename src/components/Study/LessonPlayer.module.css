@@ -9,103 +9,6 @@
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
-/* ─── Vidstack Player ─────────────────────────────────────── */
-.vidstackPlayer {
-    width: 100%;
-    height: 100%;
-    --media-brand: var(--primary, #3b82f6);
-    --media-focus-ring-color: var(--primary, #3b82f6);
-}
-
-/* Ensure gestures sit above the iframe blocker */
-.vidstackPlayer :global(.vds-gesture) {
-    z-index: 10 !important;
-}
-
-/* ─── Center Overlay (Big Play Button stage) ──────────────── */
-/*
- * KEY FIX:
- * pointer-events: none on the wrapper so the Vidstack
- * controls underneath remain fully clickable.
- * pointer-events: auto is restored ONLY on the button itself.
- */
-.centerOverlay {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-    pointer-events: none;
-    /* Fade in smoothly */
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to   { opacity: 1; transform: scale(1);   }
-}
-
-/* ─── Big Play Button ─────────────────────────────────────── */
-.bigPlayBtn {
-    pointer-events: auto;
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 2px solid rgba(255, 255, 255, 0.25);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 0 0 0 rgba(255, 255, 255, 0);
-    transition:
-        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        background 0.2s ease,
-        box-shadow 0.2s ease;
-    /* Nudge Play icon to look centered */
-    padding-left: 4px;
-}
-
-.bigPlayBtn:hover {
-    transform: scale(1.12);
-    background: rgba(0, 0, 0, 0.75);
-    box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.5),
-        0 0 0 6px rgba(255, 255, 255, 0.08);
-}
-
-.bigPlayBtn:active {
-    transform: scale(0.96);
-}
-
-/* ─── Spinner Icon inside the button ─────────────────────── */
-.spinnerIcon {
-    animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-
-/* ─── Watermark ───────────────────────────────────────────── */
-/*
- * z-index: 100 keeps it above the player.
- * pointer-events: none ensures no UI is blocked.
- */
-.watermarkWrapper {
-    position: absolute;
-    inset: 0;
-    z-index: 100;
-    pointer-events: none;
-}
-
 /* ─── Mock Video (empty / locked state) ───────────────────── */
 .mockVideo {
     width: 100%;
@@ -219,4 +122,32 @@
 
 .attachmentCard:hover .attAction {
     background: var(--primary-dark, #2563eb);
+}
+
+
+/* Floating Tag Styles */
+.floatingTag {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  pointer-events: none;
+  user-select: none;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.watermarkWrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
 }
