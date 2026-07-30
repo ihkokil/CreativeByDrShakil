@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import styles from "./LessonPlayer.module.css";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
-import { Lock, FileText, Video as VideoIcon, Play, Loader2 } from "lucide-react";
+import { Lock, FileText, Video as VideoIcon, Play } from "lucide-react";
 
 import {
     MediaPlayer,
@@ -37,7 +37,7 @@ interface LessonPlayerProps {
     onComplete?: () => void;
 }
 
-// ─── Inner component so we can use Vidstack media hooks ───────────────────────
+// ─── Inner component that renders the Vidstack player ─────────────────────────
 function PlayerCore({
     playerRef,
     playerSrc,
@@ -53,34 +53,24 @@ function PlayerCore({
     nextLesson?: () => void;
     onComplete?: () => void;
 }) {
-    // Vidstack reactive state
+    // Only used to detect autoplay failure
+    const autoPlayError = useMediaState("autoPlayError", playerRef);
     const paused = useMediaState("paused", playerRef);
-    const waiting = useMediaState("waiting", playerRef);
-    const started = useMediaState("started", playerRef);
-    const canPlay = useMediaState("canPlay", playerRef);
 
-    // Show the big button when:
-    // 1. Video hasn't started yet (idle/loading state)
-    // 2. Video is paused after having started
-    // 3. Video is buffering/waiting
-    const isLoading = !canPlay || waiting;
-    const showBigPlay = paused || isLoading;
-    const showSpinner = isLoading && !paused;
+    // Show fallback play button ONLY when autoplay was blocked by the browser
+    const showFallbackPlay = !!autoPlayError && paused;
 
-    const handleBigPlayClick = useCallback(() => {
-        const player = playerRef.current;
-        if (!player) return;
-        if (paused) {
-            player.play();
-        }
-    }, [paused, playerRef]);
+    const handleFallbackPlay = useCallback(() => {
+        playerRef.current?.play();
+    }, [playerRef]);
 
     return (
         <>
             <MediaPlayer
                 ref={playerRef}
                 src={playerSrc}
-                load="play"
+                autoPlay
+                load="eager"
                 viewType="video"
                 streamType="on-demand"
                 logLevel="silent"
@@ -103,28 +93,18 @@ function PlayerCore({
                 />
             </MediaPlayer>
 
-            {/* ── Stable Wrapper to prevent React unmount crashes ─────── */}
-            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 50 }}>
-                {/* ── Big Center Play / Loading Button ──────────────────── */}
-                {showBigPlay && (
-                    <div className={styles.centerOverlay}>
-                        <button
-                            className={styles.bigPlayBtn}
-                            onClick={handleBigPlayClick}
-                            aria-label={paused ? "Play video" : "Loading video"}
-                        >
-                            {showSpinner ? (
-                                <Loader2
-                                    size={36}
-                                    className={styles.spinnerIcon}
-                                />
-                            ) : (
-                                <Play size={36} fill="white" />
-                            )}
-                        </button>
-                    </div>
-                )}
-            </div>
+            {/* ── Fallback play — only if browser blocked autoplay ───── */}
+            {showFallbackPlay && (
+                <div className={styles.autoplayFallback}>
+                    <button
+                        className={styles.fallbackPlayBtn}
+                        onClick={handleFallbackPlay}
+                        aria-label="Play video"
+                    >
+                        <Play size={28} fill="white" strokeWidth={0} />
+                    </button>
+                </div>
+            )}
 
             {/* ── Watermark — topmost, no pointer events ─────────────── */}
             <div className={styles.watermarkWrapper}>

@@ -6,7 +6,7 @@
     background: #000;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
 /* ─── Vidstack Player ─────────────────────────────────────── */
@@ -22,14 +22,49 @@
     z-index: 10 !important;
 }
 
-/* ─── Center Overlay (Big Play Button stage) ──────────────── */
+/* ─── Polish: Vidstack native center play button ──────────── */
 /*
- * KEY FIX:
- * pointer-events: none on the wrapper so the Vidstack
- * controls underneath remain fully clickable.
- * pointer-events: auto is restored ONLY on the button itself.
+ * DefaultVideoLayout ships its own centered play button.
+ * We style it lighter — smaller circle, softer backdrop.
  */
-.centerOverlay {
+.vidstackPlayer :global([data-media-button][data-media-tooltip="Play"]),
+.vidstackPlayer :global(.vds-play-button[class*="center"]),
+.vidstackPlayer :global(.vds-button[aria-label="Play"]) {
+    /* Slightly smaller & softer than defaults */
+    scale: 0.9;
+    opacity: 0.85;
+    transition: scale 0.2s ease, opacity 0.2s ease;
+}
+
+.vidstackPlayer :global([data-media-button][data-media-tooltip="Play"]:hover),
+.vidstackPlayer :global(.vds-play-button[class*="center"]:hover),
+.vidstackPlayer :global(.vds-button[aria-label="Play"]:hover) {
+    scale: 1;
+    opacity: 1;
+}
+
+/* ─── Polish: Bottom controls bar ─────────────────────────── */
+/*
+ * Lighten the default controls bar — less heavy, more translucent.
+ */
+.vidstackPlayer :global(.vds-controls-group) {
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+/* ─── Polish: Reduce slider / time track weight ───────────── */
+.vidstackPlayer :global(.vds-time-slider .vds-slider-track) {
+    height: 3px;
+    transition: height 0.15s ease;
+}
+
+.vidstackPlayer :global(.vds-time-slider:hover .vds-slider-track),
+.vidstackPlayer :global(.vds-time-slider[data-dragging] .vds-slider-track) {
+    height: 5px;
+}
+
+/* ─── Autoplay Fallback (only when browser blocks autoplay) ── */
+.autoplayFallback {
     position: absolute;
     inset: 0;
     display: flex;
@@ -37,61 +72,42 @@
     justify-content: center;
     z-index: 50;
     pointer-events: none;
-    /* Fade in smoothly */
-    animation: fadeIn 0.2s ease;
+    animation: fallbackFadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to   { opacity: 1; transform: scale(1);   }
+@keyframes fallbackFadeIn {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1);    }
 }
 
-/* ─── Big Play Button ─────────────────────────────────────── */
-.bigPlayBtn {
+.fallbackPlayBtn {
     pointer-events: auto;
-    width: 80px;
-    height: 80px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
-    background: rgba(0, 0, 0, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 2px solid rgba(255, 255, 255, 0.25);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    padding-left: 4px; /* optical centering for play triangle */
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.4),
-        0 0 0 0 rgba(255, 255, 255, 0);
-    transition:
-        transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-        background 0.2s ease,
-        box-shadow 0.2s ease;
-    /* Nudge Play icon to look centered */
-    padding-left: 4px;
+        0 4px 20px rgba(0, 0, 0, 0.4),
+        0 0 0 4px rgba(255, 255, 255, 0.08);
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.bigPlayBtn:hover {
-    transform: scale(1.12);
-    background: rgba(0, 0, 0, 0.75);
-    box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.5),
-        0 0 0 6px rgba(255, 255, 255, 0.08);
+.fallbackPlayBtn:hover {
+    transform: scale(1.1);
+    background: rgba(0, 0, 0, 0.6);
 }
 
-.bigPlayBtn:active {
-    transform: scale(0.96);
-}
-
-/* ─── Spinner Icon inside the button ─────────────────────── */
-.spinnerIcon {
-    animation: spin 0.9s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+.fallbackPlayBtn:active {
+    transform: scale(0.95);
 }
 
 /* ─── Watermark ───────────────────────────────────────────── */
