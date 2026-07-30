@@ -74,6 +74,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
 
   const id = normalizeNullableText(raw.id) || createNodeId('node');
   const title = normalizeNullableText(raw.title);
+
   if (!title) return null;
 
   let rawTypeStr = normalizeNullableText(raw.type)?.toLowerCase();
@@ -107,6 +108,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
   const children = childrenRaw
     .map(normalizeNode)
     .filter((node: unknown): node is BuilderCurriculumNode => Boolean(node));
+
 
   return {
     id,
