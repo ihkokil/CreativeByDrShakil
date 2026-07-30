@@ -74,6 +74,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
 
   const id = normalizeNullableText(raw.id) || createNodeId('node');
   const title = normalizeNullableText(raw.title);
+<<<<<<< HEAD
   if (!title) return null;
 
   let rawTypeStr = normalizeNullableText(raw.type)?.toLowerCase();
@@ -107,6 +108,26 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
   const children = childrenRaw
     .map(normalizeNode)
     .filter((node: unknown): node is BuilderCurriculumNode => Boolean(node));
+=======
+  let rawType = normalizeNullableText(raw.type) as CurriculumContentType | null;
+
+  if (!title) return null;
+
+  if (!rawType) {
+    rawType = 'folder';
+  }
+  if (!['folder', 'youtube', 'self-hosted', 'document'].includes(rawType)) {
+    rawType = 'folder';
+  }
+
+  const childrenRaw: unknown[] = Array.isArray((raw as any).children)
+    ? (raw as any).children
+    : (Array.isArray((raw as any).subTopics) ? (raw as any).subTopics : []);
+
+  const children = childrenRaw
+    .map((node) => normalizeNode(node))
+    .filter((node: BuilderCurriculumNode | null): node is BuilderCurriculumNode => Boolean(node));
+>>>>>>> ba0f2a5c6a73ad4ed4f95134aa472369ece18bad
 
   return {
     id,
@@ -383,6 +404,7 @@ const pinTo10pmBST = (date: Date): Date => {
   return Number.isNaN(pinned.getTime()) ? new Date() : pinned;
 };
 
+<<<<<<< HEAD
 const getNextTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
   const safeDate = (!date || Number.isNaN(date.getTime())) ? new Date() : date;
   let safeTarget = 5;
@@ -397,6 +419,13 @@ const getNextTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
   const day = dhaka.getUTCDay(); 
   const diff = (safeTarget - day + 7) % 7;
   dhaka.setUTCDate(dhaka.getUTCDate() + diff);
+=======
+const getPreviousTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
+  const dhaka = new Date(date.getTime() + 6 * 60 * 60 * 1000);
+  const day = dhaka.getUTCDay(); 
+  const diff = (day - targetDay + 7) % 7;
+  dhaka.setUTCDate(dhaka.getUTCDate() - diff);
+>>>>>>> ba0f2a5c6a73ad4ed4f95134aa472369ece18bad
   return new Date(Date.UTC(
     dhaka.getUTCFullYear(),
     dhaka.getUTCMonth(),
@@ -446,25 +475,26 @@ export function computeReleaseGroupDates(
     const GLOBAL_START_DATE = new Date(Date.UTC(2026, 5, 12, 16, 0, 0));
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
     
-    const startSnapped = getNextTargetDayDhaka(startDate, targetDay);
-    const globalSnapped = getNextTargetDayDhaka(GLOBAL_START_DATE, targetDay);
+    const startSnapped = getPreviousTargetDayDhaka(startDate, targetDay);
+    const globalSnapped = getPreviousTargetDayDhaka(GLOBAL_START_DATE, targetDay);
     
     const diffMs = startSnapped.getTime() - globalSnapped.getTime();
     let weeksSinceGlobalStart = Math.round(diffMs / ONE_WEEK_MS);
     if (Number.isNaN(weeksSinceGlobalStart) || weeksSinceGlobalStart < 0) weeksSinceGlobalStart = 0;
     
-    const studentStartWeekIndex = weeksSinceGlobalStart;
+    // Determine the rotation offset — which module index should come first
+    // for this student based on which week they joined relative to the global cycle.
+    const rotationOffset = weeksSinceGlobalStart % N;
     
     groups.forEach((group, i) => {
-      let k = i - (studentStartWeekIndex % N);
-      if (k < 0) k += N;
+      // How many weeks after the student's start week does group i unlock?
+      let weeksAfterStart = i - rotationOffset;
+      if (weeksAfterStart < 0) weeksAfterStart += N;
       
-      const unlockWeek = studentStartWeekIndex + k;
-      const unlockDate = new Date(GLOBAL_START_DATE.getTime() + (Number.isNaN(unlockWeek) ? i : unlockWeek) * ONE_WEEK_MS);
-      const pinned = pinTo10pmBST(unlockDate);
-      dates[group.id] = (pinned && !Number.isNaN(pinned.getTime())) ? pinned.toISOString() : new Date().toISOString();
+      const unlockDate = new Date(startSnapped.getTime() + weeksAfterStart * ONE_WEEK_MS);
+      
+      dates[group.id] = unlockDate.toISOString();
     });
-    return dates;
   }
 
   if (mode === 'fixed_interval') {
@@ -536,11 +566,28 @@ export function computeReleaseGroupDates(
     });
   }
 
-  // Pin all computed dates to 10:00 PM GMT+6 (16:00 UTC) on their calendar day.
+  // Pin computed dates to 10:00 PM GMT+6 (16:00 UTC) on their scheduled day.
+  // Exception: If a date is on or before startDate (e.g. current/first module),
+  // ensure it is set to a past date (00:00 BST) so it unlocks immediately.
   for (const groupId of Object.keys(dates)) {
     const raw = normalizeDate(dates[groupId]);
     if (raw) {
-      dates[groupId] = pinTo10pmBST(raw).toISOString();
+      if (raw.getTime() <= startDate.getTime()) {
+        const dhakaTime = new Date(raw.getTime() + 6 * 60 * 60 * 1000);
+        // Pin to 00:00 GMT+6 (18:00 UTC previous day) so it is unlocked all day
+        const pinnedMidnight = new Date(Date.UTC(
+          dhakaTime.getUTCFullYear(),
+          dhakaTime.getUTCMonth(),
+          dhakaTime.getUTCDate() - 1,
+          18,
+          0,
+          0,
+          0
+        ));
+        dates[groupId] = pinnedMidnight.toISOString();
+      } else {
+        dates[groupId] = pinTo10pmBST(raw).toISOString();
+      }
     }
   }
 
