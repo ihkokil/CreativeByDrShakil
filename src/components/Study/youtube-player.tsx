@@ -5,7 +5,7 @@ import { useComposedRefs, useMediaInstance } from "@videojs/react";
 
 // ── Constants ──────────────────────────────────────────────────────
 
-const EMBED_BASE = "https://www.youtube.com/embed";
+const EMBED_BASE = "https://www.youtube-nocookie.com/embed";
 const API_URL = "https://www.youtube.com/iframe_api";
 const API_GLOBAL = "YT";
 const API_GLOBAL_READY = "onYouTubeIframeAPIReady";
@@ -40,16 +40,22 @@ function buildIframeSrc(src: string, props: Record<string, unknown>): string {
   const params: Record<string, string> = {
     enablejsapi: "1",
     rel: "0",
-    modestbranding: "1",
+    controls: "0",
+    disablekb: "1",
+    fs: "1",
+    hl: "en",
+    cc_lang_pref: "en",
     iv_load_policy: "3",
-    cc_load_policy: "0",
+    color: "red",
+    modestbranding: "1",
     origin: "",
   };
   if (props.autoplay) params.autoplay = "1";
+  else params.autoplay = "0";
   if (props.loop) params.loop = "1";
-  if (props.defaultMuted) params.mute = "1";
+  if (props.defaultMuted || props.muted) params.mute = "1";
+  else params.mute = "0";
   if (props.playsInline) params.playsinline = "1";
-  if (props.controls !== true) params.controls = "0";
   if (typeof window !== "undefined") params.origin = window.location.origin;
   return `${EMBED_BASE}/${id}?${new URLSearchParams(params)}`;
 }
@@ -518,20 +524,56 @@ export const YoutubePlayer = forwardRef<HTMLIFrameElement, YoutubePlayerProps>(
     }
 
     return (
-      <iframe
-        title="YouTube video player"
-        src={initialSrc}
-        data-cross-origin-frame
-        allow="accelerometer; fullscreen; autoplay; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        frameBorder={0}
-        width="100%"
-        height="100%"
-        {...(rest as any)}
-        ref={composedRef}
-      >
-        {children}
-      </iframe>
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        <iframe
+          className={`vds-youtube ${props.className || ""}`.trim()}
+          tabIndex={-1}
+          aria-hidden="true"
+          data-no-controls=""
+          title="YouTube video player"
+          src={initialSrc}
+          data-cross-origin-frame
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
+          allowFullScreen
+          frameBorder={0}
+          width="100%"
+          height="100%"
+          style={{
+            width: "100%",
+            height: "100%",
+            border: "none",
+            pointerEvents: "none",
+            ...((props.style as React.CSSProperties) || {}),
+          }}
+          {...(rest as any)}
+          ref={composedRef}
+        >
+          {children}
+        </iframe>
+
+        {/* ── Secure Overlay: Blocks all direct iframe clicks & YouTube link escapes ── */}
+        <div
+          className="yt-overlay"
+          onContextMenu={(e) => e.preventDefault()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (media.paused) media.play();
+            else media.pause();
+          }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            cursor: "pointer",
+            zIndex: 2,
+            pointerEvents: "auto",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+          }}
+        />
+      </div>
     );
   },
 );
