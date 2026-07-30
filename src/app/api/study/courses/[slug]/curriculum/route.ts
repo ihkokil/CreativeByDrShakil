@@ -47,7 +47,7 @@ export async function GET(
     if (!isAdmin) {
       const { data: order }: { data: any } = await supabase
         .from('Order')
-        .select('enrolledAt, updatedAt')
+        .select('enrolledAt, updatedAt, batchId')
         .eq('userId', payload.sub)
         .eq('courseId', course.id)
         .eq('status', 'approved')
@@ -57,7 +57,6 @@ export async function GET(
       if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
-
       const { data: user }: { data: any } = await supabase
         .from('User')
         .select('enrollmentDate, batchId')
@@ -68,12 +67,14 @@ export async function GET(
       if (user?.batchId) {
         const { data: batch }: { data: any } = await supabase
           .from('Batch')
-          .select('enrollmentDate')
+          .select('enrollmentDate, startDate')
           .eq('id', user.batchId)
           .limit(1)
           .maybeSingle();
         if (batch?.enrollmentDate) {
           enrolledAt = batch.enrollmentDate;
+        } else if (batch?.startDate) {
+          enrolledAt = batch.startDate;
         }
       } 
       

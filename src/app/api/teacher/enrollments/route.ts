@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { 
       courseId, 
+      batchId,
       studentId, 
       isNewStudent,
       email, 
@@ -38,6 +39,21 @@ export async function POST(request: NextRequest) {
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found or unauthorized.' }, { status: 404 });
+    }
+
+    let batch: any = null;
+    if (batchId) {
+      const { data: batchData } = await (supabase as any)
+        .from('Batch')
+        .select('*')
+        .eq('id', batchId)
+        .eq('courseId', courseId)
+        .limit(1)
+        .maybeSingle();
+      if (!batchData) {
+        return NextResponse.json({ error: 'Batch not found for this course.' }, { status: 404 });
+      }
+      batch = batchData;
     }
 
     let enrolledStudents: any[] = [];
@@ -144,23 +160,35 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
-      if ((existingOrder as any)?.status === 'approved') {
-        continue; // Already enrolled
-      }
+      // Allow re-enrolling or moving students to a new batch even if they are already approved
 
       let order;
       if (existingOrder) {
         const nowStr = new Date().toISOString();
+        const updateData: any = { 
+          status: 'approved', 
+          totalAmount: 0, 
+          updatedAt: nowStr 
+        };
+        
+        if (batch) {
+          updateData.batchId = batch.id;
+          updateData.enrolledAt = batch.startDate;
+          updateData.expiresAt = batch.endDate;
+        } else if (!existingOrder.enrolledAt) {
+          updateData.enrolledAt = nowStr;
+        }
+
         const { error: updateError } = await supabase
           .from('Order')
-          .update({ status: 'approved', totalAmount: 0, updatedAt: nowStr, enrolledAt: nowStr } as any)
+          .update(updateData)
           .eq('id', (existingOrder as any).id);
         
         if (updateError) {
           console.error(`Failed to update order for ${student.email}: ${updateError.message}`);
           continue;
         }
-        order = { ...(existingOrder as any), status: 'approved' };
+        order = { ...(existingOrder as any), ...updateData };
       } else {
         const nowStr = new Date().toISOString();
         const newOrderId = crypto.randomUUID();
@@ -172,6 +200,9 @@ export async function POST(request: NextRequest) {
             totalAmount: 0,
             createdAt: nowStr,
             updatedAt: nowStr,
+            batchId: batch ? batch.id : null,
+            enrolledAt: batch ? batch.startDate : nowStr,
+            expiresAt: batch ? batch.endDate : null,
         };
         const { error: orderInsertError } = await supabase.from('Order')
 // @ts-ignore
@@ -230,7 +261,21 @@ export async function GET(request: NextRequest) {
       
     const usersMap = new Map(users.map((u: any) => [u.id, u]));
     const coursesMap = new Map(courses.map((c: any) => [c.id, c]));
-    const enrollments = (enrollmentsData || []).map((o: any) => ({ ...o, user: usersMap.get(o.userId) || null, course: coursesMap.get(o.courseId) || null }));
+    
+    // Fetch batch names if batchId is present
+    const batchIds = [...new Set((enrollmentsData || []).map((o: any) => o.batchId).filter(Boolean))];
+    let batchesMap = new Map();
+    if (batchIds.length > 0) {
+      const { data: batches } = await (supabase as any).from('Batch').select('id, name').in('id', batchIds);
+      batchesMap = new Map((batches || []).map((b: any) => [b.id, b]));
+    }
+
+    const enrollments = (enrollmentsData || []).map((o: any) => ({ 
+      ...o, 
+      user: usersMap.get(o.userId) || null, 
+      course: coursesMap.get(o.courseId) || null,
+      batchName: o.batchId ? batchesMap.get(o.batchId)?.name : null
+    }));
 
     let teacherEnrollments = enrollments;
     if (payload.role !== 'admin') {
@@ -242,6 +287,7 @@ export async function GET(request: NextRequest) {
         id: e.id,
         student: e.user,
         course: e.course,
+        batchName: e.batchName,
         createdAt: e.createdAt,
       })),
     });

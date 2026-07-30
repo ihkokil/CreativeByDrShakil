@@ -4,8 +4,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  url       = env("SUPABASE_DB_URL")
 }
 
 model User {
@@ -81,6 +80,7 @@ model Course {
   lessonProgress              LessonProgress[]
   orders                      Order[]
   moduleAvailabilityOverrides StudentModuleAvailability[]
+  batches                     Batch[]                     @relation("CourseBatches")
 
   @@index([teacherId])
   @@index([status])
@@ -145,13 +145,16 @@ model Order {
   updatedAt   DateTime  @updatedAt
   enrolledAt  DateTime? @default(now())
   expiresAt   DateTime?
+  batchId     String?
   course      Course    @relation(fields: [courseId], references: [id])
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payment     Payment?
+  batch       Batch?    @relation("BatchOrders", fields: [batchId], references: [id], onDelete: SetNull)
 
   @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])
+  @@index([batchId])
 }
 
 model Payment {
@@ -363,3 +366,19 @@ enum DeviceType {
   mobile
   tablet
 }
+
+model Batch {
+  id              String      @id @default(cuid())
+  name            String
+  courseId        String
+  startDate       DateTime
+  endDate         DateTime
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  course          Course      @relation("CourseBatches", fields: [courseId], references: [id], onDelete: Cascade)
+  orders          Order[]     @relation("BatchOrders")
+
+  @@index([courseId])
+}
+
