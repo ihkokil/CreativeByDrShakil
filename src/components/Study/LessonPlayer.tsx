@@ -1,10 +1,11 @@
 "use client";
 
-import { type CSSProperties, type ComponentProps, forwardRef, type ReactNode, isValidElement, useState, useEffect, useRef, useCallback, createElement } from 'react';
+import { type CSSProperties, type ComponentProps, forwardRef, type ReactNode, isValidElement, useRef } from 'react';
 import { AirPlayEnterIcon, AirPlayExitIcon, CaptionsOffIcon, CaptionsOnIcon, CastEnterIcon, CastExitIcon, CheckIcon, ChevronIcon, FullscreenEnterIcon, FullscreenExitIcon, GearIcon, PauseIcon, PipEnterIcon, PipExitIcon, PlayIcon, QualityIcon, RestartIcon, SeekIcon, SpeechIcon, SpeedIcon, SpinnerIcon, VolumeHighIcon, VolumeLowIcon, VolumeOffIcon } from '@videojs/react/icons';
-import { createPlayer, Poster, Container, usePlayer, AirPlayButton, useAudioTrackOptions, BufferingIndicator, useCaptionsOptions, CastButton, Controls, ErrorDialog, FullscreenButton, Gesture, Hotkey, Menu, MuteButton, PiPButton, PlayButton, usePlaybackRateOptions, Popover, useQualityOptions, SeekButton, SeekIndicator, Slider, StatusAnnouncer, StatusIndicator, Time, TimeSlider, Tooltip, VolumeIndicator, VolumeSlider, type RenderProp, useMediaAttach, useComposedRefs } from '@videojs/react';
+import { createPlayer, Poster, Container, usePlayer, AirPlayButton, useAudioTrackOptions, BufferingIndicator, useCaptionsOptions, CastButton, Controls, ErrorDialog, FullscreenButton, Gesture, Hotkey, Menu, MuteButton, PiPButton, PlayButton, usePlaybackRateOptions, Popover, useQualityOptions, SeekButton, SeekIndicator, Slider, StatusAnnouncer, StatusIndicator, Time, TimeSlider, Tooltip, VolumeIndicator, VolumeSlider, type RenderProp } from '@videojs/react';
 import { Video, videoFeatures } from '@videojs/react/video';
 import 'video.js/dist/video-js.css';
+import { YoutubePlayer } from './youtube-player';
 
 import { Lock, FileText, Video as VideoIcon, Play, Loader2 } from "lucide-react";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
@@ -38,45 +39,6 @@ function MenuChevron({ flipped = false }: { flipped?: boolean }): ReactNode {
   return <ChevronIcon className={`media-icon media-menu__chevron ${flipped ? 'media-icon--flipped' : undefined}`} />;
 }
 
-export function applyYoutubePolyfills(el: HTMLElement & { api?: { getPlayerState?: () => number }; duration?: number }) {
-  if ((el as any).__youtubePolyfilled) return;
-  (el as any).__youtubePolyfilled = true;
-
-  const createTimeRanges = (start: number, end: number) => {
-    const ranges = Object.create(null) as TimeRanges & { 0?: [number, number] };
-    if (end > start) {
-      (ranges as any)[0] = [start, end];
-    }
-    Object.defineProperties(ranges, {
-      length: { value: end > start ? 1 : 0 },
-      start: { value: (i: number) => (i === 0 && end > start ? start : 0) },
-      end: { value: (i: number) => (i === 0 && end > start ? end : 0) },
-    });
-    return ranges;
-  };
-
-  const definePolyfill = (key: string, descriptor: PropertyDescriptor) => {
-    try {
-      Object.defineProperty(el, key, { configurable: true, ...descriptor });
-    } catch { /* ignore */ }
-  };
-
-  definePolyfill('currentSrc', {
-    get: () => el.getAttribute('src') ?? '',
-  });
-
-  definePolyfill('ended', {
-    get: () => el.api?.getPlayerState?.() === 0,
-  });
-
-  definePolyfill('seekable', {
-    get: () => {
-      const duration = Number.isFinite(el.duration) ? el.duration! : 0;
-      return duration > 0 ? createTimeRanges(0, duration) : createTimeRanges(0, 0);
-    },
-  });
-}
-
 export const Player = createPlayer({ features: videoFeatures });
 
 export interface InternalPlayerProps {
@@ -88,166 +50,6 @@ export interface InternalPlayerProps {
   placeholder?: string;
   children?: ReactNode;
 }
-
-const YoutubeVideo = forwardRef(function YoutubeVideo({ children, src, ...props }: any, ref: any) {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const mediaAttach = useMediaAttach();
-  const localRef = useRef<any>(null);
-  const polyfillRef = useCallback((el: HTMLElement | null) => {
-    if (el) applyYoutubePolyfills(el as any);
-  }, []);
-  const composedRef = useComposedRefs(ref, localRef, polyfillRef, mediaAttach);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (customElements.get('youtube-video')) {
-        setIsLoaded(true);
-      } else {
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = 'https://cdn.jsdelivr.net/npm/youtube-video-element@latest/youtube-video-element.js';
-        script.onload = () => {
-          customElements.whenDefined('youtube-video').then(() => {
-            setIsLoaded(true);
-          });
-        };
-        document.head.appendChild(script);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isLoaded || !localRef.current) return;
-    const el = localRef.current;
-
-    const createTimeRanges = (start: number, end: number) => {
-      const ranges = Object.create(null) as TimeRanges & { 0?: [number, number] };
-      if (end > start) {
-        (ranges as any)[0] = [start, end];
-      }
-      Object.defineProperties(ranges, {
-        length: { value: end > start ? 1 : 0 },
-        start: { value: (i: number) => (i === 0 && end > start ? start : 0) },
-        end: { value: (i: number) => (i === 0 && end > start ? end : 0) },
-      });
-      return ranges;
-    };
-
-    const definePolyfill = (key: string, descriptor: PropertyDescriptor) => {
-      try {
-        Object.defineProperty(el, key, { configurable: true, ...descriptor });
-      } catch { /* ignore */ }
-    };
-
-    definePolyfill('currentSrc', {
-      get: () => el.getAttribute('src') ?? '',
-    });
-
-    definePolyfill('ended', {
-      get: () => el.api?.getPlayerState?.() === 0,
-    });
-
-    definePolyfill('seekable', {
-      get: () => {
-        const duration = Number.isFinite(el.duration) ? el.duration : 0;
-        return duration > 0 ? createTimeRanges(0, duration) : createTimeRanges(0, 0);
-      },
-    });
-
-    const findDescriptor = (obj: any, prop: string) => {
-      let proto = obj;
-      while (proto) {
-        const desc = Object.getOwnPropertyDescriptor(proto, prop);
-        if (desc) return desc;
-        proto = Object.getPrototypeOf(proto);
-      }
-      return undefined;
-    };
-
-    const timeDesc = findDescriptor(el, 'currentTime');
-    const origGetter = timeDesc?.get;
-    const origSetter = timeDesc?.set;
-    if (origGetter || origSetter) {
-      try {
-        Object.defineProperty(el, 'currentTime', {
-          configurable: true,
-          get: origGetter ? () => origGetter.call(el) : undefined,
-          set(value: number) {
-            el.dispatchEvent(new Event('seeking'));
-            if (origSetter) origSetter.call(el, value);
-            setTimeout(() => {
-              el.dispatchEvent(new Event('seeked'));
-              el.dispatchEvent(new Event('timeupdate'));
-            }, 200);
-          },
-        });
-      } catch { /* ignore */ }
-    }
-  }, [isLoaded]);
-
-  useEffect(() => {
-    if (!isLoaded || !localRef.current) return;
-    const el = localRef.current;
-
-    let wasPlaying = false;
-    let lastDuration = -1;
-
-    const interval = setInterval(() => {
-      if (!el.api) return;
-
-      const state = el.api.getPlayerState?.();
-      const isPlaying = state === 1;
-
-      if (isPlaying && !wasPlaying) {
-        el.dispatchEvent(new Event('play'));
-        el.dispatchEvent(new Event('playing'));
-      }
-      if (!isPlaying && wasPlaying) {
-        el.dispatchEvent(new Event('pause'));
-      }
-      wasPlaying = isPlaying;
-
-      el.dispatchEvent(new Event('timeupdate'));
-
-      const duration = Number.isFinite(el.duration) ? el.duration : 0;
-      if (duration > 0 && duration !== lastDuration) {
-        el.dispatchEvent(new Event('durationchange'));
-        lastDuration = duration;
-      }
-    }, 200);
-
-    return () => clearInterval(interval);
-  }, [isLoaded]);
-
-  if (!isLoaded) {
-    return null;
-  }
-
-  return (
-    <>
-      <style>{`
-        youtube-video {
-          width: 100%;
-          height: 100%;
-          display: block;
-          position: relative;
-          transform: scale(1.6);
-          transform-origin: center;
-        }
-      `}</style>
-      {createElement(
-        'youtube-video',
-        {
-          src: src,
-          ref: composedRef,
-          playsInline: true,
-          ...props
-        },
-        children
-      )}
-    </>
-  );
-});
 
 export function InternalPlayer({ src, type, className, poster, placeholder, style, children, ...rest }: InternalPlayerProps): ReactNode {
   const containerStyle = placeholder
@@ -262,7 +64,7 @@ export function InternalPlayer({ src, type, className, poster, placeholder, styl
         {...rest}
       >
         {type === 'youtube' ? (
-          <YoutubeVideo src={src} />
+          <YoutubePlayer src={src} />
         ) : (
           <Video src={src} playsInline />
         )}
@@ -816,7 +618,8 @@ export default function LessonPlayer({
       raw.startsWith("youtube/")
     ) {
       const id = getYoutubeId(raw);
-      return id ? `youtube/${id}` : raw;
+      if (id) return id;
+      return raw.startsWith("youtube/") ? raw.replace("youtube/", "") : raw;
     }
     return raw;
   };
