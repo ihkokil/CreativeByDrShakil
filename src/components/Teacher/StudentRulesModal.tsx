@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Check } from "lucide-react";
 import Loader from "@/components/UI/Loader";
 import { useAuth } from "@/context/AuthContext";
@@ -30,10 +30,27 @@ const DAYS = [
 ];
 
 export default function StudentRulesModal({ courseId, userId, userIds, studentName, onClose, onSuccess, onOpenAdvanced }: StudentRulesModalProps) {
-    const [action, setAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
+    const [action, setAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all" | "change_batch">("start_from_today");
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [intervalDays, setIntervalDays] = useState<number>(3);
     const [startDate, setStartDate] = useState<string>(() => formatDateInputGMT6(new Date()));
+    const [selectedBatchId, setSelectedBatchId] = useState<string>("");
+    const [batches, setBatches] = useState<{id: string, name: string, startDate: string}[]>([]);
+
+    useEffect(() => {
+        const fetchBatches = async () => {
+            try {
+                const res = await fetch(`/api/teacher/batches/${courseId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setBatches(data.batches || []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch batches", err);
+            }
+        };
+        fetchBatches();
+    }, [courseId]);
 
     useModal(true, onClose);
     const [loading, setLoading] = useState(false);
@@ -72,6 +89,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                     action,
                     daysOfWeek,
                     intervalDays,
+                    batchId: action === "change_batch" ? selectedBatchId || null : undefined,
                     startDate: action === "custom_date" ? startDate : undefined
                 })
             });
@@ -126,6 +144,40 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                             <div className={styles.optionDesc}>
                                 This will instantly unlock every module in the course for this student.
                             </div>
+                        </div>
+
+                        <div
+                            className={`${styles.optionCard} ${action === "change_batch" ? styles.selected : ""}`}
+                            onClick={() => setAction("change_batch")}
+                        >
+                            <div className={styles.optionHeader}>
+                                <div className={styles.radio}></div>
+                                <span className={styles.optionTitle}>Change Batch / Add to Batch</span>
+                            </div>
+                            <div className={styles.optionDesc}>
+                                Move this student to a specific batch.
+                            </div>
+                            {action === "change_batch" && (
+                                <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                                    <div className={styles.dateInputsGrid}>
+                                        <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2' }}>
+                                            <label>Select Batch:</label>
+                                            <select 
+                                                value={selectedBatchId}
+                                                onChange={(e) => setSelectedBatchId(e.target.value)}
+                                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
+                                            >
+                                                <option value="">-- No Batch (Remove from batch) --</option>
+                                                {batches.map(b => (
+                                                    <option key={b.id} value={b.id}>
+                                                        {b.name} (Starts: {new Date(b.startDate).toLocaleDateString()})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div

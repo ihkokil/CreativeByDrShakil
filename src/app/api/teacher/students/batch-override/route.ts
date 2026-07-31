@@ -111,6 +111,28 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to process unlock_all' }, { status: 500 });
       }
       
+      if (action === 'change_batch') {
+        const { batchId } = body;
+        for (const uid of targets) {
+          if (batchId === null || batchId === undefined) {
+            await supabase
+              .from('Order')
+              .update({ batchId: null } as any)
+              .eq('courseId', courseId)
+              .eq('userId', uid)
+              .eq('status', 'approved');
+          } else {
+            await supabase
+              .from('Order')
+              .update({ batchId: batchId } as any)
+              .eq('courseId', courseId)
+              .eq('userId', uid)
+              .eq('status', 'approved');
+          }
+        }
+        return NextResponse.json({ success: true, processed: targets.length });
+      }
+      
       // Fallback for unsupported actions
       return NextResponse.json({ error: 'Unsupported action type.' }, { status: 400 });
     }

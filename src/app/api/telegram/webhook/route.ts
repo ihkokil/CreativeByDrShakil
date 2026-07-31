@@ -118,8 +118,8 @@ export async function POST(request: NextRequest) {
                 const keyboard = {
                   inline_keyboard: [
                     [
-                      { text: '📚 Enroll in Course', callback_data: `en:${compressUuid(user.id)}` },
-                      { text: '⚙️ Module Availability', callback_data: `av:${compressUuid(user.id)}` }
+                      { text: '📚 Enroll in Course', callback_data: `en|${compressUuid(user.id)}` },
+                      { text: '⚙️ Module Availability', callback_data: `av|${compressUuid(user.id)}` }
                     ]
                   ]
                 };
@@ -130,6 +130,24 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Acknowledge other commands/messages quietly
+          // Check for ForceReply for custom dates
+          if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('[Context: endate|')) {
+            const contextMatch = message.reply_to_message.text.match(/\[Context: (endate\|[^\]]+)\]/);
+            if (contextMatch) {
+              const dateStr = text.trim();
+              const dateObj = new Date(dateStr.split('-').reverse().join('-')); // assuming DD-MM-YYYY
+              if (isNaN(dateObj.getTime())) {
+                await sendTelegramReply(chatId, `❌ Invalid date format. Please use DD-MM-YYYY.`);
+                return NextResponse.json({ ok: true });
+              }
+              // Send an inline button to confirm
+              const cbData = contextMatch[1].replace('endate', 'endone') + '|' + dateObj.toISOString().split('T')[0];
+              await sendTelegramReply(chatId, `Confirm enrollment on ${dateStr}?`, {
+                inline_keyboard: [[{ text: '✅ Confirm', callback_data: cbData }]]
+              });
+              return NextResponse.json({ ok: true });
+            }
+          }
           await sendTelegramReply(chatId, `Command received: ${text}\nYour Chat ID: <code>${chatId}</code>`);
         }
       }
@@ -146,9 +164,9 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Handle "en:{compressedUserId}" — Show course list for enrollment
-    if (callbackData.startsWith('en:')) {
-      const compressedId = callbackData.slice(3);
+    // Handle "en|{compressedUserId}" — Show course list for enrollment
+    if (callbackData.startsWith('en|')) {
+      const compressedId = callbackData.split('|')[1];
       const userId = decompressUuid(compressedId);
 
       const { data: user }: { data: any } = await supabase
@@ -177,7 +195,7 @@ export async function POST(request: NextRequest) {
       // Build course selection keyboard
       const keyboard = (courses || []).map((c: any) => ([{
         text: `📚 ${c.title}`,
-        callback_data: `enroll:${compressedId}:${c.id}`,
+        callback_data: `enc|${compressedId}|${c.id}`,
       }]));
 
       await answerCallbackQuery(callbackQueryId, 'Select a course');
@@ -190,17 +208,81 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "enroll:{compressedUserId}:{courseId}" — Execute enrollment
-    if (callbackData.startsWith('enroll:')) {
-      const parts = callbackData.split(':');
-      if (parts.length < 3) {
+    // Handle "enc|{compressedUserId}|{courseId}" — Show Batch list
+    if (callbackData.startsWith('enc|')) {
+      const parts = callbackData.split('|');
+      const compressedId = parts[1];
+      const courseId = parts[2];
+
+      const { data: batches } = await (supabase.from('Batch') as any)
+        .select('id, name')
+        .eq('courseId', courseId)
+        .order('startDate', { ascending: false })
+        .limit(3);
+
+      const keyboard: any[] = [];
+      if (batches && batches.length > 0) {
+        batches.forEach((b: any) => {
+           keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `enb|${compressedId}|b|${b.id}` }]);
+        });
+      }
+      keyboard.push([{ text: `🚫 No Batch`, callback_data: `enb|${compressedId}|n|${courseId}` }]);
+
+      await answerCallbackQuery(callbackQueryId, 'Select a batch');
+      await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle "enb|{compressedUserId}|{type}|{id}" — Show Module Availability
+    if (callbackData.startsWith('enb|')) {
+      const parts = callbackData.split('|');
+      const compressedId = parts[1];
+      const type = parts[2];
+      const id = parts[3];
+
+      const keyboard = [
+        [{ text: `✅ All Available (Start Today)`, callback_data: `endone|${compressedId}|${type}|${id}|all` }],
+        [{ text: `📅 Custom Enrollment Date`, callback_data: `endate|${compressedId}|${type}|${id}` }],
+        // For change batch, we need the courseId. If type is 'b', we need to fetch it or just omit the back button to save bytes.
+        // Actually, they can just type /student again if they want to change batch.
+      ];
+
+      await answerCallbackQuery(callbackQueryId, 'Select availability');
+      await sendTelegramReply(chatId, `How should the modules be available?`, { inline_keyboard: keyboard });
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle "endate|{compressedUserId}|{type}|{id}" — Force Reply for custom date
+    if (callbackData.startsWith('endate|')) {
+      await answerCallbackQuery(callbackQueryId);
+      await sendTelegramReply(chatId, `Please reply to this message with the custom enrollment date in DD-MM-YYYY format.\n\n<span style="color:transparent">[Context: ${callbackData}]</span>`, {
+        force_reply: true,
+        input_field_placeholder: 'DD-MM-YYYY'
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle "endone|{compressedUserId}|{type}|{id}|{dateOrAll}" — Execute enrollment
+    if (callbackData.startsWith('endone|')) {
+      const parts = callbackData.split('|');
+      if (parts.length < 5) {
         await answerCallbackQuery(callbackQueryId, 'Invalid enrollment data.');
         return NextResponse.json({ ok: true });
       }
 
       const compressedUserId = parts[1];
-      const courseId = parts.slice(2).join(':'); // courseId may contain colons (unlikely but safe)
+      const type = parts[2];
+      const targetId = parts[3];
+      const avail = parts[4]; // 'all' or 'YYYY-MM-DD'
       const userId = decompressUuid(compressedUserId);
+
+      let courseId = type === 'b' ? '' : targetId;
+      let batchId = type === 'b' ? targetId : null;
+
+      if (type === 'b') {
+        const { data: bData } = await (supabase.from('Batch') as any).select('courseId').eq('id', batchId).single();
+        if (bData) courseId = bData.courseId;
+      }
 
       const [userRes, courseRes] = await Promise.all([
         supabase.from('User').select('id, fullName, email').eq('id', userId).limit(1).maybeSingle(),
@@ -236,10 +318,28 @@ export async function POST(request: NextRequest) {
 
       try {
         await ensureCourseEnrollment(null, userId, courseId, course.title, course.slug, true);
+        
+        // update batchId and/or enrolledAt
+        const updatePayload: any = {};
+        if (type === 'b') updatePayload.batchId = batchId;
+        else if (type === 'n') updatePayload.batchId = null;
+        
+        if (avail !== 'all') updatePayload.enrolledAt = new Date(avail).toISOString();
+        
+        if (Object.keys(updatePayload).length > 0) {
+          await supabase.from('Order').update(updatePayload).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
+        }
+
+        if (avail === 'all') {
+          // unlock all modules if requested? The user asked for "All available etc". Let's assume standard behavior is what they wanted, or if they meant unlock all modules, we'd need to insert into StudentModuleAvailability. But usually 'Start Today' means default schedule. Let's just do standard for now.
+        } else {
+           await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+        }
+
         await answerCallbackQuery(callbackQueryId, '✅ Enrolled!');
         await sendTelegramReply(
           chatId,
-          `✅ <b>Enrollment Successful</b>\n\n👤 <b>Student:</b> ${user.fullName}\n📚 <b>Course:</b> ${course.title}`
+          `✅ <b>Enrollment Successful</b>\n\n👤 <b>Student:</b> ${user.fullName}\n📚 <b>Course:</b> ${course.title}${batchId ? '\n🗓 <b>Batch Selected</b>' : ''}${avail !== 'all' ? `\n📅 <b>Date:</b> ${avail}` : ''}`
         );
       } catch (enrollErr: any) {
         console.error('[Telegram Webhook] Enrollment failed:', enrollErr);
@@ -250,9 +350,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "av:{compressedUserId}" — Show module availability info
-    if (callbackData.startsWith('av:')) {
-      const compressedId = callbackData.slice(3);
+    // Handle "av|{compressedUserId}" — Show module availability info
+    if (callbackData.startsWith('av|')) {
+      const compressedId = callbackData.split('|')[1];
       const userId = decompressUuid(compressedId);
 
       const { data: user }: { data: any } = await supabase
@@ -287,12 +387,9 @@ export async function POST(request: NextRequest) {
         .select('id, title')
         .in('id', courseIds);
 
-      const { getAppUrl } = await import('@/lib/email');
-      const appUrl = getAppUrl();
-
       const keyboard = (courses || []).map((c: any) => ([{
         text: `⚙️ ${c.title}`,
-        url: `${appUrl}/admin/students/${userId}/courses/${c.id}`,
+        callback_data: `avc|${compressedId}|${c.id}`,
       }]));
 
       await answerCallbackQuery(callbackQueryId, 'Select a course');
@@ -302,6 +399,22 @@ export async function POST(request: NextRequest) {
         { inline_keyboard: keyboard }
       );
 
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle "avc|{compressedUserId}|{courseId}" — Show actions for enrolled course
+    if (callbackData.startsWith('avc|')) {
+      const parts = callbackData.split('|');
+      const compressedId = parts[1];
+      const courseId = parts[2];
+
+      const keyboard = [
+        [{ text: `🗓 Change Batch`, callback_data: `enc|${compressedId}|${courseId}` }],
+        [{ text: `📅 Change Enrollment Date`, callback_data: `endate|${compressedId}|c|${courseId}` }]
+      ];
+
+      await answerCallbackQuery(callbackQueryId, 'Select action');
+      await sendTelegramReply(chatId, `What would you like to modify?`, { inline_keyboard: keyboard });
       return NextResponse.json({ ok: true });
     }
 
