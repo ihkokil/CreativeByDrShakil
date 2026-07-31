@@ -1509,6 +1509,11 @@
     padding: 16px 12px;
   }
   
+  .section,
+  .cardSetting {
+    padding: 16px 12px;
+  }
+  
   .header {
     flex-direction: column;
     align-items: stretch;

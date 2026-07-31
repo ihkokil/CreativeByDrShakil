@@ -57,8 +57,16 @@
         margin-left: 0;
     }
     .pageContent {
-        padding: 20px;
+        padding: 12px;
         padding-bottom: 100px; /* Space for mobile nav */
+    }
+
+    .stack {
+        gap: 16px;
+    }
+
+    .panel {
+        padding: 16px;
     }
 
     .mobileBottomNav {
