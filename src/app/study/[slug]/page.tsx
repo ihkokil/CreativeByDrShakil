@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import styles from "../Study.module.css";
 import {
     ChevronRight,
@@ -17,7 +18,7 @@ import Link from "next/link";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { useParams, useSearchParams } from "next/navigation";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
-import LessonPlayer from "@/components/Study/LessonPlayer";
+const LessonPlayer = dynamic(() => import('@/components/Study/LessonPlayer'), { ssr: false });
 import Loader from "@/components/UI/Loader";
 import { getStudentModuleView } from "@/lib/module-scheduling";
 import AuthModal from "@/components/Auth/AuthModal";

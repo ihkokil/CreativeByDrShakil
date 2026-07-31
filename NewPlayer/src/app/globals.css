@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #f4f4f5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.video-js.vjs-fill {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.video-js .vjs-tech {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.video-js .vjs-control-bar {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+  height: 3.5rem;
+  padding-top: 0.5rem;
+  bottom: 0;
+}
+
+.video-js .vjs-button {
+  color: #e4e4e7;
+}
+
+.video-js .vjs-button:hover {
+  color: #f97316;
+}
+
+.video-js .vjs-play-progress {
+  background-color: #f97316;
+}
+
+.video-js .vjs-slider {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.video-js .vjs-load-progress {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.video-js .vjs-progress-holder {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.video-js .vjs-play-progress {
+  border-radius: 2px;
+}
+
+.video-js .vjs-load-progress {
+  border-radius: 2px;
+}
+
+.video-js .vjs-volume-level {
+  background-color: #f97316;
+}
+
+.video-js .vjs-big-play-button {
+  background-color: rgba(249, 115, 22, 0.85);
+  border: none;
+  border-radius: 50%;
+  width: 3rem;
+  height: 3rem;
+  line-height: 3rem;
+  font-size: 1.5rem;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.video-js .vjs-big-play-button:hover {
+  background-color: #f97316;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.video-js.vjs-has-started .vjs-big-play-button {
+  display: none;
+}
+
+.vjs-youtube .vjs-remaining-time {
+  display: none;
+}

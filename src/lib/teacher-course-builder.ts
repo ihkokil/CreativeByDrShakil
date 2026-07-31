@@ -74,7 +74,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
 
   const id = normalizeNullableText(raw.id) || createNodeId('node');
   const title = normalizeNullableText(raw.title);
-  
+
   if (!title) return null;
 
   let rawTypeStr = normalizeNullableText(raw.type)?.toLowerCase();
@@ -108,6 +108,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
   const children = childrenRaw
     .map(normalizeNode)
     .filter((node: unknown): node is BuilderCurriculumNode => Boolean(node));
+
 
   return {
     id,
@@ -385,9 +386,18 @@ const pinTo10pmBST = (date: Date): Date => {
 };
 
 const getPreviousTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
-  const dhaka = new Date(date.getTime() + 6 * 60 * 60 * 1000);
+  const safeDate = (!date || Number.isNaN(date.getTime())) ? new Date() : date;
+  let safeTarget = 5;
+  if (typeof targetDay === 'number' && !Number.isNaN(targetDay)) {
+    safeTarget = targetDay;
+  } else if (typeof targetDay === 'string') {
+    const parsed = parseInt(targetDay, 10);
+    if (!Number.isNaN(parsed)) safeTarget = parsed;
+  }
+
+  const dhaka = new Date(safeDate.getTime() + 6 * 60 * 60 * 1000);
   const day = dhaka.getUTCDay(); 
-  const diff = (day - targetDay + 7) % 7;
+  const diff = (day - safeTarget + 7) % 7;
   dhaka.setUTCDate(dhaka.getUTCDate() - diff);
   return new Date(Date.UTC(
     dhaka.getUTCFullYear(),

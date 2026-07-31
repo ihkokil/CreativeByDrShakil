@@ -4,7 +4,7 @@ import styles from "./ModuleLibraryManager.module.css";
 import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export type ContentType = 'youtube' | 'vimeo' | 'self-hosted' | 'document';
+export type ContentType = 'youtube' | 'self-hosted' | 'document';
 
 export interface CurriculumNode {
     id: string;
@@ -820,15 +820,14 @@ export default function ModuleLibraryManager() {
                                         <label>Video Type</label>
                                         <select value={videoType} onChange={e => { const nextType = e.target.value as ContentType; setVideoType(nextType); setVideoFile(null); setVideoUrl(''); }}>
                                             <option value="youtube">YouTube Embed</option>
-                                            <option value="vimeo">Vimeo Embed</option>
                                             <option value="self-hosted">Self-Hosted Video</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    {videoType === 'youtube' || videoType === 'vimeo' ? (
+                                    {videoType === 'youtube' ? (
                                         <>
-                                            <label>{videoType === 'youtube' ? 'YouTube' : 'Vimeo'} URL</label>
+                                            <label>YouTube URL</label>
                                             <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." required />
                                         </>
                                     ) : (
@@ -963,7 +962,6 @@ export default function ModuleLibraryManager() {
                                                 <label>Module Type</label>
                                                 <select value={videoType} onChange={e => setVideoType(e.target.value as ContentType)}>
                                                     <option value="youtube">YouTube Embed</option>
-                                                    <option value="vimeo">Vimeo Embed</option>
                                                     <option value="self-hosted">Self-Hosted Video</option>
                                                     <option value="document">Document</option>
                                                 </select>
