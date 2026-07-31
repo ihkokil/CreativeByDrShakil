@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from "react";
 import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { X, Mail, Lock, ArrowRight, ArrowLeft, User, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home, Lock, ArrowRight, ArrowLeft, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useModalLock } from "@/hooks/useModalLock";
 import { resolveEmail } from "@/lib/email-resolver";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
 
@@ -20,6 +21,7 @@ interface Props {
 type AuthStep = "email" | "password" | "otp" | "register" | "forgot" | "forgot-otp" | "forgot-reset";
 
 export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: Props) {
+    useModalLock(isOpen, onClose);
     const { refreshSession } = useAuth();
     const [step, setStep] = useState<AuthStep>("email");
     const [email, setEmail] = useState("");
@@ -506,7 +508,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className={styles.overlay} onClick={onClose}>
+                <div className={styles.overlay}>
                     <motion.div
                         className={`${styles.modal} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}

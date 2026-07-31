@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import styles from "./EnrollStudentModal.module.css";
 import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap } from "lucide-react";
+import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap, Users } from "lucide-react";
+import { useModalLock } from "@/hooks/useModalLock";
 
 interface Student {
     id: string;
@@ -28,7 +29,8 @@ export default function EnrollStudentModal({
     onClose, 
     onSuccess 
 }: Props) {
-    const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
+    useModalLock(isOpen, onClose);
+    const [activeTab, setActiveTab] = useState<"existing" | "new" | "bulk">("existing");
     
     // Data states
     const [students, setStudents] = useState<Student[]>([]);
@@ -44,6 +46,9 @@ export default function EnrollStudentModal({
     const [newStudentName, setNewStudentName] = useState("");
     const [newStudentPhone, setNewStudentPhone] = useState("");
     
+    // Bulk student state
+    const [bulkEmailsText, setBulkEmailsText] = useState("");
+
     // UI states
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -104,19 +109,43 @@ export default function EnrollStudentModal({
             const token = localStorage.getItem("auth_token");
             const isNewStudent = activeTab === "new";
             
-            const requestBody = isNewStudent ? {
-                courseId,
-                batchId: selectedBatchId || undefined,
-                isNewStudent: true,
-                email: newStudentEmail.trim().toLowerCase(),
-                fullName: newStudentName.trim(),
-                phone: newStudentPhone.trim() || undefined,
-            } : {
-                courseId,
-                batchId: selectedBatchId || undefined,
-                isNewStudent: false,
-                studentIds: selectedStudents,
-            };
+            let requestBody: any;
+            
+            if (activeTab === "bulk") {
+                const bulkEmails = bulkEmailsText
+                    .split(/[\n,]/)
+                    .map(e => e.trim())
+                    .filter(e => e.length > 0);
+                    
+                if (bulkEmails.length === 0) {
+                    showMessage({ type: 'error', text: 'Please enter at least one valid email.' });
+                    setLoading(false);
+                    return;
+                }
+                
+                requestBody = {
+                    courseId,
+                    batchId: selectedBatchId || undefined,
+                    isNewStudent: false,
+                    bulkEmails
+                };
+            } else if (isNewStudent) {
+                requestBody = {
+                    courseId,
+                    batchId: selectedBatchId || undefined,
+                    isNewStudent: true,
+                    email: newStudentEmail.trim().toLowerCase(),
+                    fullName: newStudentName.trim(),
+                    phone: newStudentPhone.trim() || undefined,
+                };
+            } else {
+                requestBody = {
+                    courseId,
+                    batchId: selectedBatchId || undefined,
+                    isNewStudent: false,
+                    studentIds: selectedStudents,
+                };
+            }
 
             if (isNewStudent && (!newStudentEmail || !newStudentName)) {
                 showMessage({ type: 'error', text: 'Email and full name are required for new students.' });
@@ -124,7 +153,7 @@ export default function EnrollStudentModal({
                 return;
             }
 
-            if (!isNewStudent && selectedStudents.length === 0) {
+            if (activeTab === "existing" && selectedStudents.length === 0) {
                 showMessage({ type: 'error', text: 'Please select at least one student.' });
                 setLoading(false);
                 return;
@@ -151,6 +180,7 @@ export default function EnrollStudentModal({
                 setNewStudentEmail("");
                 setNewStudentName("");
                 setNewStudentPhone("");
+                setBulkEmailsText("");
                 setSearchQuery("");
                 
                 setTimeout(() => {
@@ -171,6 +201,7 @@ export default function EnrollStudentModal({
         setNewStudentEmail("");
         setNewStudentName("");
         setNewStudentPhone("");
+        setBulkEmailsText("");
         if (!batchId) setSelectedBatchId("");
         setActiveTab("existing");
         onClose();
@@ -186,7 +217,7 @@ export default function EnrollStudentModal({
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className={styles.overlay} onClick={handleClose}>
+                <div className={styles.overlay}>
                     <motion.div
                         className={`${styles.modal} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -216,7 +247,7 @@ export default function EnrollStudentModal({
                                 onClick={() => setActiveTab("existing")}
                             >
                                 <User size={16} />
-                                Existing Student
+                                Existing
                             </button>
                             <button
                                 type="button"
@@ -224,7 +255,15 @@ export default function EnrollStudentModal({
                                 onClick={() => setActiveTab("new")}
                             >
                                 <UserPlus size={16} />
-                                New Registration
+                                New
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.tab} ${activeTab === "bulk" ? styles.activeTab : ""}`}
+                                onClick={() => setActiveTab("bulk")}
+                            >
+                                <Users size={16} />
+                                Bulk Add
                             </button>
                         </div>
 
@@ -306,7 +345,7 @@ export default function EnrollStudentModal({
                                         )}
                                     </div>
                                 </>
-                            ) : (
+                            ) : activeTab === "new" ? (
                                 <>
                                     {/* New Student Form */}
                                     <div className={styles.inputGroup}>
@@ -346,6 +385,28 @@ export default function EnrollStudentModal({
                                         A password setup email will be sent to the student.
                                     </div>
                                 </>
+                            ) : (
+                                <>
+                                    {/* Bulk Student Form */}
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.fieldLabel}>
+                                            <Mail size={16} />
+                                            Student Emails (Comma or newline separated)
+                                        </label>
+                                        <textarea
+                                            placeholder="student1@example.com, student2@example.com&#10;student3@example.com"
+                                            value={bulkEmailsText}
+                                            onChange={(e) => setBulkEmailsText(e.target.value)}
+                                            required={activeTab === "bulk"}
+                                            style={{ width: '100%', padding: '12px', minHeight: '120px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)', resize: 'vertical' }}
+                                        />
+                                    </div>
+
+                                    <div className={styles.infoNote}>
+                                        <Users size={14} />
+                                        Only existing students will be enrolled. Unregistered emails will be skipped and reported back to you.
+                                    </div>
+                                </>
                             )}
 
                             {message && (
@@ -357,12 +418,14 @@ export default function EnrollStudentModal({
                             <button 
                                 className={styles.submitBtn} 
                                 type="submit" 
-                                disabled={loading || (activeTab === "existing" ? selectedStudents.length === 0 : (!newStudentEmail || !newStudentName))}
+                                disabled={loading || (activeTab === "existing" && selectedStudents.length === 0) || (activeTab === "new" && (!newStudentEmail || !newStudentName)) || (activeTab === "bulk" && !bulkEmailsText.trim())}
                             >
                                 {loading ? (
                                     <><Loader variant="button" /> Enrolling...</>
                                 ) : activeTab === "new" ? (
                                     "Register & Enroll Student"
+                                ) : activeTab === "bulk" ? (
+                                    "Bulk Enroll Students"
                                 ) : (
                                     "Enroll Student"
                                 )}

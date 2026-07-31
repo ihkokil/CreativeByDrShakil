@@ -234,13 +234,13 @@
 }
 
 .statusBadge.PUBLISHED {
-    background: color-mix(in srgb, var(--success) 15%, transparent);
-    color: var(--success);
+    background: var(--success);
+    color: white;
 }
 
 .statusBadge.DRAFT {
-    background: color-mix(in srgb, var(--warning) 15%, transparent);
-    color: var(--warning);
+    background: var(--warning);
+    color: white;
 }
 
 .statusBadge.ARCHIVED {
