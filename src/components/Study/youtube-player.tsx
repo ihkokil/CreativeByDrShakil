@@ -495,6 +495,7 @@ export interface YoutubePlayerProps {
   style?: React.CSSProperties;
   className?: string;
   children?: ReactNode;
+  autoplay?: boolean;
 }
 
 export const YoutubePlayer = forwardRef<HTMLIFrameElement, YoutubePlayerProps>(

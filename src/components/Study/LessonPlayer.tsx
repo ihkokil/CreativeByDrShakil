@@ -49,9 +49,10 @@ export interface InternalPlayerProps {
   poster?: string | RenderProp<Poster.State> | undefined;
   placeholder?: string;
   children?: ReactNode;
+  autoplay?: boolean;
 }
 
-export function InternalPlayer({ src, type, className, poster, placeholder, style, children, ...rest }: InternalPlayerProps): ReactNode {
+export function InternalPlayer({ src, type, className, poster, placeholder, style, children, autoplay, ...rest }: InternalPlayerProps): ReactNode {
   const containerStyle = placeholder
     ? ({ '--media-poster-placeholder': `url(${placeholder})`, ...style } as CSSProperties)
     : style;
@@ -64,9 +65,9 @@ export function InternalPlayer({ src, type, className, poster, placeholder, styl
         {...rest}
       >
         {type === 'youtube' ? (
-          <YoutubePlayer src={src} />
+          <YoutubePlayer src={src} autoplay={autoplay} />
         ) : (
-          <Video src={src} playsInline />
+          <Video src={src} playsInline autoPlay={autoplay} />
         )}
 
         {children}
@@ -668,7 +669,7 @@ export default function LessonPlayer({
       className={styles.playerContainer}
       onContextMenu={handleContextMenu}
     >
-      <InternalPlayer src={playerSrc} type={lesson.type === 'youtube' ? 'youtube' : 'selfhosted'} poster={posterUrl}>
+      <InternalPlayer src={playerSrc} type={lesson.type === 'youtube' ? 'youtube' : 'selfhosted'} poster={posterUrl} autoplay={true}>
       </InternalPlayer>
 
       {/* ── Watermark — topmost, no pointer events ─────────────── */}
