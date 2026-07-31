@@ -11,7 +11,6 @@ import { Lock, FileText, Video as VideoIcon, Play, Loader2 } from "lucide-react"
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import styles from "./LessonPlayer.module.css";
 import './player.css';
-// import FloatingTag from "./FloatingTag";
 
 interface LessonPlayerProps {
   lesson: {
