@@ -565,11 +565,20 @@
 
 @media (max-width: 700px) {
     .sectionInner {
-        padding: 18px;
+        padding: 12px;
     }
 
     .sectionHeader {
-        padding: 16px 18px;
+        padding: 12px;
+    }
+    
+    .sectionHeaderMeta {
+        width: 100%;
+    }
+    
+    .sectionHeaderMeta select {
+        width: 100%;
+        min-width: 100%;
     }
 
     .scheduleGrid,
@@ -586,6 +595,7 @@
     .nodeActions {
         width: 100%;
         flex-wrap: wrap;
+        margin-top: 8px;
     }
 
     .reuseWrap .formRow {

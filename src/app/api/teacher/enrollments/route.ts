@@ -16,10 +16,12 @@ export async function POST(request: NextRequest) {
       courseId, 
       batchId,
       studentId, 
+      studentIds,
       isNewStudent,
       email, 
       fullName, 
-      phone 
+      phone,
+      bulkEmails
     } = body;
 
     if (!courseId) {
@@ -131,16 +133,36 @@ export async function POST(request: NextRequest) {
       } catch (emailError) {
         console.error('Failed to send password setup email:', emailError);
       }
+    } else if (bulkEmails && Array.isArray(bulkEmails) && bulkEmails.length > 0) {
+      const normalizedEmails = bulkEmails.map(e => String(e).trim().toLowerCase());
+      
+      const { data: foundStudents } = await supabase
+        .from('User')
+        .select('*')
+        .in('email', normalizedEmails)
+        .eq('role', 'student');
+
+      if (!foundStudents || foundStudents.length === 0) {
+        return NextResponse.json({ error: 'No existing students found with the provided emails.' }, { status: 404 });
+      }
+      enrolledStudents = foundStudents;
+
+      // Check if some emails were not found
+      const foundEmails = foundStudents.map(s => s.email.toLowerCase());
+      const notFoundEmails = normalizedEmails.filter(e => !foundEmails.includes(e));
+      
+      // We will proceed with enrolling the found ones, and return a message about not found ones.
+      (request as any).notFoundEmails = notFoundEmails;
     } else {
-      const studentIds = body.studentIds || (studentId ? [studentId] : []);
-      if (studentIds.length === 0) {
-        return NextResponse.json({ error: 'Student ID(s) are required for existing students.' }, { status: 400 });
+      const ids = studentIds || (studentId ? [studentId] : []);
+      if (ids.length === 0) {
+        return NextResponse.json({ error: 'Student ID(s) or bulk emails are required for existing students.' }, { status: 400 });
       }
 
       const { data: foundStudents } = await supabase
         .from('User')
         .select('*')
-        .in('id', studentIds)
+        .in('id', ids)
         .eq('role', 'student');
       
       if (!foundStudents || foundStudents.length === 0) {
@@ -235,12 +257,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No students were enrolled. They might already be enrolled in this course.' }, { status: 409 });
     }
 
+    let responseMessage = isNewRegistration
+        ? `Student enrolled successfully. A password setup email has been sent to ${enrolledStudents[0].email}.`
+        : `${successfulEnrollments.length} student(s) enrolled successfully.`;
+        
+    const notFoundEmails = (request as any).notFoundEmails;
+    if (notFoundEmails && notFoundEmails.length > 0) {
+      responseMessage += ` Note: ${notFoundEmails.length} email(s) were not found in the system.`;
+    }
+
     return NextResponse.json({
       success: true,
-      message: isNewRegistration
-        ? `Student enrolled successfully. A password setup email has been sent to ${enrolledStudents[0].email}.`
-        : `${successfulEnrollments.length} student(s) enrolled successfully.`,
+      message: responseMessage,
       enrollmentsCount: successfulEnrollments.length,
+      notFoundEmails: notFoundEmails || [],
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import styles from "../../../TeacherDashboard.module.css";
 import Loader from "@/components/UI/Loader";
-import { ArrowLeft, UserPlus, Users, Calendar, Trash2 } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, Calendar, Trash2, Search } from "lucide-react";
 import { formatDateGMT6 } from "@/lib/date-format";
 import EnrollStudentModal from "@/components/Teacher/EnrollStudentModal";
 
@@ -27,6 +27,9 @@ export default function BatchStudentsPage() {
   const [batchInfo, setBatchInfo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "date">("date");
 
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
@@ -73,9 +76,16 @@ export default function BatchStudentsPage() {
   if (loading) return <Loader text="Loading students..." />;
   if (error) return <div className={styles.error}>{error}</div>;
 
+  const filteredAndSortedStudents = students
+    .filter(s => s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || s.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "name") return a.fullName.localeCompare(b.fullName);
+      return new Date(b.enrolledAt).getTime() - new Date(a.enrolledAt).getTime();
+    });
+
   return (
     <section className={styles.panel}>
-      <div className={styles.sectionHeader}>
+      <div className={styles.sectionHeader} style={{ flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <Link href={`/teacher/dashboard/batches/${courseId}`} className={styles.backLink}>
             <ArrowLeft size={16} /> Back to Batches
@@ -83,12 +93,35 @@ export default function BatchStudentsPage() {
           <h2 className={styles.sectionTitle}>{batchInfo?.name} - Students</h2>
           <p className={styles.subtitle}>Manage enrollments for this specific batch</p>
         </div>
-        <button 
-          className={styles.primaryBtn}
-          onClick={() => setIsEnrollModalOpen(true)}
-        >
-          <UserPlus size={18} /> Add Student
-        </button>
+        
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className={styles.searchBox} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Search students..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', color: 'var(--foreground)' }}
+            />
+          </div>
+          
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value as any)}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', color: 'var(--foreground)' }}
+          >
+            <option value="date">Sort by Enrolled Date</option>
+            <option value="name">Sort by Name</option>
+          </select>
+
+          <button 
+            className={styles.primaryBtn}
+            onClick={() => setIsEnrollModalOpen(true)}
+          >
+            <UserPlus size={18} /> Add Student
+          </button>
+        </div>
       </div>
 
       <div className={styles.tableContainer}>
@@ -101,14 +134,14 @@ export default function BatchStudentsPage() {
             </tr>
           </thead>
           <tbody>
-            {students.length === 0 ? (
+            {filteredAndSortedStudents.length === 0 ? (
               <tr>
                 <td colSpan={3} style={{ textAlign: "center", padding: "2rem" }}>
-                  No students enrolled in this batch.
+                  No students found.
                 </td>
               </tr>
             ) : (
-              students.map((student) => (
+              filteredAndSortedStudents.map((student) => (
                 <tr key={student.orderId}>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

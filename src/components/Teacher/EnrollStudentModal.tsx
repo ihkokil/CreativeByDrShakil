@@ -5,7 +5,7 @@ import styles from "./EnrollStudentModal.module.css";
 import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from "framer-motion";
 import { useModal } from '@/hooks/useModal';
-import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap } from "lucide-react";
+import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap, Users } from "lucide-react";
 
 interface Student {
     id: string;
@@ -29,6 +29,7 @@ export default function EnrollStudentModal({
     onClose, 
     onSuccess 
 }: Props) {
+    useModal(isOpen, onClose);
     const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
     
     // Data states
@@ -45,7 +46,7 @@ export default function EnrollStudentModal({
     const [newStudentEmail, setNewStudentEmail] = useState("");
     const [newStudentName, setNewStudentName] = useState("");
     const [newStudentPhone, setNewStudentPhone] = useState("");
-    
+
     // UI states
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -128,7 +129,7 @@ export default function EnrollStudentModal({
                 return;
             }
 
-            if (!isNewStudent && selectedStudents.length === 0) {
+            if (activeTab === "existing" && selectedStudents.length === 0) {
                 showMessage({ type: 'error', text: 'Please select at least one student.' });
                 setLoading(false);
                 return;
@@ -223,7 +224,7 @@ export default function EnrollStudentModal({
                                 onClick={() => setActiveTab("existing")}
                             >
                                 <User size={16} />
-                                Existing Student
+                                Existing
                             </button>
                             <button
                                 type="button"
@@ -231,7 +232,7 @@ export default function EnrollStudentModal({
                                 onClick={() => setActiveTab("new")}
                             >
                                 <UserPlus size={16} />
-                                New Registration
+                                New
                             </button>
                         </div>
 
@@ -301,33 +302,40 @@ export default function EnrollStudentModal({
                                                 {searchQuery ? "No students found" : "Loading students..."}
                                             </div>
                                         ) : (
-                                            filteredStudents.slice(0, 5).map((student) => (
-                                                <div
-                                                    key={student.id}
-                                                    className={`${styles.studentCard} ${selectedStudents.includes(student.id) ? styles.selectedCard : ""}`}
-                                                    onClick={() => setSelectedStudents(prev => 
-                                                        prev.includes(student.id) 
-                                                            ? prev.filter(id => id !== student.id)
-                                                            : [...prev, student.id]
-                                                    )}
-                                                >
-                                                    <div className={styles.studentInfo}>
-                                                        <div className={styles.studentAvatar}>
-                                                            {student.fullName.charAt(0).toUpperCase()}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+                                                {filteredStudents.map((student) => (
+                                                    <label
+                                                        key={student.id}
+                                                        className={`${styles.studentCard} ${selectedStudents.includes(student.id) ? styles.selectedCard : ""}`}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', cursor: 'pointer', margin: 0, border: selectedStudents.includes(student.id) ? '1px solid var(--primary)' : '1px solid var(--glass-border)' }}
+                                                    >
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={selectedStudents.includes(student.id)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedStudents(prev => [...prev, student.id]);
+                                                                } else {
+                                                                    setSelectedStudents(prev => prev.filter(id => id !== student.id));
+                                                                }
+                                                            }}
+                                                            style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                                        />
+                                                        <div className={styles.studentInfo} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, overflow: 'hidden' }}>
+                                                            <div className={styles.studentAvatar} style={{ width: '36px', height: '36px', fontSize: '1rem', flexShrink: 0 }}>
+                                                                {student.fullName.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div style={{ overflow: 'hidden' }}>
+                                                                <div className={styles.studentName} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.fullName}</div>
+                                                                <div className={styles.studentEmail} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.email}</div>
+                                                                {student.phone && (
+                                                                    <div className={styles.studentPhone}>{student.phone}</div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <div className={styles.studentName}>{student.fullName}</div>
-                                                            <div className={styles.studentEmail}>{student.email}</div>
-                                                            {student.phone && (
-                                                                <div className={styles.studentPhone}>{student.phone}</div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    {selectedStudents.includes(student.id) && (
-                                                        <Check size={20} className={styles.checkIcon} />
-                                                    )}
-                                                </div>
-                                            ))
+                                                    </label>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                 </>
@@ -382,7 +390,7 @@ export default function EnrollStudentModal({
                             <button 
                                 className={styles.submitBtn} 
                                 type="submit" 
-                                disabled={loading || (activeTab === "existing" ? selectedStudents.length === 0 : (!newStudentEmail || !newStudentName))}
+                                disabled={loading || (activeTab === "existing" && selectedStudents.length === 0) || (activeTab === "new" && (!newStudentEmail || !newStudentName))}
                             >
                                 {loading ? (
                                     <><Loader variant="button" /> Enrolling...</>

@@ -539,6 +539,11 @@
         gap: 16px;
     }
 
+    .bentoItem {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
     .statsHero,
     .metricCard,
     .activityList,
@@ -553,7 +558,7 @@
         align-items: center;
         justify-content: flex-start;
         gap: 16px;
-        padding: 16px 20px;
+        padding: 16px;
     }
 
     .metricHeader {

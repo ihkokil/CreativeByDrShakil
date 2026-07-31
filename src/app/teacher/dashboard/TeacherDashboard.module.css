@@ -57,8 +57,16 @@
         margin-left: 0;
     }
     .pageContent {
-        padding: 20px;
+        padding: 12px;
         padding-bottom: 100px; /* Space for mobile nav */
+    }
+
+    .stack {
+        gap: 16px;
+    }
+
+    .panel {
+        padding: 16px;
     }
 
     .mobileBottomNav {
@@ -226,13 +234,13 @@
 }
 
 .statusBadge.PUBLISHED {
-    background: color-mix(in srgb, var(--success) 15%, transparent);
-    color: var(--success);
+    background: var(--success);
+    color: white;
 }
 
 .statusBadge.DRAFT {
-    background: color-mix(in srgb, var(--warning) 15%, transparent);
-    color: var(--warning);
+    background: var(--warning);
+    color: white;
 }
 
 .statusBadge.ARCHIVED {
