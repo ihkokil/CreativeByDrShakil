@@ -98,149 +98,149 @@ function defer(): Promise<void> & { resolve: () => void; reject: (r?: unknown) =
 // ── YouTubeMedia class ─────────────────────────────────────────────
 
 export class YouTubeMedia extends EventTarget {
-  #player: unknown = null;
-  #target: HTMLIFrameElement | null = null;
-  #ready = defer();
-  #src = "";
-  #autoplay = false;
-  #loop = false;
-  #controls = false;
-  #playsInline = true;
-  #preload = "metadata";
-  #poster = "";
-  #paused = true;
-  #ended = false;
-  #seeking = false;
-  #currentTime = 0;
-  #duration = NaN;
-  #volume = 1;
-  #muted = false;
-  #playbackRate = 1;
-  #readyState = 0;
-  #progress = 0;
-  #error: unknown = null;
-  #videoWidth = NaN;
-  #videoHeight = NaN;
-  #timeTimer: ReturnType<typeof setInterval> | null = null;
-  #progTimer: ReturnType<typeof setInterval> | null = null;
-  #pipActive = false;
+  _player: unknown = null;
+  _target: HTMLIFrameElement | null = null;
+  _ready = defer();
+  _src = "";
+  _autoplay = false;
+  _loop = false;
+  _controls = false;
+  _playsInline = true;
+  _preload = "metadata";
+  _poster = "";
+  _paused = true;
+  _ended = false;
+  _seeking = false;
+  _currentTime = 0;
+  _duration = NaN;
+  _volume = 1;
+  _muted = false;
+  _playbackRate = 1;
+  _readyState = 0;
+  _progress = 0;
+  _error: unknown = null;
+  _videoWidth = NaN;
+  _videoHeight = NaN;
+  _timeTimer: ReturnType<typeof setInterval> | null = null;
+  _progTimer: ReturnType<typeof setInterval> | null = null;
+  _pipActive = false;
 
   get engine() {
-    return this.#player;
+    return this._player;
   }
   get target() {
-    return this.#target;
+    return this._target;
   }
 
   get src() {
-    return this.#src;
+    return this._src;
   }
   set src(v: string) {
-    if (this.#src === v) return;
-    this.#src = v;
+    if (this._src === v) return;
+    this._src = v;
     this.load();
   }
   get currentSrc() {
-    return this.#src ? buildIframeSrc(this.#src, this.#snap()) : "";
+    return this._src ? buildIframeSrc(this._src, this._snap()) : "";
   }
   get readyState() {
-    return this.#readyState;
+    return this._readyState;
   }
   get paused() {
-    return this.#paused;
+    return this._paused;
   }
   get ended() {
-    return this.#ended;
+    return this._ended;
   }
   get seeking() {
-    return this.#seeking;
+    return this._seeking;
   }
   get currentTime() {
-    return this.#currentTime;
+    return this._currentTime;
   }
   set currentTime(v: number) {
-    this.#currentTime = v;
+    this._currentTime = v;
     this.dispatchEvent(new Event("seeking"));
-    this.#afterReady((p: any) => p.seekTo(v, true));
+    this._afterReady((p: any) => p.seekTo(v, true));
   }
   get duration() {
-    return this.#duration;
+    return this._duration;
   }
   get volume() {
-    return this.#volume;
+    return this._volume;
   }
   set volume(v: number) {
-    this.#volume = v;
-    this.#afterReady((p: any) => p.setVolume(v * 100));
+    this._volume = v;
+    this._afterReady((p: any) => p.setVolume(v * 100));
   }
   get muted() {
-    return this.#muted;
+    return this._muted;
   }
   set muted(v: boolean) {
-    this.#muted = v;
-    this.#afterReady((p: any) => (v ? p.mute() : p.unMute()));
+    this._muted = v;
+    this._afterReady((p: any) => (v ? p.mute() : p.unMute()));
   }
   get playbackRate() {
-    return this.#playbackRate;
+    return this._playbackRate;
   }
   set playbackRate(v: number) {
-    this.#playbackRate = v;
-    this.#afterReady((p: any) => p.setPlaybackRate(v));
+    this._playbackRate = v;
+    this._afterReady((p: any) => p.setPlaybackRate(v));
   }
   get autoplay() {
-    return this.#autoplay;
+    return this._autoplay;
   }
   set autoplay(v: boolean) {
-    this.#autoplay = v;
+    this._autoplay = v;
   }
   get loop() {
-    return this.#loop;
+    return this._loop;
   }
   set loop(v: boolean) {
-    this.#loop = v;
+    this._loop = v;
   }
   get controls() {
-    return this.#controls;
+    return this._controls;
   }
   set controls(v: boolean) {
-    this.#controls = v;
+    this._controls = v;
   }
   get playsInline() {
-    return this.#playsInline;
+    return this._playsInline;
   }
   set playsInline(v: boolean) {
-    this.#playsInline = v;
+    this._playsInline = v;
   }
   get preload() {
-    return this.#preload;
+    return this._preload;
   }
   set preload(v: string) {
-    this.#preload = v;
+    this._preload = v;
   }
   get poster() {
-    return this.#poster;
+    return this._poster;
   }
   set poster(v: string) {
-    this.#poster = v;
+    this._poster = v;
   }
   get buffered() {
-    return this.#progress > 0
-      ? { length: 1, start: () => 0, end: () => this.#progress }
+    return this._progress > 0
+      ? { length: 1, start: () => 0, end: () => this._progress }
       : { length: 0, start: () => 0, end: () => 0 };
   }
   get seekable() {
-    return Number.isFinite(this.#duration) && this.#duration > 0
-      ? { length: 1, start: () => 0, end: () => this.#duration }
+    return Number.isFinite(this._duration) && this._duration > 0
+      ? { length: 1, start: () => 0, end: () => this._duration }
       : { length: 0, start: () => 0, end: () => 0 };
   }
   get error() {
-    return this.#error;
+    return this._error;
   }
   get videoWidth() {
-    return this.#videoWidth;
+    return this._videoWidth;
   }
   get videoHeight() {
-    return this.#videoHeight;
+    return this._videoHeight;
   }
   get played() {
     return { length: 0, start: () => 0, end: () => 0 };
@@ -258,68 +258,68 @@ export class YouTubeMedia extends EventTarget {
     };
   }
 
-  #snap() {
+  _snap() {
     return {
-      autoplay: this.#autoplay,
-      loop: this.#loop,
-      controls: this.#controls,
-      playsInline: this.#playsInline,
-      preload: this.#preload,
+      autoplay: this._autoplay,
+      loop: this._loop,
+      controls: this._controls,
+      playsInline: this._playsInline,
+      preload: this._preload,
     };
   }
 
-  #afterReady(fn: (player: unknown) => void) {
-    this.#ready.then(
+  _afterReady(fn: (player: unknown) => void) {
+    this._ready.then(
       () => {
-        if (this.#player) fn(this.#player);
+        if (this._player) fn(this._player);
       },
       () => undefined,
     );
   }
 
-  #reset() {
-    this.#currentTime = 0;
-    this.#duration = NaN;
-    this.#paused = !this.#autoplay;
-    this.#ended = false;
-    this.#playbackRate = 1;
-    this.#progress = 0;
-    this.#readyState = 0;
-    this.#seeking = false;
-    this.#error = null;
-    this.#videoWidth = NaN;
-    this.#videoHeight = NaN;
+  _reset() {
+    this._currentTime = 0;
+    this._duration = NaN;
+    this._paused = !this._autoplay;
+    this._ended = false;
+    this._playbackRate = 1;
+    this._progress = 0;
+    this._readyState = 0;
+    this._seeking = false;
+    this._error = null;
+    this._videoWidth = NaN;
+    this._videoHeight = NaN;
   }
 
-  #loading = false;
+  _loading = false;
 
-  #stopTimers() {
-    if (this.#timeTimer) clearInterval(this.#timeTimer);
-    this.#timeTimer = null;
-    if (this.#progTimer) clearInterval(this.#progTimer);
-    this.#progTimer = null;
+  _stopTimers() {
+    if (this._timeTimer) clearInterval(this._timeTimer);
+    this._timeTimer = null;
+    if (this._progTimer) clearInterval(this._progTimer);
+    this._progTimer = null;
   }
 
   attach(target: HTMLIFrameElement) {
-    if (!target || this.#target === target) return;
-    if (this.#target) this.detach();
-    this.#target = target;
-    this.#initPlayer("attach");
+    if (!target || this._target === target) return;
+    if (this._target) this.detach();
+    this._target = target;
+    this._initPlayer("attach");
   }
 
   detach() {
-    this.#loading = false;
-    this.#stopTimers();
-    if (this.#player) {
+    this._loading = false;
+    this._stopTimers();
+    if (this._player) {
       try {
-        (this.#player as any).destroy();
+        (this._player as any).destroy();
       } catch {
         /* ignore */
       }
     }
-    this.#player = null;
-    this.#target = null;
-    this.#reset();
+    this._player = null;
+    this._target = null;
+    this._reset();
   }
 
   destroy() {
@@ -327,145 +327,152 @@ export class YouTubeMedia extends EventTarget {
   }
 
   async load() {
-    if (!this.#src) return;
-    const id = parseVideoId(this.#src);
+    if (!this._src) return;
+    const id = parseVideoId(this._src);
     if (!id) return;
 
-    if (this.#player) {
-      this.#reset();
-      this.#ready = defer();
+    if (this._player) {
+      this._reset();
+      this._ready = defer();
       this.dispatchEvent(new Event("emptied"));
       this.dispatchEvent(new Event("loadstart"));
-      (this.#player as any).loadVideoById(id);
-    } else if (this.#target) {
-      this.#initPlayer("load");
+      (this._player as any).loadVideoById(id);
+    } else if (this._target) {
+      this._initPlayer("load");
     }
   }
 
-  async #initPlayer(caller: "attach" | "load") {
-    if (this.#loading || this.#player) return;
-    if (!this.#target || !this.#src) return;
-    this.#loading = true;
-    this.#reset();
-    this.#ready = defer();
+  async _initPlayer(caller: "attach" | "load") {
+    if (this._loading || this._player) return;
+    if (!this._target || !this._src) return;
+    this._loading = true;
+    this._reset();
+    this._ready = defer();
     if (caller === "load") {
       this.dispatchEvent(new Event("emptied"));
     }
     this.dispatchEvent(new Event("loadstart"));
 
     const YT = (await loadAPI()) as any;
-    const id = parseVideoId(this.#src);
-    if (!id) { this.#loading = false; return; }
-    if (this.#player) { this.#loading = false; return; }
+    const id = parseVideoId(this._src);
+    if (!id) { this._loading = false; return; }
+    if (this._player) { this._loading = false; return; }
 
-    this.#player = new YT.Player(this.#target, {
+    this._player = new YT.Player(this._target, {
       events: {
-        onReady: () => { this.#loading = false; this.#onReady(id); },
-        onStateChange: (e: any) => this.#onState(e),
-        onPlaybackRateChange: (e: any) => this.#onRate(e),
-        onError: (e: any) => this.#onErr(e),
+        onReady: () => { this._loading = false; this._onReady(id); },
+        onStateChange: (e: any) => this._onState(e),
+        onPlaybackRateChange: (e: any) => this._onRate(e),
+        onError: (e: any) => this._onErr(e),
       },
     });
   }
 
 
 
-  #onReady(_id: string) {
-    this.#readyState = 1;
+  _onReady(_id: string) {
+    this._readyState = 4;
     this.dispatchEvent(new Event("loadedmetadata"));
     this.dispatchEvent(new Event("durationchange"));
     this.dispatchEvent(new Event("volumechange"));
-    this.dispatchEvent(new Event("loadcomplete"));
-    this.#ready.resolve();
+    this.dispatchEvent(new Event("canplay"));
+    this.dispatchEvent(new Event("canplaythrough"));
+    this._ready.resolve();
 
-    this.#timeTimer = setInterval(() => {
-      const p = this.#player as any;
+    this._timeTimer = setInterval(() => {
+      const p = this._player as any;
       if (!p) return;
       const t = p.getCurrentTime();
-      if (t !== this.#currentTime) {
-        this.#currentTime = t;
+      if (t !== this._currentTime) {
+        this._currentTime = t;
         this.dispatchEvent(new Event("timeupdate"));
       }
       const d = p.getDuration();
-      if (Number.isFinite(d) && d !== this.#duration) {
-        this.#duration = d;
+      if (Number.isFinite(d) && d !== this._duration) {
+        this._duration = d;
         this.dispatchEvent(new Event("durationchange"));
       }
     }, 200);
 
-    this.#progTimer = setInterval(() => {
-      const p = this.#player as any;
+    this._progTimer = setInterval(() => {
+      const p = this._player as any;
       if (!p) return;
       const fraction = p.getVideoLoadedFraction();
       const loaded = (p.getDuration() || 0) * fraction;
-      if (loaded !== this.#progress) {
-        this.#progress = loaded;
+      if (loaded !== this._progress) {
+        this._progress = loaded;
         this.dispatchEvent(new Event("progress"));
       }
     }, 500);
   }
 
-  #onState(e: any) {
+  _onState(e: any) {
     switch (e.data) {
+      case -1:
+      case 5:
+        this._readyState = 4;
+        this.dispatchEvent(new Event("canplay"));
+        this.dispatchEvent(new Event("canplaythrough"));
+        break;
       case 1:
-        if (this.#seeking) {
-          this.#seeking = false;
+        if (this._seeking) {
+          this._seeking = false;
           this.dispatchEvent(new Event("seeked"));
         }
-        if (this.#paused) {
-          this.#paused = false;
+        if (this._paused) {
+          this._paused = false;
           this.dispatchEvent(new Event("play"));
         }
-        this.#readyState = 3;
-        this.#paused = false;
-        this.#ended = false;
+        this._readyState = 4;
+        this._paused = false;
+        this._ended = false;
         this.dispatchEvent(new Event("playing"));
         break;
       case 2:
-        this.#paused = true;
+        this._paused = true;
         this.dispatchEvent(new Event("pause"));
         break;
       case 3:
         this.dispatchEvent(new Event("waiting"));
         break;
       case 0:
-        this.#paused = true;
-        this.#ended = true;
+        this._paused = true;
+        this._ended = true;
         this.dispatchEvent(new Event("pause"));
         this.dispatchEvent(new Event("ended"));
         break;
     }
   }
 
-  #onRate(e: any) {
-    this.#playbackRate = e.data;
+  _onRate(e: any) {
+    this._playbackRate = e.data;
     this.dispatchEvent(new Event("ratechange"));
   }
 
-  #onErr(e: any) {
-    this.#error = { code: e.data, message: `YouTube error ${e.data}` };
+  _onErr(e: any) {
+    this._error = { code: e.data, message: `YouTube error ${e.data}` };
     this.dispatchEvent(new Event("error"));
   }
 
   get isPictureInPicture(): boolean {
-    return this.#pipActive;
+    return this._pipActive;
   }
 
   async requestPictureInPicture(): Promise<void> {
-    if (this.#pipActive) return;
-    this.#pipActive = true;
+    if (this._pipActive) return;
+    this._pipActive = true;
     this.dispatchEvent(new Event("enterpictureinpicture"));
   }
 
   async exitPictureInPicture(): Promise<void> {
-    if (!this.#pipActive) return;
-    this.#pipActive = false;
+    if (!this._pipActive) return;
+    this._pipActive = false;
     this.dispatchEvent(new Event("leavepictureinpicture"));
   }
 
   async play() {
-    await this.#ready;
-    (this.#player as any)?.playVideo();
+    await this._ready;
+    (this._player as any)?.playVideo();
     return new Promise<void>((resolve) => {
       const fn = () => {
         this.removeEventListener("playing", fn as any);
@@ -477,7 +484,7 @@ export class YouTubeMedia extends EventTarget {
   }
 
   pause() {
-    (this.#player as any)?.pauseVideo();
+    (this._player as any)?.pauseVideo();
   }
 }
 

@@ -32,7 +32,7 @@ interface LessonPlayerProps {
 }
 
 const SEEK_TIME = 10;
-const TOP_STATUS_ACTIONS = ['toggleSubtitles', 'toggleFullscreen', 'togglePictureInPicture'] as const;
+const TOP_STATUS_ACTIONS = ['toggleSubtitles', 'toggleFullscreen'] as const;
 const CENTER_STATUS_ACTIONS = ['togglePaused'] as const;
 
 function MenuChevron({ flipped = false }: { flipped?: boolean }): ReactNode {
@@ -175,50 +175,11 @@ export function InternalPlayer({ src, type, className, poster, placeholder, styl
             <div className="media-button-group">
               <VolumePopover />
               <SettingsMenu />
-              <Tooltip.Root side="top">
-                <Tooltip.Trigger
-                  render={
-                    <CastButton className="media-button--cast" render={<Button />}>
-                      <CastEnterIcon className="media-icon media-icon--cast-enter" />
-                      <CastExitIcon className="media-icon media-icon--cast-exit" />
-                    </CastButton>
-                  }
-                />
-                <Tooltip.Popup className="media-surface media-tooltip">
-                  <Tooltip.Label />
-                  <Tooltip.Shortcut className="media-tooltip__kbd" />
-                </Tooltip.Popup>
-              </Tooltip.Root>
 
-              <Tooltip.Root side="top">
-                <Tooltip.Trigger
-                  render={
-                    <AirPlayButton className="media-button--airplay" render={<Button />}>
-                      <AirPlayEnterIcon className="media-icon media-icon--airplay-enter" />
-                      <AirPlayExitIcon className="media-icon media-icon--airplay-exit" />
-                    </AirPlayButton>
-                  }
-                />
-                <Tooltip.Popup className="media-surface media-tooltip">
-                  <Tooltip.Label />
-                  <Tooltip.Shortcut className="media-tooltip__kbd" />
-                </Tooltip.Popup>
-              </Tooltip.Root>
 
-              <Tooltip.Root side="top">
-                <Tooltip.Trigger
-                  render={
-                    <PiPButton className="media-button--pip" render={<Button />}>
-                      <PipEnterIcon className="media-icon media-icon--pip-enter" />
-                      <PipExitIcon className="media-icon media-icon--pip-exit" />
-                    </PiPButton>
-                  }
-                />
-                <Tooltip.Popup className="media-surface media-tooltip">
-                  <Tooltip.Label />
-                  <Tooltip.Shortcut className="media-tooltip__kbd" />
-                </Tooltip.Popup>
-              </Tooltip.Root>
+
+
+
 
               <Tooltip.Root side="top">
                 <Tooltip.Trigger
@@ -245,7 +206,6 @@ export function InternalPlayer({ src, type, className, poster, placeholder, styl
         <Hotkey keys="m" action="toggleMuted" />
         <Hotkey keys="f" action="toggleFullscreen" />
         <Hotkey keys="c" action="toggleSubtitles" />
-        <Hotkey keys="i" action="togglePictureInPicture" />
         <Hotkey keys="ArrowRight" action="seekStep" value={SEEK_TIME / 2} />
         <Hotkey keys="ArrowLeft" action="seekStep" value={-(SEEK_TIME / 2)} />
         <Hotkey keys="l" action="seekStep" value={SEEK_TIME} />
@@ -284,8 +244,6 @@ export function InternalPlayer({ src, type, className, poster, placeholder, styl
               <CaptionsOffIcon className="media-icon media-icon--captions-off" />
               <FullscreenEnterIcon className="media-icon media-icon--fullscreen-enter" />
               <FullscreenExitIcon className="media-icon media-icon--fullscreen-exit" />
-              <PipEnterIcon className="media-icon media-icon--pip-enter" />
-              <PipExitIcon className="media-icon media-icon--pip-exit" />
               <StatusIndicator.Value className="media-input-feedback-island__value" />
             </div>
           </StatusIndicator.Root>
@@ -346,15 +304,13 @@ function VolumePopover(): ReactNode {
 
 function SettingsMenu(): ReactNode {
   const playbackRate = usePlaybackRateOptions();
-  const quality = useQualityOptions();
   const audioTrack = useAudioTrackOptions();
   const captions = useCaptionsOptions();
   const hasPlaybackRate = playbackRate?.state.availability === 'available';
-  const hasQuality = quality?.state.availability === 'available';
   const hasAudioTrack = audioTrack?.state.availability === 'available';
   const hasCaptions = captions?.state.availability === 'available';
 
-  if (!hasPlaybackRate && !hasQuality && !hasAudioTrack && !hasCaptions) return null;
+  if (!hasPlaybackRate && !hasAudioTrack && !hasCaptions) return null;
 
   return (
     <Menu.Root side="top" align="center">
@@ -364,59 +320,7 @@ function SettingsMenu(): ReactNode {
       <Menu.Content className="media-surface media-popover media-menu media-menu--settings">
         <Menu.View className="media-menu__panel">
           <div className="media-menu__group">
-            {hasQuality ? (
-              <Menu.Root>
-                <Menu.Trigger
-                  type="quality"
-                  className="media-menu__item media-menu__item--submenu"
-                  render={(props: any) => (
-                    <div {...props}>
-                      <QualityIcon className="media-icon" />
-                      <span>Quality</span>
-                      <span className="media-menu__hint">
-                        <Menu.ItemValue className="media-menu__hint-label" />
-                        <MenuChevron />
-                      </span>
-                    </div>
-                  )}
-                />
-                <Menu.Content className="media-menu__panel">
-                  <Menu.Back className="media-menu__back">
-                    <MenuChevron flipped />
-                    Quality
-                  </Menu.Back>
-                  <Menu.Separator className="media-menu__separator" />
-                  <Menu.RadioGroup
-                    className="media-menu__group"
-                    value={quality.value}
-                    onValueChange={quality.setValue}
-                    aria-label="Quality"
-                  >
-                    {quality.options.map((option: any) => (
-                      <Menu.RadioItem
-                        key={option.value}
-                        className="media-menu__item"
-                        value={option.value}
-                        disabled={option.disabled}
-                      >
-                        <span>
-                          {option.label}
-                          {option.tier ? <sup className="media-menu__tier">{option.tier}</sup> : null}
-                        </span>
-                        {option.badge ? <span className="media-badge">{option.badge}</span> : null}
-                        <Menu.ItemIndicator
-                          checked={option.value === quality.value}
-                          forceMount
-                          className="media-menu__indicator"
-                        >
-                          <CheckIcon className="media-icon" />
-                        </Menu.ItemIndicator>
-                      </Menu.RadioItem>
-                    ))}
-                  </Menu.RadioGroup>
-                </Menu.Content>
-              </Menu.Root>
-            ) : null}
+
 
             {hasAudioTrack ? (
               <Menu.Root>
