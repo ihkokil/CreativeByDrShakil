@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import styles from "./EnrollStudentModal.module.css";
 import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from "framer-motion";
+import { useModal } from '@/hooks/useModal';
 import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap } from "lucide-react";
 
 interface Student {
@@ -37,6 +38,7 @@ export default function EnrollStudentModal({
     // Form states
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [selectedBatchId, setSelectedBatchId] = useState<string>(batchId || "");
+    const [customDate, setCustomDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState("");
     
     // New student form states
@@ -107,6 +109,7 @@ export default function EnrollStudentModal({
             const requestBody = isNewStudent ? {
                 courseId,
                 batchId: selectedBatchId || undefined,
+                customDate: !selectedBatchId ? customDate : undefined,
                 isNewStudent: true,
                 email: newStudentEmail.trim().toLowerCase(),
                 fullName: newStudentName.trim(),
@@ -114,6 +117,7 @@ export default function EnrollStudentModal({
             } : {
                 courseId,
                 batchId: selectedBatchId || undefined,
+                customDate: !selectedBatchId ? customDate : undefined,
                 isNewStudent: false,
                 studentIds: selectedStudents,
             };
@@ -171,10 +175,13 @@ export default function EnrollStudentModal({
         setNewStudentEmail("");
         setNewStudentName("");
         setNewStudentPhone("");
+        setCustomDate(new Date().toISOString().split('T')[0]);
         if (!batchId) setSelectedBatchId("");
         setActiveTab("existing");
         onClose();
     };
+
+    useModal(isOpen, handleClose);
 
     // Filter students client-side if we already loaded them
     const filteredStudents = students.filter(s => 
@@ -186,7 +193,7 @@ export default function EnrollStudentModal({
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className={styles.overlay} onClick={handleClose}>
+                <div className={styles.overlay}>
                     <motion.div
                         className={`${styles.modal} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -240,13 +247,31 @@ export default function EnrollStudentModal({
                                         onChange={(e) => setSelectedBatchId(e.target.value)}
                                         style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
                                     >
-                                        <option value="">-- No Batch (Enrolls with today's date) --</option>
+                                        <option value="">-- No Batch (Custom Date) --</option>
                                         {batches.map(b => (
                                             <option key={b.id} value={b.id}>
                                                 {b.name} (Starts: {new Date(b.startDate).toLocaleDateString()})
                                             </option>
                                         ))}
                                     </select>
+                                </div>
+                            )}
+
+                            {(!batchId && !selectedBatchId) && (
+                                <div className={styles.fieldGroup} style={{ marginBottom: '1rem' }}>
+                                    <label className={styles.fieldLabel}>
+                                        Enrollment Start Date
+                                    </label>
+                                    <input 
+                                        type="date"
+                                        className={styles.selectInput}
+                                        value={customDate}
+                                        onChange={(e) => setCustomDate(e.target.value)}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)', colorScheme: 'dark' }}
+                                    />
+                                    <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '0.5rem' }}>
+                                        End of enrollment will be set to 1 year from this date.
+                                    </div>
                                 </div>
                             )}
 

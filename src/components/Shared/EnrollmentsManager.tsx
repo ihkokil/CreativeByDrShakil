@@ -6,6 +6,7 @@ import styles from './EnrollmentsManager.module.css';
 import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
 import Loader from "@/components/UI/Loader";
+import AlertModal from "@/components/UI/AlertModal";
 import { formatDisplayDate, formatDateInputGMT6 } from '@/lib/date-format';
 
 interface EnrolledCourse {
@@ -59,6 +60,18 @@ export default function EnrollmentsManager() {
   const [intervalDays, setIntervalDays] = useState<number>(7);
   const [ruleStartDate, setRuleStartDate] = useState<string>(() => formatDateInputGMT6(new Date()));
   const [ruleEndDate, setRuleEndDate] = useState<string>("");
+
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({ isOpen: false, message: '', type: 'info' });
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+    setAlertConfig({ isOpen: true, message, type, title });
+  };
 
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -154,22 +167,22 @@ export default function EnrollmentsManager() {
 
   const handleUnifiedSubmit = async () => {
     if (!batchCourseId) {
-      alert('Please select a course to assign.');
+      showAlert('Please select a course to assign.', 'warning');
       return;
     }
     
     if (ruleAction === "week_days" && daysOfWeek.length === 0) {
-      alert('Please select at least one day of the week.');
+      showAlert('Please select at least one day of the week.', 'warning');
       return;
     }
 
     if (ruleAction === "custom_date") {
       if (!ruleStartDate) {
-        alert('Please enter a start date.');
+        showAlert('Please enter a start date.', 'warning');
         return;
       }
       if (ruleEndDate && new Date(ruleEndDate) < new Date(ruleStartDate)) {
-        alert('End date cannot be earlier than start date.');
+        showAlert('End date cannot be earlier than start date.', 'warning');
         return;
       }
     }
@@ -218,7 +231,7 @@ export default function EnrollmentsManager() {
         throw new Error(rulesData.error || 'Enrollment succeeded but failed to apply module availability rules.');
       }
 
-      alert('Successfully enrolled students and configured module availability rules.');
+      showAlert('Successfully enrolled students and configured module availability rules.', 'success', 'Enrollment Complete');
       
       // Reset Selection and Sidebar State
       setSelectedIds(new Set());
@@ -232,7 +245,7 @@ export default function EnrollmentsManager() {
       // Refresh students list
       fetchStudents();
     } catch (err: any) {
-      alert(err.message || 'Failed to complete enrollment process.');
+      showAlert(err.message || 'Failed to complete enrollment process.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -261,10 +274,10 @@ export default function EnrollmentsManager() {
         fetchStudents();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to update enrollment date.');
+        showAlert(data.error || 'Failed to update enrollment date.', 'error');
       }
     } catch (err) {
-      alert('Network error while updating enrollment.');
+      showAlert('Network error while updating enrollment.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -287,10 +300,10 @@ export default function EnrollmentsManager() {
         fetchStudents();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to revoke enrollment.');
+        showAlert(data.error || 'Failed to revoke enrollment.', 'error');
       }
     } catch (err) {
-      alert('Network error while revoking enrollment.');
+      showAlert('Network error while revoking enrollment.', 'error');
     }
   };
 
@@ -708,6 +721,15 @@ export default function EnrollmentsManager() {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+      />
     </div>
   );
 }

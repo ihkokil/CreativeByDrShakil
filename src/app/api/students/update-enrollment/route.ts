@@ -38,9 +38,14 @@ export async function POST(request: NextRequest) {
 
     if (enrolledAt !== undefined) {
       updateData.enrolledAt = enrolledAt ? new Date(enrolledAt).toISOString() : null;
+      if (updateData.enrolledAt) {
+        const oneYearLater = new Date(updateData.enrolledAt);
+        oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+        updateData.expiresAt = oneYearLater.toISOString();
+      }
     }
 
-    if (expiresAt !== undefined) {
+    if (expiresAt !== undefined && !updateData.expiresAt) {
       updateData.expiresAt = expiresAt ? new Date(expiresAt).toISOString() : null;
     }
 

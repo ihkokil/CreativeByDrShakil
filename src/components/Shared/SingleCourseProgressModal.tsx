@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import styles from './SingleCourseProgressModal.module.css';
 import { formatDateGMT6 } from '@/lib/date-format';
+import { useModal } from '@/hooks/useModal';
 
 interface BuilderNode {
   id: string;
@@ -45,6 +46,8 @@ export default function SingleCourseProgressModal({
   const [data, setData] = useState<{ course: any, curriculum: BuilderNode[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useModal(true, onClose);
 
   useEffect(() => {
     let isMounted = true;
@@ -142,7 +145,7 @@ export default function SingleCourseProgressModal({
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay}>
       <motion.div 
         className={styles.modal} 
         onClick={e => e.stopPropagation()}

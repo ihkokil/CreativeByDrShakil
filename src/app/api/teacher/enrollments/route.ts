@@ -161,6 +161,19 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       // Allow re-enrolling or moving students to a new batch even if they are already approved
+      
+      let finalEnrolledAt = new Date().toISOString();
+      if (batch) {
+        finalEnrolledAt = batch.startDate;
+      } else if (body.customDate) {
+        finalEnrolledAt = new Date(body.customDate).toISOString();
+      } else if (existingOrder && existingOrder.enrolledAt) {
+        finalEnrolledAt = existingOrder.enrolledAt;
+      }
+
+      const oneYearLater = new Date(finalEnrolledAt);
+      oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+      const finalExpiresAt = oneYearLater.toISOString();
 
       let order;
       if (existingOrder) {
@@ -173,10 +186,11 @@ export async function POST(request: NextRequest) {
         
         if (batch) {
           updateData.batchId = batch.id;
-          updateData.enrolledAt = batch.startDate;
-          updateData.expiresAt = batch.endDate;
-        } else if (!existingOrder.enrolledAt) {
-          updateData.enrolledAt = nowStr;
+          updateData.enrolledAt = finalEnrolledAt;
+          updateData.expiresAt = finalExpiresAt;
+        } else if (body.customDate || !existingOrder.enrolledAt) {
+          updateData.enrolledAt = finalEnrolledAt;
+          updateData.expiresAt = finalExpiresAt;
         }
 
         const { error: updateError } = await supabase
@@ -201,8 +215,8 @@ export async function POST(request: NextRequest) {
             createdAt: nowStr,
             updatedAt: nowStr,
             batchId: batch ? batch.id : null,
-            enrolledAt: batch ? batch.startDate : nowStr,
-            expiresAt: batch ? batch.endDate : null,
+            enrolledAt: finalEnrolledAt,
+            expiresAt: finalExpiresAt,
         };
         const { error: orderInsertError } = await supabase.from('Order')
 // @ts-ignore

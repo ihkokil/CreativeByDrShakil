@@ -5,6 +5,7 @@ import { X, FolderOpen, PlayCircle, Save } from "lucide-react";
 import styles from "./StudentIndividualOverridesModal.module.css";
 import { motion } from "framer-motion";
 import { annotateCurriculumAvailability, BuilderNodeWithAvailability } from "@/lib/teacher-course-builder";
+import { useModal } from "@/hooks/useModal";
 
 interface StudentIndividualOverridesModalProps {
     courseId: string;
@@ -50,6 +51,8 @@ export default function StudentIndividualOverridesModal({
     const [draftAvailability, setDraftAvailability] = useState<Record<string, DraftAvailability>>({});
     const [savingKey, setSavingKey] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    useModal(true, onClose);
 
     const studentCurriculum = useMemo(() => {
         if (!selectedCourse?.curriculum) return [];
@@ -195,7 +198,7 @@ export default function StudentIndividualOverridesModal({
     };
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.overlay}>
             <motion.div 
                 className={styles.modal} 
                 onClick={e => e.stopPropagation()}

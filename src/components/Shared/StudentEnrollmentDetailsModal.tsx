@@ -7,6 +7,7 @@ import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './StudentEnrollmentDetailsModal.module.css';
 import { formatDateGMT6 } from '@/lib/date-format';
+import { useModal } from '@/hooks/useModal';
 
 interface EnrolledCourse {
   orderId: string;
@@ -47,6 +48,8 @@ export default function StudentEnrollmentDetailsModal({
   onRevoke
 }: StudentEnrollmentDetailsModalProps) {
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
+
+  useModal(true, onClose);
   const [loading, setLoading] = useState(true);
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(defaultExpandedCourseId || null);
 
@@ -96,7 +99,7 @@ export default function StudentEnrollmentDetailsModal({
     : 0;
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay}>
       <motion.div 
         className={styles.modal} 
         onClick={e => e.stopPropagation()}

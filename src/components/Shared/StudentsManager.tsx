@@ -14,6 +14,8 @@ import Loader from "@/components/UI/Loader";
 import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
 import SingleCourseProgressModal from './SingleCourseProgressModal';
+import AlertModal from '@/components/UI/AlertModal';
+import { useModal } from '@/hooks/useModal';
 import { formatDateGMT6, formatDateInputGMT6 } from '@/lib/date-format';
 
 interface EnrolledCourse {
@@ -287,6 +289,28 @@ export default function StudentsManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({ isOpen: false, message: '', type: 'info' });
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+    setAlertConfig({ isOpen: true, message, type, title });
+  };
+
+  useModal(!!editStudent, () => {
+    setEditStudent(null);
+    setMessage(null);
+  });
+  useModal(!!deleteStudent, () => setDeleteStudent(null));
+  useModal(isAddOpen, () => {
+    setIsAddOpen(false);
+    setMessage(null);
+  });
+
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('auth_token');
@@ -420,7 +444,7 @@ export default function StudentsManager() {
   // Batch Enrollment Submit (multi-course)
   const handleBatchEnrollSubmit = async () => {
     if (batchCourseIds.length === 0) {
-      alert('Please select at least one course to enroll.');
+      showAlert('Please select at least one course to enroll.', 'warning');
       return;
     }
     
@@ -458,9 +482,9 @@ export default function StudentsManager() {
       }
 
       if (errors.length > 0) {
-        alert(`Enrolled in ${successCount} course(s).\n\nErrors:\n${errors.join('\n')}`);
+        showAlert(`Enrolled in ${successCount} course(s).\n\nErrors:\n${errors.join('\n')}`, 'warning', 'Batch Enrollment Complete');
       } else {
-        alert(`Successfully enrolled ${selectedIds.size} student(s) in ${successCount} course(s)!`);
+        showAlert(`Successfully enrolled ${selectedIds.size} student(s) in ${successCount} course(s)!`, 'success', 'Batch Enrollment Complete');
       }
 
       setSelectedIds(new Set());
@@ -468,7 +492,7 @@ export default function StudentsManager() {
       setShowEnrollPanel(false);
       fetchStudents();
     } catch (err) {
-      alert('Network error while processing batch enrollment.');
+      showAlert('Network error while processing batch enrollment.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -477,7 +501,7 @@ export default function StudentsManager() {
   // Batch Remove from Course
   const handleBatchRemove = async () => {
     if (!removeCourseId) {
-      alert('Please select a course to remove students from.');
+      showAlert('Please select a course to remove students from.', 'warning');
       return;
     }
 
@@ -510,7 +534,7 @@ export default function StudentsManager() {
         } catch {}
       }
 
-      alert(`Removed ${successCount} student(s) from "${course?.title}".`);
+      showAlert(`Removed ${successCount} student(s) from "${course?.title}".`, 'success', 'Batch Remove Complete');
       setSelectedIds(new Set());
       setShowRemovePanel(false);
       setRemoveCourseId('');
@@ -523,7 +547,7 @@ export default function StudentsManager() {
   // Batch Edit Enrollment Dates
   const handleBatchDateUpdate = async () => {
     if (!datePanelCourseId || !datePanelDate) {
-      alert('Please select a course and date.');
+      showAlert('Please select a course and date.', 'warning');
       return;
     }
 
@@ -551,7 +575,7 @@ export default function StudentsManager() {
         } catch {}
       }
 
-      alert(`Updated enrollment dates for ${successCount} student(s).`);
+      showAlert(`Updated enrollment dates for ${successCount} student(s).`, 'success', 'Batch Date Update Complete');
       setSelectedIds(new Set());
       setShowDatePanel(false);
       setDatePanelCourseId('');
@@ -585,10 +609,10 @@ export default function StudentsManager() {
         fetchStudents();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to update enrollment date.');
+        showAlert(data.error || 'Failed to update enrollment date.', 'error');
       }
     } catch (err) {
-      alert('Network error while updating enrollment.');
+      showAlert('Network error while updating enrollment.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -612,10 +636,10 @@ export default function StudentsManager() {
         fetchStudents();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to revoke enrollment.');
+        showAlert(data.error || 'Failed to revoke enrollment.', 'error');
       }
     } catch (err) {
-      alert('Network error while revoking enrollment.');
+      showAlert('Network error while revoking enrollment.', 'error');
     }
   };
 
@@ -1333,8 +1357,8 @@ export default function StudentsManager() {
 
       {/* ADD STUDENT MODAL */}
       {isAddOpen && (
-        <div className={styles.modalBackdrop}>
-          <div className={`${styles.modal} glass`}>
+        <div className={styles.overlay}>
+          <div className={`${styles.modal} glass`} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Add New Student</h2>
               <button onClick={() => setIsAddOpen(false)} className={styles.closeBtn}><X size={20} /></button>
@@ -1402,8 +1426,8 @@ export default function StudentsManager() {
 
       {/* EDIT STUDENT PROFILE MODAL */}
       {editStudent && (
-        <div className={styles.modalBackdrop}>
-          <div className={`${styles.modal} glass`}>
+        <div className={styles.overlay}>
+          <div className={`${styles.modal} glass`} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>Edit Student Profile</h2>
               <button onClick={() => setEditStudent(null)} className={styles.closeBtn}><X size={20} /></button>
@@ -1535,6 +1559,15 @@ export default function StudentsManager() {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+      />
     </div>
   );
 }

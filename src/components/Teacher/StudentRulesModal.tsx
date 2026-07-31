@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import styles from "./StudentRulesModal.module.css";
 import { motion } from "framer-motion";
 import { formatDateInputGMT6 } from "@/lib/date-format";
+import { useModal } from "@/hooks/useModal";
 
 interface StudentRulesModalProps {
     courseId: string;
@@ -31,8 +32,10 @@ const DAYS = [
 export default function StudentRulesModal({ courseId, userId, userIds, studentName, onClose, onSuccess, onOpenAdvanced }: StudentRulesModalProps) {
     const [action, setAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all">("start_from_today");
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
-    const [intervalDays, setIntervalDays] = useState<number>(7);
+    const [intervalDays, setIntervalDays] = useState<number>(3);
     const [startDate, setStartDate] = useState<string>(() => formatDateInputGMT6(new Date()));
+
+    useModal(true, onClose);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -93,7 +96,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
     };
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
+        <div className={styles.overlay}>
             <motion.div
                 className={styles.modal}
                 onClick={e => e.stopPropagation()}
