@@ -27,8 +27,12 @@ export function getSupabaseContentRead(env?: any): SupabaseClient<Database> {
   const e = env || process.env;
   
   const activeIndex = getActiveDbIndex() + 1; // 1-5
-  const url = e[`SUPABASE_URL_${activeIndex}`] || e.SUPABASE_URL_1;
+  let url = e[`SUPABASE_URL_${activeIndex}`] || e.SUPABASE_URL_1;
   const anonKey = e[`SUPABASE_ANON_KEY_${activeIndex}`] || e.SUPABASE_ANON_KEY_1;
+
+  if (url && url.startsWith('http://')) {
+    url = url.replace('http://', 'https://');
+  }
 
   if (!url || !anonKey) {
     throw new Error(`Missing Supabase credentials for replica instance ${activeIndex}`);
@@ -52,8 +56,12 @@ export function getSupabaseContentRead(env?: any): SupabaseClient<Database> {
 export function getSupabaseAdmin(env?: any): SupabaseClient<Database> {
   const e = env || process.env;
   
-  const url = e.SUPABASE_URL;
+  let url = e.SUPABASE_URL;
   const serviceKey = e.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (url && url.startsWith('http://')) {
+    url = url.replace('http://', 'https://');
+  }
 
   if (!url || !serviceKey) {
     throw new Error(`Missing Supabase admin credentials for BACKUP database`);

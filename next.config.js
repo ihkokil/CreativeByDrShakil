@@ -17,7 +17,7 @@ const nextConfig = {
     ],
     serverExternalPackages: ['@prisma/client', '.prisma/client'],
     experimental: {
-        optimizePackageImports: ['lucide-react', 'framer-motion', '@vidstack/react', 'vidstack', 'zod', 'bcryptjs'],
+        optimizePackageImports: ['lucide-react', 'framer-motion', 'zod', 'bcryptjs'],
     },
     turbopack: {},
     images: {
@@ -38,16 +38,16 @@ const nextConfig = {
     async headers() {
         const cspHeader = `
             default-src 'self';
-            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://player.vimeo.com https://static.cloudflareinsights.com;
+            script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://static.cloudflareinsights.com;
             style-src 'self' 'unsafe-inline';
-            img-src 'self' blob: data: https://files.creativebydrshakil.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com https://i.vimeocdn.com;
+            img-src 'self' blob: data: https://files.creativebydrshakil.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com;
             font-src 'self' data:;
             connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com;
             media-src 'self' blob: data: https://files.creativebydrshakil.com;
             object-src 'none';
             base-uri 'self';
             form-action 'self';
-            frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://vimeo.com;
+            frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com;
             frame-ancestors 'none';
             upgrade-insecure-requests;
         `.replace(/\n/g, '').replace(/\s{2,}/g, ' ').trim();

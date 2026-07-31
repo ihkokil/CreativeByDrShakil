@@ -6,120 +6,7 @@
     background: #000;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-}
-
-/* ─── Vidstack Player ─────────────────────────────────────── */
-.vidstackPlayer {
-    width: 100%;
-    height: 100%;
-    --media-brand: var(--primary, #3b82f6);
-    --media-focus-ring-color: var(--primary, #3b82f6);
-}
-
-/* Ensure gestures sit above the iframe blocker */
-.vidstackPlayer :global(.vds-gesture) {
-    z-index: 10 !important;
-}
-
-/* ─── Polish: Vidstack native center play button ──────────── */
-/*
- * DefaultVideoLayout ships its own centered play button.
- * We style it lighter — smaller circle, softer backdrop.
- */
-.vidstackPlayer :global([data-media-button][data-media-tooltip="Play"]),
-.vidstackPlayer :global(.vds-play-button[class*="center"]),
-.vidstackPlayer :global(.vds-button[aria-label="Play"]) {
-    /* Slightly smaller & softer than defaults */
-    scale: 0.9;
-    opacity: 0.85;
-    transition: scale 0.2s ease, opacity 0.2s ease;
-}
-
-.vidstackPlayer :global([data-media-button][data-media-tooltip="Play"]:hover),
-.vidstackPlayer :global(.vds-play-button[class*="center"]:hover),
-.vidstackPlayer :global(.vds-button[aria-label="Play"]:hover) {
-    scale: 1;
-    opacity: 1;
-}
-
-/* ─── Polish: Bottom controls bar ─────────────────────────── */
-/*
- * Lighten the default controls bar — less heavy, more translucent.
- */
-.vidstackPlayer :global(.vds-controls-group) {
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-}
-
-/* ─── Polish: Reduce slider / time track weight ───────────── */
-.vidstackPlayer :global(.vds-time-slider .vds-slider-track) {
-    height: 3px;
-    transition: height 0.15s ease;
-}
-
-.vidstackPlayer :global(.vds-time-slider:hover .vds-slider-track),
-.vidstackPlayer :global(.vds-time-slider[data-dragging] .vds-slider-track) {
-    height: 5px;
-}
-
-/* ─── Autoplay Fallback (only when browser blocks autoplay) ── */
-.autoplayFallback {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 50;
-    pointer-events: none;
-    animation: fallbackFadeIn 0.3s ease;
-}
-
-@keyframes fallbackFadeIn {
-    from { opacity: 0; transform: scale(0.92); }
-    to   { opacity: 1; transform: scale(1);    }
-}
-
-.fallbackPlayBtn {
-    pointer-events: auto;
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding-left: 4px; /* optical centering for play triangle */
-    box-shadow:
-        0 4px 20px rgba(0, 0, 0, 0.4),
-        0 0 0 4px rgba(255, 255, 255, 0.08);
-    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.fallbackPlayBtn:hover {
-    transform: scale(1.1);
-    background: rgba(0, 0, 0, 0.6);
-}
-
-.fallbackPlayBtn:active {
-    transform: scale(0.95);
-}
-
-/* ─── Watermark ───────────────────────────────────────────── */
-/*
- * z-index: 100 keeps it above the player.
- * pointer-events: none ensures no UI is blocked.
- */
-.watermarkWrapper {
-    position: absolute;
-    inset: 0;
-    z-index: 100;
-    pointer-events: none;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 /* ─── Mock Video (empty / locked state) ───────────────────── */
@@ -235,4 +122,32 @@
 
 .attachmentCard:hover .attAction {
     background: var(--primary-dark, #2563eb);
+}
+
+
+/* Floating Tag Styles */
+.floatingTag {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 20;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  pointer-events: none;
+  user-select: none;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.watermarkWrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
 }

@@ -57,19 +57,34 @@ export async function GET(
       if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
-      let batchStartDate = null;
-      if (order.batchId) {
-        const { data: batch } = await (supabase as any)
+      const { data: user }: { data: any } = await supabase
+        .from('User')
+        .select('enrollmentDate, batchId')
+        .eq('id', payload.sub)
+        .limit(1)
+        .maybeSingle();
+
+      if (user?.batchId) {
+        const { data: batch }: { data: any } = await supabase
           .from('Batch')
-          .select('startDate')
-          .eq('id', order.batchId)
+          .select('enrollmentDate, startDate')
+          .eq('id', user.batchId)
+          .limit(1)
           .maybeSingle();
-        if (batch && batch.startDate) {
-          batchStartDate = batch.startDate;
+        if (batch?.enrollmentDate) {
+          enrolledAt = batch.enrollmentDate;
+        } else if (batch?.startDate) {
+          enrolledAt = batch.startDate;
         }
+      } 
+      
+      if (!enrolledAt && user?.enrollmentDate) {
+        enrolledAt = user.enrollmentDate;
       }
       
-      enrolledAt = batchStartDate || order.enrolledAt || order.updatedAt;
+      if (!enrolledAt) {
+        enrolledAt = order.enrolledAt || order.updatedAt;
+      }
     }
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);

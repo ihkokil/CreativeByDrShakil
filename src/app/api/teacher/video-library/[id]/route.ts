@@ -56,7 +56,7 @@ export async function PATCH(
         if (body.duration !== undefined) data.duration = body.duration ? String(body.duration).trim() : null;
         if (body.type !== undefined) {
             const type = String(body.type).trim();
-            if (!['folder', 'youtube', 'vimeo', 'self-hosted', 'document'].includes(type)) {
+            if (!['folder', 'youtube', 'self-hosted', 'document'].includes(type)) {
                 return NextResponse.json({ error: 'Invalid type.' }, { status: 400 });
             }
             data.type = type;
