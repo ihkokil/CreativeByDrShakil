@@ -30,7 +30,7 @@ export default function EnrollStudentModal({
     onSuccess 
 }: Props) {
     useModalLock(isOpen, onClose);
-    const [activeTab, setActiveTab] = useState<"existing" | "new" | "bulk">("existing");
+    const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
     
     // Data states
     const [students, setStudents] = useState<Student[]>([]);
@@ -45,9 +45,6 @@ export default function EnrollStudentModal({
     const [newStudentEmail, setNewStudentEmail] = useState("");
     const [newStudentName, setNewStudentName] = useState("");
     const [newStudentPhone, setNewStudentPhone] = useState("");
-    
-    // Bulk student state
-    const [bulkEmailsText, setBulkEmailsText] = useState("");
 
     // UI states
     const [loading, setLoading] = useState(false);
@@ -111,25 +108,7 @@ export default function EnrollStudentModal({
             
             let requestBody: any;
             
-            if (activeTab === "bulk") {
-                const bulkEmails = bulkEmailsText
-                    .split(/[\n,]/)
-                    .map(e => e.trim())
-                    .filter(e => e.length > 0);
-                    
-                if (bulkEmails.length === 0) {
-                    showMessage({ type: 'error', text: 'Please enter at least one valid email.' });
-                    setLoading(false);
-                    return;
-                }
-                
-                requestBody = {
-                    courseId,
-                    batchId: selectedBatchId || undefined,
-                    isNewStudent: false,
-                    bulkEmails
-                };
-            } else if (isNewStudent) {
+            if (isNewStudent) {
                 requestBody = {
                     courseId,
                     batchId: selectedBatchId || undefined,
@@ -180,7 +159,6 @@ export default function EnrollStudentModal({
                 setNewStudentEmail("");
                 setNewStudentName("");
                 setNewStudentPhone("");
-                setBulkEmailsText("");
                 setSearchQuery("");
                 
                 setTimeout(() => {
@@ -201,7 +179,6 @@ export default function EnrollStudentModal({
         setNewStudentEmail("");
         setNewStudentName("");
         setNewStudentPhone("");
-        setBulkEmailsText("");
         if (!batchId) setSelectedBatchId("");
         setActiveTab("existing");
         onClose();
@@ -257,14 +234,6 @@ export default function EnrollStudentModal({
                                 <UserPlus size={16} />
                                 New
                             </button>
-                            <button
-                                type="button"
-                                className={`${styles.tab} ${activeTab === "bulk" ? styles.activeTab : ""}`}
-                                onClick={() => setActiveTab("bulk")}
-                            >
-                                <Users size={16} />
-                                Bulk Add
-                            </button>
                         </div>
 
                         <form className={styles.form} onSubmit={handleSubmit}>
@@ -315,37 +284,44 @@ export default function EnrollStudentModal({
                                                 {searchQuery ? "No students found" : "Loading students..."}
                                             </div>
                                         ) : (
-                                            filteredStudents.slice(0, 5).map((student) => (
-                                                <div
-                                                    key={student.id}
-                                                    className={`${styles.studentCard} ${selectedStudents.includes(student.id) ? styles.selectedCard : ""}`}
-                                                    onClick={() => setSelectedStudents(prev => 
-                                                        prev.includes(student.id) 
-                                                            ? prev.filter(id => id !== student.id)
-                                                            : [...prev, student.id]
-                                                    )}
-                                                >
-                                                    <div className={styles.studentInfo}>
-                                                        <div className={styles.studentAvatar}>
-                                                            {student.fullName.charAt(0).toUpperCase()}
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+                                                {filteredStudents.map((student) => (
+                                                    <label
+                                                        key={student.id}
+                                                        className={`${styles.studentCard} ${selectedStudents.includes(student.id) ? styles.selectedCard : ""}`}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', cursor: 'pointer', margin: 0, border: selectedStudents.includes(student.id) ? '1px solid var(--primary)' : '1px solid var(--glass-border)' }}
+                                                    >
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={selectedStudents.includes(student.id)}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setSelectedStudents(prev => [...prev, student.id]);
+                                                                } else {
+                                                                    setSelectedStudents(prev => prev.filter(id => id !== student.id));
+                                                                }
+                                                            }}
+                                                            style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                                        />
+                                                        <div className={styles.studentInfo} style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, overflow: 'hidden' }}>
+                                                            <div className={styles.studentAvatar} style={{ width: '36px', height: '36px', fontSize: '1rem', flexShrink: 0 }}>
+                                                                {student.fullName.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div style={{ overflow: 'hidden' }}>
+                                                                <div className={styles.studentName} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.fullName}</div>
+                                                                <div className={styles.studentEmail} style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.email}</div>
+                                                                {student.phone && (
+                                                                    <div className={styles.studentPhone}>{student.phone}</div>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <div className={styles.studentName}>{student.fullName}</div>
-                                                            <div className={styles.studentEmail}>{student.email}</div>
-                                                            {student.phone && (
-                                                                <div className={styles.studentPhone}>{student.phone}</div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    {selectedStudents.includes(student.id) && (
-                                                        <Check size={20} className={styles.checkIcon} />
-                                                    )}
-                                                </div>
-                                            ))
+                                                    </label>
+                                                ))}
+                                            </div>
                                         )}
                                     </div>
                                 </>
-                            ) : activeTab === "new" ? (
+                            ) : (
                                 <>
                                     {/* New Student Form */}
                                     <div className={styles.inputGroup}>
@@ -385,28 +361,6 @@ export default function EnrollStudentModal({
                                         A password setup email will be sent to the student.
                                     </div>
                                 </>
-                            ) : (
-                                <>
-                                    {/* Bulk Student Form */}
-                                    <div className={styles.fieldGroup}>
-                                        <label className={styles.fieldLabel}>
-                                            <Mail size={16} />
-                                            Student Emails (Comma or newline separated)
-                                        </label>
-                                        <textarea
-                                            placeholder="student1@example.com, student2@example.com&#10;student3@example.com"
-                                            value={bulkEmailsText}
-                                            onChange={(e) => setBulkEmailsText(e.target.value)}
-                                            required={activeTab === "bulk"}
-                                            style={{ width: '100%', padding: '12px', minHeight: '120px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)', resize: 'vertical' }}
-                                        />
-                                    </div>
-
-                                    <div className={styles.infoNote}>
-                                        <Users size={14} />
-                                        Only existing students will be enrolled. Unregistered emails will be skipped and reported back to you.
-                                    </div>
-                                </>
                             )}
 
                             {message && (
@@ -418,14 +372,12 @@ export default function EnrollStudentModal({
                             <button 
                                 className={styles.submitBtn} 
                                 type="submit" 
-                                disabled={loading || (activeTab === "existing" && selectedStudents.length === 0) || (activeTab === "new" && (!newStudentEmail || !newStudentName)) || (activeTab === "bulk" && !bulkEmailsText.trim())}
+                                disabled={loading || (activeTab === "existing" && selectedStudents.length === 0) || (activeTab === "new" && (!newStudentEmail || !newStudentName))}
                             >
                                 {loading ? (
                                     <><Loader variant="button" /> Enrolling...</>
                                 ) : activeTab === "new" ? (
                                     "Register & Enroll Student"
-                                ) : activeTab === "bulk" ? (
-                                    "Bulk Enroll Students"
                                 ) : (
                                     "Enroll Student"
                                 )}
