@@ -5,8 +5,6 @@ import dynamic from "next/dynamic";
 import styles from "../Study.module.css";
 import {
     ChevronRight,
-    FileText,
-    Video,
     ArrowLeft,
     Lock,
     Menu,
@@ -17,7 +15,6 @@ import {
 import Link from "next/link";
 import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import { useParams, useSearchParams } from "next/navigation";
-import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 const LessonPlayer = dynamic(() => import('@/components/Study/LessonPlayer'), { ssr: false });
 import Loader from "@/components/UI/Loader";
 import { getStudentModuleView } from "@/lib/module-scheduling";
@@ -157,7 +154,7 @@ export default function StudyCoursePage() {
         return () => {
             cancelled = true;
         };
-    }, [slug]);
+    }, [slug, lessonParam]);
 
     const breadcrumbs = useMemo(() => {
         if (!activeLesson) return "Select a lesson";
@@ -383,6 +380,7 @@ export default function StudyCoursePage() {
                         <div style={{ marginBottom: "16px", color: "#ef4444", fontWeight: 600 }}>{progressError}</div>
                     )}
                     <LessonPlayer 
+                        key={activeLesson?.id || 'no-lesson'}
                         lesson={activeLesson as any} 
                         nextLesson={() => {
                             if (nextLesson) setActiveLesson(nextLesson);

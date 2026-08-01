@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from 'react';
 import { Lock, FileText, Video as VideoIcon } from "lucide-react";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import VidstackPlayer from "./VidstackPlayer";
@@ -27,11 +26,8 @@ interface LessonPlayerProps {
 // ─── Main Export ──────────────────────────────────────────────────────────────
 export default function LessonPlayer({
   lesson,
-  nextLesson,
   onComplete,
 }: LessonPlayerProps) {
-  const playerRef = useRef<any>(null);
-
   const getYoutubeId = (rawUrl: string) => {
     if (!rawUrl) return null;
     const trimmed = rawUrl.trim();

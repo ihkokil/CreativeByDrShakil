@@ -32,6 +32,7 @@ export default function VidstackPlayer({
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <MediaPlayer
+        key={resolvedSrc}
         src={resolvedSrc}
         title={title}
         poster={poster}
@@ -57,9 +58,9 @@ export default function VidstackPlayer({
             top: 0,
             left: 0,
             width: '100%',
-            height: 'calc(100% - 80px)', /* Leave bottom 80px for Vidstack controls */
-            zIndex: 1,
-            pointerEvents: 'auto',
+            height: '100%',
+            zIndex: 0,
+            pointerEvents: 'none',
             userSelect: 'none',
             WebkitUserSelect: 'none',
           }}
