@@ -21,14 +21,18 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   if (!token) return;
 
   try {
-    await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+    const res = await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         callback_query_id: callbackQueryId,
-        text: text || 'Processing...',
+        text: text || '',
       }),
     });
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('[Telegram Webhook] answerCallbackQuery failed:', res.status, errBody);
+    }
   } catch (err) {
     console.error('[Telegram Webhook] answerCallbackQuery error:', err);
   }
@@ -55,9 +59,13 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
 }
 
 export async function POST(request: NextRequest) {
+  let globalCallbackQueryId: string | undefined = undefined;
   try {
     const body = await request.json();
     const callbackQuery = body?.callback_query;
+    if (callbackQuery?.id) {
+      globalCallbackQueryId = callbackQuery.id;
+    }
 
     if (!callbackQuery) {
       const message = body?.message;
@@ -131,8 +139,8 @@ export async function POST(request: NextRequest) {
         } else {
           // Acknowledge other commands/messages quietly
           // Check for ForceReply for custom dates
-          if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('[Context: endate|')) {
-            const contextMatch = message.reply_to_message.text.match(/\[Context: (endate\|[^\]]+)\]/);
+          if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('[Context: ed|')) {
+            const contextMatch = message.reply_to_message.text.match(/\[Context: (ed\|[^\]]+)\]/);
             if (contextMatch) {
               const dateStr = text.trim();
               const dateObj = new Date(dateStr.split('-').reverse().join('-')); // assuming DD-MM-YYYY
@@ -141,7 +149,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ ok: true });
               }
               // Send an inline button to confirm
-              const cbData = contextMatch[1].replace('endate', 'endone') + '|' + dateObj.toISOString().split('T')[0];
+              const cbData = contextMatch[1].replace('ed', 'eo') + '|' + dateObj.toISOString().split('T')[0];
               await sendTelegramReply(chatId, `Confirm enrollment on ${dateStr}?`, {
                 inline_keyboard: [[{ text: '✅ Confirm', callback_data: cbData }]]
               });
@@ -195,7 +203,7 @@ export async function POST(request: NextRequest) {
       // Build course selection keyboard
       const keyboard = (courses || []).map((c: any) => ([{
         text: `📚 ${c.title}`,
-        callback_data: `enc|${compressedId}|${c.id}`,
+        callback_data: `ec|${compressedId}|${c.id}`,
       }]));
 
       await answerCallbackQuery(callbackQueryId, 'Select a course');
@@ -208,8 +216,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "enc|{compressedUserId}|{courseId}" — Show Batch list
-    if (callbackData.startsWith('enc|')) {
+    // Handle "ec|{compressedUserId}|{courseId}" — Show Batch list
+    if (callbackData.startsWith('ec|')) {
       const parts = callbackData.split('|');
       const compressedId = parts[1];
       const courseId = parts[2];
@@ -223,26 +231,26 @@ export async function POST(request: NextRequest) {
       const keyboard: any[] = [];
       if (batches && batches.length > 0) {
         batches.forEach((b: any) => {
-           keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `enb|${compressedId}|b|${b.id}` }]);
+           keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eb|${compressedId}|b|${b.id}` }]);
         });
       }
-      keyboard.push([{ text: `🚫 No Batch`, callback_data: `enb|${compressedId}|n|${courseId}` }]);
+      keyboard.push([{ text: `🚫 No Batch`, callback_data: `eb|${compressedId}|n|${courseId}` }]);
 
       await answerCallbackQuery(callbackQueryId, 'Select a batch');
       await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "enb|{compressedUserId}|{type}|{id}" — Show Module Availability
-    if (callbackData.startsWith('enb|')) {
+    // Handle "eb|{compressedUserId}|{type}|{id}" — Show Module Availability
+    if (callbackData.startsWith('eb|')) {
       const parts = callbackData.split('|');
       const compressedId = parts[1];
       const type = parts[2];
       const id = parts[3];
 
       const keyboard = [
-        [{ text: `✅ All Available (Start Today)`, callback_data: `endone|${compressedId}|${type}|${id}|all` }],
-        [{ text: `📅 Custom Enrollment Date`, callback_data: `endate|${compressedId}|${type}|${id}` }],
+        [{ text: `✅ All Available (Start Today)`, callback_data: `eo|${compressedId}|${type}|${id}|all` }],
+        [{ text: `📅 Custom Enrollment Date`, callback_data: `ed|${compressedId}|${type}|${id}` }],
         // For change batch, we need the courseId. If type is 'b', we need to fetch it or just omit the back button to save bytes.
         // Actually, they can just type /student again if they want to change batch.
       ];
@@ -252,8 +260,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "endate|{compressedUserId}|{type}|{id}" — Force Reply for custom date
-    if (callbackData.startsWith('endate|')) {
+    // Handle "ed|{compressedUserId}|{type}|{id}" — Force Reply for custom date
+    if (callbackData.startsWith('ed|')) {
       await answerCallbackQuery(callbackQueryId);
       await sendTelegramReply(chatId, `Please reply to this message with the custom enrollment date in DD-MM-YYYY format.\n\n<span style="color:transparent">[Context: ${callbackData}]</span>`, {
         force_reply: true,
@@ -262,8 +270,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "endone|{compressedUserId}|{type}|{id}|{dateOrAll}" — Execute enrollment
-    if (callbackData.startsWith('endone|')) {
+    // Handle "eo|{compressedUserId}|{type}|{id}|{dateOrAll}" — Execute enrollment
+    if (callbackData.startsWith('eo|')) {
       const parts = callbackData.split('|');
       if (parts.length < 5) {
         await answerCallbackQuery(callbackQueryId, 'Invalid enrollment data.');
@@ -409,8 +417,8 @@ export async function POST(request: NextRequest) {
       const courseId = parts[2];
 
       const keyboard = [
-        [{ text: `🗓 Change Batch`, callback_data: `enc|${compressedId}|${courseId}` }],
-        [{ text: `📅 Change Enrollment Date`, callback_data: `endate|${compressedId}|c|${courseId}` }]
+        [{ text: `🗓 Change Batch`, callback_data: `ec|${compressedId}|${courseId}` }],
+        [{ text: `📅 Change Enrollment Date`, callback_data: `ed|${compressedId}|c|${courseId}` }]
       ];
 
       await answerCallbackQuery(callbackQueryId, 'Select action');
@@ -423,6 +431,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error('[Telegram Webhook Error]', error?.message || error);
+    if (globalCallbackQueryId) {
+      await answerCallbackQuery(globalCallbackQueryId, 'An error occurred.');
+    }
     return NextResponse.json({ ok: true }); // Always return 200 to Telegram
   }
 }

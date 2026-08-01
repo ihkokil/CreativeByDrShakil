@@ -328,8 +328,8 @@ export async function sendTelegramRegistrationNotification({
   const replyMarkup = {
     inline_keyboard: [
       [
-        { text: '📚 Enroll in Course', callback_data: `en:${compressUuid(userId)}` },
-        { text: '⚙️ Change Module Availability', callback_data: `av:${compressUuid(userId)}` }
+        { text: '📚 Enroll in Course', callback_data: `en|${compressUuid(userId)}` },
+        { text: '⚙️ Change Module Availability', callback_data: `av|${compressUuid(userId)}` }
       ]
     ]
   };
