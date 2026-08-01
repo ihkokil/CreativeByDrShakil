@@ -3,6 +3,33 @@ import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 
 // GET batches for a specific course
+export async function ensureCustomBatch(supabase: any, courseId: string) {
+  const { data: existing } = await supabase
+    .from('Batch')
+    .select('id, name, startDate, endDate')
+    .eq('courseId', courseId)
+    .ilike('name', 'Custom Batch')
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const nowStr = new Date().toISOString();
+  const futureEnd = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString();
+  const newBatch = {
+    id: crypto.randomUUID(),
+    name: 'Custom Batch',
+    courseId,
+    startDate: nowStr,
+    endDate: futureEnd,
+    createdAt: nowStr,
+    updatedAt: nowStr,
+  };
+
+  await supabase.from('Batch').insert(newBatch as any);
+  return newBatch;
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
   try {
     const payload = await requireTeacherPayload(request);
@@ -14,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const supabase = getSupabaseAdmin();
     
     // Verify course access
-    let courseQuery = supabase.from('Course').select('id, title, teacherId').eq('id', courseId).limit(1).maybeSingle();
+    let courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
     const { data: course, error: courseError } = await courseQuery;
     
     if (courseError) throw courseError;
@@ -24,6 +51,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (payload.role !== 'admin' && course.teacherId !== payload.sub) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
+
+    // Ensure Custom Batch exists for this course
+    await ensureCustomBatch(supabase, courseId);
 
     // Fetch batches and their enrollments (Orders)
     const { data: batches, error: batchError } = await (supabase as any)
@@ -41,7 +71,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       orders: undefined, // remove full orders array from response
     }));
 
-    return NextResponse.json({ batches: formattedBatches, course });
+    const isLinear = Boolean(course.releaseMode && course.releaseMode !== 'circular');
+
+    return NextResponse.json({ batches: formattedBatches, course, isLinear });
   } catch (error: any) {
     console.error('Error fetching batches:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
@@ -67,7 +99,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const supabase = getSupabaseAdmin();
     
     // Verify course access
-    let courseQuery = supabase.from('Course').select('id, title, teacherId').eq('id', courseId).limit(1).maybeSingle();
+    let courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
     const { data: course, error: courseError } = await courseQuery;
     
     if (courseError) throw courseError;
@@ -76,6 +108,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     if (payload.role !== 'admin' && course.teacherId !== payload.sub) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
+
+    const isLinear = Boolean(course.releaseMode && course.releaseMode !== 'circular');
+    if (isLinear) {
+      return NextResponse.json(
+        { error: 'Linear courses only support the Custom Batch. Creating new batches is disabled for linear courses.' },
+        { status: 400 }
+      );
     }
 
     // Calculate end date (1 year from start date)
@@ -106,3 +146,4 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
+

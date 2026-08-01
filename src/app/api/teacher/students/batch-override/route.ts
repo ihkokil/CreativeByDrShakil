@@ -31,20 +31,36 @@ export async function POST(request: NextRequest) {
     }
 
     if (action) {
-      if (action === 'start_from_today' || action === 'custom_date') {
+      if (action === 'current_batch' || action === 'start_from_today') {
         for (const uid of targets) {
-          // Only update enrolledAt if it's custom_date
-          if (action === 'custom_date' && startDate) {
-            const newDate = new Date(startDate).toISOString();
-            await supabase
-              .from('Order')
-              .update({ enrolledAt: newDate })
-              .eq('courseId', courseId)
-              .eq('userId', uid)
-              .eq('status', 'approved');
-          }
+          // Delete existing overrides so student falls back to inheriting default batch schedule
+          await supabase
+            .from('StudentModuleAvailability')
+            .delete()
+            .eq('courseId', courseId)
+            .eq('userId', uid);
+        }
+        return NextResponse.json({ success: true, processed: targets.length });
+      }
 
-          // Delete existing overrides so they fallback to inheriting default schedule
+      if (action === 'custom_date') {
+        // Ensure Custom Batch exists for this course
+        const { ensureCustomBatch } = await import('@/app/api/teacher/batches/[courseId]/route');
+        const customBatch = await ensureCustomBatch(supabase, courseId);
+
+        for (const uid of targets) {
+          const updateData: any = { batchId: customBatch.id };
+          if (startDate) {
+            updateData.enrolledAt = new Date(startDate).toISOString();
+          }
+          await supabase
+            .from('Order')
+            .update(updateData)
+            .eq('courseId', courseId)
+            .eq('userId', uid)
+            .eq('status', 'approved');
+
+          // Delete node-level overrides so standard scheduling starts from the custom date
           await supabase
             .from('StudentModuleAvailability')
             .delete()
@@ -54,7 +70,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, processed: targets.length });
       }
       
-      if (action === 'unlock_all') {
+      if (action === 'instant' || action === 'unlock_all') {
         // Fetch course curriculum to get all node IDs
         const { data: courseData } = await supabase
           .from('Course')
@@ -99,7 +115,6 @@ export async function POST(request: NextRequest) {
                updatedAt: nowStr
              }));
              
-             // Insert in chunks if needed, but supabase JS client can handle moderate arrays
              if (inserts.length > 0) {
 // @ts-ignore
                await supabase.from('StudentModuleAvailability').insert(inserts);
@@ -108,27 +123,36 @@ export async function POST(request: NextRequest) {
           }
           return NextResponse.json({ success: true, processed });
         }
-        return NextResponse.json({ error: 'Failed to process unlock_all' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to process instant unlock' }, { status: 500 });
       }
       
-      if (action === 'change_batch') {
-        const { batchId } = body;
+      if (action === 'batch_change' || action === 'change_batch') {
+        let { batchId } = body;
+        if (!batchId) {
+          const { ensureCustomBatch } = await import('@/app/api/teacher/batches/[courseId]/route');
+          const customBatch = await ensureCustomBatch(supabase, courseId);
+          batchId = customBatch.id;
+        }
+
         for (const uid of targets) {
-          if (batchId === null || batchId === undefined) {
-            await supabase
-              .from('Order')
-              .update({ batchId: null } as any)
-              .eq('courseId', courseId)
-              .eq('userId', uid)
-              .eq('status', 'approved');
-          } else {
-            await supabase
-              .from('Order')
-              .update({ batchId: batchId } as any)
-              .eq('courseId', courseId)
-              .eq('userId', uid)
-              .eq('status', 'approved');
-          }
+          await supabase
+            .from('Order')
+            .update({ batchId } as any)
+            .eq('courseId', courseId)
+            .eq('userId', uid)
+            .eq('status', 'approved');
+        }
+        return NextResponse.json({ success: true, processed: targets.length });
+      }
+
+      if (action === 'fixed_interval' || action === 'custom_interval' || action === 'groups_per_week' || action === 'day_of_week' || action === 'week_days') {
+        // Clear node level overrides to allow dynamic schedule rules
+        for (const uid of targets) {
+          await supabase
+            .from('StudentModuleAvailability')
+            .delete()
+            .eq('courseId', courseId)
+            .eq('userId', uid);
         }
         return NextResponse.json({ success: true, processed: targets.length });
       }

@@ -24,6 +24,7 @@ export default function CourseBatchesPage() {
   
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courseTitle, setCourseTitle] = useState("");
+  const [isLinear, setIsLinear] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -52,6 +53,7 @@ export default function CourseBatchesPage() {
       
       setBatches(data.batches || []);
       setCourseTitle(data.course?.title || "Course Batches");
+      setIsLinear(Boolean(data.isLinear));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -61,6 +63,10 @@ export default function CourseBatchesPage() {
 
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLinear) {
+      alert("Linear courses only support the Custom Batch. Creating new batches is disabled.");
+      return;
+    }
     setIsSubmitting(true);
     
     try {
@@ -105,7 +111,9 @@ export default function CourseBatchesPage() {
             <ArrowLeft size={16} /> Back to Courses
           </Link>
           <h2 className={styles.sectionTitle}>{courseTitle} - Batches</h2>
-          <p className={styles.subtitle}>Manage batches for this course</p>
+          <p className={styles.subtitle}>
+            Manage batches for this course {isLinear && <span style={{ color: 'var(--accent)', fontWeight: 600 }}>(Linear Course: Custom Batch Only)</span>}
+          </p>
         </div>
         
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -139,12 +147,18 @@ export default function CourseBatchesPage() {
              </button>
           </div>
 
-          <button 
-            className={styles.primaryBtn}
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus size={18} /> New Batch
-          </button>
+          {!isLinear ? (
+            <button 
+              className={styles.primaryBtn}
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Plus size={18} /> New Batch
+            </button>
+          ) : (
+            <div style={{ fontSize: '0.85rem', padding: '8px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid var(--glass-border)', color: 'var(--text-muted)' }}>
+              🔒 Linear Course (Custom Batch only)
+            </div>
+          )}
         </div>
       </div>
 
