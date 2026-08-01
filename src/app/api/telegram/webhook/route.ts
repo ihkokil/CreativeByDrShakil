@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
       // Build course selection keyboard
       const keyboard = (courses || []).map((c: any) => ([{
         text: `📚 ${c.title}`,
-        callback_data: `ec|${compressedId}|${c.id}`,
+        callback_data: `ec|${compressedId}|${compressUuid(c.id)}`,
       }]));
 
       await answerCallbackQuery(callbackQueryId, 'Select a course');
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
     if (callbackData.startsWith('ec|')) {
       const parts = callbackData.split('|');
       const compressedId = parts[1];
-      const courseId = parts[2];
+      const courseId = decompressUuid(parts[2]);
 
       const { data: batches } = await (supabase.from('Batch') as any)
         .select('id, name')
@@ -231,10 +231,10 @@ export async function POST(request: NextRequest) {
       const keyboard: any[] = [];
       if (batches && batches.length > 0) {
         batches.forEach((b: any) => {
-           keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eb|${compressedId}|b|${b.id}` }]);
+           keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eb|${compressedId}|b|${compressUuid(b.id)}` }]);
         });
       }
-      keyboard.push([{ text: `🚫 No Batch`, callback_data: `eb|${compressedId}|n|${courseId}` }]);
+      keyboard.push([{ text: `🚫 No Batch`, callback_data: `eb|${compressedId}|n|${compressUuid(courseId)}` }]);
 
       await answerCallbackQuery(callbackQueryId, 'Select a batch');
       await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
       const parts = callbackData.split('|');
       const compressedId = parts[1];
       const type = parts[2];
-      const id = parts[3];
+      const id = parts[3]; // Not decompressed here because we use it in next keyboard directly, or wait, we should pass it as compressed or decompress it? If we just pass it to the next step, we can leave it compressed. But for consistency, let's decompress it if we needed to query. We don't query it here. Let's just pass it compressed.
 
       const keyboard = [
         [{ text: `✅ All Available (Start Today)`, callback_data: `eo|${compressedId}|${type}|${id}|all` }],
@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
 
       const compressedUserId = parts[1];
       const type = parts[2];
-      const targetId = parts[3];
+      const targetId = decompressUuid(parts[3]);
       const avail = parts[4]; // 'all' or 'YYYY-MM-DD'
       const userId = decompressUuid(compressedUserId);
 
@@ -397,7 +397,7 @@ export async function POST(request: NextRequest) {
 
       const keyboard = (courses || []).map((c: any) => ([{
         text: `⚙️ ${c.title}`,
-        callback_data: `avc|${compressedId}|${c.id}`,
+        callback_data: `avc|${compressedId}|${compressUuid(c.id)}`,
       }]));
 
       await answerCallbackQuery(callbackQueryId, 'Select a course');
@@ -414,11 +414,11 @@ export async function POST(request: NextRequest) {
     if (callbackData.startsWith('avc|')) {
       const parts = callbackData.split('|');
       const compressedId = parts[1];
-      const courseId = parts[2];
+      const courseId = decompressUuid(parts[2]);
 
       const keyboard = [
-        [{ text: `🗓 Change Batch`, callback_data: `ec|${compressedId}|${courseId}` }],
-        [{ text: `📅 Change Enrollment Date`, callback_data: `ed|${compressedId}|c|${courseId}` }]
+        [{ text: `🗓 Change Batch`, callback_data: `ec|${compressedId}|${compressUuid(courseId)}` }],
+        [{ text: `📅 Change Enrollment Date`, callback_data: `ed|${compressedId}|c|${compressUuid(courseId)}` }]
       ];
 
       await answerCallbackQuery(callbackQueryId, 'Select action');
