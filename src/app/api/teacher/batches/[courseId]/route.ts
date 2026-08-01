@@ -1,34 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { ensureCustomBatch } from '@/lib/enrollment';
 
 // GET batches for a specific course
-export async function ensureCustomBatch(supabase: any, courseId: string) {
-  const { data: existing } = await supabase
-    .from('Batch')
-    .select('id, name, startDate, endDate')
-    .eq('courseId', courseId)
-    .ilike('name', 'Custom Batch')
-    .limit(1)
-    .maybeSingle();
-
-  if (existing) return existing;
-
-  const nowStr = new Date().toISOString();
-  const futureEnd = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString();
-  const newBatch = {
-    id: crypto.randomUUID(),
-    name: 'Custom Batch',
-    courseId,
-    startDate: nowStr,
-    endDate: futureEnd,
-    createdAt: nowStr,
-    updatedAt: nowStr,
-  };
-
-  await supabase.from('Batch').insert(newBatch as any);
-  return newBatch;
-}
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
   try {

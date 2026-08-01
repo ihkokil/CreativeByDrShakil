@@ -51,3 +51,30 @@ export async function ensureCourseEnrollment(
     // Stub or logic for basics, not critical for Drizzle purge unless specified elsewhere
   }
 }
+
+export async function ensureCustomBatch(supabase: any, courseId: string) {
+  const { data: existing } = await supabase
+    .from('Batch')
+    .select('id, name, startDate, endDate')
+    .eq('courseId', courseId)
+    .ilike('name', 'Custom Batch')
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const nowStr = new Date().toISOString();
+  const futureEnd = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString();
+  const newBatch = {
+    id: crypto.randomUUID(),
+    name: 'Custom Batch',
+    courseId,
+    startDate: nowStr,
+    endDate: futureEnd,
+    createdAt: nowStr,
+    updatedAt: nowStr,
+  };
+
+  await supabase.from('Batch').insert(newBatch as any);
+  return newBatch;
+}

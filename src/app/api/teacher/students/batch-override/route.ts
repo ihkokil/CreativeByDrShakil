@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { ensureCustomBatch } from '@/lib/enrollment';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +46,6 @@ export async function POST(request: NextRequest) {
 
       if (action === 'custom_date') {
         // Ensure Custom Batch exists for this course
-        const { ensureCustomBatch } = await import('@/app/api/teacher/batches/[courseId]/route');
         const customBatch = await ensureCustomBatch(supabase, courseId);
 
         for (const uid of targets) {
@@ -127,17 +127,20 @@ export async function POST(request: NextRequest) {
       }
       
       if (action === 'batch_change' || action === 'change_batch') {
-        let { batchId } = body;
+        let { batchId, startDate } = body;
         if (!batchId) {
-          const { ensureCustomBatch } = await import('@/app/api/teacher/batches/[courseId]/route');
           const customBatch = await ensureCustomBatch(supabase, courseId);
           batchId = customBatch.id;
         }
 
+        const updateData: any = { batchId };
+        if (startDate) {
+          updateData.enrolledAt = new Date(startDate).toISOString();
+        }
+
         for (const uid of targets) {
-          await supabase
-            .from('Order')
-            .update({ batchId } as any)
+          await (supabase.from('Order') as any)
+            .update(updateData as any)
             .eq('courseId', courseId)
             .eq('userId', uid)
             .eq('status', 'approved');

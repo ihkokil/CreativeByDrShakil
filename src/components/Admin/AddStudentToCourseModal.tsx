@@ -208,7 +208,13 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className={styles.overlay} onClick={handleClose}>
+                <motion.div 
+                    className={styles.overlay}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={handleClose}
+                >
                     <motion.div
                         className={`${styles.modal} ${customStyles.modal} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -390,7 +396,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                             </button>
                         </form>
                     </motion.div>
-                </div>
+                </motion.div>
             )}
         </AnimatePresence>
     );

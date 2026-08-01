@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { decompressUuid, compressUuid } from '@/lib/telegram';
-import { ensureCourseEnrollment } from '@/lib/enrollment';
+import { ensureCourseEnrollment, ensureCustomBatch } from '@/lib/enrollment';
 
 function getTelegramToken() {
   return process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
@@ -243,12 +243,20 @@ export async function POST(request: NextRequest) {
         .limit(5);
 
       const keyboard: any[] = [];
+      let hasCustomBatchInList = false;
       if (batches && batches.length > 0) {
         batches.forEach((b: any) => {
-           keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eb|${compressedId}|b|${compressUuid(b.id)}` }]);
+          if (b.name.toLowerCase().includes('custom')) {
+            hasCustomBatchInList = true;
+            keyboard.push([{ text: `📦 ${b.name} (Custom Date)`, callback_data: `ed|${compressedId}|b|${compressUuid(b.id)}` }]);
+          } else {
+            keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eb|${compressedId}|b|${compressUuid(b.id)}` }]);
+          }
         });
       }
-      keyboard.push([{ text: `📦 Custom Batch`, callback_data: `eb|${compressedId}|n|${compressUuid(courseId)}` }]);
+      if (!hasCustomBatchInList) {
+        keyboard.push([{ text: `📦 Custom Batch (Custom Date)`, callback_data: `ed|${compressedId}|n|${compressUuid(courseId)}` }]);
+      }
 
       await answerCallbackQuery(callbackQueryId, 'Select a batch');
       await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
@@ -261,6 +269,20 @@ export async function POST(request: NextRequest) {
       const compressedId = parts[1];
       const type = parts[2];
       const id = parts[3];
+
+      if (type === 'n') {
+        // Custom batch selected -> ask for custom enrollment date
+        await answerCallbackQuery(callbackQueryId);
+        await sendTelegramReply(
+          chatId,
+          `Adding student to 📦 <b>Custom Batch</b>.\n\nPlease reply to this message with the custom enrollment date in <b>DD-MM-YYYY</b> format.\n\n<code>[Context: ed|${compressedId}|n|${id}]</code>`,
+          {
+            force_reply: true,
+            input_field_placeholder: 'DD-MM-YYYY',
+          }
+        );
+        return NextResponse.json({ ok: true });
+      }
 
       const keyboard = [
         [{ text: `🗓 Current Batch (Default)`, callback_data: `eo|${compressedId}|${type}|${id}|current_batch` }],
@@ -379,7 +401,6 @@ export async function POST(request: NextRequest) {
           await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
         } else if (avail.match(/^\d{4}-\d{2}-\d{2}$/)) {
           // Custom enrollment date
-          const { ensureCustomBatch } = await import('@/app/api/teacher/batches/[courseId]/route');
           const customBatch = await ensureCustomBatch(supabase, courseId);
 
           await (supabase.from('Order') as any).update({
@@ -394,7 +415,6 @@ export async function POST(request: NextRequest) {
         if (type === 'b' && batchId) {
           await (supabase.from('Order') as any).update({ batchId } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
         } else if (type === 'n') {
-          const { ensureCustomBatch } = await import('@/app/api/teacher/batches/[courseId]/route');
           const customBatch = await ensureCustomBatch(supabase, courseId);
           await (supabase.from('Order') as any).update({ batchId: customBatch.id } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
         }

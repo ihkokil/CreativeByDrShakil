@@ -91,12 +91,18 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
     }, [searchQuery]);
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
+        <motion.div 
+            className={styles.overlay} 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+        >
             <motion.div 
                 className={styles.modal} 
                 onClick={e => e.stopPropagation()}
                 initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, y: 30, scale: 0.95 }}
             >
                 <div className={styles.header}>
@@ -241,6 +247,6 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                     fetchStudents();
                 }}
             />
-        </div>
+        </motion.div>
     );
 }

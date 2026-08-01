@@ -90,7 +90,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                     daysOfWeek,
                     intervalDays,
                     batchId: action === "change_batch" ? selectedBatchId || null : undefined,
-                    startDate: action === "custom_date" ? startDate : undefined
+                    startDate: (action === "custom_date" || action === "change_batch") ? startDate : undefined
                 })
             });
 
@@ -114,7 +114,13 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
     };
 
     return (
-        <div className={styles.overlay}>
+        <motion.div 
+            className={styles.overlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+        >
             <motion.div
                 className={styles.modal}
                 onClick={e => e.stopPropagation()}
@@ -167,14 +173,29 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                                 onChange={(e) => setSelectedBatchId(e.target.value)}
                                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
                                             >
-                                                <option value="">-- No Batch (Remove from batch) --</option>
-                                                {batches.map(b => (
-                                                    <option key={b.id} value={b.id}>
-                                                        {b.name} (Starts: {new Date(b.startDate).toLocaleDateString()})
-                                                    </option>
-                                                ))}
+                                                {!batches.some(b => b.name.toLowerCase().includes('custom')) && (
+                                                    <option value="">📦 Custom Batch (Requires Custom Enrollment Date)</option>
+                                                )}
+                                                {batches.map(b => {
+                                                    const isCustom = b.name.toLowerCase().includes('custom');
+                                                    return (
+                                                        <option key={b.id} value={b.id}>
+                                                            {isCustom ? '📦 Custom Batch (Requires Custom Enrollment Date)' : `🗓 ${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`}
+                                                        </option>
+                                                    );
+                                                })}
                                             </select>
                                         </div>
+                                        {(!selectedBatchId || batches.find(b => b.id === selectedBatchId)?.name.toLowerCase().includes('custom')) && (
+                                            <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2', marginTop: '12px' }}>
+                                                <label>Custom Enrollment Date (Required):</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={startDate}
+                                                    onChange={(e) => setStartDate(e.target.value)}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -294,6 +315,6 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                     </div>
                 </div>
             </motion.div>
-        </div>
+        </motion.div>
     );
 }
