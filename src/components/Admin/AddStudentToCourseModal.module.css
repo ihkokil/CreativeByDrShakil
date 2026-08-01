@@ -1,5 +1,5 @@
 .modal {
-    max-width: 600px;
+    max-width: 1050px;
     max-height: 85vh;
     overflow-y: auto;
 }
@@ -63,7 +63,7 @@
 
 /* Student List */
 .studentList {
-    max-height: 200px;
+    max-height: 350px;
     overflow-y: auto;
     border: 1px solid var(--glass-border);
     border-radius: 14px;
@@ -141,6 +141,13 @@
 
 .checkIcon {
     color: #22c55e;
+}
+
+.checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #8b5cf6;
 }
 
 /* Info Note */

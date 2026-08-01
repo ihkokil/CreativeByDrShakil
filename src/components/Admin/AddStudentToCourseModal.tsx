@@ -37,7 +37,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
     
     // Form states
     const [selectedCourse, setSelectedCourse] = useState("");
-    const [selectedStudent, setSelectedStudent] = useState("");
+    const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     
     // New student form states
@@ -116,58 +116,75 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
 
             const token = localStorage.getItem("auth_token");
             const isNewStudent = activeTab === "new";
-            
-            const requestBody = isNewStudent ? {
-                courseId: selectedCourse,
-                isNewStudent: true,
-                email: newStudentEmail.trim().toLowerCase(),
-                fullName: newStudentName.trim(),
-                phone: newStudentPhone.trim() || undefined,
-            } : {
-                courseId: selectedCourse,
-                isNewStudent: false,
-                studentId: selectedStudent,
-            };
-
-            if (isNewStudent && (!newStudentEmail || !newStudentName)) {
-                showMessage({ type: 'error', text: 'Email and full name are required for new students.' });
-                setLoading(false);
-                return;
-            }
-
-            if (!isNewStudent && !selectedStudent) {
-                showMessage({ type: 'error', text: 'Please select a student.' });
-                setLoading(false);
-                return;
-            }
-
             const apiPrefix = role === "admin" ? "/api/admin" : "/api/teacher";
-            const response = await fetch(`${apiPrefix}/enrollments`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: token ? `Bearer ${token}` : "",
-                },
-                body: JSON.stringify(requestBody),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                showMessage({ type: 'error', text: data.error || "Failed to enroll student." });
+            
+            if (isNewStudent) {
+                if (!newStudentEmail || !newStudentName) {
+                    showMessage({ type: 'error', text: 'Email and full name are required for new students.' });
+                    setLoading(false);
+                    return;
+                }
+                const response = await fetch(`${apiPrefix}/enrollments`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: token ? `Bearer ${token}` : "",
+                    },
+                    body: JSON.stringify({
+                        courseId: selectedCourse,
+                        isNewStudent: true,
+                        email: newStudentEmail.trim().toLowerCase(),
+                        fullName: newStudentName.trim(),
+                        phone: newStudentPhone.trim() || undefined,
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    showMessage({ type: 'error', text: data.error || "Failed to enroll student." });
+                } else {
+                    showMessage({ type: 'success', text: data.message || "Student enrolled successfully!" });
+                    setNewStudentEmail("");
+                    setNewStudentName("");
+                    setNewStudentPhone("");
+                    setTimeout(() => onSuccess(), 2000);
+                }
             } else {
-                showMessage({ type: 'success', text: data.message || "Student enrolled successfully!" });
+                if (selectedStudents.length === 0) {
+                    showMessage({ type: 'error', text: 'Please select at least one student.' });
+                    setLoading(false);
+                    return;
+                }
+                const promises = selectedStudents.map(studentId => 
+                    fetch(`${apiPrefix}/enrollments`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: token ? `Bearer ${token}` : "",
+                        },
+                        body: JSON.stringify({
+                            courseId: selectedCourse,
+                            isNewStudent: false,
+                            studentId: studentId,
+                        }),
+                    }).then(res => res.json().then(data => ({ ok: res.ok, data })))
+                );
                 
-                // Reset form
-                setSelectedStudent("");
-                setNewStudentEmail("");
-                setNewStudentName("");
-                setNewStudentPhone("");
-                setSearchQuery("");
+                const results = await Promise.all(promises);
+                const failed = results.filter(r => !r.ok);
                 
-                setTimeout(() => {
-                    onSuccess();
-                }, 2000);
+                if (failed.length === results.length) {
+                    showMessage({ type: 'error', text: failed[0]?.data?.error || "Failed to enroll selected students." });
+                } else if (failed.length > 0) {
+                    showMessage({ type: 'success', text: `Enrolled ${results.length - failed.length} students. ${failed.length} failed.` });
+                    setSelectedStudents([]);
+                    setSearchQuery("");
+                    setTimeout(() => onSuccess(), 2000);
+                } else {
+                    showMessage({ type: 'success', text: "All selected students enrolled successfully!" });
+                    setSelectedStudents([]);
+                    setSearchQuery("");
+                    setTimeout(() => onSuccess(), 2000);
+                }
             }
         } catch (err: any) {
             showMessage({ type: 'error', text: "Network error. Please try again." });
@@ -179,7 +196,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
     const handleClose = () => {
         setMessage(null);
         setSelectedCourse("");
-        setSelectedStudent("");
+        setSelectedStudents([]);
         setSearchQuery("");
         setNewStudentEmail("");
         setNewStudentName("");
@@ -260,7 +277,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                                     <div className={customStyles.fieldGroup}>
                                         <label className={customStyles.fieldLabel}>
                                             <Search size={16} />
-                                            Search Student
+                                            Search Students
                                         </label>
                                         <div className={styles.inputGroup}>
                                             <Search className={styles.inputIcon} size={18} />
@@ -280,13 +297,21 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                                                 {searchQuery ? "No students found" : "Type to search students"}
                                             </div>
                                         ) : (
-                                            filteredStudents.slice(0, 5).map((student) => (
+                                            filteredStudents.map((student) => (
                                                 <div
                                                     key={student.id}
-                                                    className={`${customStyles.studentCard} ${selectedStudent === student.id ? customStyles.selectedCard : ""}`}
-                                                    onClick={() => setSelectedStudent(student.id)}
+                                                    className={`${customStyles.studentCard} ${selectedStudents.includes(student.id) ? customStyles.selectedCard : ""}`}
+                                                    onClick={() => setSelectedStudents(prev => 
+                                                        prev.includes(student.id) ? prev.filter(id => id !== student.id) : [...prev, student.id]
+                                                    )}
                                                 >
                                                     <div className={customStyles.studentInfo}>
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={selectedStudents.includes(student.id)} 
+                                                            readOnly 
+                                                            className={customStyles.checkbox}
+                                                        />
                                                         <div className={customStyles.studentAvatar}>
                                                             {student.full_name.charAt(0).toUpperCase()}
                                                         </div>
@@ -298,9 +323,6 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {selectedStudent === student.id && (
-                                                        <Check size={20} className={customStyles.checkIcon} />
-                                                    )}
                                                 </div>
                                             ))
                                         )}
@@ -357,13 +379,13 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                             <button 
                                 className={styles.submitBtn} 
                                 type="submit" 
-                                disabled={loading || !selectedCourse || (activeTab === "existing" ? !selectedStudent : (!newStudentEmail || !newStudentName))}
+                                disabled={loading || !selectedCourse || (activeTab === "existing" ? selectedStudents.length === 0 : (!newStudentEmail || !newStudentName))}
                             >
                                 {loading 
                                     ? "Enrolling..." 
                                     : activeTab === "new" 
                                         ? "Register & Enroll Student" 
-                                        : "Enroll Student"
+                                        : `Enroll Selected (${selectedStudents.length})`
                                 }
                             </button>
                         </form>
