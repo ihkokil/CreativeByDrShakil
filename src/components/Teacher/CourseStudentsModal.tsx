@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import StudentRulesModal from "./StudentRulesModal";
 import StudentIndividualOverridesModal from "./StudentIndividualOverridesModal";
 import EnrollStudentModal from "./EnrollStudentModal";
+import { useModal } from "@/hooks/useModal";
+
 interface CourseStudentsModalProps {
     courseId: string;
     courseTitle: string;
@@ -33,6 +35,7 @@ const initials = (name: string) => {
 };
 
 export default function CourseStudentsModal({ courseId, courseTitle, onClose }: CourseStudentsModalProps) {
+    useModal(true, onClose);
     const [students, setStudents] = useState<StudentSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");

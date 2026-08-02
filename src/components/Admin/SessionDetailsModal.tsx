@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import styles from './AdminModal.module.css';
+import { useModal } from '@/hooks/useModal';
 import { X, Monitor, Smartphone, Tablet, Lock, LogOut, Edit2, Check } from 'lucide-react';
 
 interface SessionData {
@@ -33,6 +34,7 @@ export default function SessionDetailsModal({
   onLogout,
   onRename,
 }: SessionDetailsModalProps) {
+  useModal(true, onClose);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [editedLabel, setEditedLabel] = useState(session.deviceLabel || session.browserName || 'Device');
   const [isSavingLabel, setIsSavingLabel] = useState(false);

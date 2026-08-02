@@ -7,6 +7,7 @@ import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
 import Loader from "@/components/UI/Loader";
 import AlertModal from "@/components/UI/AlertModal";
+import { useModal } from '@/hooks/useModal';
 import { formatDisplayDate, formatDateInputGMT6 } from '@/lib/date-format';
 
 interface EnrolledCourse {
@@ -50,6 +51,10 @@ export default function EnrollmentsManager() {
     studentName: string;
   } | null>(null);
   const [selectedStudentForDetails, setSelectedStudentForDetails] = useState<StudentProfile | null>(null);
+
+  useModal(!!editingEnrollment, () => setEditingEnrollment(null));
+  useModal(!!selectedStudentForDetails, () => setSelectedStudentForDetails(null));
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [batchCourseId, setBatchCourseId] = useState('');
   const [batchEnrollDate, setBatchEnrollDate] = useState(() => formatDateInputGMT6(new Date()));

@@ -6,6 +6,7 @@ import customStyles from "./AddStudentToCourseModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useModal } from "@/hooks/useModal";
 
 interface Student {
     id: string;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: Props) {
+    useModal(isOpen, onClose);
     const { session, role } = useAuth();
     const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
     

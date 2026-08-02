@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Loader from "@/components/UI/Loader";
 import { AlertCircle, ArrowRight, CheckCircle2, Send, X } from 'lucide-react';
 import styles from './ContactRequestsManager.module.css';
+import { useModal } from '@/hooks/useModal';
 
 type ContactIssueType = 'query' | 'technical_assistance' | 'billing' | 'course_access' | 'other';
 type ContactStatus = 'open' | 'in_review' | 'responded' | 'closed';
@@ -54,8 +55,8 @@ export default function ContactRequestModal({
   onClose,
   onUpdate,
   isSaving,
-  token,
 }: ContactRequestModalProps) {
+  useModal(isOpen, onClose);
   const [statusDraft, setStatusDraft] = useState<ContactStatus>('open');
   const [replyDraft, setReplyDraft] = useState('');
 

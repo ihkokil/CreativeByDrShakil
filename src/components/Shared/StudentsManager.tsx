@@ -242,6 +242,9 @@ export default function StudentsManager() {
     setIsAddOpen(false);
     setMessage(null);
   });
+  useModal(!!editingEnrollment, () => setEditingEnrollment(null));
+  useModal(!!selectedStudentForDetails, () => setSelectedStudentForDetails(null));
+  useModal(!!selectedSingleCourse, () => setSelectedSingleCourse(null));
 
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
