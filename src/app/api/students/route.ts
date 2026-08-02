@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { studentIds, courseId, enrolledAt: enrolledAtStr } = body;
+    const { studentIds, courseId, batchId, enrolledAt: enrolledAtStr } = body;
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
       return NextResponse.json({ error: 'studentIds array is required.' }, { status: 400 });
@@ -172,7 +172,8 @@ export async function POST(request: NextRequest) {
           course.slug,
           true, // enrolledByAdmin
           enrolledAt,
-          expiresAt
+          expiresAt,
+          batchId || null
         );
 
         enrolledStudents.push(student.fullName);

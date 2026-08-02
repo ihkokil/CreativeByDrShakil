@@ -40,99 +40,7 @@ interface StudentProfile {
   enrolledCourses: EnrolledCourse[];
 }
 
-// Multi-select course dropdown
-function MultiCourseSelect({ 
-  courses, 
-  selectedCourseIds, 
-  onChange 
-}: { 
-  courses: any[]; 
-  selectedCourseIds: string[]; 
-  onChange: (ids: string[]) => void; 
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const toggleCourse = (courseId: string) => {
-    if (selectedCourseIds.includes(courseId)) {
-      onChange(selectedCourseIds.filter(id => id !== courseId));
-    } else {
-      onChange([...selectedCourseIds, courseId]);
-    }
-  };
-
-  const removeCourse = (courseId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange(selectedCourseIds.filter(id => id !== courseId));
-  };
-
-  return (
-    <div className={styles.multiSelectWrapper} ref={wrapperRef}>
-      <div 
-        className={`${styles.multiSelectTrigger} ${isOpen ? styles.open : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {selectedCourseIds.length === 0 ? (
-          <span className={styles.triggerPlaceholder}>Select course(s) to enroll...</span>
-        ) : (
-          <div className={styles.triggerPills}>
-            {selectedCourseIds.map(id => {
-              const course = courses.find(c => c.id === id);
-              return (
-                <span key={id} className={styles.triggerPill}>
-                  {course?.title || id}
-                  <button 
-                    type="button" 
-                    className={styles.triggerPillRemove}
-                    onClick={(e) => removeCourse(id, e)}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-        )}
-        <ChevronDown size={16} className={`${styles.chevronIcon} ${isOpen ? styles.rotated : ''}`} />
-      </div>
-
-      {isOpen && (
-        <div className={styles.multiSelectDropdown}>
-          {courses.length === 0 ? (
-            <div className={styles.dropdownOption} style={{ color: 'var(--text-muted)', cursor: 'default' }}>
-              No courses available
-            </div>
-          ) : (
-            courses.map(c => (
-              <div 
-                key={c.id} 
-                className={`${styles.dropdownOption} ${selectedCourseIds.includes(c.id) ? styles.checked : ''}`}
-                onClick={() => toggleCourse(c.id)}
-              >
-                <input 
-                  type="checkbox" 
-                  checked={selectedCourseIds.includes(c.id)} 
-                  readOnly 
-                />
-                <span>{c.title}</span>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function CircularProgress({ progress }: { progress: number }) {
   const radius = 14;
@@ -212,8 +120,31 @@ export default function StudentsManager() {
   
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [batchCourseIds, setBatchCourseIds] = useState<string[]>([]);
+  const [batchCourseId, setBatchCourseId] = useState<string>('');
+  const [batchId, setBatchId] = useState<string>('');
+  const [courseBatches, setCourseBatches] = useState<any[]>([]);
   const [batchEnrollDate, setBatchEnrollDate] = useState(() => formatDateInputGMT6(new Date()));
+
+  // Fetch batches when selected course changes
+  useEffect(() => {
+    if (!batchCourseId) {
+      setCourseBatches([]);
+      setBatchId('');
+      return;
+    }
+    const fetchCourseBatches = async () => {
+      try {
+        const res = await fetch(`/api/teacher/batches/${batchCourseId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCourseBatches(data.batches || []);
+        }
+      } catch (e) {
+        console.error("Failed to fetch batches for course", e);
+      }
+    };
+    fetchCourseBatches();
+  }, [batchCourseId]);
 
   // Batch panels
   const [showEnrollPanel, setShowEnrollPanel] = useState(false);
@@ -247,7 +178,8 @@ export default function StudentsManager() {
   } | null>(null);
   const [editingRulesFor, setEditingRulesFor] = useState<{
     courseId: string;
-    userId: string;
+    userId?: string;
+    userIds?: string[];
     studentName: string;
   } | null>(null);
 
@@ -441,56 +373,40 @@ export default function StudentsManager() {
     }
   };
 
-  // Batch Enrollment Submit (multi-course)
+  // Batch Enrollment Submit (Single course + Batch)
   const handleBatchEnrollSubmit = async () => {
-    if (batchCourseIds.length === 0) {
-      showAlert('Please select at least one course to enroll.', 'warning');
+    if (!batchCourseId) {
+      showAlert('Please select a course to enroll.', 'warning');
       return;
     }
     
     setIsSubmitting(true);
     try {
-      let successCount = 0;
-      const errors: string[] = [];
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          studentIds: Array.from(selectedIds),
+          courseId: batchCourseId,
+          batchId: batchId || undefined,
+          enrolledAt: batchEnrollDate,
+        }),
+      });
 
-      for (const courseId of batchCourseIds) {
-        try {
-          const res = await fetch('/api/students', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({
-              studentIds: Array.from(selectedIds),
-              courseId,
-              enrolledAt: batchEnrollDate,
-            }),
-          });
-
-          const data = await res.json();
-          if (res.ok) {
-            successCount++;
-          } else {
-            const course = courses.find(c => c.id === courseId);
-            errors.push(`${course?.title || courseId}: ${data.error || 'Failed'}`);
-          }
-        } catch (err) {
-          const course = courses.find(c => c.id === courseId);
-          errors.push(`${course?.title || courseId}: Network error`);
-        }
-      }
-
-      if (errors.length > 0) {
-        showAlert(`Enrolled in ${successCount} course(s).\n\nErrors:\n${errors.join('\n')}`, 'warning', 'Batch Enrollment Complete');
+      const data = await res.json();
+      if (res.ok) {
+        showAlert(`Successfully enrolled ${selectedIds.size} student(s) into course!`, 'success', 'Batch Enrollment Complete');
+        setSelectedIds(new Set());
+        setBatchCourseId('');
+        setBatchId('');
+        setShowEnrollPanel(false);
+        fetchStudents();
       } else {
-        showAlert(`Successfully enrolled ${selectedIds.size} student(s) in ${successCount} course(s)!`, 'success', 'Batch Enrollment Complete');
+        showAlert(data.error || 'Failed to enroll students.', 'error');
       }
-
-      setSelectedIds(new Set());
-      setBatchCourseIds([]);
-      setShowEnrollPanel(false);
-      fetchStudents();
     } catch (err) {
       showAlert('Network error while processing batch enrollment.', 'error');
     } finally {
@@ -1085,9 +1001,25 @@ export default function StudentsManager() {
                   </button>
                   <button 
                     className={styles.batchActionBtn}
-                    onClick={() => { setShowDatePanel(!showDatePanel); setShowEnrollPanel(false); setShowRemovePanel(false); }}
+                    onClick={() => {
+                      if (courseFilter && courseFilter !== 'none') {
+                        const course = courses.find(c => c.id === courseFilter);
+                        setEditingRulesFor({
+                          courseId: courseFilter,
+                          userIds: Array.from(selectedIds),
+                          studentName: `${selectedIds.size} Selected Student(s) (${course?.title || 'Course'})`
+                        });
+                        setShowDatePanel(false);
+                        setShowEnrollPanel(false);
+                        setShowRemovePanel(false);
+                      } else {
+                        setShowDatePanel(!showDatePanel);
+                        setShowEnrollPanel(false);
+                        setShowRemovePanel(false);
+                      }
+                    }}
                   >
-                    <CalendarClock size={15} /> Edit Dates
+                    <CalendarClock size={15} /> Change Module Availability
                   </button>
                   <button 
                     className={`${styles.batchActionBtn} ${styles.danger}`}
@@ -1110,31 +1042,80 @@ export default function StudentsManager() {
                     </button>
                   </div>
                   <div className={styles.enrollPanelBody}>
-                    <div className={styles.enrollPanelField} style={{ flex: 2 }}>
-                      <label>Courses</label>
-                      <MultiCourseSelect 
-                        courses={courses}
-                        selectedCourseIds={batchCourseIds}
-                        onChange={setBatchCourseIds}
-                      />
+                    <div className={styles.enrollPanelField} style={{ flex: 1.5 }}>
+                      <label>Course</label>
+                      <select 
+                        value={batchCourseId}
+                        onChange={(e) => {
+                          setBatchCourseId(e.target.value);
+                          setBatchId('');
+                        }}
+                      >
+                        <option value="">-- Select Course --</option>
+                        {courses.map(c => (
+                          <option key={c.id} value={c.id}>{c.title}</option>
+                        ))}
+                      </select>
                     </div>
-                    <div className={styles.enrollPanelField} style={{ flex: 1 }}>
-                      <label>Enrollment Date</label>
-                      <input 
-                        type="date" 
-                        value={batchEnrollDate}
-                        onChange={(e) => setBatchEnrollDate(e.target.value)}
-                      />
-                      {batchEnrollDate && (
-                        <span className={styles.expiryPreview}>Expires: {calculatedBatchExpiry}</span>
-                      )}
+
+                    <div className={styles.enrollPanelField} style={{ flex: 1.5 }}>
+                      <label>Batch</label>
+                      <select 
+                        value={batchId}
+                        onChange={(e) => {
+                          const bId = e.target.value;
+                          setBatchId(bId);
+                          const selBatch = courseBatches.find(b => b.id === bId);
+                          if (selBatch && !selBatch.name.toLowerCase().includes('custom') && selBatch.startDate) {
+                            setBatchEnrollDate(new Date(selBatch.startDate).toISOString().split('T')[0]);
+                          }
+                        }}
+                        disabled={!batchCourseId}
+                      >
+                        {!courseBatches.some(b => b.name.toLowerCase().includes('custom')) && (
+                          <option value="">📦 Custom Batch (Custom Date)</option>
+                        )}
+                        {courseBatches.map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.name.toLowerCase().includes('custom') ? '📦 Custom Batch (Custom Date)' : `${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
+                    {(() => {
+                      const selBatch = courseBatches.find(b => b.id === batchId);
+                      const isCustom = !batchId || selBatch?.name.toLowerCase().includes('custom');
+                      const dateVal = isCustom 
+                        ? batchEnrollDate 
+                        : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : batchEnrollDate);
+
+                      return (
+                        <div className={styles.enrollPanelField} style={{ flex: 1 }}>
+                          <label>{isCustom ? 'Enrollment Date' : 'Date (Set by Batch)'}</label>
+                          <input 
+                            type="date" 
+                            value={dateVal}
+                            disabled={!isCustom}
+                            onChange={(e) => setBatchEnrollDate(e.target.value)}
+                            style={{
+                              opacity: !isCustom ? 0.6 : 1,
+                              cursor: !isCustom ? 'not-allowed' : 'auto'
+                            }}
+                          />
+                          {isCustom && batchEnrollDate && (
+                            <span className={styles.expiryPreview}>Expires: {calculatedBatchExpiry}</span>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     <div className={styles.enrollPanelField} style={{ flex: '0 1 auto' }}>
                       <label style={{ visibility: 'hidden' }}>Action</label>
                       <button 
                         className={`${styles.batchActionBtn} ${styles.primary}`}
                         onClick={handleBatchEnrollSubmit}
-                        disabled={isSubmitting || batchCourseIds.length === 0}
+                        disabled={isSubmitting || !batchCourseId}
                         style={{ padding: '0 20px', height: '42px', width: '100%', justifyContent: 'center' }}
                       >
                         {isSubmitting ? <><Loader variant="button" /> Enrolling...</> : 'Enroll Now'}
@@ -1144,19 +1125,19 @@ export default function StudentsManager() {
                 </div>
               )}
 
-              {/* Bulk Edit Dates Panel */}
+              {/* Bulk Change Module Availability Panel */}
               {showDatePanel && (
                 <div className={styles.enrollPanel}>
                   <div className={styles.enrollPanelHeader}>
                     <span className={styles.enrollPanelTitle}>
-                      <CalendarClock size={16} /> Bulk Edit Enrollment Dates
+                      <CalendarClock size={16} /> Change Module Availability
                     </span>
                     <button className={styles.enrollPanelClose} onClick={() => setShowDatePanel(false)}>
                       <X size={16} />
                     </button>
                   </div>
                   <div className={styles.enrollPanelBody}>
-                    <div className={styles.enrollPanelField}>
+                    <div className={styles.enrollPanelField} style={{ flex: 1 }}>
                       <label>Course</label>
                       <select 
                         value={datePanelCourseId}
@@ -1168,23 +1149,25 @@ export default function StudentsManager() {
                         ))}
                       </select>
                     </div>
-                    <div className={styles.enrollPanelField}>
-                      <label>New Enrollment Date</label>
-                      <input 
-                        type="date" 
-                        value={datePanelDate}
-                        onChange={(e) => setDatePanelDate(e.target.value)}
-                      />
-                    </div>
                     <div className={styles.enrollPanelField} style={{ flex: '0 1 auto' }}>
                       <label style={{ visibility: 'hidden' }}>Action</label>
                       <button 
                         className={`${styles.batchActionBtn} ${styles.primary}`}
-                        onClick={handleBatchDateUpdate}
-                        disabled={isSubmitting || !datePanelCourseId}
+                        onClick={() => {
+                          if (datePanelCourseId) {
+                            const course = courses.find(c => c.id === datePanelCourseId);
+                            setEditingRulesFor({
+                              courseId: datePanelCourseId,
+                              userIds: Array.from(selectedIds),
+                              studentName: `${selectedIds.size} Selected Student(s) (${course?.title || 'Course'})`
+                            });
+                            setShowDatePanel(false);
+                          }
+                        }}
+                        disabled={!datePanelCourseId}
                         style={{ padding: '0 20px', height: '42px', width: '100%', justifyContent: 'center' }}
                       >
-                        {isSubmitting ? <><Loader variant="button" /> Updating...</> : 'Update Dates'}
+                        Configure Availability Rules
                       </button>
                     </div>
                   </div>
@@ -1303,10 +1286,12 @@ export default function StudentsManager() {
         <StudentRulesModal
           courseId={editingRulesFor.courseId}
           userId={editingRulesFor.userId}
+          userIds={editingRulesFor.userIds}
           studentName={editingRulesFor.studentName}
           onClose={() => setEditingRulesFor(null)}
           onSuccess={() => {
             setEditingRulesFor(null);
+            setSelectedIds(new Set());
             fetchStudents();
           }}
         />

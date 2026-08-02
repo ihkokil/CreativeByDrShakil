@@ -30,9 +30,10 @@ const DAYS = [
 ];
 
 export default function StudentRulesModal({ courseId, userId, userIds, studentName, onClose, onSuccess, onOpenAdvanced }: StudentRulesModalProps) {
-    const [action, setAction] = useState<"start_from_today" | "custom_date" | "week_days" | "custom_interval" | "unlock_all" | "change_batch">("start_from_today");
+    const [action, setAction] = useState<"current_batch" | "instant" | "fixed_interval" | "groups_per_week" | "day_of_week" | "batch_change" | "custom_date">("current_batch");
     const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
     const [intervalDays, setIntervalDays] = useState<number>(3);
+    const [groupsPerWeek, setGroupsPerWeek] = useState<number>(1);
     const [startDate, setStartDate] = useState<string>(() => formatDateInputGMT6(new Date()));
     const [selectedBatchId, setSelectedBatchId] = useState<string>("");
     const [batches, setBatches] = useState<{id: string, name: string, startDate: string}[]>([]);
@@ -57,19 +58,21 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
     const [error, setError] = useState("");
 
     const handleSave = async () => {
-        if (action === "week_days" && daysOfWeek.length === 0) {
+        if (action === "day_of_week" && daysOfWeek.length === 0) {
             setError("Please select at least one day of the week.");
             return;
         }
-        if (action === "custom_interval" && (intervalDays < 1 || isNaN(intervalDays))) {
+        if (action === "fixed_interval" && (intervalDays < 1 || isNaN(intervalDays))) {
             setError("Please enter a valid interval greater than 0.");
             return;
         }
-        if (action === "custom_date") {
-            if (!startDate) {
-                setError("Please enter a start date.");
-                return;
-            }
+        if (action === "groups_per_week" && (groupsPerWeek < 1 || isNaN(groupsPerWeek))) {
+            setError("Please enter a valid number of groups per week.");
+            return;
+        }
+        if (action === "custom_date" && !startDate) {
+            setError("Please enter a start date.");
+            return;
         }
 
         try {
@@ -89,14 +92,15 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                     action,
                     daysOfWeek,
                     intervalDays,
-                    batchId: action === "change_batch" ? selectedBatchId || null : undefined,
-                    startDate: (action === "custom_date" || action === "change_batch") ? startDate : undefined
+                    groupsPerWeek,
+                    batchId: action === "batch_change" ? selectedBatchId || null : undefined,
+                    startDate: (action === "custom_date" || action === "batch_change") ? startDate : undefined
                 })
             });
 
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.error || "Failed to save student rules.");
+                throw new Error(data.error || "Failed to save module availability rules.");
             }
 
             onSuccess();
@@ -129,7 +133,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
             >
                 <div className={styles.header}>
-                    <h2>Edit Rules for Student</h2>
+                    <h2>Change Module Availability</h2>
                     <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
                 </div>
 
@@ -139,31 +143,131 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                     {error && <div className={styles.errorBanner}>{error}</div>}
 
                     <div className={styles.optionsGroup}>
+                        {/* 1. Current Batch */}
                         <div
-                            className={`${styles.optionCard} ${action === "unlock_all" ? styles.selected : ""}`}
-                            onClick={() => setAction("unlock_all")}
+                            className={`${styles.optionCard} ${action === "current_batch" ? styles.selected : ""}`}
+                            onClick={() => setAction("current_batch")}
                         >
                             <div className={styles.optionHeader}>
                                 <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Make all modules available</span>
+                                <span className={styles.optionTitle}>Current Batch [Default]</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                This will instantly unlock every module in the course for this student.
+                                Students continue with batch which he has enrolled into.
                             </div>
                         </div>
 
+                        {/* 2. Instant */}
                         <div
-                            className={`${styles.optionCard} ${action === "change_batch" ? styles.selected : ""}`}
-                            onClick={() => setAction("change_batch")}
+                            className={`${styles.optionCard} ${action === "instant" ? styles.selected : ""}`}
+                            onClick={() => setAction("instant")}
                         >
                             <div className={styles.optionHeader}>
                                 <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Change Batch / Add to Batch</span>
+                                <span className={styles.optionTitle}>Instant Unlock</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                Move this student to a specific batch.
+                                All modules are unlocked and available immediately upon enrollment.
                             </div>
-                            {action === "change_batch" && (
+                        </div>
+
+                        {/* 3. Fixed Interval */}
+                        <div
+                            className={`${styles.optionCard} ${action === "fixed_interval" ? styles.selected : ""}`}
+                            onClick={() => setAction("fixed_interval")}
+                        >
+                            <div className={styles.optionHeader}>
+                                <div className={styles.radio}></div>
+                                <span className={styles.optionTitle}>Fixed Interval</span>
+                            </div>
+                            <div className={styles.optionDesc}>
+                                Modules unlock after a set number of days.
+                            </div>
+                            {action === "fixed_interval" && (
+                                <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                                    <div className={styles.intervalInput}>
+                                        <input
+                                            type="number"
+                                            value={intervalDays}
+                                            min={1}
+                                            onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
+                                        />
+                                        <span>days</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 4. Groups Per Week */}
+                        <div
+                            className={`${styles.optionCard} ${action === "groups_per_week" ? styles.selected : ""}`}
+                            onClick={() => setAction("groups_per_week")}
+                        >
+                            <div className={styles.optionHeader}>
+                                <div className={styles.radio}></div>
+                                <span className={styles.optionTitle}>Groups Per Week</span>
+                            </div>
+                            <div className={styles.optionDesc}>
+                                Unlocks a specific number of module groups each week.
+                            </div>
+                            {action === "groups_per_week" && (
+                                <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                                    <div className={styles.intervalInput}>
+                                        <input
+                                            type="number"
+                                            value={groupsPerWeek}
+                                            min={1}
+                                            onChange={(e) => setGroupsPerWeek(parseInt(e.target.value) || 1)}
+                                        />
+                                        <span>groups / week</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 5. Day of Week */}
+                        <div
+                            className={`${styles.optionCard} ${action === "day_of_week" ? styles.selected : ""}`}
+                            onClick={() => setAction("day_of_week")}
+                        >
+                            <div className={styles.optionHeader}>
+                                <div className={styles.radio}></div>
+                                <span className={styles.optionTitle}>Day of Week</span>
+                            </div>
+                            <div className={styles.optionDesc}>
+                                Modules unlock on specific days of the week.
+                            </div>
+                            {action === "day_of_week" && (
+                                <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
+                                    <div className={styles.daysGrid}>
+                                        {DAYS.map(d => (
+                                            <button
+                                                key={d.value}
+                                                type="button"
+                                                className={`${styles.dayBtn} ${daysOfWeek.includes(d.value) ? styles.active : ""}`}
+                                                onClick={(e) => { e.stopPropagation(); toggleDay(d.value); }}
+                                            >
+                                                {d.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 6. Batch Change */}
+                        <div
+                            className={`${styles.optionCard} ${action === "batch_change" ? styles.selected : ""}`}
+                            onClick={() => setAction("batch_change")}
+                        >
+                            <div className={styles.optionHeader}>
+                                <div className={styles.radio}></div>
+                                <span className={styles.optionTitle}>Batch Change</span>
+                            </div>
+                            <div className={styles.optionDesc}>
+                                Change the current batch of a student.
+                            </div>
+                            {action === "batch_change" && (
                                 <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
                                     <div className={styles.dateInputsGrid}>
                                         <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2' }}>
@@ -186,112 +290,54 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                                 })}
                                             </select>
                                         </div>
-                                        {(!selectedBatchId || batches.find(b => b.id === selectedBatchId)?.name.toLowerCase().includes('custom')) && (
-                                            <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2', marginTop: '12px' }}>
-                                                <label>Custom Enrollment Date (Required):</label>
-                                                <input 
-                                                    type="date" 
-                                                    value={startDate}
-                                                    onChange={(e) => setStartDate(e.target.value)}
-                                                />
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            const selBatch = batches.find(b => b.id === selectedBatchId);
+                                            const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('custom');
+                                            const displayDate = isCustom 
+                                                ? startDate 
+                                                : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : startDate);
+
+                                            return (
+                                                <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2', marginTop: '12px' }}>
+                                                    <label>{isCustom ? 'Custom Enrollment Date (Required):' : 'Enrollment Start Date (Set by Batch):'}</label>
+                                                    <input 
+                                                        type="date" 
+                                                        value={displayDate}
+                                                        disabled={!isCustom}
+                                                        onChange={(e) => setStartDate(e.target.value)}
+                                                        style={!isCustom ? { opacity: 0.6, cursor: 'not-allowed' } : undefined}
+                                                    />
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div
-                            className={`${styles.optionCard} ${action === "start_from_today" ? styles.selected : ""}`}
-                            onClick={() => setAction("start_from_today")}
-                        >
-                            <div className={styles.optionHeader}>
-                                <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Start from Enrollment date (Default)</span>
-                            </div>
-                            <div className={styles.optionDesc}>
-                                All are locked & each module will be available following the module rule, starting from the enrollment date.
-                            </div>
-                        </div>
-
+                        {/* 7. Custom Date */}
                         <div
                             className={`${styles.optionCard} ${action === "custom_date" ? styles.selected : ""}`}
                             onClick={() => setAction("custom_date")}
                         >
                             <div className={styles.optionHeader}>
                                 <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Change enrollment date</span>
+                                <span className={styles.optionTitle}>Custom Date</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                Set a custom enrollment date. The student will gain access to modules exactly as if they enrolled on this date.
+                                Every student is enrolled from a custom date, assigned to the Custom Batch.
                             </div>
                             {action === "custom_date" && (
                                 <div className={styles.subConfig} onClick={e => e.stopPropagation()}>
                                     <div className={styles.dateInputsGrid}>
                                         <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2' }}>
-                                            <label>New Enrollment Date (Required):</label>
+                                            <label>Custom Enrollment Date (Required):</label>
                                             <input 
                                                 type="date" 
                                                 value={startDate}
                                                 onChange={(e) => setStartDate(e.target.value)}
                                             />
                                         </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div
-                            className={`${styles.optionCard} ${action === "week_days" ? styles.selected : ""}`}
-                            onClick={() => setAction("week_days")}
-                        >
-                            <div className={styles.optionHeader}>
-                                <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Week days</span>
-                            </div>
-                            <div className={styles.optionDesc}>
-                                Custom days of the week when modules unlock.
-                            </div>
-                            {action === "week_days" && (
-                                <div className={styles.subConfig}>
-                                    <div className={styles.daysGrid}>
-                                        {DAYS.map(d => (
-                                            <button
-                                                key={d.value}
-                                                type="button"
-                                                className={`${styles.dayBtn} ${daysOfWeek.includes(d.value) ? styles.active : ""}`}
-                                                onClick={(e) => { e.stopPropagation(); toggleDay(d.value); }}
-                                            >
-                                                {d.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div
-                            className={`${styles.optionCard} ${action === "custom_interval" ? styles.selected : ""}`}
-                            onClick={() => setAction("custom_interval")}
-                        >
-                            <div className={styles.optionHeader}>
-                                <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>X days interval</span>
-                            </div>
-                            <div className={styles.optionDesc}>
-                                Custom day interval between each module, starting today.
-                            </div>
-                            {action === "custom_interval" && (
-                                <div className={styles.subConfig}>
-                                    <div className={styles.intervalInput}>
-                                        <input
-                                            type="number"
-                                            value={intervalDays}
-                                            min={1}
-                                            onChange={(e) => setIntervalDays(parseInt(e.target.value) || 1)}
-                                            onClick={e => e.stopPropagation()}
-                                        />
-                                        <span>days</span>
                                     </div>
                                 </div>
                             )}

@@ -9,11 +9,17 @@ export async function ensureCourseEnrollment(
   courseSlug: string | null,
   enrolledByAdmin: boolean = false,
   enrolledAt?: Date,
-  expiresAt?: Date
+  expiresAt?: Date,
+  batchId?: string | null
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
   const dateStr = enrolledAt ? enrolledAt.toISOString() : new Date().toISOString();
   
+  if (!batchId) {
+    const customBatch = await ensureCustomBatch(supabase, courseId);
+    batchId = customBatch.id;
+  }
+
   // Create order for the course
   const { data: existingOrder } = await supabase
     .from('Order')
@@ -26,12 +32,11 @@ export async function ensureCourseEnrollment(
     
   if (!existingOrder) {
     const orderId = nanoid();
-    const { error } = await supabase.from('Order')
-// @ts-ignore
-.insert({
+    const { error } = await supabase.from('Order').insert({
       id: orderId,
       userId,
       courseId,
+      batchId,
       totalAmount: 0,
       status: 'approved',
       enrolledAt: dateStr,
@@ -44,6 +49,13 @@ export async function ensureCourseEnrollment(
       console.error('[ensureCourseEnrollment] Error inserting order:', error);
       throw new Error(`Failed to insert order: ${error.message}`);
     }
+  } else {
+    await (supabase.from('Order') as any).update({
+      batchId,
+      enrolledAt: dateStr,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      updatedAt: new Date().toISOString(),
+    } as any).eq('id', existingOrder.id);
   }
 
   // Handle basics bundle logic if the title is "Basics" or something similar
