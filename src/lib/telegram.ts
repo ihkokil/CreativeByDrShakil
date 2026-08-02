@@ -3,11 +3,15 @@ import { getAppUrl } from './email';
 
 // Read env variables dynamically to ensure compatibility with Cloudflare Workers / Serverless edge
 function getTelegramToken() {
-  return process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+  const raw = process.env.TELEGRAM_BOT_TOKEN;
+  if (!raw) return '';
+  return raw.replace(/^['"]|['"]$/g, '').replace(/['"]/g, '').trim();
 }
 
 function getChatIdsEnv() {
-  return process.env.TELEGRAM_CHAT_ID?.replace(/"/g, '');
+  const raw = process.env.TELEGRAM_CHAT_ID;
+  if (!raw) return '';
+  return raw.replace(/^['"]|['"]$/g, '').replace(/['"]/g, '').trim();
 }
 
 export function compressUuid(id: string): string {
@@ -43,7 +47,8 @@ export function decompressUuid(compressed: string): string {
 }
 
 function escapeTelegramHtml(value: string) {
-  return value
+  if (!value) return '';
+  return String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -132,7 +137,12 @@ async function sendTelegramMessage({
 }) {
   const url = getTelegramApiUrl('sendMessage');
   if (!url) {
-    console.warn('Telegram bot token is missing. Skipping Telegram notification.');
+    console.warn('[Telegram] TELEGRAM_BOT_TOKEN is missing or invalid. Skipping notification.');
+    return;
+  }
+
+  if (!chatIds || chatIds.length === 0) {
+    console.warn('[Telegram] TELEGRAM_CHAT_ID is missing or empty. Skipping notification.');
     return;
   }
 
@@ -151,11 +161,13 @@ async function sendTelegramMessage({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error(`Error sending Telegram notification to ${chatId}:`, errorData);
+        const errorText = await response.text();
+        console.error(`[Telegram Error] HTTP ${response.status} sending message to chatId ${chatId}:`, errorText);
+      } else {
+        console.log(`[Telegram Success] Message delivered to chatId ${chatId}`);
       }
     } catch (error: any) {
-      console.error(`Error sending Telegram notification to ${chatId}:`, error.message);
+      console.error(`[Telegram Network Error] Failed sending message to chatId ${chatId}:`, error?.message || error);
     }
   }
 }

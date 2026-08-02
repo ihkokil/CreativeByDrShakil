@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const course = courseRes.data as any;
     const user = userRes.data as any;
 
-    // Send verification email to admin
+    // Send verification email & Telegram notification to admin
     if (course && user) {
       try {
         const adminEmail = process.env.ADMIN_EMAIL || process.env.PAYMENT_NOTIFICATION_EMAIL;
@@ -100,6 +100,20 @@ export async function POST(request: NextRequest) {
         }
       } catch (emailErr) {
         console.error('[payments/submit] Email notification failed:', emailErr);
+      }
+
+      try {
+        const { sendTelegramVerification } = await import('@/lib/telegram');
+        await sendTelegramVerification({
+          orderId,
+          studentName: user.fullName || 'Unknown',
+          courseTitle: course.title || 'Unknown',
+          amount: order.totalAmount || order.amount || 0,
+          transactionId: transactionId.trim(),
+          phoneNumber: phoneNumber.trim(),
+        });
+      } catch (tgErr) {
+        console.error('[payments/submit] Telegram notification failed:', tgErr);
       }
     }
 

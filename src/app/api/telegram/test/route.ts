@@ -11,8 +11,11 @@ export async function POST(request: NextRequest) {
       if (!adminCheck.ok) return adminCheck.response;
     }
 
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
+    const rawBotToken = process.env.TELEGRAM_BOT_TOKEN;
+    const rawChatId = process.env.TELEGRAM_CHAT_ID;
+
+    const botToken = rawBotToken ? rawBotToken.replace(/^['"]|['"]$/g, '').replace(/['"]/g, '').trim() : '';
+    const chatId = rawChatId ? rawChatId.replace(/^['"]|['"]$/g, '').replace(/['"]/g, '').trim() : '';
 
     if (!botToken || !chatId) {
       return NextResponse.json(

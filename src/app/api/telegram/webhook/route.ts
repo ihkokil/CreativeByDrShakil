@@ -4,7 +4,9 @@ import { decompressUuid, compressUuid } from '@/lib/telegram';
 import { ensureCourseEnrollment, ensureCustomBatch } from '@/lib/enrollment';
 
 function getTelegramToken() {
-  return process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+  const raw = process.env.TELEGRAM_BOT_TOKEN;
+  if (!raw) return '';
+  return raw.replace(/^['"]|['"]$/g, '').replace(/['"]/g, '').trim();
 }
 
 function escapeHtml(value: string) {
@@ -40,10 +42,13 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
 
 async function sendTelegramReply(chatId: string | number, text: string, replyMarkup?: any) {
   const token = getTelegramToken();
-  if (!token) return;
+  if (!token) {
+    console.warn('[Telegram Webhook] TELEGRAM_BOT_TOKEN missing, cannot send reply');
+    return;
+  }
 
   try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -53,6 +58,10 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
         reply_markup: replyMarkup,
       }),
     });
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('[Telegram Webhook] sendMessage failed:', res.status, errBody);
+    }
   } catch (err) {
     console.error('[Telegram Webhook] sendMessage error:', err);
   }
@@ -223,7 +232,7 @@ export async function POST(request: NextRequest) {
       await answerCallbackQuery(callbackQueryId, 'Select a course');
       await sendTelegramReply(
         chatId,
-        `<b>Enroll ${user.fullName}</b>\n\nSelect a course to enroll this student in:`,
+        `<b>Enroll ${escapeHtml(user.fullName)}</b>\n\nSelect a course to enroll this student in:`,
         { inline_keyboard: keyboard }
       );
 
@@ -422,12 +431,12 @@ export async function POST(request: NextRequest) {
         await answerCallbackQuery(callbackQueryId, isExisting ? '✅ Availability Updated!' : '✅ Enrolled!');
         await sendTelegramReply(
           chatId,
-          `${isExisting ? '✅ <b>Module Availability Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${user.fullName}\n📚 <b>Course:</b> ${course.title}${batchId ? '\n🗓 <b>Batch Updated</b>' : ''}\n⚙️ <b>Mode:</b> ${avail}`
+          `${isExisting ? '✅ <b>Module Availability Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${escapeHtml(user.fullName)}\n📚 <b>Course:</b> ${escapeHtml(course.title)}${batchId ? '\n🗓 <b>Batch Updated</b>' : ''}\n⚙️ <b>Mode:</b> ${escapeHtml(avail)}`
         );
       } catch (enrollErr: any) {
         console.error('[Telegram Webhook] Enrollment error:', enrollErr);
         await answerCallbackQuery(callbackQueryId, 'Operation failed.');
-        await sendTelegramReply(chatId, `❌ Failed to update ${user.fullName}: ${enrollErr.message}`);
+        await sendTelegramReply(chatId, `❌ Failed to update ${escapeHtml(user.fullName)}: ${escapeHtml(enrollErr.message)}`);
       }
 
       return NextResponse.json({ ok: true });
@@ -461,7 +470,7 @@ export async function POST(request: NextRequest) {
 
       if (courseIds.length === 0) {
         await answerCallbackQuery(callbackQueryId, 'No enrolled courses.');
-        await sendTelegramReply(chatId, `⚠️ <b>${user.fullName}</b> has no enrolled courses.`);
+        await sendTelegramReply(chatId, `⚠️ <b>${escapeHtml(user.fullName)}</b> has no enrolled courses.`);
         return NextResponse.json({ ok: true });
       }
 
@@ -478,7 +487,7 @@ export async function POST(request: NextRequest) {
       await answerCallbackQuery(callbackQueryId, 'Select a course');
       await sendTelegramReply(
         chatId,
-        `<b>Module Availability for ${user.fullName}</b>\n\nSelect a course to manage:`,
+        `<b>Module Availability for ${escapeHtml(user.fullName)}</b>\n\nSelect a course to manage:`,
         { inline_keyboard: keyboard }
       );
 

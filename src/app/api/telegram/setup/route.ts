@@ -11,7 +11,8 @@ export async function POST(request: NextRequest) {
   const adminCheck = await requireAdmin(request);
   if (!adminCheck.ok) return adminCheck.response;
 
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const rawToken = process.env.TELEGRAM_BOT_TOKEN;
+  const botToken = rawToken ? rawToken.replace(/^['"]|['"]$/g, '').replace(/['"]/g, '').trim() : '';
   if (!botToken) {
     return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN is not set in .env.local' }, { status: 500 });
   }
