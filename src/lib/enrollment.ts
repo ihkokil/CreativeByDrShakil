@@ -76,13 +76,12 @@ export async function ensureCustomBatch(supabase: any, courseId: string) {
   if (existing) return existing;
 
   const nowStr = new Date().toISOString();
-  const futureEnd = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString();
   const newBatch = {
     id: crypto.randomUUID(),
     name: 'Custom Batch',
     courseId,
-    startDate: nowStr,
-    endDate: futureEnd,
+    startDate: null,
+    endDate: null,
     createdAt: nowStr,
     updatedAt: nowStr,
   };
@@ -90,3 +89,36 @@ export async function ensureCustomBatch(supabase: any, courseId: string) {
   await supabase.from('Batch').insert(newBatch as any);
   return newBatch;
 }
+
+export async function ensureInstantBatch(supabase: any, courseId: string) {
+  const { data: existing } = await supabase
+    .from('Batch')
+    .select('id, name, startDate, endDate')
+    .eq('courseId', courseId)
+    .ilike('name', 'Instant Batch')
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const nowStr = new Date().toISOString();
+  const newBatch = {
+    id: crypto.randomUUID(),
+    name: 'Instant Batch',
+    courseId,
+    startDate: null,
+    endDate: null,
+    createdAt: nowStr,
+    updatedAt: nowStr,
+  };
+
+  await supabase.from('Batch').insert(newBatch as any);
+  return newBatch;
+}
+
+export async function ensureDefaultBatches(supabase: any, courseId: string) {
+  const customBatch = await ensureCustomBatch(supabase, courseId);
+  const instantBatch = await ensureInstantBatch(supabase, courseId);
+  return { customBatch, instantBatch };
+}
+

@@ -371,8 +371,8 @@ model Batch {
   id              String      @id @default(cuid())
   name            String
   courseId        String
-  startDate       DateTime
-  endDate         DateTime
+  startDate       DateTime?
+  endDate         DateTime?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   

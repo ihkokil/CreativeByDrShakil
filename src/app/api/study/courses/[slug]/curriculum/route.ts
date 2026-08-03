@@ -44,6 +44,8 @@ export async function GET(
 
     // Get the student's enrollment
     let enrolledAt: string | null = null;
+    let studentBatch: any = null;
+
     if (!isAdmin) {
       const { data: order }: { data: any } = await supabase
         .from('Order')
@@ -64,24 +66,20 @@ export async function GET(
         .limit(1)
         .maybeSingle();
 
-      if (user?.batchId) {
+      const targetBatchId = order.batchId || user?.batchId;
+      if (targetBatchId) {
         const { data: batch }: { data: any } = await supabase
           .from('Batch')
-          .select('enrollmentDate, startDate')
-          .eq('id', user.batchId)
+          .select('id, name, startDate')
+          .eq('id', targetBatchId)
           .limit(1)
           .maybeSingle();
-        if (batch?.enrollmentDate) {
-          enrolledAt = batch.enrollmentDate;
-        } else if (batch?.startDate) {
-          enrolledAt = batch.startDate;
-        }
-      } 
-      
-      if (!enrolledAt && user?.enrollmentDate) {
-        enrolledAt = user.enrollmentDate;
+        studentBatch = batch;
       }
       
+      if (user?.enrollmentDate) {
+        enrolledAt = user.enrollmentDate;
+      }
       if (!enrolledAt) {
         enrolledAt = order.enrolledAt || order.updatedAt;
       }
@@ -94,8 +92,23 @@ export async function GET(
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
 
     // Compute release dates
-    const courseAnchor = course.releaseStartAt || course.courseStartDate || null;
-    const releaseStart = isAdmin ? courseAnchor : (enrolledAt || courseAnchor);
+    let effectiveReleaseMode = course.releaseMode || 'custom_batch';
+    let releaseStart = isAdmin 
+      ? (course.releaseStartAt || course.courseStartDate || null)
+      : (enrolledAt || course.releaseStartAt || course.courseStartDate || new Date().toISOString());
+
+    if (!isAdmin && studentBatch) {
+      const bName = (studentBatch.name || '').toLowerCase();
+      if (bName.includes('instant')) {
+        effectiveReleaseMode = 'instant';
+      } else if (bName.includes('custom')) {
+        effectiveReleaseMode = 'custom_batch';
+        releaseStart = enrolledAt || new Date().toISOString();
+      } else if (studentBatch.startDate) {
+        effectiveReleaseMode = course.releaseMode || 'circular';
+        releaseStart = studentBatch.startDate;
+      }
+    }
 
     let releaseDaysOfWeek: number[] | null = null;
     if (course.releaseDaysOfWeek) {
@@ -111,7 +124,7 @@ export async function GET(
     }
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: course.releaseMode,
+      releaseMode: effectiveReleaseMode,
       releaseStartAt: releaseStart,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,

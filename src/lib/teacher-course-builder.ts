@@ -410,16 +410,77 @@ const getPreviousTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
   ));
 };
 
+const getNextTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
+  const safeDate = (!date || Number.isNaN(date.getTime())) ? new Date() : date;
+  let safeTarget = 5;
+  if (typeof targetDay === 'number' && !Number.isNaN(targetDay)) {
+    safeTarget = targetDay;
+  } else if (typeof targetDay === 'string') {
+    const parsed = parseInt(targetDay, 10);
+    if (!Number.isNaN(parsed)) safeTarget = parsed;
+  }
+
+  const dhaka = new Date(safeDate.getTime() + 6 * 60 * 60 * 1000);
+  const day = dhaka.getUTCDay(); 
+  const diff = (safeTarget - day + 7) % 7;
+  dhaka.setUTCDate(dhaka.getUTCDate() + (diff === 0 ? 7 : diff));
+  return new Date(Date.UTC(
+    dhaka.getUTCFullYear(),
+    dhaka.getUTCMonth(),
+    dhaka.getUTCDate(),
+    12, // noon Dhaka time
+    0,
+    0,
+    0
+  ));
+};
+
 export function computeReleaseGroupDates(
   groups: ReleaseGroupSummary[],
   config: CourseScheduleConfig
 ): Record<string, string> {
   const dates: Record<string, string> = {};
-  const mode = config.releaseMode || 'circular';
+  const mode = (config.releaseMode as string) || 'circular';
   const startDate = normalizeDate(config.releaseStartAt) || new Date();
   const overrideDates = config.releaseGroupDates || {};
 
   if (mode === 'instant') {
+    return dates;
+  }
+
+  if (mode === 'custom_batch') {
+    let targetDay = 5; // Friday default
+    let selectedDays: any = config.releaseDaysOfWeek;
+    if (typeof selectedDays === 'string') {
+      try {
+        selectedDays = JSON.parse(selectedDays);
+      } catch {
+        const parsedNum = parseInt(selectedDays, 10);
+        if (!Number.isNaN(parsedNum)) selectedDays = [parsedNum];
+      }
+    }
+    if (Array.isArray(selectedDays) && selectedDays.length > 0) {
+      const parsedNum = parseInt(selectedDays[0], 10);
+      if (!Number.isNaN(parsedNum)) {
+        targetDay = parsedNum;
+      }
+    }
+
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const enrollDate = startDate;
+    const firstTargetDay = getNextTargetDayDhaka(enrollDate, targetDay);
+
+    groups.forEach((group, i) => {
+      if (i === 0) {
+        // Module #1 available on student's enrollment date
+        dates[group.id] = enrollDate.toISOString();
+      } else {
+        // Subsequent modules unlock every 7 days starting on target day of week
+        const unlockDate = new Date(firstTargetDay.getTime() + (i - 1) * ONE_WEEK_MS);
+        dates[group.id] = unlockDate.toISOString();
+      }
+    });
+
     return dates;
   }
 

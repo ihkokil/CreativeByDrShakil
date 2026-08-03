@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { ensureCustomBatch } from '@/lib/enrollment';
+import { ensureDefaultBatches } from '@/lib/enrollment';
 
 // GET batches for a specific course
 
@@ -27,15 +27,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
-    // Ensure Custom Batch exists for this course
-    await ensureCustomBatch(supabase, courseId);
+    // Ensure Custom Batch & Instant Batch exist for this course
+    await ensureDefaultBatches(supabase, courseId);
 
     // Fetch batches and their enrollments (Orders)
     const { data: batches, error: batchError } = await (supabase as any)
       .from('Batch')
       .select('*, orders:Order(id)')
       .eq('courseId', courseId)
-      .order('startDate', { ascending: false });
+      .order('createdAt', { ascending: true });
       
     if (batchError) throw batchError;
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const isLinear = Boolean(course.releaseMode && course.releaseMode !== 'circular');
     if (isLinear) {
       return NextResponse.json(
-        { error: 'Linear courses only support the Custom Batch. Creating new batches is disabled for linear courses.' },
+        { error: 'Linear courses only support Custom Batch and Instant Batch. Creating new batches is disabled for linear courses.' },
         { status: 400 }
       );
     }
