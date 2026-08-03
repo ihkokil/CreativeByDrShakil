@@ -53,10 +53,8 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
     const { user } = useAuth();
 
     useEffect(() => {
-        if (userRole === 'admin') {
+        if (userRole === 'admin' || userRole === 'teacher') {
             setUserEnrolled(true);
-            // Even if admin is auto-enrolled, we still might want to check if they've 
-            // started the course (marked any lesson complete) for the button label.
         }
     }, [userRole]);
 

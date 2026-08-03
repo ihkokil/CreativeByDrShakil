@@ -39,8 +39,8 @@ export async function GET(
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    // For admin, show everything without restrictions
-    const isAdmin = payload.role === 'admin';
+    // For admin and teachers, show everything without restrictions
+    const isAdmin = payload.role === 'admin' || payload.role === 'teacher';
 
     // Get the student's enrollment
     let enrolledAt: string | null = null;

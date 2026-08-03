@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found.' }, { status: 404 });
     }
 
-    const isAdmin = (user as any).role === 'admin';
+    const isAdmin = (user as any).role === 'admin' || (user as any).role === 'teacher';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
 
     const { data: rawOrders = [] } = await scopedToUser(
