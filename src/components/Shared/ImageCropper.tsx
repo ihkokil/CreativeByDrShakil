@@ -21,7 +21,10 @@ const createImage = (url: string): Promise<HTMLImageElement> =>
         image.src = url;
     });
 
+import { useModal } from "@/hooks/useModal";
+
 export default function ImageCropper({ imageSrc, onClose, onCropComplete }: ImageCropperProps) {
+    useModal(true, onClose);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ width: number; height: number; x: number; y: number } | null>(null);

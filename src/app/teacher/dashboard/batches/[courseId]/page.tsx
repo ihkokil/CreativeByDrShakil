@@ -24,6 +24,7 @@ export default function CourseBatchesPage() {
   
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courseTitle, setCourseTitle] = useState("");
+  const [isLinear, setIsLinear] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -52,6 +53,7 @@ export default function CourseBatchesPage() {
       
       setBatches(data.batches || []);
       setCourseTitle(data.course?.title || "Course Batches");
+      setIsLinear(Boolean(data.isLinear));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -61,6 +63,10 @@ export default function CourseBatchesPage() {
 
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLinear) {
+      alert("Linear courses only support the Custom Batch. Creating new batches is disabled.");
+      return;
+    }
     setIsSubmitting(true);
     
     try {
@@ -94,7 +100,9 @@ export default function CourseBatchesPage() {
     .sort((a, b) => {
       if (sortBy === "students") return b.studentCount - a.studentCount;
       if (sortBy === "name") return a.name.localeCompare(b.name);
-      return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+      const timeA = a.startDate ? new Date(a.startDate).getTime() : 0;
+      const timeB = b.startDate ? new Date(b.startDate).getTime() : 0;
+      return timeB - timeA;
     });
 
   return (
@@ -105,7 +113,9 @@ export default function CourseBatchesPage() {
             <ArrowLeft size={16} /> Back to Courses
           </Link>
           <h2 className={styles.sectionTitle}>{courseTitle} - Batches</h2>
-          <p className={styles.subtitle}>Manage batches for this course</p>
+          <p className={styles.subtitle}>
+            Manage batches for this course {isLinear && <span style={{ color: 'var(--accent)', fontWeight: 600 }}>(Linear Course: Custom & Instant Batches Only)</span>}
+          </p>
         </div>
         
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -139,12 +149,18 @@ export default function CourseBatchesPage() {
              </button>
           </div>
 
-          <button 
-            className={styles.primaryBtn}
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus size={18} /> New Batch
-          </button>
+          {!isLinear ? (
+            <button 
+              className={styles.primaryBtn}
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Plus size={18} /> New Batch
+            </button>
+          ) : (
+            <div style={{ fontSize: '0.85rem', padding: '8px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid var(--glass-border)', color: 'var(--text-muted)' }}>
+              🔒 Linear Course (Custom & Instant Batches only)
+            </div>
+          )}
         </div>
       </div>
 
@@ -162,12 +178,14 @@ export default function CourseBatchesPage() {
                   <div style={viewMode === "list" ? { display: 'flex', alignItems: 'center', gap: '12px' } : undefined}>
                     <h3 style={viewMode === "list" ? { fontSize: '1.1rem', margin: 0 } : undefined}>{batch.name}</h3>
                     {viewMode === "list" && (
-                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ends: {formatDateGMT6(batch.endDate)}</span>
+                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {batch.endDate ? `Ends: ${formatDateGMT6(batch.endDate)}` : 'Ongoing'}
+                       </span>
                     )}
                   </div>
                   {viewMode === "grid" && (
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      Ends: {formatDateGMT6(batch.endDate)}
+                      {batch.endDate ? `Ends: ${formatDateGMT6(batch.endDate)}` : 'Ongoing'}
                     </div>
                   )}
                 </div>
@@ -177,7 +195,9 @@ export default function CourseBatchesPage() {
                 <div className={styles.statBox} style={viewMode === "list" ? { border: 'none', background: 'transparent', padding: 0, display: 'flex', alignItems: 'center', gap: '12px' } : undefined}>
                   <Calendar size={viewMode === "list" ? 16 : 18} className="text-primary" />
                   <div className={styles.statInfo} style={viewMode === "list" ? { display: 'flex', alignItems: 'baseline', gap: '8px' } : undefined}>
-                    <span className={styles.statValue} style={viewMode === "list" ? { fontSize: '1.1rem', margin: 0 } : undefined}>{formatDateGMT6(batch.startDate)}</span>
+                    <span className={styles.statValue} style={viewMode === "list" ? { fontSize: '1.1rem', margin: 0 } : undefined}>
+                      {batch.startDate ? formatDateGMT6(batch.startDate) : 'No start date'}
+                    </span>
                     <span className={styles.statLabel} style={viewMode === "list" ? { fontSize: '0.85rem', margin: 0 } : undefined}>Starts</span>
                   </div>
                 </div>
@@ -192,7 +212,7 @@ export default function CourseBatchesPage() {
 
               {viewMode === "grid" && (
                   <div style={{ padding: '0 1rem 1rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Ends: {formatDateGMT6(batch.endDate)}
+                    {batch.endDate ? `Ends: ${formatDateGMT6(batch.endDate)}` : 'Ongoing'}
                   </div>
               )}
 

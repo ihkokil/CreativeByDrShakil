@@ -5,6 +5,7 @@ import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useModal } from "@/hooks/useModal";
 
 interface Teacher {
     id: string;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacherTarget, allTeachers }: Props) {
+    useModal(isOpen, onClose);
     const { session } = useAuth();
     const [loading, setLoading] = useState(false);
     const [reassignToId, setReassignToId] = useState("");

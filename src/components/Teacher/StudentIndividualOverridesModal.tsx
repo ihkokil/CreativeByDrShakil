@@ -198,7 +198,13 @@ export default function StudentIndividualOverridesModal({
     };
 
     return (
-        <div className={styles.overlay}>
+        <motion.div 
+            className={styles.overlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+        >
             <motion.div 
                 className={styles.modal} 
                 onClick={e => e.stopPropagation()}
@@ -225,6 +231,6 @@ export default function StudentIndividualOverridesModal({
                     </div>
                 </div>
             </motion.div>
-        </div>
+        </motion.div>
     );
 }

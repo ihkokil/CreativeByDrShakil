@@ -9,6 +9,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import StudentRulesModal from "./StudentRulesModal";
 import StudentIndividualOverridesModal from "./StudentIndividualOverridesModal";
 import EnrollStudentModal from "./EnrollStudentModal";
+import { useModal } from "@/hooks/useModal";
+
 interface CourseStudentsModalProps {
     courseId: string;
     courseTitle: string;
@@ -33,6 +35,7 @@ const initials = (name: string) => {
 };
 
 export default function CourseStudentsModal({ courseId, courseTitle, onClose }: CourseStudentsModalProps) {
+    useModal(true, onClose);
     const [students, setStudents] = useState<StudentSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -91,12 +94,18 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
     }, [searchQuery]);
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
+        <motion.div 
+            className={styles.overlay} 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+        >
             <motion.div 
                 className={styles.modal} 
                 onClick={e => e.stopPropagation()}
                 initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, y: 30, scale: 0.95 }}
             >
                 <div className={styles.header}>
@@ -241,6 +250,6 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                     fetchStudents();
                 }}
             />
-        </div>
+        </motion.div>
     );
 }

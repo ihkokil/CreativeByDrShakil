@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { ensureDefaultBatches } from '@/lib/enrollment';
 
 // GET batches for a specific course
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
   try {
     const payload = await requireTeacherPayload(request);
@@ -14,7 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const supabase = getSupabaseAdmin();
     
     // Verify course access
-    let courseQuery = supabase.from('Course').select('id, title, teacherId').eq('id', courseId).limit(1).maybeSingle();
+    let courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
     const { data: course, error: courseError } = await courseQuery;
     
     if (courseError) throw courseError;
@@ -25,12 +27,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
+    // Ensure Custom Batch & Instant Batch exist for this course
+    await ensureDefaultBatches(supabase, courseId);
+
     // Fetch batches and their enrollments (Orders)
     const { data: batches, error: batchError } = await (supabase as any)
       .from('Batch')
       .select('*, orders:Order(id)')
       .eq('courseId', courseId)
-      .order('startDate', { ascending: false });
+      .order('createdAt', { ascending: true });
       
     if (batchError) throw batchError;
 
@@ -41,7 +46,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       orders: undefined, // remove full orders array from response
     }));
 
-    return NextResponse.json({ batches: formattedBatches, course });
+    const isLinear = Boolean(course.releaseMode && course.releaseMode !== 'circular');
+
+    return NextResponse.json({ batches: formattedBatches, course, isLinear });
   } catch (error: any) {
     console.error('Error fetching batches:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
@@ -67,7 +74,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const supabase = getSupabaseAdmin();
     
     // Verify course access
-    let courseQuery = supabase.from('Course').select('id, title, teacherId').eq('id', courseId).limit(1).maybeSingle();
+    let courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
     const { data: course, error: courseError } = await courseQuery;
     
     if (courseError) throw courseError;
@@ -76,6 +83,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     if (payload.role !== 'admin' && course.teacherId !== payload.sub) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
+
+    const isLinear = Boolean(course.releaseMode && course.releaseMode !== 'circular');
+    if (isLinear) {
+      return NextResponse.json(
+        { error: 'Linear courses only support Custom Batch and Instant Batch. Creating new batches is disabled for linear courses.' },
+        { status: 400 }
+      );
     }
 
     // Calculate end date (1 year from start date)
@@ -106,3 +121,4 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }
+

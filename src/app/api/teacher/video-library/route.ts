@@ -33,13 +33,74 @@ export async function GET(request: NextRequest) {
 
         const supabase = getSupabaseAdmin();
         
-        const { data: nodes = [], error } = await supabase
+        let { data: nodes = [], error } = await supabase
             .from('VideoLibraryNode')
             .select('id, title, type, url, duration, parentId, attachments, sortOrder')
             .order('sortOrder', { ascending: true })
             .order('createdAt', { ascending: true });
 
         if (error) throw error;
+
+        // Auto-repair / Migration logic:
+        // 1. Ensure every root course folder has an "All Resources" folder at sortOrder: -1
+        // 2. Wrap any direct non-folder nodes in root course folders into wrapper folders
+        let databaseModified = false;
+        const allNodes = nodes || [];
+        const rootCourseNodes = allNodes.filter((n: any) => n.parentId === null && n.type === 'folder');
+
+        for (const rootNode of rootCourseNodes) {
+            // 1. Check for "All Resources" folder
+            const hasAllResources = allNodes.some(
+                (n: any) => n.parentId === rootNode.id && String(n.title).trim().toLowerCase() === 'all resources'
+            );
+            if (!hasAllResources) {
+                const allResId = crypto.randomUUID();
+                const nowStr = new Date().toISOString();
+                await supabase.from('VideoLibraryNode').insert({
+                    id: allResId,
+                    title: 'All Resources',
+                    type: 'folder',
+                    parentId: rootNode.id,
+                    sortOrder: -1,
+                    createdAt: nowStr,
+                    updatedAt: nowStr,
+                } as any);
+                databaseModified = true;
+            }
+
+            // 2. Check for non-folder direct children under root course folder
+            const directNonFolderChildren = allNodes.filter(
+                (n: any) => n.parentId === rootNode.id && n.type !== 'folder'
+            );
+            for (const child of directNonFolderChildren) {
+                const wrapperId = crypto.randomUUID();
+                const nowStr = new Date().toISOString();
+                // Create wrapper folder
+                await supabase.from('VideoLibraryNode').insert({
+                    id: wrapperId,
+                    title: child.title,
+                    type: 'folder',
+                    parentId: rootNode.id,
+                    sortOrder: child.sortOrder,
+                    createdAt: nowStr,
+                    updatedAt: nowStr,
+                } as any);
+                // Move child inside wrapper folder
+                await supabase.from('VideoLibraryNode').update({
+                    parentId: wrapperId,
+                } as any).eq('id', child.id);
+                databaseModified = true;
+            }
+        }
+
+        if (databaseModified) {
+            const { data: updatedNodes } = await supabase
+                .from('VideoLibraryNode')
+                .select('id, title, type, url, duration, parentId, attachments, sortOrder')
+                .order('sortOrder', { ascending: true })
+                .order('createdAt', { ascending: true });
+            nodes = updatedNodes || [];
+        }
 
         return NextResponse.json({ nodes: nodes || [] });
     } catch (error: any) {
@@ -58,7 +119,7 @@ export async function POST(request: NextRequest) {
         const type = String(body?.type || 'folder').trim();
         const url = body?.url ? String(body.url).trim() : null;
         const duration = body?.duration ? String(body.duration).trim() : null;
-        const parentId = body?.parentId || null;
+        let parentId = body?.parentId || null;
         const attachments = Array.isArray(body?.attachments) ? body.attachments : null;
 
         if (!title) {
@@ -71,10 +132,11 @@ export async function POST(request: NextRequest) {
 
         const supabase = getSupabaseAdmin();
 
+        let isParentRootCourseFolder = false;
         if (parentId) {
             const { data: parent } = await supabase
               .from('VideoLibraryNode')
-              .select('id')
+              .select('id, parentId')
               .eq('id', parentId)
               .limit(1)
               .maybeSingle();
@@ -82,6 +144,32 @@ export async function POST(request: NextRequest) {
             if (!parent) {
                 return NextResponse.json({ error: 'Parent node not found.' }, { status: 404 });
             }
+            if (parent.parentId === null) {
+                isParentRootCourseFolder = true;
+            }
+        }
+
+        // If trying to add a video/document directly in a root course folder, auto-create wrapper folder
+        if (isParentRootCourseFolder && type !== 'folder') {
+            let queryFolder = supabase.from('VideoLibraryNode').select('sortOrder').eq('parentId', parentId).order('sortOrder', { ascending: false }).limit(1);
+            const { data: folderOrderRes } = await queryFolder.maybeSingle();
+            const wrapperOrder = ((folderOrderRes as any)?.sortOrder ?? -1) + 1;
+            
+            const wrapperFolderId = crypto.randomUUID();
+            const nowStr = new Date().toISOString();
+
+            await supabase.from('VideoLibraryNode').insert({
+                id: wrapperFolderId,
+                title,
+                type: 'folder',
+                parentId,
+                sortOrder: wrapperOrder,
+                createdAt: nowStr,
+                updatedAt: nowStr,
+            } as any);
+
+            // Now target parent becomes the newly created wrapper folder
+            parentId = wrapperFolderId;
         }
 
         let query = supabase.from('VideoLibraryNode').select('sortOrder').order('sortOrder', { ascending: false }).limit(1);
@@ -110,8 +198,8 @@ export async function POST(request: NextRequest) {
         };
 
         const { error: insertError } = await supabase.from('VideoLibraryNode')
-// @ts-ignore
-.insert(insertValues as any);
+            // @ts-ignore
+            .insert(insertValues as any);
         if (insertError) throw insertError;
 
         const node = {

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import styles from './AdminModal.module.css';
 import { X } from 'lucide-react';
 
+import { useModal } from '@/hooks/useModal';
+
 interface SessionSettingsModalProps {
   userId: string;
   onClose: () => void;
@@ -15,6 +17,7 @@ export default function SessionSettingsModal({
   onClose,
   onSave,
 }: SessionSettingsModalProps) {
+  useModal(true, onClose);
   const [autoLockEnabled, setAutoLockEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { decompressUuid, compressUuid } from '@/lib/telegram';
-import { ensureCourseEnrollment } from '@/lib/enrollment';
+import { ensureCourseEnrollment, ensureCustomBatch, ensureDefaultBatches } from '@/lib/enrollment';
 
 function getTelegramToken() {
-  return process.env.TELEGRAM_BOT_TOKEN?.replace(/"/g, '');
+  const raw = process.env.TELEGRAM_BOT_TOKEN;
+  if (!raw) return '';
+  return raw.replace(/^['"]|['"]$/g, '').replace(/['"]/g, '').trim();
 }
 
 function escapeHtml(value: string) {
@@ -40,10 +42,13 @@ async function answerCallbackQuery(callbackQueryId: string, text?: string) {
 
 async function sendTelegramReply(chatId: string | number, text: string, replyMarkup?: any) {
   const token = getTelegramToken();
-  if (!token) return;
+  if (!token) {
+    console.warn('[Telegram Webhook] TELEGRAM_BOT_TOKEN missing, cannot send reply');
+    return;
+  }
 
   try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -53,6 +58,10 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
         reply_markup: replyMarkup,
       }),
     });
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('[Telegram Webhook] sendMessage failed:', res.status, errBody);
+    }
   } catch (err) {
     console.error('[Telegram Webhook] sendMessage error:', err);
   }
@@ -137,21 +146,25 @@ export async function POST(request: NextRequest) {
             }
           }
         } else {
-          // Acknowledge other commands/messages quietly
-          // Check for ForceReply for custom dates
+          // Check for ForceReply context for custom dates
           if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('[Context: ed|')) {
             const contextMatch = message.reply_to_message.text.match(/\[Context: (ed\|[^\]]+)\]/);
             if (contextMatch) {
               const dateStr = text.trim();
-              const dateObj = new Date(dateStr.split('-').reverse().join('-')); // assuming DD-MM-YYYY
+              const dateParts = dateStr.split('-');
+              let dateObj: Date;
+              if (dateParts.length === 3) {
+                dateObj = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`); // DD-MM-YYYY -> YYYY-MM-DD
+              } else {
+                dateObj = new Date(dateStr);
+              }
               if (isNaN(dateObj.getTime())) {
                 await sendTelegramReply(chatId, `❌ Invalid date format. Please use DD-MM-YYYY.`);
                 return NextResponse.json({ ok: true });
               }
-              // Send an inline button to confirm
               const cbData = contextMatch[1].replace('ed', 'eo') + '|' + dateObj.toISOString().split('T')[0];
-              await sendTelegramReply(chatId, `Confirm enrollment on ${dateStr}?`, {
-                inline_keyboard: [[{ text: '✅ Confirm', callback_data: cbData }]]
+              await sendTelegramReply(chatId, `Confirm enrollment date <b>${dateStr}</b>?`, {
+                inline_keyboard: [[{ text: '✅ Confirm Date', callback_data: cbData }]]
               });
               return NextResponse.json({ ok: true });
             }
@@ -162,12 +175,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const callbackData = callbackQuery.data as string;
+    let callbackData = callbackQuery.data as string;
     const chatId = callbackQuery.message?.chat?.id;
     const callbackQueryId = callbackQuery.id;
 
     if (!callbackData || !chatId) {
       return NextResponse.json({ ok: true });
+    }
+
+    // Support legacy callback query patterns from older registration notifications
+    if (callbackData.startsWith('enroll_course_') || callbackData.startsWith('enroll|') || callbackData.startsWith('reg_enroll|')) {
+      const parts = callbackData.includes('|') ? callbackData.split('|') : callbackData.split('_');
+      const rawId = parts[parts.length - 1];
+      callbackData = `en|${rawId.length === 36 ? compressUuid(rawId) : rawId}`;
+    } else if (callbackData.startsWith('availability|') || callbackData.startsWith('reg_avail|')) {
+      const parts = callbackData.includes('|') ? callbackData.split('|') : callbackData.split('_');
+      const rawId = parts[parts.length - 1];
+      callbackData = `av|${rawId.length === 36 ? compressUuid(rawId) : rawId}`;
     }
 
     const supabase = getSupabaseAdmin();
@@ -200,7 +224,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // Build course selection keyboard
       const keyboard = (courses || []).map((c: any) => ([{
         text: `📚 ${c.title}`,
         callback_data: `ec|${compressedId}|${compressUuid(c.id)}`,
@@ -209,7 +232,7 @@ export async function POST(request: NextRequest) {
       await answerCallbackQuery(callbackQueryId, 'Select a course');
       await sendTelegramReply(
         chatId,
-        `<b>Enroll ${user.fullName}</b>\n\nSelect a course to enroll this student in:`,
+        `<b>Enroll ${escapeHtml(user.fullName)}</b>\n\nSelect a course to enroll this student in:`,
         { inline_keyboard: keyboard }
       );
 
@@ -222,40 +245,76 @@ export async function POST(request: NextRequest) {
       const compressedId = parts[1];
       const courseId = decompressUuid(parts[2]);
 
-      const { data: batches } = await (supabase.from('Batch') as any)
-        .select('id, name')
-        .eq('courseId', courseId)
-        .order('startDate', { ascending: false })
-        .limit(3);
+      const { data: course } = await (supabase.from('Course') as any)
+        .select('id, title, releaseMode')
+        .eq('id', courseId)
+        .limit(1)
+        .maybeSingle();
+
+      const { customBatch, instantBatch } = await ensureDefaultBatches(supabase, courseId);
+      const isCircular = course?.releaseMode === 'circular';
 
       const keyboard: any[] = [];
-      if (batches && batches.length > 0) {
-        batches.forEach((b: any) => {
-           keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eb|${compressedId}|b|${compressUuid(b.id)}` }]);
-        });
+
+      // 1. Instant Batch
+      keyboard.push([{ text: `⚡ Instant Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(instantBatch.id)}|instant` }]);
+
+      // 2. Up to 3 last created custom batches (if circular course)
+      if (isCircular) {
+        const { data: createdBatches } = await (supabase.from('Batch') as any)
+          .select('id, name, createdAt')
+          .eq('courseId', courseId)
+          .not('name', 'ilike', 'Custom Batch')
+          .not('name', 'ilike', 'Instant Batch')
+          .order('createdAt', { ascending: false })
+          .limit(3);
+
+        if (createdBatches && createdBatches.length > 0) {
+          createdBatches.forEach((b: any) => {
+            keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eo|${compressedId}|b|${compressUuid(b.id)}|current_batch` }]);
+          });
+        }
       }
-      keyboard.push([{ text: `🚫 No Batch`, callback_data: `eb|${compressedId}|n|${compressUuid(courseId)}` }]);
+
+      // 3. Custom Batch
+      keyboard.push([{ text: `📦 Custom Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(customBatch.id)}|current_batch` }]);
 
       await answerCallbackQuery(callbackQueryId, 'Select a batch');
       await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "eb|{compressedUserId}|{type}|{id}" — Show Module Availability
+    // Handle "eb|{compressedUserId}|{type}|{id}" — Show Module Availability Options
     if (callbackData.startsWith('eb|')) {
       const parts = callbackData.split('|');
       const compressedId = parts[1];
       const type = parts[2];
-      const id = parts[3]; // Not decompressed here because we use it in next keyboard directly, or wait, we should pass it as compressed or decompress it? If we just pass it to the next step, we can leave it compressed. But for consistency, let's decompress it if we needed to query. We don't query it here. Let's just pass it compressed.
+      const id = parts[3];
+
+      if (type === 'n') {
+        // Custom batch selected -> ask for custom enrollment date
+        await answerCallbackQuery(callbackQueryId);
+        await sendTelegramReply(
+          chatId,
+          `Adding student to 📦 <b>Custom Batch</b>.\n\nPlease reply to this message with the custom enrollment date in <b>DD-MM-YYYY</b> format.\n\n<code>[Context: ed|${compressedId}|n|${id}]</code>`,
+          {
+            force_reply: true,
+            input_field_placeholder: 'DD-MM-YYYY',
+          }
+        );
+        return NextResponse.json({ ok: true });
+      }
 
       const keyboard = [
-        [{ text: `✅ All Available (Start Today)`, callback_data: `eo|${compressedId}|${type}|${id}|all` }],
-        [{ text: `📅 Custom Enrollment Date`, callback_data: `ed|${compressedId}|${type}|${id}` }],
-        // For change batch, we need the courseId. If type is 'b', we need to fetch it or just omit the back button to save bytes.
-        // Actually, they can just type /student again if they want to change batch.
+        [{ text: `🗓 Current Batch (Default)`, callback_data: `eo|${compressedId}|${type}|${id}|current_batch` }],
+        [{ text: `⚡ Instant Unlock`, callback_data: `eo|${compressedId}|${type}|${id}|instant` }],
+        [{ text: `⏳ Fixed Interval`, callback_data: `eo|${compressedId}|${type}|${id}|fixed_interval` }],
+        [{ text: `📦 Groups Per Week`, callback_data: `eo|${compressedId}|${type}|${id}|groups_per_week` }],
+        [{ text: `📅 Day of Week`, callback_data: `eo|${compressedId}|${type}|${id}|day_of_week` }],
+        [{ text: `📆 Custom Enrollment Date`, callback_data: `ed|${compressedId}|${type}|${id}` }],
       ];
 
-      await answerCallbackQuery(callbackQueryId, 'Select availability');
+      await answerCallbackQuery(callbackQueryId, 'Select availability mode');
       await sendTelegramReply(chatId, `How should the modules be available?`, { inline_keyboard: keyboard });
       return NextResponse.json({ ok: true });
     }
@@ -263,25 +322,29 @@ export async function POST(request: NextRequest) {
     // Handle "ed|{compressedUserId}|{type}|{id}" — Force Reply for custom date
     if (callbackData.startsWith('ed|')) {
       await answerCallbackQuery(callbackQueryId);
-      await sendTelegramReply(chatId, `Please reply to this message with the custom enrollment date in DD-MM-YYYY format.\n\n<span style="color:transparent">[Context: ${callbackData}]</span>`, {
-        force_reply: true,
-        input_field_placeholder: 'DD-MM-YYYY'
-      });
+      await sendTelegramReply(
+        chatId,
+        `Please reply to this message with the custom enrollment date in <b>DD-MM-YYYY</b> format.\n\n<code>[Context: ${callbackData}]</code>`,
+        {
+          force_reply: true,
+          input_field_placeholder: 'DD-MM-YYYY',
+        }
+      );
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "eo|{compressedUserId}|{type}|{id}|{dateOrAll}" — Execute enrollment
+    // Handle "eo|{compressedUserId}|{type}|{id}|{modeOrDate}" — Execute enrollment or update
     if (callbackData.startsWith('eo|')) {
       const parts = callbackData.split('|');
       if (parts.length < 5) {
-        await answerCallbackQuery(callbackQueryId, 'Invalid enrollment data.');
+        await answerCallbackQuery(callbackQueryId, 'Invalid payload.');
         return NextResponse.json({ ok: true });
       }
 
       const compressedUserId = parts[1];
       const type = parts[2];
       const targetId = decompressUuid(parts[3]);
-      const avail = parts[4]; // 'all' or 'YYYY-MM-DD'
+      const avail = parts[4];
       const userId = decompressUuid(compressedUserId);
 
       let courseId = type === 'b' ? '' : targetId;
@@ -315,44 +378,82 @@ export async function POST(request: NextRequest) {
         .limit(1)
         .maybeSingle();
 
-      if (existingOrder) {
-        await answerCallbackQuery(callbackQueryId, 'Already enrolled!');
-        await sendTelegramReply(
-          chatId,
-          `⚠️ <b>${user.fullName}</b> is already enrolled in <b>${course.title}</b>.`
-        );
-        return NextResponse.json({ ok: true });
-      }
+      const isExisting = Boolean(existingOrder);
 
       try {
-        await ensureCourseEnrollment(null, userId, courseId, course.title, course.slug, true);
-        
-        // update batchId and/or enrolledAt
-        const updatePayload: any = {};
-        if (type === 'b') updatePayload.batchId = batchId;
-        else if (type === 'n') updatePayload.batchId = null;
-        
-        if (avail !== 'all') updatePayload.enrolledAt = new Date(avail).toISOString();
-        
-        if (Object.keys(updatePayload).length > 0) {
-          await supabase.from('Order').update(updatePayload).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
+        if (!existingOrder) {
+          await ensureCourseEnrollment(null, userId, courseId, course.title, course.slug, true);
         }
 
-        if (avail === 'all') {
-          // unlock all modules if requested? The user asked for "All available etc". Let's assume standard behavior is what they wanted, or if they meant unlock all modules, we'd need to insert into StudentModuleAvailability. But usually 'Start Today' means default schedule. Let's just do standard for now.
-        } else {
-           await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+        // Apply module availability settings
+        if (avail === 'instant' || avail === 'all') {
+          const { data: cData } = await supabase.from('Course').select('curriculumJson').eq('id', courseId).single();
+          let nodes = [];
+          try {
+            nodes = typeof cData?.curriculumJson === 'string' ? JSON.parse(cData.curriculumJson) : (cData?.curriculumJson || []);
+          } catch(e) {}
+          
+          const lessonNodeIds: string[] = [];
+          const extractIds = (list: any[]) => {
+            for (const n of list) {
+              if (n.id) lessonNodeIds.push(n.id);
+              if (n.children) extractIds(n.children);
+            }
+          };
+          if (Array.isArray(nodes)) extractIds(nodes);
+
+          const nowStr = new Date().toISOString();
+          await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+          if (lessonNodeIds.length > 0) {
+            const inserts = lessonNodeIds.map(nodeId => ({
+              id: crypto.randomUUID(),
+              courseId,
+              userId,
+              lessonNodeId: nodeId,
+              availabilityMode: 'available',
+              availableAt: null,
+              createdAt: nowStr,
+              updatedAt: nowStr,
+            }));
+            await (supabase.from('StudentModuleAvailability') as any).insert(inserts as any);
+          }
+        } else if (['current_batch', 'fixed_interval', 'groups_per_week', 'day_of_week'].includes(avail)) {
+          // Clear node-level overrides so scheduled availability applies
+          await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+        } else if (avail.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          // Custom enrollment date
+          const customBatch = await ensureCustomBatch(supabase, courseId);
+
+          await (supabase.from('Order') as any).update({
+            enrolledAt: new Date(avail).toISOString(),
+            batchId: customBatch.id,
+          } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
+
+          await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
         }
 
-        await answerCallbackQuery(callbackQueryId, '✅ Enrolled!');
+        // Update batch assignment if specified
+        if (type === 'b' && batchId) {
+          await (supabase.from('Order') as any).update({ batchId } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
+        } else if (type === 'n') {
+          const customBatch = await ensureCustomBatch(supabase, courseId);
+          await (supabase.from('Order') as any).update({ batchId: customBatch.id } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
+        }
+
+        const { data: batchData } = batchId 
+          ? await (supabase.from('Batch') as any).select('name').eq('id', batchId).maybeSingle()
+          : { data: null };
+        const displayBatchName = batchData?.name || (avail === 'instant' ? 'Instant Batch' : 'Custom Batch');
+
+        await answerCallbackQuery(callbackQueryId, isExisting ? '✅ Enrollment Updated!' : '✅ Enrolled!');
         await sendTelegramReply(
           chatId,
-          `✅ <b>Enrollment Successful</b>\n\n👤 <b>Student:</b> ${user.fullName}\n📚 <b>Course:</b> ${course.title}${batchId ? '\n🗓 <b>Batch Selected</b>' : ''}${avail !== 'all' ? `\n📅 <b>Date:</b> ${avail}` : ''}`
+          `${isExisting ? '✅ <b>Enrollment Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${escapeHtml(user.fullName)}\n📚 <b>Course:</b> ${escapeHtml(course.title)}\n🗓 <b>Batch:</b> ${escapeHtml(displayBatchName)}`
         );
       } catch (enrollErr: any) {
-        console.error('[Telegram Webhook] Enrollment failed:', enrollErr);
-        await answerCallbackQuery(callbackQueryId, 'Enrollment failed.');
-        await sendTelegramReply(chatId, `❌ Failed to enroll ${user.fullName}: ${enrollErr.message}`);
+        console.error('[Telegram Webhook] Enrollment error:', enrollErr);
+        await answerCallbackQuery(callbackQueryId, 'Operation failed.');
+        await sendTelegramReply(chatId, `❌ Failed to update ${escapeHtml(user.fullName)}: ${escapeHtml(enrollErr.message)}`);
       }
 
       return NextResponse.json({ ok: true });
@@ -386,7 +487,7 @@ export async function POST(request: NextRequest) {
 
       if (courseIds.length === 0) {
         await answerCallbackQuery(callbackQueryId, 'No enrolled courses.');
-        await sendTelegramReply(chatId, `⚠️ <b>${user.fullName}</b> has no enrolled courses.`);
+        await sendTelegramReply(chatId, `⚠️ <b>${escapeHtml(user.fullName)}</b> has no enrolled courses.`);
         return NextResponse.json({ ok: true });
       }
 
@@ -403,37 +504,42 @@ export async function POST(request: NextRequest) {
       await answerCallbackQuery(callbackQueryId, 'Select a course');
       await sendTelegramReply(
         chatId,
-        `<b>Module Availability for ${user.fullName}</b>\n\nSelect a course to manage:`,
+        `<b>Module Availability for ${escapeHtml(user.fullName)}</b>\n\nSelect a course to manage:`,
         { inline_keyboard: keyboard }
       );
 
       return NextResponse.json({ ok: true });
     }
 
-    // Handle "avc|{compressedUserId}|{courseId}" — Show actions for enrolled course
+    // Handle "avc|{compressedUserId}|{courseId}" — Show 7 standardized options for enrolled course
     if (callbackData.startsWith('avc|')) {
       const parts = callbackData.split('|');
       const compressedId = parts[1];
       const courseId = decompressUuid(parts[2]);
 
       const keyboard = [
-        [{ text: `🗓 Change Batch`, callback_data: `ec|${compressedId}|${compressUuid(courseId)}` }],
-        [{ text: `📅 Change Enrollment Date`, callback_data: `ed|${compressedId}|c|${compressUuid(courseId)}` }]
+        [{ text: `🗓 Current Batch (Default)`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|current_batch` }],
+        [{ text: `⚡ Instant Unlock`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|instant` }],
+        [{ text: `⏳ Fixed Interval`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|fixed_interval` }],
+        [{ text: `📦 Groups Per Week`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|groups_per_week` }],
+        [{ text: `📅 Day of Week`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|day_of_week` }],
+        [{ text: `🔀 Change Batch`, callback_data: `ec|${compressedId}|${compressUuid(courseId)}` }],
+        [{ text: `📆 Custom Enrollment Date`, callback_data: `ed|${compressedId}|c|${compressUuid(courseId)}` }],
       ];
 
-      await answerCallbackQuery(callbackQueryId, 'Select action');
-      await sendTelegramReply(chatId, `What would you like to modify?`, { inline_keyboard: keyboard });
+      await answerCallbackQuery(callbackQueryId, 'Select availability option');
+      await sendTelegramReply(chatId, `Select Module Availability Option:`, { inline_keyboard: keyboard });
       return NextResponse.json({ ok: true });
     }
 
     // Unknown callback — just acknowledge
-    await answerCallbackQuery(callbackQueryId, 'Unknown action.');
+    await answerCallbackQuery(callbackQueryId, 'Action received.');
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error('[Telegram Webhook Error]', error?.message || error);
     if (globalCallbackQueryId) {
       await answerCallbackQuery(globalCallbackQueryId, 'An error occurred.');
     }
-    return NextResponse.json({ ok: true }); // Always return 200 to Telegram
+    return NextResponse.json({ ok: true });
   }
 }

@@ -9,11 +9,17 @@ export async function ensureCourseEnrollment(
   courseSlug: string | null,
   enrolledByAdmin: boolean = false,
   enrolledAt?: Date,
-  expiresAt?: Date
+  expiresAt?: Date,
+  batchId?: string | null
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
   const dateStr = enrolledAt ? enrolledAt.toISOString() : new Date().toISOString();
   
+  if (!batchId) {
+    const customBatch = await ensureCustomBatch(supabase, courseId);
+    batchId = customBatch.id;
+  }
+
   // Create order for the course
   const { data: existingOrder } = await supabase
     .from('Order')
@@ -26,12 +32,11 @@ export async function ensureCourseEnrollment(
     
   if (!existingOrder) {
     const orderId = nanoid();
-    const { error } = await supabase.from('Order')
-// @ts-ignore
-.insert({
+    const { error } = await supabase.from('Order').insert({
       id: orderId,
       userId,
       courseId,
+      batchId,
       totalAmount: 0,
       status: 'approved',
       enrolledAt: dateStr,
@@ -44,6 +49,13 @@ export async function ensureCourseEnrollment(
       console.error('[ensureCourseEnrollment] Error inserting order:', error);
       throw new Error(`Failed to insert order: ${error.message}`);
     }
+  } else {
+    await (supabase.from('Order') as any).update({
+      batchId,
+      enrolledAt: dateStr,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      updatedAt: new Date().toISOString(),
+    } as any).eq('id', existingOrder.id);
   }
 
   // Handle basics bundle logic if the title is "Basics" or something similar
@@ -51,3 +63,62 @@ export async function ensureCourseEnrollment(
     // Stub or logic for basics, not critical for Drizzle purge unless specified elsewhere
   }
 }
+
+export async function ensureCustomBatch(supabase: any, courseId: string) {
+  const { data: existing } = await supabase
+    .from('Batch')
+    .select('id, name, startDate, endDate')
+    .eq('courseId', courseId)
+    .ilike('name', 'Custom Batch')
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const nowStr = new Date().toISOString();
+  const newBatch = {
+    id: crypto.randomUUID(),
+    name: 'Custom Batch',
+    courseId,
+    startDate: null,
+    endDate: null,
+    createdAt: nowStr,
+    updatedAt: nowStr,
+  };
+
+  await supabase.from('Batch').insert(newBatch as any);
+  return newBatch;
+}
+
+export async function ensureInstantBatch(supabase: any, courseId: string) {
+  const { data: existing } = await supabase
+    .from('Batch')
+    .select('id, name, startDate, endDate')
+    .eq('courseId', courseId)
+    .ilike('name', 'Instant Batch')
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const nowStr = new Date().toISOString();
+  const newBatch = {
+    id: crypto.randomUUID(),
+    name: 'Instant Batch',
+    courseId,
+    startDate: null,
+    endDate: null,
+    createdAt: nowStr,
+    updatedAt: nowStr,
+  };
+
+  await supabase.from('Batch').insert(newBatch as any);
+  return newBatch;
+}
+
+export async function ensureDefaultBatches(supabase: any, courseId: string) {
+  const customBatch = await ensureCustomBatch(supabase, courseId);
+  const instantBatch = await ensureInstantBatch(supabase, courseId);
+  return { customBatch, instantBatch };
+}
+

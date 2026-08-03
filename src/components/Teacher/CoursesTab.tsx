@@ -243,15 +243,8 @@ export default function CoursesTab() {
                         </tr>
                     </thead>
                     <tbody>
-                        <AnimatePresence mode="popLayout">
-                            {filteredCourses.map((course) => (
-                                <motion.tr 
-                                    key={course.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    layout
-                                >
+                        {filteredCourses.map((course) => (
+                            <tr key={course.id}>
                                     <td>
                                         <div className={styles.courseInfo}>
                                             <div className={styles.thumb}>
@@ -340,9 +333,8 @@ export default function CoursesTab() {
                                             </button>
                                         </div>
                                     </td>
-                                </motion.tr>
+                                </tr>
                             ))}
-                        </AnimatePresence>
                     </tbody>
                 </table>
             </div>

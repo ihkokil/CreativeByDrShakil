@@ -194,7 +194,13 @@ export default function EnrollStudentModal({
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className={styles.overlay}>
+                <motion.div 
+                    className={styles.overlay}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={handleClose}
+                >
                     <motion.div
                         className={`${styles.modal} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -238,41 +244,74 @@ export default function EnrollStudentModal({
 
                         <form className={styles.form} onSubmit={handleSubmit}>
                             {!batchId && (
-                                <div className={styles.fieldGroup} style={{ marginBottom: '1rem' }}>
-                                    <label className={styles.fieldLabel}>
-                                        Select Batch (Optional)
-                                    </label>
-                                    <select 
-                                        className={styles.selectInput}
-                                        value={selectedBatchId}
-                                        onChange={(e) => setSelectedBatchId(e.target.value)}
-                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
-                                    >
-                                        <option value="">-- No Batch (Custom Date) --</option>
-                                        {batches.map(b => (
-                                            <option key={b.id} value={b.id}>
-                                                {b.name} (Starts: {new Date(b.startDate).toLocaleDateString()})
-                                            </option>
-                                        ))}
-                                    </select>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '0.5rem' }}>
+                                    <div className={styles.fieldGroup}>
+                                        <label className={styles.fieldLabel}>
+                                            Select Batch (Optional)
+                                        </label>
+                                        <select 
+                                            className={styles.selectInput}
+                                            value={selectedBatchId}
+                                            onChange={(e) => {
+                                                const bId = e.target.value;
+                                                setSelectedBatchId(bId);
+                                                const selBatch = batches.find(b => b.id === bId);
+                                                if (selBatch && !selBatch.name.toLowerCase().includes('custom') && selBatch.startDate) {
+                                                    setCustomDate(new Date(selBatch.startDate).toISOString().split('T')[0]);
+                                                }
+                                            }}
+                                            style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
+                                        >
+                                            {!batches.some(b => b.name.toLowerCase().includes('custom')) && (
+                                                <option value="">📦 Custom Batch (Custom Date)</option>
+                                            )}
+                                            {batches.map(b => (
+                                                <option key={b.id} value={b.id}>
+                                                    {b.name.toLowerCase().includes('custom') ? '📦 Custom Batch (Custom Date)' : `${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {(() => {
+                                        const selBatch = batches.find(b => b.id === selectedBatchId);
+                                        const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('custom');
+                                        const dateVal = isCustom 
+                                            ? customDate 
+                                            : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : customDate);
+
+                                        return (
+                                            <div className={styles.fieldGroup}>
+                                                <label className={styles.fieldLabel}>
+                                                    {isCustom ? 'Enrollment Start Date' : 'Start Date (Set by Batch)'}
+                                                </label>
+                                                <input 
+                                                    type="date"
+                                                    className={styles.selectInput}
+                                                    value={dateVal}
+                                                    disabled={!isCustom}
+                                                    onChange={(e) => setCustomDate(e.target.value)}
+                                                    style={{ 
+                                                        width: '100%', 
+                                                        padding: '10px', 
+                                                        borderRadius: '8px', 
+                                                        border: '1px solid rgba(255,255,255,0.1)', 
+                                                        background: 'rgba(0,0,0,0.2)', 
+                                                        color: 'var(--text-color)', 
+                                                        colorScheme: 'dark',
+                                                        opacity: !isCustom ? 0.6 : 1,
+                                                        cursor: !isCustom ? 'not-allowed' : 'auto'
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             )}
 
-                            {(!batchId && !selectedBatchId) && (
-                                <div className={styles.fieldGroup} style={{ marginBottom: '1rem' }}>
-                                    <label className={styles.fieldLabel}>
-                                        Enrollment Start Date
-                                    </label>
-                                    <input 
-                                        type="date"
-                                        className={styles.selectInput}
-                                        value={customDate}
-                                        onChange={(e) => setCustomDate(e.target.value)}
-                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)', colorScheme: 'dark' }}
-                                    />
-                                    <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '0.5rem' }}>
-                                        End of enrollment will be set to 1 year from this date.
-                                    </div>
+                            {(!batchId && (!selectedBatchId || batches.find(b => b.id === selectedBatchId)?.name.toLowerCase().includes('custom'))) && (
+                                <div style={{ fontSize: '0.8rem', color: '#999', marginBottom: '1rem' }}>
+                                    End of enrollment will be set to 1 year from this date.
                                 </div>
                             )}
 
@@ -402,7 +441,7 @@ export default function EnrollStudentModal({
                             </button>
                         </form>
                     </motion.div>
-                </div>
+                </motion.div>
             )}
         </AnimatePresence>
     );

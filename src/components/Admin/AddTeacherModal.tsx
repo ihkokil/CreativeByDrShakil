@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, User, Send, Building2, Briefcase, GraduationCap, ImagePlus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
+import { useModal } from "@/hooks/useModal";
+
 interface Props {
     isOpen: boolean;
     onClose: () => void;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
+    useModal(isOpen, onClose);
     const { session } = useAuth();
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
