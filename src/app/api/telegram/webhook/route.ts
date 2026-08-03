@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { decompressUuid, compressUuid } from '@/lib/telegram';
-import { ensureCourseEnrollment, ensureCustomBatch } from '@/lib/enrollment';
+import { ensureCourseEnrollment, ensureCustomBatch, ensureDefaultBatches } from '@/lib/enrollment';
 
 function getTelegramToken() {
   const raw = process.env.TELEGRAM_BOT_TOKEN;
@@ -245,27 +245,39 @@ export async function POST(request: NextRequest) {
       const compressedId = parts[1];
       const courseId = decompressUuid(parts[2]);
 
-      const { data: batches } = await (supabase.from('Batch') as any)
-        .select('id, name')
-        .eq('courseId', courseId)
-        .order('startDate', { ascending: false })
-        .limit(5);
+      const { data: course } = await (supabase.from('Course') as any)
+        .select('id, title, releaseMode')
+        .eq('id', courseId)
+        .limit(1)
+        .maybeSingle();
+
+      const { customBatch, instantBatch } = await ensureDefaultBatches(supabase, courseId);
+      const isCircular = course?.releaseMode === 'circular';
 
       const keyboard: any[] = [];
-      let hasCustomBatchInList = false;
-      if (batches && batches.length > 0) {
-        batches.forEach((b: any) => {
-          if (b.name.toLowerCase().includes('custom')) {
-            hasCustomBatchInList = true;
-            keyboard.push([{ text: `📦 ${b.name} (Custom Date)`, callback_data: `ed|${compressedId}|b|${compressUuid(b.id)}` }]);
-          } else {
-            keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eb|${compressedId}|b|${compressUuid(b.id)}` }]);
-          }
-        });
+
+      // 1. Instant Batch
+      keyboard.push([{ text: `⚡ Instant Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(instantBatch.id)}|instant` }]);
+
+      // 2. Up to 3 last created custom batches (if circular course)
+      if (isCircular) {
+        const { data: createdBatches } = await (supabase.from('Batch') as any)
+          .select('id, name, createdAt')
+          .eq('courseId', courseId)
+          .not('name', 'ilike', 'Custom Batch')
+          .not('name', 'ilike', 'Instant Batch')
+          .order('createdAt', { ascending: false })
+          .limit(3);
+
+        if (createdBatches && createdBatches.length > 0) {
+          createdBatches.forEach((b: any) => {
+            keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eo|${compressedId}|b|${compressUuid(b.id)}|current_batch` }]);
+          });
+        }
       }
-      if (!hasCustomBatchInList) {
-        keyboard.push([{ text: `📦 Custom Batch (Custom Date)`, callback_data: `ed|${compressedId}|n|${compressUuid(courseId)}` }]);
-      }
+
+      // 3. Custom Batch
+      keyboard.push([{ text: `📦 Custom Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(customBatch.id)}|current_batch` }]);
 
       await answerCallbackQuery(callbackQueryId, 'Select a batch');
       await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
@@ -428,10 +440,15 @@ export async function POST(request: NextRequest) {
           await (supabase.from('Order') as any).update({ batchId: customBatch.id } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
         }
 
-        await answerCallbackQuery(callbackQueryId, isExisting ? '✅ Availability Updated!' : '✅ Enrolled!');
+        const { data: batchData } = batchId 
+          ? await (supabase.from('Batch') as any).select('name').eq('id', batchId).maybeSingle()
+          : { data: null };
+        const displayBatchName = batchData?.name || (avail === 'instant' ? 'Instant Batch' : 'Custom Batch');
+
+        await answerCallbackQuery(callbackQueryId, isExisting ? '✅ Enrollment Updated!' : '✅ Enrolled!');
         await sendTelegramReply(
           chatId,
-          `${isExisting ? '✅ <b>Module Availability Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${escapeHtml(user.fullName)}\n📚 <b>Course:</b> ${escapeHtml(course.title)}${batchId ? '\n🗓 <b>Batch Updated</b>' : ''}\n⚙️ <b>Mode:</b> ${escapeHtml(avail)}`
+          `${isExisting ? '✅ <b>Enrollment Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${escapeHtml(user.fullName)}\n📚 <b>Course:</b> ${escapeHtml(course.title)}\n🗓 <b>Batch:</b> ${escapeHtml(displayBatchName)}`
         );
       } catch (enrollErr: any) {
         console.error('[Telegram Webhook] Enrollment error:', enrollErr);
