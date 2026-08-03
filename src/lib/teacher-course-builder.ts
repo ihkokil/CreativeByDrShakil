@@ -671,10 +671,13 @@ export function annotateCurriculumAvailability(
   const visit = (list: BuilderCurriculumNode[], trail: BuilderCurriculumNode[]): BuilderNodeWithAvailability[] =>
     list.map((node) => {
       const path = [...trail, node];
+      const isAllResources = path.some(n => String(n.title).trim().toLowerCase() === 'all resources');
       const override = findNearestOverride(path);
-      const availableAt = resolveAvailableAt(path, computedGroupDates, override);
+      const availableAt = isAllResources ? null : resolveAvailableAt(path, computedGroupDates, override);
       const availableAtDate = normalizeDate(availableAt);
-      const locked = override?.availabilityMode === 'locked'
+      const locked = isAllResources
+        ? false
+        : override?.availabilityMode === 'locked'
         ? true
         : Boolean(availableAtDate && availableAtDate.getTime() > nowMs);
 
@@ -682,7 +685,7 @@ export function annotateCurriculumAvailability(
         ...node,
         availableAt,
         locked,
-        availabilityMode: override?.availabilityMode || 'inherit',
+        availabilityMode: isAllResources ? 'available' : (override?.availabilityMode || 'inherit'),
         availabilityOverrideAt: override?.availableAt || null,
         children: visit(node.children || [], path),
       };

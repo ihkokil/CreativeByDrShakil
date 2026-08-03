@@ -172,13 +172,31 @@ export async function GET(
         children: node.children ? markCompleted(node.children) : undefined,
       }));
 
+    const processedCurriculum = markCompleted(annotatedCurriculum);
+
+    // Process "All Resources" folder positioning and visibility
+    const allResourcesNode = processedCurriculum.find((n: any) => String(n.title).trim().toLowerCase() === 'all resources');
+    const otherNodes = processedCurriculum.filter((n: any) => String(n.title).trim().toLowerCase() !== 'all resources');
+
+    let finalCurriculum = processedCurriculum;
+    if (allResourcesNode) {
+      const hasDocs = Array.isArray(allResourcesNode.children) && allResourcesNode.children.length > 0;
+      if (hasDocs) {
+        allResourcesNode.locked = false;
+        allResourcesNode.availableAt = null;
+        finalCurriculum = [allResourcesNode, ...otherNodes];
+      } else {
+        finalCurriculum = otherNodes;
+      }
+    }
+
     return NextResponse.json({
       courseId: course.id,
       course: {
         title: course.title,
       },
       enrollmentDate: enrolledAt,
-      curriculum: markCompleted(annotatedCurriculum),
+      curriculum: finalCurriculum,
     });
   } catch (error: any) {
     console.error('[study/curriculum] error:', error);

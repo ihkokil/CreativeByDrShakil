@@ -34,9 +34,8 @@ interface LibraryNode {
 function getNextTargetDayString(targetDay: number): string {
   const d = new Date();
   const dayOfWeek = d.getDay();
-  const daysUntil = (targetDay - dayOfWeek + 7) % 7;
-  const daysToAdd = daysUntil === 0 ? 7 : daysUntil;
-  d.setDate(d.getDate() + daysToAdd);
+  const diff = (targetDay - dayOfWeek + 7) % 7;
+  d.setDate(d.getDate() + diff);
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
@@ -105,12 +104,12 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     if (courseTitle) {
       const courseFolder = nodes.find(n => !n.parentId && n.type === "folder" && n.title.trim().toLowerCase() === courseTitle.trim().toLowerCase());
       if (courseFolder) {
-        topLevelFolders = nodes.filter(n => n.parentId === courseFolder.id && n.type === "folder");
+        topLevelFolders = nodes.filter(n => n.parentId === courseFolder.id && n.title.trim().toLowerCase() !== "all resources");
       }
     }
 
     if (topLevelFolders.length === 0) {
-      topLevelFolders = nodes.filter(n => !n.parentId && n.type === "folder");
+      topLevelFolders = nodes.filter(n => !n.parentId && n.type === "folder" && n.title.trim().toLowerCase() !== "all resources");
     }
     
     return topLevelFolders.map(folder => {
@@ -556,7 +555,13 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                 </label>
                 <select 
                   value={targetDay}
-                  onChange={(e) => setTargetDay(Number(e.target.value))}
+                  onChange={(e) => {
+                    const newDay = Number(e.target.value);
+                    setTargetDay(newDay);
+                    const nextDate = getNextTargetDayString(newDay);
+                    setCourseStartDate(nextDate);
+                    setPreviewDate(nextDate);
+                  }}
                   style={{ 
                     background: "rgba(255,255,255,0.03)", color: "var(--foreground)", 
                     border: "1px solid rgba(255,255,255,0.1)", padding: "12px 14px", 

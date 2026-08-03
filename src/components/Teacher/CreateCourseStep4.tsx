@@ -17,9 +17,10 @@ interface CourseData {
   salePrice?: number;
   duration: string;
   courseStartDate?: string;
-  overview: string;
-  learningOutcomes: string;
-  instructors: Array<{ name: string; designation?: string; imageUrl?: string }>;
+  overview?: string;
+  description?: string;
+  learningOutcomes?: string;
+  instructors?: Array<{ name: string; designation?: string; imageUrl?: string }>;
 }
 
 function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
@@ -69,9 +70,9 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
     if (!course) return;
 
     const errors: string[] = [];
-    if (!course.title) errors.push("title");
-    if (!course.overview) errors.push("overview");
-    if (!course.instructors || course.instructors.length === 0) errors.push("instructors");
+    if (!course.title || !course.title.trim()) errors.push("title");
+    const overviewText = course.overview || course.description;
+    if (!overviewText || !overviewText.trim()) errors.push("overview");
 
     setHasErrors(errors.length > 0);
   }, [course]);
@@ -107,6 +108,8 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
   if (!course) {
     return <div className={styles.error}>Course not found</div>;
   }
+
+  const courseOverviewText = course.overview || course.description || "";
 
   return (
     <div className={styles.container}>
@@ -175,7 +178,7 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
                     </span>
                   </div>
                 )}
-                {course.instructors && (
+                {course.instructors && course.instructors.length > 0 && (
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>Instructors:</span>
                     <span className={styles.metaValue}>{course.instructors.length}</span>
@@ -186,10 +189,12 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
           </div>
         </div>
 
-        <div className={styles.contentCard}>
-          <h2 className={styles.contentTitle}>Course Overview</h2>
-          <div className={styles.contentBody}>{course.overview}</div>
-        </div>
+        {courseOverviewText && (
+          <div className={styles.contentCard}>
+            <h2 className={styles.contentTitle}>Course Overview</h2>
+            <div className={styles.contentBody}>{courseOverviewText}</div>
+          </div>
+        )}
 
         {course.learningOutcomes && (
           <div className={styles.contentCard}>
@@ -202,37 +207,39 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
           </div>
         )}
 
-        <div className={styles.contentCard}>
-          <h2 className={styles.contentTitle}>Instructors</h2>
-          <div className={styles.instructorsGrid}>
-            {course.instructors.map((instructor, index) => (
-              <div key={index} className={styles.instructorCard} style={{ alignItems: 'center' }}>
-                {instructor.imageUrl ? (
-                  <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                    <Image src={instructor.imageUrl} alt={instructor.name} fill style={{ objectFit: 'cover' }} unoptimized />
-                  </div>
-                ) : (
-                  <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.2rem', flexShrink: 0 }}>
-                    {instructor.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div>
-                  <h4 className={styles.instructorName}>{instructor.name}</h4>
-                  {instructor.designation && (
-                    <p className={styles.instructorDesignation}>{instructor.designation}</p>
+        {course.instructors && course.instructors.length > 0 && (
+          <div className={styles.contentCard}>
+            <h2 className={styles.contentTitle}>Instructors</h2>
+            <div className={styles.instructorsGrid}>
+              {course.instructors.map((instructor, index) => (
+                <div key={index} className={styles.instructorCard} style={{ alignItems: 'center' }}>
+                  {instructor.imageUrl ? (
+                    <div style={{ position: 'relative', width: '60px', height: '60px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
+                      <Image src={instructor.imageUrl} alt={instructor.name} fill style={{ objectFit: 'cover' }} unoptimized />
+                    </div>
+                  ) : (
+                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 'bold', fontSize: '1.2rem', flexShrink: 0 }}>
+                      {instructor.name.charAt(0).toUpperCase()}
+                    </div>
                   )}
+                  <div>
+                    <h4 className={styles.instructorName}>{instructor.name}</h4>
+                    {instructor.designation && (
+                      <p className={styles.instructorDesignation}>{instructor.designation}</p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className={styles.actions}>
           <button
             type="button"
             onClick={() => router.push("/teacher/dashboard/courses")}
             className={styles.cancelBtn}
-            disabled={publishing || hasErrors}
+            disabled={publishing}
           >
             Cancel
           </button>
@@ -243,7 +250,7 @@ function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
               router.push(`/teacher/dashboard/courses/${courseId}/outline`)
             }
             className={styles.backBtn}
-            disabled={publishing || hasErrors}
+            disabled={publishing}
           >
             <ArrowLeft size={20} /> Back
           </button>

@@ -14,6 +14,7 @@ export interface CurriculumNode {
     type: 'folder' | ContentType;
     duration?: string;
     url?: string;
+    parentId?: string | null;
     attachments?: { name: string; url: string; type?: string; size?: number }[];
     children?: CurriculumNode[];
 }
@@ -654,17 +655,29 @@ export default function ModuleLibraryManager() {
                         <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
                         
                         <div className={styles.toolbar}>
-                            <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Create Folder">
-                                <Folder size={16} /> Folder
-                            </button>
-
-                            <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Video">
-                                <Video size={16} /> Video
-                            </button>
-
-                            <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId)} title="Add Document">
-                                <FileText size={16} /> Document
-                            </button>
+                            {String(activeRootNode?.title || '').trim().toLowerCase() === 'all resources' ? (
+                                <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                    <FileText size={16} /> Document
+                                </button>
+                            ) : path.length === 1 && activeRootNode?.parentId === null ? (
+                                <>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
+                                        <Folder size={16} /> Folder
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
+                                        <Video size={16} /> Video
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
+                                        <Video size={16} /> Video
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                        <FileText size={16} /> Document
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -719,7 +732,13 @@ export default function ModuleLibraryManager() {
                                     </div>
                                     <div>
                                         <h3 className={styles.rootTitle}>{node.title}</h3>
-                                        <span className={styles.rootMeta}>{node.type === 'folder' ? `${node.children?.length || 0} items inside` : (node.duration ? `Duration: ${node.duration}` : 'Document')}</span>
+                                        <span className={styles.rootMeta}>
+                                            {node.type === 'folder' 
+                                                ? `${node.children?.length || 0} items inside` 
+                                                : node.type === 'document' 
+                                                    ? 'Document' 
+                                                    : (node.duration ? `Duration: ${node.duration}` : 'Video')}
+                                        </span>
                                     </div>
                                 </motion.div>
                             ))}
@@ -745,17 +764,29 @@ export default function ModuleLibraryManager() {
                         <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
                         
                         <div className={styles.toolbar}>
-                            <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId)} title="Create Folder">
-                                <Folder size={16} /> Folder
-                            </button>
-
-                            <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId)} title="Add Video">
-                                <Video size={16} /> Video
-                            </button>
-
-                            <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId)} title="Add Document">
-                                <FileText size={16} /> Document
-                            </button>
+                            {String(activeRootNode?.title || '').trim().toLowerCase() === 'all resources' ? (
+                                <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                    <FileText size={16} /> Document
+                                </button>
+                            ) : path.length === 1 && activeRootNode?.parentId === null ? (
+                                <>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
+                                        <Folder size={16} /> Folder
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
+                                        <Video size={16} /> Video
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
+                                        <Video size={16} /> Video
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                        <FileText size={16} /> Document
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
 
