@@ -170,8 +170,30 @@ export async function POST(request: NextRequest) {
               }
               const isoDate = dateObj.toISOString().split('T')[0];
               const cbData = contextMatch[1].replace('ed', 'eo') + '|' + isoDate;
-              await sendTelegramReply(chatId, `Confirm enrollment date <b>${isoDate}</b>?`, {
-                inline_keyboard: [[{ text: '✅ Confirm Date', callback_data: cbData }]]
+
+              const parts = contextMatch[1].split('|');
+              const uId = decompressUuid(parts[1]);
+              const tId = decompressUuid(parts[3]);
+              const [uRes, cRes] = await Promise.all([
+                supabase.from('User').select('fullName').eq('id', uId).limit(1).maybeSingle(),
+                supabase.from('Course').select('title').eq('id', tId).limit(1).maybeSingle(),
+              ]);
+
+              const uName = uRes.data?.fullName || 'Student';
+              const cTitle = cRes.data?.title || 'Course';
+
+              const confirmMsg = [
+                '📆 <b>Confirm Custom Enrollment Date</b>',
+                '',
+                `👤 <b>Student:</b> ${escapeHtml(uName)}`,
+                `📚 <b>Course:</b> ${escapeHtml(cTitle)}`,
+                `📅 <b>Custom Date:</b> <code>${isoDate}</code>`,
+                '',
+                `Click below to confirm setting custom enrollment date to <b>${isoDate}</b>:`
+              ].join('\n');
+
+              await sendTelegramReply(chatId, confirmMsg, {
+                inline_keyboard: [[{ text: '✅ Confirm Custom Date', callback_data: cbData }]]
               });
               return NextResponse.json({ ok: true });
             }
@@ -474,13 +496,46 @@ export async function POST(request: NextRequest) {
           : { data: null };
         const displayBatchName = batchData?.name || (avail === 'instant' ? 'Instant Batch' : 'Custom Batch');
 
-        let replyMessage = `${isExisting ? '✅ <b>Enrollment Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${escapeHtml(user.fullName)}\n📚 <b>Course:</b> ${escapeHtml(course.title)}\n🗓 <b>Batch:</b> ${escapeHtml(displayBatchName)}`;
-        if (customDateObj) {
-          replyMessage += `\n📅 <b>Enrollment Date:</b> ${avail}`;
+        let modeLabel = 'Scheduled Release';
+        let actionDesc = 'Modules will follow standard batch release timeline.';
+
+        if (avail === 'instant' || avail === 'all') {
+          modeLabel = '⚡ Instant Unlock';
+          actionDesc = 'All course modules unlocked immediately for instant full access.';
+        } else if (customDateObj) {
+          modeLabel = '📆 Custom Enrollment Date';
+          actionDesc = `Enrolled with custom start date <b>${avail}</b>. Module schedule calculates from this date.`;
+        } else if (avail === 'fixed_interval') {
+          modeLabel = '⏳ Fixed Interval';
+          actionDesc = 'Modules unlock sequentially based on fixed interval schedule.';
+        } else if (avail === 'groups_per_week') {
+          modeLabel = '📦 Groups Per Week';
+          actionDesc = 'Modules unlock according to weekly group release schedule.';
+        } else if (avail === 'day_of_week') {
+          modeLabel = '📅 Day of Week';
+          actionDesc = 'Modules unlock on designated days of the week.';
+        } else if (avail === 'current_batch') {
+          modeLabel = '🗓 Current Batch';
+          actionDesc = 'Student assigned to active batch timeline.';
         }
 
+        const replyLines = [
+          isExisting ? '✅ <b>Enrollment Updated Successfully</b>' : '✅ <b>Course Enrollment Successful</b>',
+          '',
+          `👤 <b>Student:</b> ${escapeHtml(user.fullName)} (<code>${escapeHtml(user.email)}</code>)`,
+          `📚 <b>Course:</b> ${escapeHtml(course.title)}`,
+          `🗓 <b>Batch:</b> ${escapeHtml(displayBatchName)}`,
+          `⚙️ <b>Availability Mode:</b> ${modeLabel}`,
+        ];
+
+        if (customDateObj) {
+          replyLines.push(`📅 <b>Enrollment Date:</b> <code>${avail}</code>`);
+        }
+
+        replyLines.push('', `📝 <b>Action Summary:</b>\n${actionDesc}`);
+
         await answerCallbackQuery(callbackQueryId, isExisting ? '✅ Enrollment Updated!' : '✅ Enrolled!');
-        await sendTelegramReply(chatId, replyMessage);
+        await sendTelegramReply(chatId, replyLines.join('\n'));
       } catch (enrollErr: any) {
         console.error('[Telegram Webhook] Enrollment error:', enrollErr);
         await answerCallbackQuery(callbackQueryId, 'Operation failed.');
