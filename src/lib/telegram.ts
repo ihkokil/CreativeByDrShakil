@@ -19,11 +19,12 @@ export function compressUuid(id: string): string {
   if (id.length === 36 && (id.match(/-/g) || []).length === 4) {
     const hex = id.replace(/-/g, '');
     if (hex.length === 32) {
-      return Buffer.from(hex, 'hex')
+      const b64 = Buffer.from(hex, 'hex')
         .toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
+      return `~${b64}`;
     }
   }
   return id;
@@ -31,13 +32,23 @@ export function compressUuid(id: string): string {
 
 export function decompressUuid(compressed: string): string {
   if (!compressed) return compressed;
-  if (compressed.length === 22) {
+  let target = compressed;
+  let isPrefixed = false;
+  if (target.startsWith('~')) {
+    target = target.slice(1);
+    isPrefixed = true;
+  }
+
+  if (target.length === 22 && isPrefixed) {
     try {
-      let base64 = compressed.replace(/-/g, '+').replace(/_/g, '/');
+      let base64 = target.replace(/-/g, '+').replace(/_/g, '/');
       while (base64.length % 4) base64 += '=';
-      const hex = Buffer.from(base64, 'base64').toString('hex');
-      if (hex.length === 32) {
-        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      const buf = Buffer.from(base64, 'base64');
+      if (buf.length === 16) {
+        const hex = buf.toString('hex');
+        if (hex.length === 32) {
+          return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+        }
       }
     } catch (e) {
       // ignore

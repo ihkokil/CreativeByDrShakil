@@ -150,20 +150,27 @@ export async function POST(request: NextRequest) {
           if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('[Context: ed|')) {
             const contextMatch = message.reply_to_message.text.match(/\[Context: (ed\|[^\]]+)\]/);
             if (contextMatch) {
-              const dateStr = text.trim();
-              const dateParts = dateStr.split('-');
-              let dateObj: Date;
+              const rawDate = text.trim();
+              let dateObj: Date | null = null;
+              const dateParts = rawDate.split(/[-/.]/);
               if (dateParts.length === 3) {
-                dateObj = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`); // DD-MM-YYYY -> YYYY-MM-DD
+                if (dateParts[0].length === 4) {
+                  // YYYY-MM-DD
+                  dateObj = new Date(`${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}T00:00:00.000Z`);
+                } else {
+                  // DD-MM-YYYY
+                  dateObj = new Date(`${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}T00:00:00.000Z`);
+                }
               } else {
-                dateObj = new Date(dateStr);
+                dateObj = new Date(rawDate);
               }
-              if (isNaN(dateObj.getTime())) {
-                await sendTelegramReply(chatId, `❌ Invalid date format. Please use DD-MM-YYYY.`);
+              if (!dateObj || isNaN(dateObj.getTime())) {
+                await sendTelegramReply(chatId, `❌ Invalid date format. Please use <b>DD-MM-YYYY</b> format (e.g. 15-08-2026).`);
                 return NextResponse.json({ ok: true });
               }
-              const cbData = contextMatch[1].replace('ed', 'eo') + '|' + dateObj.toISOString().split('T')[0];
-              await sendTelegramReply(chatId, `Confirm enrollment date <b>${dateStr}</b>?`, {
+              const isoDate = dateObj.toISOString().split('T')[0];
+              const cbData = contextMatch[1].replace('ed', 'eo') + '|' + isoDate;
+              await sendTelegramReply(chatId, `Confirm enrollment date <b>${isoDate}</b>?`, {
                 inline_keyboard: [[{ text: '✅ Confirm Date', callback_data: cbData }]]
               });
               return NextResponse.json({ ok: true });
@@ -257,7 +264,7 @@ export async function POST(request: NextRequest) {
       const keyboard: any[] = [];
 
       // 1. Instant Batch
-      keyboard.push([{ text: `⚡ Instant Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(instantBatch.id)}|instant` }]);
+      keyboard.push([{ text: `⚡ Instant Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(instantBatch.id)}|ins` }]);
 
       // 2. Up to 3 last created custom batches (if circular course)
       if (isCircular) {
@@ -271,13 +278,13 @@ export async function POST(request: NextRequest) {
 
         if (createdBatches && createdBatches.length > 0) {
           createdBatches.forEach((b: any) => {
-            keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eo|${compressedId}|b|${compressUuid(b.id)}|current_batch` }]);
+            keyboard.push([{ text: `🗓 ${b.name}`, callback_data: `eo|${compressedId}|b|${compressUuid(b.id)}|cur` }]);
           });
         }
       }
 
       // 3. Custom Batch
-      keyboard.push([{ text: `📦 Custom Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(customBatch.id)}|current_batch` }]);
+      keyboard.push([{ text: `📦 Custom Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(customBatch.id)}|cur` }]);
 
       await answerCallbackQuery(callbackQueryId, 'Select a batch');
       await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
@@ -306,11 +313,11 @@ export async function POST(request: NextRequest) {
       }
 
       const keyboard = [
-        [{ text: `🗓 Current Batch (Default)`, callback_data: `eo|${compressedId}|${type}|${id}|current_batch` }],
-        [{ text: `⚡ Instant Unlock`, callback_data: `eo|${compressedId}|${type}|${id}|instant` }],
-        [{ text: `⏳ Fixed Interval`, callback_data: `eo|${compressedId}|${type}|${id}|fixed_interval` }],
-        [{ text: `📦 Groups Per Week`, callback_data: `eo|${compressedId}|${type}|${id}|groups_per_week` }],
-        [{ text: `📅 Day of Week`, callback_data: `eo|${compressedId}|${type}|${id}|day_of_week` }],
+        [{ text: `🗓 Current Batch (Default)`, callback_data: `eo|${compressedId}|${type}|${id}|cur` }],
+        [{ text: `⚡ Instant Unlock`, callback_data: `eo|${compressedId}|${type}|${id}|ins` }],
+        [{ text: `⏳ Fixed Interval`, callback_data: `eo|${compressedId}|${type}|${id}|fix` }],
+        [{ text: `📦 Groups Per Week`, callback_data: `eo|${compressedId}|${type}|${id}|gpw` }],
+        [{ text: `📅 Day of Week`, callback_data: `eo|${compressedId}|${type}|${id}|dow` }],
         [{ text: `📆 Custom Enrollment Date`, callback_data: `ed|${compressedId}|${type}|${id}` }],
       ];
 
@@ -344,14 +351,26 @@ export async function POST(request: NextRequest) {
       const compressedUserId = parts[1];
       const type = parts[2];
       const targetId = decompressUuid(parts[3]);
-      const avail = parts[4];
+      const availRaw = parts[4];
       const userId = decompressUuid(compressedUserId);
+
+      // Normalize short availability codes
+      let avail = availRaw;
+      if (availRaw === 'cur') avail = 'current_batch';
+      else if (availRaw === 'ins') avail = 'instant';
+      else if (availRaw === 'fix') avail = 'fixed_interval';
+      else if (availRaw === 'gpw') avail = 'groups_per_week';
+      else if (availRaw === 'dow') avail = 'day_of_week';
 
       let courseId = type === 'b' ? '' : targetId;
       let batchId = type === 'b' ? targetId : null;
 
-      if (type === 'b') {
-        const { data: bData } = await (supabase.from('Batch') as any).select('courseId').eq('id', batchId).single();
+      if (type === 'b' && batchId) {
+        const { data: bData } = await (supabase.from('Batch') as any)
+          .select('courseId')
+          .eq('id', batchId)
+          .limit(1)
+          .maybeSingle();
         if (bData) courseId = bData.courseId;
       }
 
@@ -382,7 +401,7 @@ export async function POST(request: NextRequest) {
 
       try {
         if (!existingOrder) {
-          await ensureCourseEnrollment(null, userId, courseId, course.title, course.slug, true);
+          await ensureCourseEnrollment(null, userId, courseId, course.title, course.slug, true, undefined, undefined, batchId);
         }
 
         // Apply module availability settings
@@ -518,11 +537,11 @@ export async function POST(request: NextRequest) {
       const courseId = decompressUuid(parts[2]);
 
       const keyboard = [
-        [{ text: `🗓 Current Batch (Default)`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|current_batch` }],
-        [{ text: `⚡ Instant Unlock`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|instant` }],
-        [{ text: `⏳ Fixed Interval`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|fixed_interval` }],
-        [{ text: `📦 Groups Per Week`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|groups_per_week` }],
-        [{ text: `📅 Day of Week`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|day_of_week` }],
+        [{ text: `🗓 Current Batch (Default)`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|cur` }],
+        [{ text: `⚡ Instant Unlock`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|ins` }],
+        [{ text: `⏳ Fixed Interval`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|fix` }],
+        [{ text: `📦 Groups Per Week`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|gpw` }],
+        [{ text: `📅 Day of Week`, callback_data: `eo|${compressedId}|c|${compressUuid(courseId)}|dow` }],
         [{ text: `🔀 Change Batch`, callback_data: `ec|${compressedId}|${compressUuid(courseId)}` }],
         [{ text: `📆 Custom Enrollment Date`, callback_data: `ed|${compressedId}|c|${compressUuid(courseId)}` }],
       ];
