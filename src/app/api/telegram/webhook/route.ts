@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
   let globalCallbackQueryId: string | undefined = undefined;
   try {
     const body = await request.json();
+    const supabase = getSupabaseAdmin();
     const callbackQuery = body?.callback_query;
     if (callbackQuery?.id) {
       globalCallbackQueryId = callbackQuery.id;
@@ -95,7 +96,6 @@ export async function POST(request: NextRequest) {
               `ℹ️ <b>Student Lookup Usage:</b>\n<code>/student &lt;email, phone, or name&gt;</code>\n\n<b>Example:</b>\n<code>/student ihkokil@gmail.com</code>`
             );
           } else {
-            const supabase = getSupabaseAdmin();
             const { data: matchedUsers } = await supabase
               .from('User')
               .select('id, fullName, email, phone, role, createdAt')
@@ -222,8 +222,6 @@ export async function POST(request: NextRequest) {
       const rawId = parts[parts.length - 1];
       callbackData = `av|${rawId.length === 36 ? compressUuid(rawId) : rawId}`;
     }
-
-    const supabase = getSupabaseAdmin();
 
     // Handle "en|{compressedUserId}" — Show course list for enrollment
     if (callbackData.startsWith('en|')) {
