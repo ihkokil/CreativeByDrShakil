@@ -400,8 +400,12 @@ export async function POST(request: NextRequest) {
       const isExisting = Boolean(existingOrder);
 
       try {
+        const customDateObj = avail.match(/^\d{4}-\d{2}-\d{2}$/)
+          ? new Date(`${avail}T00:00:00.000Z`)
+          : undefined;
+
         if (!existingOrder) {
-          await ensureCourseEnrollment(null, userId, courseId, course.title, course.slug, true, undefined, undefined, batchId);
+          await ensureCourseEnrollment(null, userId, courseId, course.title, course.slug, true, customDateObj, undefined, batchId);
         }
 
         // Apply module availability settings
@@ -439,14 +443,20 @@ export async function POST(request: NextRequest) {
         } else if (['current_batch', 'fixed_interval', 'groups_per_week', 'day_of_week'].includes(avail)) {
           // Clear node-level overrides so scheduled availability applies
           await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
-        } else if (avail.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        } else if (customDateObj) {
           // Custom enrollment date
           const customBatch = await ensureCustomBatch(supabase, courseId);
+          const customIso = customDateObj.toISOString();
 
           await (supabase.from('Order') as any).update({
-            enrolledAt: new Date(avail).toISOString(),
+            enrolledAt: customIso,
             batchId: customBatch.id,
+            updatedAt: new Date().toISOString(),
           } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
+
+          await (supabase.from('User') as any).update({
+            enrollmentDate: customIso,
+          } as any).eq('id', userId);
 
           await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
         }
@@ -454,7 +464,7 @@ export async function POST(request: NextRequest) {
         // Update batch assignment if specified
         if (type === 'b' && batchId) {
           await (supabase.from('Order') as any).update({ batchId } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
-        } else if (type === 'n') {
+        } else if (type === 'n' || customDateObj) {
           const customBatch = await ensureCustomBatch(supabase, courseId);
           await (supabase.from('Order') as any).update({ batchId: customBatch.id } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
         }
@@ -464,11 +474,13 @@ export async function POST(request: NextRequest) {
           : { data: null };
         const displayBatchName = batchData?.name || (avail === 'instant' ? 'Instant Batch' : 'Custom Batch');
 
+        let replyMessage = `${isExisting ? '✅ <b>Enrollment Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${escapeHtml(user.fullName)}\n📚 <b>Course:</b> ${escapeHtml(course.title)}\n🗓 <b>Batch:</b> ${escapeHtml(displayBatchName)}`;
+        if (customDateObj) {
+          replyMessage += `\n📅 <b>Enrollment Date:</b> ${avail}`;
+        }
+
         await answerCallbackQuery(callbackQueryId, isExisting ? '✅ Enrollment Updated!' : '✅ Enrolled!');
-        await sendTelegramReply(
-          chatId,
-          `${isExisting ? '✅ <b>Enrollment Updated</b>' : '✅ <b>Enrollment Successful</b>'}\n\n👤 <b>Student:</b> ${escapeHtml(user.fullName)}\n📚 <b>Course:</b> ${escapeHtml(course.title)}\n🗓 <b>Batch:</b> ${escapeHtml(displayBatchName)}`
-        );
+        await sendTelegramReply(chatId, replyMessage);
       } catch (enrollErr: any) {
         console.error('[Telegram Webhook] Enrollment error:', enrollErr);
         await answerCallbackQuery(callbackQueryId, 'Operation failed.');

@@ -77,11 +77,12 @@ export async function GET(
         studentBatch = batch;
       }
       
-      if (user?.enrollmentDate) {
+      if (order.enrolledAt) {
+        enrolledAt = order.enrolledAt;
+      } else if (user?.enrollmentDate) {
         enrolledAt = user.enrollmentDate;
-      }
-      if (!enrolledAt) {
-        enrolledAt = order.enrolledAt || order.updatedAt;
+      } else {
+        enrolledAt = order.updatedAt;
       }
     }
 
