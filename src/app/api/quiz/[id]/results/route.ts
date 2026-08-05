@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
+import { getSupabase, getSupabaseAdmin } from '@/lib/db';
 import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 
@@ -13,6 +13,7 @@ export async function GET(
     const token = await extractCookieToken();
 
     const supabase = getSupabase(token);
+    const supabaseAdmin = getSupabaseAdmin();
     
     const { data: quizData } = await supabase
       .from('Quiz')
@@ -145,7 +146,7 @@ export async function GET(
       
       const allAttemptStudentIds = [...new Set((allAttempts || []).map((a: any) => a.studentId))];
       const { data: allAttemptStudents = [] } = allAttemptStudentIds.length > 0
-        ? await supabase.from('User').select('id, fullName').in('id', allAttemptStudentIds)
+        ? await supabaseAdmin.from('User').select('id, fullName').in('id', allAttemptStudentIds)
         : { data: [] };
         
       const allAttemptStudentMap = new Map((allAttemptStudents || []).map((s: any) => [s.id, s]));
@@ -254,7 +255,7 @@ export async function GET(
     
     const [{ data: attemptStudents = [] }, { data: attemptAnswers = [] }, { data: attemptMappings = [] }] = await Promise.all([
       attemptStudentIds.length > 0
-        ? supabase.from('User').select('id, fullName').in('id', attemptStudentIds)
+        ? supabaseAdmin.from('User').select('id, fullName').in('id', attemptStudentIds)
         : Promise.resolve({ data: [] }),
       attemptIds.length > 0
         ? supabase.from('AttemptAnswer').select('*').in('attemptId', attemptIds)
@@ -264,7 +265,12 @@ export async function GET(
         : Promise.resolve({ data: [] }),
     ]);
     
-    const attemptStudentMap = new Map((attemptStudents || []).map((s: any) => [s.id, s]));
+    const attemptStudentMap = new Map((attemptStudents || []).map((s: any) => [
+      s.id,
+      {
+        ...s,
+      }
+    ]));
     
     const mappingQuestionIds = [...new Set((attemptMappings || []).map((m: any) => m.questionId))];
     const { data: mappingQuestions = [] } = mappingQuestionIds.length > 0
@@ -346,6 +352,8 @@ export async function GET(
       attemptId: a.id,
       studentId: a.studentId,
       studentName: a.student?.fullName || 'Unknown',
+      batchId: a.student?.batchId || null,
+      batchName: a.student?.batchName || 'No Batch',
       netScore: a.netScore,
       percentageScore: a.percentageScore,
       correctCount: a.correctCount,
@@ -567,6 +575,8 @@ export async function GET(
       attemptId: a.id,
       studentId: a.studentId,
       studentName: a.student?.fullName || 'Unknown',
+      batchId: a.student?.batchId || null,
+      batchName: a.student?.batchName || 'No Batch',
       netScore: a.netScore,
       percentageScore: a.percentageScore,
       correctCount: a.correctCount,

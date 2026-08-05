@@ -1625,4 +1625,371 @@
   height: 48px;
   color: var(--text-muted);
   opacity: 0.5;
-}
+}
+
+/* Mobile Student Select Dropdown */
+.mobileStudentPicker {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 8px;
+}
+
+.mobilePickerLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mobileSelectInput {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.mobileSelectInput:focus {
+  border-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .submissionsLayout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .submissionsSidebar {
+    display: none;
+  }
+
+  .mobileStudentPicker {
+    display: flex;
+  }
+
+  .submissionsMain {
+    padding: 16px;
+    gap: 16px;
+    border-radius: 12px;
+  }
+
+  .studentNavHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .studentNavButtons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .navCycleBtn {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 12px;
+  }
+
+  .attemptPillsBar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .attemptPillBtn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .attemptSummary {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .attemptScoreCard {
+    padding: 20px;
+    min-width: 100%;
+  }
+
+  .attemptScoreValue {
+    font-size: 42px;
+  }
+
+  .attemptStats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    min-width: 100%;
+  }
+
+  .attemptStat {
+    padding: 14px 10px;
+    min-width: 0;
+  }
+
+  .attemptStatValue {
+    font-size: 24px;
+  }
+
+  .reviewCard {
+    padding: 14px;
+  }
+
+  .reviewOption {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .tabBtn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+/* Batch Filtering Styles */
+.batchSelectInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.batchTagBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--info-color);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.batchGroupTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 4px 4px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Submissions Table & Modal Styles */
+.submissionsTableToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tableFiltersGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 600px;
+  flex-wrap: wrap;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.submissionModal {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 950px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.modalHeaderTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modalStudentName {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.modalCloseBtn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modalCloseBtn:hover {
+  background: var(--error-color);
+  color: white;
+  border-color: var(--error-color);
+}
+
+.modalBody {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.attemptsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.attemptCardItem {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.attemptCardItem:hover {
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.attemptCardItemActive {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(237, 28, 40, 0.12), rgba(237, 28, 40, 0.04));
+  box-shadow: 0 4px 16px rgba(237, 28, 40, 0.15);
+}
+
+.modalAttemptsTableWrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  margin-bottom: 8px;
+}
+
+.modalAttemptsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.modalAttemptsTable th {
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.modalAttemptsTable td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.modalAttemptsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.modalAttemptsTable tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.activeAttemptRow {
+  background: rgba(237, 28, 40, 0.08) !important;
+}
+
+.selectAttemptBtn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--primary-color);
+  background: rgba(237, 28, 40, 0.1);
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectAttemptBtn:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.selectAttemptBtnActive {
+  background: var(--primary-color);
+  color: white;
+}
+
+
+
+
