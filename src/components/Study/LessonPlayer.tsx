@@ -28,17 +28,26 @@ export default function LessonPlayer({
   lesson,
   onComplete,
 }: LessonPlayerProps) {
-  const getYoutubeId = (rawUrl: string) => {
+  const getYoutubeId = (rawUrl: string): string | null => {
     if (!rawUrl) return null;
     const trimmed = rawUrl.trim();
     if (trimmed.startsWith("youtube/")) {
-      return trimmed.replace("youtube/", "");
+      const clean = trimmed.replace("youtube/", "").trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(clean)) return clean;
     }
-    const regExp =
-      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = trimmed.match(regExp);
-    if (match && match[2].length === 11) return match[2];
     if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+
+    const regExp =
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = trimmed.match(regExp);
+    if (match && match[1]) return match[1];
+
+    const fallbackRegExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|live\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const matchFallback = trimmed.match(fallbackRegExp);
+    if (matchFallback && matchFallback[2] && matchFallback[2].length === 11) {
+      return matchFallback[2];
+    }
     return null;
   };
 
@@ -63,6 +72,10 @@ export default function LessonPlayer({
     if (isYoutubeSource()) {
       const id = getYoutubeId(raw);
       if (id) return id;
+      // Extract last path segment if valid 11-char ID
+      const parts = raw.split('/');
+      const lastPart = parts[parts.length - 1].split('?')[0];
+      if (/^[a-zA-Z0-9_-]{11}$/.test(lastPart)) return lastPart;
       return raw.startsWith("youtube/") ? raw.replace("youtube/", "") : raw;
     }
     return raw;

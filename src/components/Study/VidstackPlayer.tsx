@@ -1,6 +1,7 @@
 "use client";
 
-import { MediaPlayer, MediaProvider } from '@vidstack/react';
+import { useEffect, useRef, useState } from 'react';
+import { MediaPlayer, MediaProvider, type MediaPlayerInstance } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
@@ -26,19 +27,48 @@ export default function VidstackPlayer({
   poster,
   autoplay = false,
 }: VidstackPlayerProps) {
+  const playerRef = useRef<MediaPlayerInstance>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      if (typeof window !== 'undefined') {
+        const userAgentMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+        const touchMobile = 'ontouchstart' in window && window.innerWidth <= 1024;
+        setIsMobile(userAgentMobile || touchMobile);
+      }
+    };
+    checkMobile();
+  }, []);
+
+  // On mobile devices, YouTube embeds block unmuted autoplay.
+  // Setting autoPlay=true on mobile causes Vidstack state desync (shows pause icon while YT stays paused).
+  const shouldAutoPlay = isMobile ? false : autoplay;
+
   // For YouTube sources, Vidstack expects "youtube/{videoId}" format
   const resolvedSrc = type === 'youtube' ? `youtube/${src}` : src;
+
+  const handleAutoPlayFail = () => {
+    // If autoplay fails, force player state back to paused so UI syncs with iframe
+    if (playerRef.current) {
+      playerRef.current.pause();
+    }
+  };
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <MediaPlayer
+        ref={playerRef}
         key={resolvedSrc}
         src={resolvedSrc}
         title={title}
         poster={poster}
-        autoPlay={autoplay}
+        autoPlay={shouldAutoPlay}
+        onAutoPlayFail={handleAutoPlayFail}
         playsInline
-        crossOrigin
+        crossOrigin={type === 'youtube' ? undefined : true}
         viewType="video"
         streamType="on-demand"
         logLevel="warn"
@@ -69,3 +99,4 @@ export default function VidstackPlayer({
     </div>
   );
 }
+

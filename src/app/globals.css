@@ -357,9 +357,7 @@ body.screen-capture-active::after {
  * CSS `content-visibility` and the experimental `captured-surface`
  * media feature (Chrome 124+).
  */
-video,
-iframe[src*="youtube"],
-iframe[src*="youtu.be"] {
+video {
   content-visibility: auto;
 }
 
