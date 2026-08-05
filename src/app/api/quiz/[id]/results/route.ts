@@ -563,6 +563,21 @@ export async function GET(
       }
     }
     
+    const allSubmissions = attemptsWithRelations.map((a: any) => ({
+      attemptId: a.id,
+      studentId: a.studentId,
+      studentName: a.student?.fullName || 'Unknown',
+      netScore: a.netScore,
+      percentageScore: a.percentageScore,
+      correctCount: a.correctCount,
+      wrongCount: a.wrongCount,
+      skippedCount: a.skippedCount,
+      timeTakenSeconds: a.timeTakenSeconds,
+      submittedAt: a.submittedAt,
+      attemptNumber: a.attemptNumber,
+      isAutoSubmitted: a.status === 'auto_submitted',
+    }));
+
     return NextResponse.json({
       quiz: {
         id: (quizData as any).id,
@@ -578,6 +593,7 @@ export async function GET(
         averageTimeSeconds: avgTime,
       },
       leaderboard,
+      allSubmissions,
       perQuestionAnalytics,
       attempt: requestedAttemptDetails,
     });

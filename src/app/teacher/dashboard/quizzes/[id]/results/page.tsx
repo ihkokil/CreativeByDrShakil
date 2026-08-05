@@ -5,10 +5,12 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronLeft,
+  ChevronRight,
   Download,
   BarChart2,
   Trophy,
   User,
+  Users,
   Clock,
   TrendingUp,
   Target,
@@ -21,8 +23,24 @@ import {
   Search,
   Check,
   X,
+  Loader2,
 } from 'lucide-react';
 import styles from './page.module.css';
+
+interface SubmissionEntry {
+  attemptId: string;
+  studentId: string;
+  studentName: string;
+  netScore: number;
+  percentageScore: number;
+  correctCount: number;
+  wrongCount: number;
+  skippedCount: number;
+  timeTakenSeconds: number | null;
+  submittedAt: string | null;
+  attemptNumber: number;
+  isAutoSubmitted: boolean;
+}
 
 interface LeaderboardEntry {
   rank: number;
@@ -86,6 +104,7 @@ interface ResultsData {
     averageTimeSeconds: number;
   };
   leaderboard: LeaderboardEntry[];
+  allSubmissions?: SubmissionEntry[];
   perQuestionAnalytics: QuestionAnalytics[];
   attempt: AttemptData | null;
 }
@@ -99,10 +118,17 @@ export default function TeacherQuizResultsPage() {
   const [data, setData] = useState<ResultsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'leaderboard' | 'questions' | 'attempt'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'submissions' | 'leaderboard' | 'questions' | 'attempt'>('overview');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'rank' | 'score' | 'time' | 'attempt'>('rank');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Student Submissions tab state
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
+  const [selectedAttemptData, setSelectedAttemptData] = useState<AttemptData | null>(null);
+  const [loadingAttemptData, setLoadingAttemptData] = useState<boolean>(false);
+  const [studentSearch, setStudentSearch] = useState<string>('');
 
   useEffect(() => {
     fetchResults();
@@ -125,10 +151,35 @@ export default function TeacherQuizResultsPage() {
       }
 
       setData(result);
+
+      // Auto select initial student/attempt if attemptId is present
+      if (result.attempt) {
+        setSelectedAttemptData(result.attempt);
+        setSelectedAttemptId(result.attempt.id);
+        const matchSub = result.allSubmissions?.find((s: SubmissionEntry) => s.attemptId === result.attempt.id);
+        if (matchSub) {
+          setSelectedStudentId(matchSub.studentId);
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStudentAttemptDetails = async (attId: string) => {
+    setLoadingAttemptData(true);
+    try {
+      const res = await fetch(`/api/quiz/${quizId}/results?attempt=${attId}`);
+      const result = await res.json();
+      if (res.ok && result.attempt) {
+        setSelectedAttemptData(result.attempt);
+      }
+    } catch (err) {
+      console.error('Failed to load student attempt details', err);
+    } finally {
+      setLoadingAttemptData(false);
     }
   };
 
@@ -155,6 +206,73 @@ export default function TeacherQuizResultsPage() {
     } else {
       setSortBy(field);
       setSortOrder('asc');
+    }
+  };
+
+  // Group submissions by student for Submissions Tab
+  const submissionsList = data?.allSubmissions || data?.leaderboard || [];
+  const uniqueStudentsMap = new Map<string, { studentId: string; studentName: string; bestScore: number; attempts: SubmissionEntry[] }>();
+  
+  submissionsList.forEach((sub: any) => {
+    if (!uniqueStudentsMap.has(sub.studentId)) {
+      uniqueStudentsMap.set(sub.studentId, {
+        studentId: sub.studentId,
+        studentName: sub.studentName,
+        bestScore: sub.percentageScore ?? sub.netScore ?? 0,
+        attempts: [],
+      });
+    }
+    const studentObj = uniqueStudentsMap.get(sub.studentId)!;
+    if ((sub.percentageScore ?? sub.netScore ?? 0) > studentObj.bestScore) {
+      studentObj.bestScore = sub.percentageScore ?? sub.netScore ?? 0;
+    }
+    studentObj.attempts.push(sub);
+  });
+
+  const uniqueStudents = Array.from(uniqueStudentsMap.values()).map(st => ({
+    ...st,
+    attempts: st.attempts.sort((a, b) => b.attemptNumber - a.attemptNumber),
+  }));
+
+  const filteredStudents = uniqueStudents.filter(st =>
+    st.studentName.toLowerCase().includes(studentSearch.toLowerCase())
+  );
+
+  // Auto select first student if none selected
+  useEffect(() => {
+    if (activeTab === 'submissions' && !selectedStudentId && uniqueStudents.length > 0) {
+      const firstStudent = uniqueStudents[0];
+      setSelectedStudentId(firstStudent.studentId);
+      const firstAttemptId = firstStudent.attempts[0]?.attemptId;
+      if (firstAttemptId) {
+        setSelectedAttemptId(firstAttemptId);
+        loadStudentAttemptDetails(firstAttemptId);
+      }
+    }
+  }, [activeTab, uniqueStudents, selectedStudentId]);
+
+  const handleSelectStudent = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    const student = uniqueStudents.find(s => s.studentId === studentId);
+    if (student && student.attempts.length > 0) {
+      const latestAttemptId = student.attempts[0].attemptId;
+      setSelectedAttemptId(latestAttemptId);
+      loadStudentAttemptDetails(latestAttemptId);
+    }
+  };
+
+  const handleSelectAttempt = (attId: string) => {
+    setSelectedAttemptId(attId);
+    loadStudentAttemptDetails(attId);
+  };
+
+  const selectedStudent = uniqueStudents.find(s => s.studentId === selectedStudentId);
+  const selectedStudentIndex = uniqueStudents.findIndex(s => s.studentId === selectedStudentId);
+
+  const handleCycleStudent = (direction: number) => {
+    const nextIdx = selectedStudentIndex + direction;
+    if (nextIdx >= 0 && nextIdx < uniqueStudents.length) {
+      handleSelectStudent(uniqueStudents[nextIdx].studentId);
     }
   };
 
@@ -300,6 +418,15 @@ export default function TeacherQuizResultsPage() {
               </button>
               <button
                 role="tab"
+                aria-selected={activeTab === 'submissions'}
+                onClick={() => setActiveTab('submissions')}
+                className={`${styles.tabBtn} ${activeTab === 'submissions' ? styles.tabActive : ''}`}
+              >
+                <Users className={styles.tabIcon} />
+                Student Submissions ({uniqueStudents.length})
+              </button>
+              <button
+                role="tab"
                 aria-selected={activeTab === 'leaderboard'}
                 onClick={() => setActiveTab('leaderboard')}
                 className={`${styles.tabBtn} ${activeTab === 'leaderboard' ? styles.tabActive : ''}`}
@@ -320,6 +447,272 @@ export default function TeacherQuizResultsPage() {
 
             {/* Tab Panels */}
             <div className={styles.tabContent}>
+              {/* Submissions Tab */}
+              {activeTab === 'submissions' && (
+                <div className={styles.tabPanel} role="tabpanel">
+                  <div className={styles.submissionsContainer}>
+                    {uniqueStudents.length === 0 ? (
+                      <div className={styles.emptyState} style={{ padding: '60px 20px', textAlign: 'center' }}>
+                        <Users className={styles.noStudentIcon} style={{ margin: '0 auto 16px' }} />
+                        <h3>No Student Submissions Yet</h3>
+                        <p style={{ color: 'var(--text-muted)' }}>Students haven't submitted any attempts for this quiz.</p>
+                      </div>
+                    ) : (
+                      <div className={styles.submissionsLayout}>
+                        {/* Sidebar Student List */}
+                        <div className={styles.submissionsSidebar}>
+                          <div className={styles.sidebarHeader}>
+                            <h3 className={styles.sidebarTitle}>
+                              <Users size={18} />
+                              Students ({uniqueStudents.length})
+                            </h3>
+                          </div>
+                          
+                          <div className={styles.searchBox} style={{ maxWidth: '100%' }}>
+                            <Search className={styles.searchIcon} />
+                            <input
+                              type="search"
+                              placeholder="Search student..."
+                              value={studentSearch}
+                              onChange={e => setStudentSearch(e.target.value)}
+                              className={styles.searchInput}
+                              style={{ fontSize: '13px', padding: '10px 14px 10px 40px' }}
+                            />
+                          </div>
+
+                          <div className={styles.studentListScroll}>
+                            {filteredStudents.map((st) => {
+                              const isSelected = st.studentId === selectedStudentId;
+                              return (
+                                <button
+                                  key={st.studentId}
+                                  type="button"
+                                  onClick={() => handleSelectStudent(st.studentId)}
+                                  className={`${styles.studentCard} ${isSelected ? styles.studentCardActive : ''}`}
+                                >
+                                  <div className={styles.studentCardHeader}>
+                                    <span className={styles.studentCardName}>{st.studentName}</span>
+                                    <span className={`${styles.studentScoreBadge} ${getScoreColor(st.bestScore)}`}>
+                                      {st.bestScore.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                  <div className={styles.studentCardMeta}>
+                                    <span className={styles.attemptBadgeCount}>
+                                      <FileText size={12} />
+                                      {st.attempts.length} {st.attempts.length === 1 ? 'Attempt' : 'Attempts'}
+                                    </span>
+                                    <span>Latest: {st.attempts[0].submittedAt ? new Date(st.attempts[0].submittedAt).toLocaleDateString() : 'N/A'}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Main Submission Review Panel */}
+                        <div className={styles.submissionsMain}>
+                          {selectedStudent ? (
+                            <>
+                              {/* Header Navigation & Cycle */}
+                              <div className={styles.studentNavHeader}>
+                                <div className={styles.studentNavTitle}>
+                                  <h3 className={styles.studentNavName}>{selectedStudent.studentName}</h3>
+                                  <div className={styles.studentNavSub}>
+                                    <span>Student {selectedStudentIndex + 1} of {uniqueStudents.length}</span>
+                                    <span>•</span>
+                                    <span>Total {selectedStudent.attempts.length} {selectedStudent.attempts.length === 1 ? 'attempt' : 'attempts'}</span>
+                                  </div>
+                                </div>
+
+                                <div className={styles.studentNavButtons}>
+                                  <button
+                                    type="button"
+                                    disabled={selectedStudentIndex <= 0}
+                                    onClick={() => handleCycleStudent(-1)}
+                                    className={styles.navCycleBtn}
+                                  >
+                                    <ChevronLeft size={16} /> Previous Student
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={selectedStudentIndex >= uniqueStudents.length - 1}
+                                    onClick={() => handleCycleStudent(1)}
+                                    className={styles.navCycleBtn}
+                                  >
+                                    Next Student <ChevronRight size={16} />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Multiple Attempts Selector (If > 1 attempt) */}
+                              {selectedStudent.attempts.length > 1 && (
+                                <div className={styles.attemptPillsBar}>
+                                  <span className={styles.attemptPillLabel}>Select Attempt:</span>
+                                  {selectedStudent.attempts.map((att) => {
+                                    const isActive = att.attemptId === selectedAttemptId;
+                                    return (
+                                      <button
+                                        key={att.attemptId}
+                                        type="button"
+                                        onClick={() => handleSelectAttempt(att.attemptId)}
+                                        className={`${styles.attemptPillBtn} ${isActive ? styles.attemptPillActive : ''}`}
+                                      >
+                                        Attempt #{att.attemptNumber} ({att.percentageScore.toFixed(0)}%)
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Answer Review Section */}
+                              {loadingAttemptData ? (
+                                <div className={styles.loading} style={{ minHeight: '300px' }}>
+                                  <div className={styles.spinner}></div>
+                                  <p>Loading submission answers...</p>
+                                </div>
+                              ) : selectedAttemptData ? (
+                                <div className={styles.attemptView} style={{ animation: 'none' }}>
+                                  {/* Attempt Summary Bar */}
+                                  <div className={styles.attemptSummary}>
+                                    <div className={styles.attemptScoreCard}>
+                                      <div className={`${styles.attemptScoreValue} ${getScoreColor(selectedAttemptData.percentageScore)}`}>
+                                        {selectedAttemptData.percentageScore.toFixed(1)}%
+                                      </div>
+                                      <div className={styles.attemptScoreLabel}>Score (Attempt #{selectedAttemptData.attemptNumber})</div>
+                                    </div>
+                                    <div className={styles.attemptStats}>
+                                      <div className={`${styles.attemptStat} text-success`}>
+                                        <div className={styles.attemptStatValue}>{selectedAttemptData.correctCount}</div>
+                                        <div className={styles.attemptStatLabel}>Correct</div>
+                                      </div>
+                                      <div className={`${styles.attemptStat} text-error`}>
+                                        <div className={styles.attemptStatValue}>{selectedAttemptData.wrongCount}</div>
+                                        <div className={styles.attemptStatLabel}>Wrong</div>
+                                      </div>
+                                      <div className={`${styles.attemptStat} text-warning`}>
+                                        <div className={styles.attemptStatValue}>{selectedAttemptData.skippedCount}</div>
+                                        <div className={styles.attemptStatLabel}>Skipped</div>
+                                      </div>
+                                      <div className={styles.attemptStat}>
+                                        <div className={styles.attemptStatValue} style={{ fontSize: '20px', color: 'var(--text-color)' }}>
+                                          {formatTime(selectedAttemptData.timeTakenSeconds)}
+                                        </div>
+                                        <div className={styles.attemptStatLabel}>Time Taken</div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Answer Review List */}
+                                  <div className={styles.reviewSectionWrapper} style={{ marginTop: '24px' }}>
+                                    <div className={styles.reviewHeader}>
+                                      <h4 className={styles.reviewTitle}>Complete Submitted Answers</h4>
+                                    </div>
+
+                                    <div className={styles.reviewList}>
+                                      {selectedAttemptData.questionsReview?.map((question: any, index: number) => (
+                                        <article key={question.questionId} className={`${styles.reviewCard} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                                          <div className={styles.reviewHeader}>
+                                            <div className={styles.reviewQuestionInfo}>
+                                              <span className={styles.reviewNumber}>Q{index + 1}</span>
+                                              <span className={`${styles.reviewStatus} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                                                {question.isSkipped ? 'Skipped' : question.isPartial ? 'Partial' : question.isCorrect ? 'Correct' : 'Incorrect'}
+                                              </span>
+                                            </div>
+                                          </div>
+
+                                          <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
+
+                                          <div className={styles.reviewOptions}>
+                                            {question.questionType === 'mcq' ? (
+                                              question.options?.map((option: any) => {
+                                                const studentStr = question.studentAnswer || '-'.repeat(question.options.length);
+                                                const correctStr = question.correctOption || 'F'.repeat(question.options.length);
+                                                const originalIdx = option.letter.charCodeAt(0) - 65;
+                                                const isT = studentStr[originalIdx] === 'T';
+                                                const isF = studentStr[originalIdx] === 'F';
+                                                const isCorrectT = correctStr[originalIdx] === 'T';
+                                                const isCorrectF = correctStr[originalIdx] === 'F';
+                                                const answered = isT || isF;
+                                                const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
+
+                                                let optionClass = styles.reviewOption;
+                                                if (answered) {
+                                                  if (isCorrect) optionClass += ` ${styles.optionStudentCorrect}`;
+                                                  else optionClass += ` ${styles.optionIncorrect}`;
+                                                }
+
+                                                return (
+                                                  <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px' }}>
+                                                    <div style={{ display: 'flex', gap: '8px', fontWeight: 600 }}>
+                                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectT ? 'var(--success-color)' : (isT ? 'transparent' : 'var(--bg-tertiary)'), border: (isT && !isCorrectT) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectT ? 'white' : (isT ? 'var(--error-color)' : 'var(--text-muted)') }}>
+                                                        <Check size={18} />
+                                                      </div>
+                                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectF ? 'var(--success-color)' : (isF ? 'transparent' : 'var(--bg-tertiary)'), border: (isF && !isCorrectF) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectF ? 'white' : (isF ? 'var(--error-color)' : 'var(--text-muted)') }}>
+                                                        <X size={18} />
+                                                      </div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                                                      <span className={styles.optionLetter}>{option.letter}</span>
+                                                      <span className={styles.optionText}>{option.text}</span>
+                                                    </div>
+                                                    <div style={{ width: '60px', textAlign: 'right' }}>
+                                                      {answered && isCorrect && <span className={styles.correctBadge}>Correct</span>}
+                                                      {answered && !isCorrect && <span className={styles.wrongBadge}>Wrong</span>}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })
+                                            ) : (
+                                              question.options?.map((option: any) => {
+                                                const isStudentAnswer = option.letter === question.studentAnswer;
+                                                const isCorrectAnswer = option.letter === question.correctOption;
+
+                                                let optionClass = styles.reviewOption;
+                                                if (isCorrectAnswer) optionClass += ` ${styles.optionCorrect}`;
+                                                if (isStudentAnswer && !isCorrectAnswer) optionClass += ` ${styles.optionIncorrect}`;
+                                                if (isStudentAnswer && isCorrectAnswer) optionClass += ` ${styles.optionStudentCorrect}`;
+
+                                                return (
+                                                  <div key={`${question.questionId}-${option.letter}`} className={optionClass}>
+                                                    <span className={styles.optionLetter}>{option.letter}</span>
+                                                    <span className={styles.optionText}>{option.text}</span>
+                                                    {isCorrectAnswer && <span className={styles.correctBadge}>Correct</span>}
+                                                    {isStudentAnswer && !isCorrectAnswer && <span className={styles.wrongBadge}>Student Answer</span>}
+                                                    {isStudentAnswer && isCorrectAnswer && <span className={styles.correctBadge}>Student Answer</span>}
+                                                  </div>
+                                                );
+                                              })
+                                            )}
+                                          </div>
+
+                                          {question.explanation && question.explanation.trim() !== '' && (
+                                            <div className={styles.explanation}>
+                                              <HelpCircle className={styles.explanationIcon} />
+                                              <div>
+                                                <strong>Explanation:</strong>
+                                                <p>{question.explanation}</p>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </article>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <div className={styles.noStudentSelected}>
+                              <Users className={styles.noStudentIcon} />
+                              <p>Select a student from the left panel to inspect their submission.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               {/* Overview Tab */}
               {activeTab === 'overview' && (
                 <div className={styles.tabPanel} role="tabpanel">

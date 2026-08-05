@@ -1356,3 +1356,273 @@
   text-transform: uppercase;
   letter-spacing: 1px;
 }
+
+/* Student Submissions Tab Layout */
+.submissionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.submissionsLayout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .submissionsLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.submissionsSidebar {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 200px);
+  position: sticky;
+  top: 24px;
+}
+
+@media (max-width: 992px) {
+  .submissionsSidebar {
+    max-height: 350px;
+    position: relative;
+    top: 0;
+  }
+}
+
+.sidebarHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebarTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studentListScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.studentCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.studentCard:hover {
+  background: var(--bg-tertiary);
+  border-color: rgba(237, 28, 40, 0.3);
+  transform: translateX(2px);
+}
+
+.studentCardActive {
+  background: linear-gradient(135deg, rgba(237, 28, 40, 0.12), rgba(237, 28, 40, 0.04));
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(237, 28, 40, 0.1);
+}
+
+.studentCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.studentCardName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studentCardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.attemptBadgeCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.studentScoreBadge {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.submissionsMain {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 500px;
+}
+
+.studentNavHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+}
+
+.studentNavTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.studentNavName {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.studentNavSub {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studentNavButtons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navCycleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navCycleBtn:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.navCycleBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.attemptPillsBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.attemptPillLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.attemptPillBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.attemptPillBtn:hover {
+  color: var(--text-color);
+  border-color: rgba(237, 28, 40, 0.4);
+}
+
+.attemptPillActive {
+  background: linear-gradient(135deg, var(--primary-color), #b01520);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(237, 28, 40, 0.3);
+}
+
+.noStudentSelected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  gap: 16px;
+}
+
+.noStudentIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
