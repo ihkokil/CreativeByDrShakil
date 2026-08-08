@@ -18,6 +18,7 @@ const nextConfig = {
     serverExternalPackages: ['@prisma/client', '.prisma/client'],
     experimental: {
         optimizePackageImports: ['lucide-react', 'framer-motion', 'zod', 'bcryptjs'],
+        proxyClientMaxBodySize: '1gb',
     },
     turbopack: {},
     images: {
@@ -42,7 +43,7 @@ const nextConfig = {
             style-src 'self' 'unsafe-inline';
             img-src 'self' blob: data: https://files.creativebydrshakil.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com;
             font-src 'self' data:;
-            connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com;
+            connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com https://files.creativebydrshakil.com;
             media-src 'self' blob: data: https://files.creativebydrshakil.com;
             object-src 'none';
             base-uri 'self';

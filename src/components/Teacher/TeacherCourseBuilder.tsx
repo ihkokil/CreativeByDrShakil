@@ -313,12 +313,40 @@ export default function TeacherCourseBuilder() {
 
     const uploadSelfHostedVideo = async () => {
         if (!uploadFile) return null;
+
+        // Step 1: Get upload config from API (lightweight JSON, no file bytes)
+        const configRes = await fetch("/api/teacher/uploads", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeadersForUpload() },
+            body: JSON.stringify({
+                filename: uploadFile.name,
+                size: uploadFile.size,
+                contentType: uploadFile.type,
+            }),
+        });
+        const config = await configRes.json();
+        if (!configRes.ok) throw new Error(config.error || "Failed to initiate upload.");
+
+        // Step 2: Upload file directly to Hostinger (bypasses Cloudflare Workers)
         const formData = new FormData();
         formData.append("file", uploadFile);
-        const response = await fetch("/api/teacher/uploads", { method: "POST", headers: authHeadersForUpload(), body: formData });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Upload failed.");
-        return data;
+        formData.append("folderPath", config.folderPath);
+        formData.append("fileName", config.fileName);
+
+        const uploadRes = await fetch(config.uploadUrl, {
+            method: "POST",
+            headers: { "X-Upload-Token": config.token },
+            body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.success) throw new Error(uploadData.error || "Upload failed.");
+
+        return {
+            url: config.finalUrl,
+            storagePath: `${config.folderPath}/${config.fileName}`,
+            fileName: config.fileName,
+            bytes: uploadFile.size,
+        };
     };
 
     const handleAddNode = async (event: FormEvent) => {
