@@ -15,13 +15,17 @@ export async function GET(request: NextRequest) {
             return new NextResponse('Failed to fetch file', { status: response.status });
         }
 
-        const blob = await response.blob();
+        const headers = new Headers();
+        headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+        headers.set('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
+        
+        const contentLength = response.headers.get('content-length');
+        if (contentLength) {
+            headers.set('Content-Length', contentLength);
+        }
 
-        return new NextResponse(blob, {
-            headers: {
-                'Content-Disposition': `attachment; filename="${fileName}"`,
-                'Content-Type': response.headers.get('content-type') || 'application/octet-stream',
-            },
+        return new NextResponse(response.body, {
+            headers,
         });
     } catch (error) {
         console.error('[Download Proxy Error]', error);
