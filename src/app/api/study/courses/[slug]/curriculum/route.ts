@@ -87,6 +87,40 @@ export async function GET(
     }
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);
+
+    // Fetch the "All Resources" folder from the Media Vault for this course
+    const { data: rootFolder } = await supabase
+      .from('VideoLibraryNode')
+      .select('id')
+      .is('parentId', null)
+      .ilike('title', course.title)
+      .limit(1)
+      .maybeSingle();
+
+    if (rootFolder) {
+      const { data: allResFolder } = await supabase
+        .from('VideoLibraryNode')
+        .select('id')
+        .eq('parentId', rootFolder.id)
+        .ilike('title', 'all resources')
+        .limit(1)
+        .maybeSingle();
+
+      if (allResFolder) {
+        // Inject if not already present
+        const hasIt = rawCurriculum.some((n: any) => String(n.title).trim().toLowerCase() === 'all resources');
+        if (!hasIt) {
+          rawCurriculum.unshift({
+            id: 'all-resources-root',
+            title: 'All Resources',
+            type: 'folder',
+            mediaVaultFolderId: allResFolder.id,
+            children: []
+          });
+        }
+      }
+    }
+
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);

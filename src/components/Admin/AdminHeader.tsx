@@ -58,6 +58,7 @@ export default function AdminHeader({ title, user, onToggleSidebar }: AdminHeade
                                     src={user.user_metadata.profile_image} 
                                     alt={user.user_metadata.full_name || "Profile"} 
                                     fill 
+                                    sizes="40px"
                                     className={styles.avatarImg}
                                 />
                             ) : (
