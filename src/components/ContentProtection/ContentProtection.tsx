@@ -54,13 +54,22 @@ export default function ContentProtection() {
         // 3. DevTools Detection
         const threshold = 160;
 
-        const checkDevTools = () => {
-            // Check for docked DevTools via window size difference
-            const widthDiff = window.outerWidth - window.innerWidth > threshold;
-            const heightDiff = window.outerHeight - window.innerHeight > threshold;
+        // Detect touch devices (iPads, phones, tablets) where virtual keyboards
+        // cause window.innerHeight to shrink, creating false positives.
+        const isTouchDevice = navigator.maxTouchPoints > 0;
 
-            if (widthDiff || heightDiff) {
-                setIsDevToolsOpen(true);
+        const checkDevTools = () => {
+            // Check for docked DevTools via window size difference.
+            // SKIP on touch devices: on iPadOS/iOS Safari, the on-screen keyboard
+            // shrinks innerHeight dramatically, causing outerHeight - innerHeight
+            // to exceed the threshold and falsely triggering the DevTools blocker.
+            if (!isTouchDevice) {
+                const widthDiff = window.outerWidth - window.innerWidth > threshold;
+                const heightDiff = window.outerHeight - window.innerHeight > threshold;
+
+                if (widthDiff || heightDiff) {
+                    setIsDevToolsOpen(true);
+                }
             }
 
             // 4. Debugger Trap
