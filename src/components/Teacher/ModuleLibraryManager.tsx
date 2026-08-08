@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Loader from "@/components/UI/Loader";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, Upload, Link as LinkIcon, UploadCloud } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useModal } from "@/hooks/useModal";
@@ -28,6 +28,26 @@ const findNodeInTree = (nodes: CurriculumNode[], id: string): CurriculumNode | u
         }
     }
     return undefined;
+};
+
+const MIME_TYPE_BY_EXTENSION: Record<string, string> = {
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/quicktime',
+    mkv: 'video/x-matroska',
+    m4v: 'video/mp4',
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    zip: 'application/zip',
+};
+
+const getUploadContentType = (file: File) => {
+    if (file.type) return file.type;
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    return MIME_TYPE_BY_EXTENSION[ext] || '';
 };
 
 interface FlatNode {
@@ -342,31 +362,77 @@ export default function ModuleLibraryManager() {
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
-    const uploadFileWithProgress = (file: File, token: string | null): Promise<any> => {
+    const uploadFileWithProgress = async (file: File, token: string | null): Promise<any> => {
+        const contentType = getUploadContentType(file);
+
+        // Step 1: Get upload config from API (lightweight JSON, no file bytes)
+        const configRes = await fetch('/api/teacher/uploads', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+                filename: file.name,
+                size: file.size,
+                contentType,
+            }),
+        });
+
+        const config = await configRes.json();
+        if (!configRes.ok) {
+            return { error: config.error || 'Failed to initiate upload.' };
+        }
+
+        // Step 2: Upload file directly to Hostinger (bypasses Cloudflare Workers)
         return new Promise((resolve, reject) => {
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/api/teacher/uploads');
-            if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-            
+            xhr.open('POST', config.uploadUrl);
+            xhr.setRequestHeader('X-Upload-Token', config.token);
+
             xhr.upload.onprogress = (event) => {
                 if (event.lengthComputable) {
                     const percent = Math.round((event.loaded / event.total) * 100);
                     setUploadProgress(percent);
                 }
             };
-            
+
             xhr.onload = () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
-                    try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error('Invalid response')); }
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        if (res.success) {
+                            resolve({
+                                url: config.finalUrl,
+                                storagePath: `${config.folderPath}/${config.fileName}`,
+                                fileName: config.fileName,
+                                bytes: file.size,
+                            });
+                        } else {
+                            resolve({ error: res.error || 'Upload failed on storage server.' });
+                        }
+                    } catch {
+                        resolve({ error: 'Invalid response from storage server.' });
+                    }
                 } else {
-                    try { const res = JSON.parse(xhr.responseText); resolve(res); } catch { reject(new Error('Upload failed')); }
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        resolve({ error: res.error || `Upload failed with status ${xhr.status}.` });
+                    } catch {
+                        resolve({
+                            error: xhr.responseText?.trim() || `Upload failed with status ${xhr.status}.`,
+                        });
+                    }
                 }
             };
-            
-            xhr.onerror = () => reject(new Error('Network error during upload'));
-            
+
+            xhr.onerror = () => reject(new Error('Unable to reach the storage server. Check the Hostinger deployment, HTTPS, and CORS settings.'));
+            xhr.onabort = () => reject(new Error('Upload was cancelled.'));
+
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('folderPath', config.folderPath);
+            formData.append('fileName', config.fileName);
             xhr.send(formData);
         });
     };
@@ -439,7 +505,7 @@ export default function ModuleLibraryManager() {
         setIsSubmitting(true);
         try {
             let resolvedVideoUrl = videoUrl.trim() || null;
-            let finalAttachments = videoType === 'document' ? [...docAttachments] : undefined;
+            const finalAttachments = videoType === 'document' ? [...docAttachments] : undefined;
 
             if (videoType === 'self-hosted' && videoFile) {
                 setUploadingVideo(true);
@@ -484,7 +550,7 @@ export default function ModuleLibraryManager() {
         setIsSubmitting(true);
         try {
             let finalUrl = videoUrl.trim() || null;
-            let finalAttachments = videoType === 'document' ? [...docAttachments] : undefined;
+            const finalAttachments = videoType === 'document' ? [...docAttachments] : undefined;
 
             if (!isFolder && videoType === 'self-hosted' && videoFile) {
                 setUploadingVideo(true);
@@ -936,7 +1002,7 @@ export default function ModuleLibraryManager() {
                                         }}
                                         onClick={() => document.getElementById('docFileInput')?.click()}
                                     >
-                                        <input id="docFileInput" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ display: 'none' }} onChange={e => {
+                                        <input id="docFileInput" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/zip,application/x-zip-compressed" style={{ display: 'none' }} onChange={e => {
                                             if (e.target.files) {
                                                 const files = Array.from(e.target.files);
                                                 const newAtts = files.map(f => ({ name: f.name, file: f }));
@@ -945,7 +1011,7 @@ export default function ModuleLibraryManager() {
                                         }} />
                                         <UploadCloud size={32} className={styles.dropIcon} />
                                         <p>Drag & Drop documents here, or click to select multiple</p>
-                                        <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX</small>
+                                        <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX, ZIP (max 500MB)</small>
                                     </div>
                                     
                                     {docAttachments.length > 0 && (
@@ -1057,7 +1123,7 @@ export default function ModuleLibraryManager() {
                                                     }}
                                                     onClick={() => document.getElementById('editDocFileInput')?.click()}
                                                 >
-                                                    <input id="editDocFileInput" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" style={{ display: 'none' }} onChange={e => {
+                                                    <input id="editDocFileInput" type="file" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/zip,application/x-zip-compressed" style={{ display: 'none' }} onChange={e => {
                                                         if (e.target.files) {
                                                             const files = Array.from(e.target.files);
                                                             const newAtts = files.map(f => ({ name: f.name, file: f }));

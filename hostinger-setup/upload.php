@@ -61,7 +61,7 @@ $allowedExtensions = [
     // Videos
     'mp4', 'webm', 'ogg', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v',
     // Documents
-    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'csv'
+    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'csv', 'zip'
 ];
 
 if (!in_array($fileExt, $allowedExtensions)) {
