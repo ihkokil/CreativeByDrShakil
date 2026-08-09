@@ -83,6 +83,8 @@ function AdminDashboardContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
+    const activeTab = (searchParams.get("tab") as "overview" | "users" | "students" | "teachers" | "enrollments" | "payments" | "support" | "settings" | "security" | "profile") || "overview";
+    
     const setActiveTab = (tab: string) => {
         if (tab === "overview") {
             router.push("/admin/dashboard");
