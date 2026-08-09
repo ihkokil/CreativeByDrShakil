@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { MediaPlayer, MediaProvider, type MediaPlayerInstance } from '@vidstack/react';
+import { MediaPlayer, MediaProvider, type MediaPlayerInstance, SeekButton } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
@@ -57,6 +57,9 @@ export default function VidstackPlayer({
     }
   };
 
+  const SeekBackwardIcon = defaultLayoutIcons.SeekButton.Backward;
+  const SeekForwardIcon = defaultLayoutIcons.SeekButton.Forward;
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <MediaPlayer
@@ -75,7 +78,21 @@ export default function VidstackPlayer({
         style={{ width: '100%', height: '100%' }}
       >
         <MediaProvider />
-        <DefaultVideoLayout icons={defaultLayoutIcons} />
+        <DefaultVideoLayout
+          icons={defaultLayoutIcons}
+          slots={{
+            beforePlayButton: (
+              <SeekButton seconds={-10} className="vds-button" aria-label="Seek backward 10 seconds">
+                <SeekBackwardIcon className="vds-icon" />
+              </SeekButton>
+            ),
+            afterPlayButton: (
+              <SeekButton seconds={10} className="vds-button" aria-label="Seek forward 10 seconds">
+                <SeekForwardIcon className="vds-icon" />
+              </SeekButton>
+            ),
+          }}
+        />
       </MediaPlayer>
 
       {/* Overlay to block YouTube branding clicks and right-click */}
