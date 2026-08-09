@@ -222,7 +222,7 @@ export default function LessonPlayer({
         type={isYoutube ? 'youtube' : undefined}
         title={lesson.title}
         poster={posterUrl}
-        autoplay={true}
+        autoplay={!isYoutube}
       />
 
       {/* ── Watermark — topmost, no pointer events ─────────────── */}

@@ -43,9 +43,9 @@ export default function VidstackPlayer({
     checkMobile();
   }, []);
 
-  // On mobile devices, YouTube embeds block unmuted autoplay.
-  // Setting autoPlay=true on mobile causes Vidstack state desync (shows pause icon while YT stays paused).
-  const shouldAutoPlay = isMobile ? false : autoplay;
+  // YouTube embeds block unmuted autoplay on both desktop and mobile browsers on initial load.
+  // Setting autoPlay=true on YouTube embeds causes Vidstack state desync (shows pause icon while YT stays paused).
+  const shouldAutoPlay = type === 'youtube' ? false : (isMobile ? false : autoplay);
 
   // For YouTube sources, Vidstack expects "youtube/{videoId}" format
   const resolvedSrc = type === 'youtube' ? `youtube/${src}` : src;
@@ -56,6 +56,30 @@ export default function VidstackPlayer({
       playerRef.current.pause();
     }
   };
+
+  // Safety fallback for YouTube state sync:
+  // If player gets stuck in playing state while YouTube iframe is blocked/paused, force Vidstack pause to resync UI.
+  useEffect(() => {
+    if (type !== 'youtube') return;
+
+    let timeoutId: NodeJS.Timeout | null = null;
+    const checkSync = () => {
+      const player = playerRef.current;
+      if (player && player.state.playing && player.state.currentTime === 0) {
+        timeoutId = setTimeout(() => {
+          if (player.state.playing && player.state.currentTime === 0) {
+            player.pause();
+          }
+        }, 1200);
+      }
+    };
+
+    const timer = setInterval(checkSync, 1000);
+    return () => {
+      clearInterval(timer);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [type, resolvedSrc]);
 
   const SeekBackwardIcon = defaultLayoutIcons.SeekButton.Backward;
   const SeekForwardIcon = defaultLayoutIcons.SeekButton.Forward;
