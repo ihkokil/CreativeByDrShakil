@@ -438,6 +438,7 @@ body.modal-open {
   max-height: min(calc(100vh - 48px), calc(100dvh - 48px)) !important;
   display: flex !important;
   flex-direction: column !important;
+  overflow: hidden !important;
   margin: auto !important;
   box-sizing: border-box !important;
 }

@@ -1015,11 +1015,11 @@ export default function ModuleLibraryManager() {
                                     </div>
                                     
                                     {docAttachments.length > 0 && (
-                                        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <div className={styles.docList}>
                                             {docAttachments.map((att, idx) => (
-                                                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--surface-color)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                                                    <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
-                                                    <button type="button" onClick={() => setDocAttachments(docAttachments.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                                <div key={idx} className={styles.docItem}>
+                                                    <span className={styles.docName} title={att.name}>{att.name}</span>
+                                                    <button type="button" onClick={() => setDocAttachments(docAttachments.filter((_, i) => i !== idx))} className={styles.docRemoveBtn} title="Remove document">
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
@@ -1135,11 +1135,11 @@ export default function ModuleLibraryManager() {
                                                 </div>
 
                                                 {docAttachments.length > 0 && (
-                                                    <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                    <div className={styles.docList}>
                                                         {docAttachments.map((att, idx) => (
-                                                            <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--surface-color)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                                                                <span style={{ fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
-                                                                <button type="button" onClick={() => setDocAttachments(docAttachments.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                                            <div key={idx} className={styles.docItem}>
+                                                                <span className={styles.docName} title={att.name}>{att.name}</span>
+                                                                <button type="button" onClick={() => setDocAttachments(docAttachments.filter((_, i) => i !== idx))} className={styles.docRemoveBtn} title="Remove document">
                                                                     <Trash2 size={16} />
                                                                 </button>
                                                             </div>
