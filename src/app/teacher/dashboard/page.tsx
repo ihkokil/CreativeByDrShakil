@@ -29,15 +29,27 @@ function TeacherDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    const activeTab = (searchParams.get("tab") as any) || "overview";
+    // Redirect legacy ?tab=[slug] query parameters to sub-routes
+    useEffect(() => {
+        const tabParam = searchParams.get("tab");
+        if (tabParam) {
+            if (tabParam === "overview") {
+                router.replace("/teacher/dashboard");
+            } else {
+                router.replace(`/teacher/dashboard/${tabParam}`);
+            }
+        }
+    }, [searchParams, router]);
 
     const [stats, setStats] = useState<TeacherStats | null>(null);
     const [statsLoading, setStatsLoading] = useState(true);
 
     const setActiveTab = (tab: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`?${params.toString()}`);
+        if (tab === "overview") {
+            router.push("/teacher/dashboard");
+        } else {
+            router.push(`/teacher/dashboard/${tab}`);
+        }
     };
 
     const fetchStats = useCallback(async () => {
@@ -66,7 +78,7 @@ function TeacherDashboardContent() {
         if (user) {
             fetchStats();
         }
-    }, [user, loading, router, fetchStats, activeTab]);
+    }, [user, loading, router, fetchStats]);
 
     if (loading || !user) {
         return <Loader text="Authenticating Instructor..." />;

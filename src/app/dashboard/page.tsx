@@ -89,6 +89,18 @@ function StudentDashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Redirect legacy ?tab=[slug] query parameters to sub-routes
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      if (tabParam === "overview") {
+        router.replace("/dashboard");
+      } else {
+        router.replace(`/dashboard/${tabParam}`);
+      }
+    }
+  }, [searchParams, router]);
+
   const activeTab = (searchParams.get("tab") as "overview" | "courses" | "purchases" | "profile" | "security") || "overview";
 
   const [data, setData] = useState<DashboardPayload | null>(null);
@@ -266,9 +278,11 @@ function StudentDashboardContent() {
             completedLessons={data.studyStats.completedLessons}
             enrolledCourses={data.enrolledCourses}
             onTabChange={(tab) => {
-              const url = new URL(window.location.href);
-              url.searchParams.set("tab", tab);
-              router.push(url.toString());
+              if (tab === "overview") {
+                router.push("/dashboard");
+              } else {
+                router.push(`/dashboard/${tab}`);
+              }
             }}
           />
         </div>

@@ -66,16 +66,29 @@ function AdminDashboardContent() {
     const { user, loading, role } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    // Redirect legacy ?tab=[slug] query parameters to sub-routes
+    useEffect(() => {
+        const tabParam = searchParams.get("tab");
+        if (tabParam) {
+            if (tabParam === "overview") {
+                router.replace("/admin/dashboard");
+            } else {
+                router.replace(`/admin/dashboard/${tabParam}`);
+            }
+        }
+    }, [searchParams, router]);
+
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     
-    const activeTab = (searchParams.get("tab") as "overview" | "users" | "students" | "teachers" | "enrollments" | "payments" | "support" | "settings" | "security" | "profile") || "overview";
-
     const setActiveTab = (tab: string) => {
-        const params = new URLSearchParams(searchParams);
-        params.set("tab", tab);
-        router.push(`?${params.toString()}`);
+        if (tab === "overview") {
+            router.push("/admin/dashboard");
+        } else {
+            router.push(`/admin/dashboard/${tab}`);
+        }
     };
 
     const [isAddStudentToCourseOpen, setIsAddStudentToCourseOpen] = useState(false);
