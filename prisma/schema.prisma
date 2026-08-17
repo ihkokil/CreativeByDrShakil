@@ -81,10 +81,26 @@ model Course {
   orders                      Order[]
   moduleAvailabilityOverrides StudentModuleAvailability[]
   batches                     Batch[]                     @relation("CourseBatches")
+  quizzes                     CourseQuiz[]
 
   @@index([teacherId])
   @@index([status])
   @@index([categoryId])
+}
+
+model CourseQuiz {
+  id               String   @id @default(cuid())
+  courseId         String
+  quizId           String   @unique
+  curriculumNodeId String?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([quizId])
+  @@index([curriculumNodeId])
 }
 
 model LessonProgress {

@@ -247,10 +247,108 @@
   overflow: hidden;
 }
 
+.courseSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.courseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  backdrop-filter: blur(12px);
+}
+
+.courseHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.courseHeaderIcon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-color);
+}
+
+.courseTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.courseBadge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  background: var(--primary-color-alpha);
+  color: var(--primary-color);
+  border-radius: 20px;
+}
+
+.moduleTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--info-text);
+  background: var(--info-bg);
+  padding: 4px 10px;
+  border-radius: 8px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+
+.badgeLocked {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.cardLocked {
+  opacity: 0.72;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.lockedBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.unlockDateText {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .badgeWrapper {
   margin-top: 8px;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
 }
 
 .badge {

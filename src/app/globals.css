@@ -443,3 +443,13 @@ body.modal-open {
   box-sizing: border-box !important;
 }
 
+[class*='overlay'] [class*='modalBody'],
+[class*='modalBackdrop'] [class*='modalBody'],
+[class*='modalOverlay'] [class*='modalBody'],
+[class*='confirmBackdrop'] [class*='modalBody'] {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+

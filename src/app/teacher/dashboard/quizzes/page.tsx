@@ -23,7 +23,12 @@ import {
   BarChart2,
   Link as LinkIcon,
   Check,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  BookOpen,
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -37,6 +42,10 @@ interface Quiz {
   numQuestionsToServe: number;
   status: 'draft' | 'published' | 'archived';
   category: { displayName: string } | null;
+  courseId?: string | null;
+  courseName?: string | null;
+  courseSlug?: string | null;
+  curriculumNodeId?: string | null;
   createdAt: string;
   publishedAt: string | null;
   _count: { questions: number };
@@ -44,14 +53,36 @@ interface Quiz {
   uniqueUsersCount?: number;
 }
 
+interface CourseItem {
+  id: string;
+  title: string;
+  slug?: string;
+  curriculumJson?: string;
+}
+
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total];
+  }
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, '...', current - 1, current, current + 1, '...', total];
+}
+
 export default function TeacherQuizzesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [courses, setCourses] = useState<CourseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+  const [courseFilter, setCourseFilter] = useState(searchParams.get('courseId') || '');
   const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -60,13 +91,44 @@ export default function TeacherQuizzesPage() {
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [pdfQuizInfo, setPdfQuizInfo] = useState<{ quiz: Quiz, questions: any[] } | null>(null);
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+  
+  // Link to Course modal state
+  const [linkModalQuiz, setLinkModalQuiz] = useState<Quiz | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [selectedNodeId, setSelectedNodeId] = useState<string>('');
+  const [courseModules, setCourseModules] = useState<Array<{ id: string; title: string }>>([]);
+  const [linkingLoading, setLinkingLoading] = useState(false);
+
   const pdfContainerRef = useRef<HTMLDivElement>(null);
-  const limit = 10;
+  const limit = 20;
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      const res = await fetch('/api/teacher/courses');
+      if (res.ok) {
+        const data = await res.json();
+        setCourses(data.courses || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch teacher courses', e);
+    }
+  };
+
+  useEffect(() => {
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    if (!isNaN(pageParam) && pageParam !== page) {
+      setPage(pageParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setActiveDropdownId(null);
     fetchQuizzes();
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, courseFilter, page]);
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -91,6 +153,7 @@ export default function TeacherQuizzesPage() {
       });
       
       if (statusFilter) params.set('status', statusFilter);
+      if (courseFilter) params.set('courseId', courseFilter);
 
       const res = await fetch(`/api/quiz?${params.toString()}`);
       const data = await res.json();
@@ -107,13 +170,120 @@ export default function TeacherQuizzesPage() {
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === page) return;
+    setPage(newPage);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', newPage.toString());
+    router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
+  };
+
+  const handleCourseTabChange = (cId: string) => {
+    setCourseFilter(cId);
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    if (cId) params.set('courseId', cId);
+    else params.delete('courseId');
+    params.set('page', '1');
+    router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
     const params = new URLSearchParams(searchParams.toString());
     if (search) params.set('search', search);
     else params.delete('search');
+    params.set('page', '1');
     router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
+  };
+
+  const handleOpenLinkModal = async (quiz: Quiz) => {
+    setLinkModalQuiz(quiz);
+    setSelectedCourseId(quiz.courseId || (courses[0]?.id || ''));
+    setSelectedNodeId(quiz.curriculumNodeId || '');
+
+    if (quiz.courseId) {
+      await loadCourseModules(quiz.courseId);
+    } else if (courses.length > 0) {
+      await loadCourseModules(courses[0].id);
+    }
+  };
+
+  const loadCourseModules = async (courseId: string) => {
+    try {
+      const res = await fetch(`/api/teacher/courses/${courseId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const curJson = data.course?.curriculumJson;
+        if (curJson) {
+          try {
+            const parsed = JSON.parse(curJson);
+            const modules: Array<{ id: string; title: string }> = [];
+            const extractFolders = (nodes: any[]) => {
+              for (const n of nodes) {
+                if (n.type === 'folder' || n.type === 'module' || n.children) {
+                  modules.push({ id: n.id, title: n.title });
+                }
+                if (n.children && Array.isArray(n.children)) {
+                  extractFolders(n.children);
+                }
+              }
+            };
+            extractFolders(Array.isArray(parsed) ? parsed : []);
+            setCourseModules(modules);
+            return;
+          } catch {}
+        }
+      }
+    } catch {}
+    setCourseModules([]);
+  };
+
+  const handleSaveCourseLink = async () => {
+    if (!linkModalQuiz || !selectedCourseId) return;
+    setLinkingLoading(true);
+    try {
+      const res = await fetch(`/api/teacher/courses/${selectedCourseId}/quizzes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quizIds: [linkModalQuiz.id],
+          curriculumNodeId: selectedNodeId ? selectedNodeId : null,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Failed to link quiz to course');
+      }
+      setLinkModalQuiz(null);
+      await fetchQuizzes();
+    } catch (err: any) {
+      alert(err.message || 'Failed to link quiz');
+    } finally {
+      setLinkingLoading(false);
+    }
+  };
+
+  const handleUnlinkFromCourse = async () => {
+    if (!linkModalQuiz || !linkModalQuiz.courseId) return;
+    if (!confirm('Are you sure you want to unlink this quiz from the course?')) return;
+    setLinkingLoading(true);
+    try {
+      const res = await fetch(`/api/teacher/courses/${linkModalQuiz.courseId}/quizzes?quizId=${linkModalQuiz.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Failed to unlink quiz');
+      }
+      setLinkModalQuiz(null);
+      await fetchQuizzes();
+    } catch (err: any) {
+      alert(err.message || 'Failed to unlink quiz');
+    } finally {
+      setLinkingLoading(false);
+    }
   };
 
   const handleStatusChange = (status: string) => {
@@ -122,6 +292,7 @@ export default function TeacherQuizzesPage() {
     const params = new URLSearchParams(searchParams.toString());
     if (status) params.set('status', status);
     else params.delete('status');
+    params.set('page', '1');
     router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
   };
 
@@ -311,6 +482,29 @@ export default function TeacherQuizzesPage() {
 
       {error && <div className={styles.error}>{error}</div>}
 
+      {/* Course Filter Tabs */}
+      {courses.length > 0 && (
+        <div className={styles.courseTabs}>
+          <button
+            type="button"
+            onClick={() => handleCourseTabChange('')}
+            className={`${styles.courseTab} ${!courseFilter ? styles.courseTabActive : ''}`}
+          >
+            <BookOpen size={14} /> All Courses
+          </button>
+          {courses.map(c => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => handleCourseTabChange(c.id)}
+              className={`${styles.courseTab} ${courseFilter === c.id ? styles.courseTabActive : ''}`}
+            >
+              <BookOpen size={14} /> {c.title}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={styles.toolbar}>
         <form onSubmit={handleSearch} className={styles.searchForm}>
           <label htmlFor="search" className={styles.visuallyHidden}>Search quizzes</label>
@@ -346,7 +540,7 @@ export default function TeacherQuizzesPage() {
           <div className={styles.emptyState}>
             <FileText className={styles.emptyIcon} />
             <h3>No quizzes found</h3>
-            <p>{search || statusFilter ? 'Try adjusting your search or filters' : 'Create your first quiz to get started'}</p>
+            <p>{search || statusFilter || courseFilter ? 'Try adjusting your search or filters' : 'Create your first quiz to get started'}</p>
             {!search && !statusFilter && (
               <Link href="/teacher/dashboard/quizzes/create" className={styles.createBtn}>
                 <Plus className={styles.btnIcon} />
@@ -360,6 +554,7 @@ export default function TeacherQuizzesPage() {
               <thead>
                 <tr>
                   <th scope="col">Quiz</th>
+                  <th scope="col">Course / Placement</th>
                   <th scope="col">Questions</th>
                   <th scope="col">Duration</th>
                   <th scope="col">Attempts / Users</th>
@@ -382,11 +577,24 @@ export default function TeacherQuizzesPage() {
                       </div>
                     </td>
                     <td>
+                      {quiz.courseName ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span className={styles.courseTag}>
+                            <BookOpen size={11} /> {quiz.courseName}
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                            {quiz.curriculumNodeId ? '📁 Module Quiz' : '📁 All Quizzes (Global)'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={styles.unlinkedTag}>Unlinked</span>
+                      )}
+                    </td>
+                    <td>
                       <span className={styles.questionCount}>
                         {quiz._count.questions} / {quiz.numQuestionsToServe} served
                       </span>
                     </td>
-                    <td>{formatDuration(quiz.durationMinutes)}</td>
                     <td>
                       <span className={styles.attemptsCount} title={`${quiz.attemptsCount} total attempts across ${quiz.uniqueUsersCount || 0} users`}>
                         {quiz.attemptsCount} / {quiz.uniqueUsersCount || 0} users
@@ -398,6 +606,13 @@ export default function TeacherQuizzesPage() {
                     </td>
                     <td>
                       <div className={styles.rowActions}>
+                        <button
+                          onClick={() => handleOpenLinkModal(quiz)}
+                          className={styles.rowActionBtn}
+                          title={quiz.courseId ? "Change Course Placement" : "Link to Course"}
+                        >
+                          <BookOpen className={styles.rowActionIcon} style={{ color: quiz.courseId ? 'var(--primary-color)' : 'inherit' }} />
+                        </button>
                         <Link
                           href={`/teacher/dashboard/quizzes/${quiz.id}/edit`}
                           className={styles.rowActionBtn}
@@ -468,30 +683,193 @@ export default function TeacherQuizzesPage() {
               </tbody>
             </table>
 
-            {totalPages > 1 && (
+            {totalCount > 0 && (
               <div className={styles.pagination}>
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className={styles.pageBtn}
-                >
-                  Previous
-                </button>
-                <span className={styles.pageInfo}>
-                  Page {page} of {totalPages} ({totalCount} total)
-                </span>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className={styles.pageBtn}
-                >
-                  Next
-                </button>
+                <div className={styles.paginationInfo}>
+                  Showing <span className={styles.highlightText}>{((page - 1) * limit) + 1}</span>–<span className={styles.highlightText}>{Math.min(page * limit, totalCount)}</span> of <span className={styles.highlightText}>{totalCount}</span> quizzes
+                </div>
+                
+                {totalPages > 1 && (
+                  <div className={styles.paginationControls}>
+                    <button
+                      onClick={() => handlePageChange(1)}
+                      disabled={page === 1}
+                      className={styles.pageIconBtn}
+                      title="First Page"
+                      aria-label="First Page"
+                    >
+                      <ChevronsLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page === 1}
+                      className={styles.pageIconBtn}
+                      title="Previous Page"
+                      aria-label="Previous Page"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+
+                    <div className={styles.pageNumbers}>
+                      {getPageNumbers(page, totalPages).map((p, idx) => {
+                        if (p === '...') {
+                          return <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>...</span>;
+                        }
+                        const pageNum = Number(p);
+                        return (
+                          <button
+                            key={`page-${pageNum}`}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`${styles.pageNumberBtn} ${page === pageNum ? styles.pageNumberActive : ''}`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page === totalPages}
+                      className={styles.pageIconBtn}
+                      title="Next Page"
+                      aria-label="Next Page"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                    <button
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={page === totalPages}
+                      className={styles.pageIconBtn}
+                      title="Last Page"
+                      aria-label="Last Page"
+                    >
+                      <ChevronsRight size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Link to Course Modal */}
+      {linkModalQuiz && (
+        <div className={styles.modalOverlay} onClick={() => setLinkModalQuiz(null)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0 }}>Course Placement</h3>
+              <button
+                type="button"
+                onClick={() => setLinkModalQuiz(null)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Assign <strong>{linkModalQuiz.title}</strong> to a course. A quiz can only belong to one course.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>
+                  Target Course
+                </label>
+                <select
+                  value={selectedCourseId}
+                  onChange={async (e) => {
+                    const cid = e.target.value;
+                    setSelectedCourseId(cid);
+                    setSelectedNodeId('');
+                    if (cid) await loadCourseModules(cid);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--card-bg)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                  }}
+                >
+                  <option value="">-- Select Course --</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedCourseId && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '6px' }}>
+                    Folder Placement
+                  </label>
+                  <select
+                    value={selectedNodeId}
+                    onChange={(e) => setSelectedNodeId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--card-bg)',
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
+                    }}
+                  >
+                    <option value="">📁 All Quizzes (Always Available)</option>
+                    {courseModules.map(m => (
+                      <option key={m.id} value={m.id}>📁 {m.title} (Unlocks with Module)</option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Quizzes in "All Quizzes" are immediately available. Quizzes attached to a module unlock when that module becomes available.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalActions} style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between' }}>
+              {linkModalQuiz.courseId ? (
+                <button
+                  type="button"
+                  onClick={handleUnlinkFromCourse}
+                  disabled={linkingLoading}
+                  className={`${styles.modalConfirm} ${styles.danger}`}
+                  style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444' }}
+                >
+                  Unlink Quiz
+                </button>
+              ) : (
+                <div />
+              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setLinkModalQuiz(null)}
+                  className={styles.modalCancel}
+                  disabled={linkingLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveCourseLink}
+                  disabled={linkingLoading || !selectedCourseId}
+                  className={styles.modalConfirm}
+                  style={{ background: 'var(--primary-color)', color: 'white' }}
+                >
+                  {linkingLoading ? 'Saving...' : 'Save Placement'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteConfirm && (
         <div className={styles.modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
@@ -553,16 +931,16 @@ export default function TeacherQuizzesPage() {
                       const isCorrectF = correctStr[originalIdx] === 'F';
                       
                       return (
-                        <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', background: isCorrectT ? 'var(--success)' : 'var(--surface-soft)', color: isCorrectT ? 'white' : 'var(--text-muted)' }}>
-                              <Check size={16} />
+                        <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '15px' }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>
+                          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '54px', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: isCorrectT ? 'var(--success, #10b981)' : 'var(--surface-soft, rgba(255,255,255,0.06))', color: isCorrectT ? 'white' : 'var(--text-muted, #888)' }}>
+                              True
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '6px', background: isCorrectF ? 'var(--success)' : 'var(--surface-soft)', color: isCorrectF ? 'white' : 'var(--text-muted)' }}>
-                              <X size={16} />
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '54px', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: isCorrectF ? 'var(--success, #10b981)' : 'var(--surface-soft, rgba(255,255,255,0.06))', color: isCorrectF ? 'white' : 'var(--text-muted, #888)' }}>
+                              False
                             </div>
                           </div>
-                          <span style={{ fontSize: '16px' }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>
                         </div>
                       );
                     })

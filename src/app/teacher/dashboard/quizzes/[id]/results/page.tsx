@@ -908,22 +908,34 @@ export default function TeacherQuizResultsPage() {
                           }
 
                           return (
-                            <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px' }}>
-                              <div style={{ display: 'flex', gap: '8px', fontWeight: 600 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectT ? 'var(--success-color)' : (isT ? 'transparent' : 'var(--bg-tertiary)'), border: (isT && !isCorrectT) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectT ? 'white' : (isT ? 'var(--error-color)' : 'var(--text-muted)') }}>
-                                  <Check size={18} />
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectF ? 'var(--success-color)' : (isF ? 'transparent' : 'var(--bg-tertiary)'), border: (isF && !isCorrectF) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectF ? 'white' : (isF ? 'var(--error-color)' : 'var(--text-muted)') }}>
-                                  <X size={18} />
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                            <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                                 <span className={styles.optionLetter}>{option.letter}</span>
                                 <span className={styles.optionText}>{option.text}</span>
                               </div>
-                              <div style={{ width: '60px', textAlign: 'right' }}>
-                                {answered && isCorrect && <span className={styles.correctBadge}>Correct</span>}
-                                {answered && !isCorrect && <span className={styles.wrongBadge}>Wrong</span>}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                <div style={{ 
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                  minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                                  background: isCorrectT ? 'var(--success-color, #10b981)' : ((isT && !isCorrectT) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
+                                  border: (isT && !isCorrectT) ? '2px solid var(--error-color, #ef4444)' : ((isT && isCorrectT) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
+                                  color: (isCorrectT || (isT && !isCorrectT)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                }}>
+                                  True
+                                </div>
+                                <div style={{ 
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                  minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                                  background: isCorrectF ? 'var(--success-color, #10b981)' : ((isF && !isCorrectF) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
+                                  border: (isF && !isCorrectF) ? '2px solid var(--error-color, #ef4444)' : ((isF && isCorrectF) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
+                                  color: (isCorrectF || (isF && !isCorrectF)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                }}>
+                                  False
+                                </div>
+                                <div style={{ minWidth: '60px', textAlign: 'right' }}>
+                                  {answered && isCorrect && <span className={styles.correctBadge}>Correct</span>}
+                                  {answered && !isCorrect && <span className={styles.wrongBadge}>Wrong</span>}
+                                </div>
                               </div>
                             </div>
                           );
@@ -1162,25 +1174,37 @@ export default function TeacherQuizResultsPage() {
                                 }
 
                                 return (
-                                  <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px' }}>
-                                    <div style={{ display: 'flex', gap: '8px', fontWeight: 600 }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectT ? 'var(--success-color)' : (isT ? 'transparent' : 'var(--bg-tertiary)'), border: (isT && !isCorrectT) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectT ? 'white' : (isT ? 'var(--error-color)' : 'var(--text-muted)') }}>
-                                        <Check size={18} />
+                                    <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 16px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                                        <span className={styles.optionLetter}>{option.letter}</span>
+                                        <span className={styles.optionText}>{option.text}</span>
                                       </div>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', borderRadius: '6px', background: isCorrectF ? 'var(--success-color)' : (isF ? 'transparent' : 'var(--bg-tertiary)'), border: (isF && !isCorrectF) ? '2px solid var(--error-color)' : '2px solid transparent', color: isCorrectF ? 'white' : (isF ? 'var(--error-color)' : 'var(--text-muted)') }}>
-                                        <X size={18} />
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                        <div style={{ 
+                                          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                          minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                                          background: isCorrectT ? 'var(--success-color, #10b981)' : ((isT && !isCorrectT) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
+                                          border: (isT && !isCorrectT) ? '2px solid var(--error-color, #ef4444)' : ((isT && isCorrectT) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
+                                          color: (isCorrectT || (isT && !isCorrectT)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                        }}>
+                                          True
+                                        </div>
+                                        <div style={{ 
+                                          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                          minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                                          background: isCorrectF ? 'var(--success-color, #10b981)' : ((isF && !isCorrectF) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
+                                          border: (isF && !isCorrectF) ? '2px solid var(--error-color, #ef4444)' : ((isF && isCorrectF) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
+                                          color: (isCorrectF || (isF && !isCorrectF)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                        }}>
+                                          False
+                                        </div>
+                                        <div style={{ minWidth: '60px', textAlign: 'right' }}>
+                                          {answered && isCorrect && <span className={styles.correctBadge}>Correct</span>}
+                                          {answered && !isCorrect && <span className={styles.wrongBadge}>Wrong</span>}
+                                        </div>
                                       </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                                      <span className={styles.optionLetter}>{option.letter}</span>
-                                      <span className={styles.optionText}>{option.text}</span>
-                                    </div>
-                                    <div style={{ width: '60px', textAlign: 'right' }}>
-                                      {answered && isCorrect && <span className={styles.correctBadge}>Correct</span>}
-                                      {answered && !isCorrect && <span className={styles.wrongBadge}>Wrong</span>}
-                                    </div>
-                                  </div>
-                                );
+                                  );
                               })
                             ) : (
                               question.options?.map((option: any) => {

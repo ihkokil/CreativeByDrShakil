@@ -1033,46 +1033,8 @@ function QuestionCard({
               
               return (
                 <div key={letter} className={`${styles.optionRow} ${isOptionCorrect ? styles.correctOption : ''}`}>
-                  {isMCQ ? (
-                    <div className={styles.tfCheckboxes}>
-                      <label className={styles.tfLabel} title="Mark as True">
-                        <input
-                          type="checkbox"
-                          checked={correctStr[idx] === 'T'}
-                          onChange={(e) => {
-                            const newArr = (correctStr.padEnd(5, '-')).split('');
-                            newArr[idx] = e.target.checked ? 'T' : '-';
-                            onUpdate(question.id, 'correctOption', newArr.join(''));
-                          }}
-                          className={styles.checkbox}
-                        />
-                        <span className={`${styles.tfBox} ${styles.trueBox}`}>
-                          <span className={styles.tfBoxText}>T</span>
-                          <span className={styles.tfTickAnim}></span>
-                        </span>
-                      </label>
-                      <label className={styles.tfLabel} title="Mark as False">
-                        <input
-                          type="checkbox"
-                          checked={correctStr[idx] === 'F'}
-                          onChange={(e) => {
-                            const newArr = (correctStr.padEnd(5, '-')).split('');
-                            newArr[idx] = e.target.checked ? 'F' : '-';
-                            onUpdate(question.id, 'correctOption', newArr.join(''));
-                          }}
-                          className={styles.checkbox}
-                        />
-                        <span className={`${styles.tfBox} ${styles.falseBox}`}>
-                          <span className={styles.tfBoxText}>F</span>
-                          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className={styles.crossSvg}>
-                            <path d="M 25 25 L 75 75" strokeDasharray="71" strokeDashoffset="71"></path>
-                            <path d="M 75 25 L 25 75" strokeDasharray="71" strokeDashoffset="71"></path>
-                          </svg>
-                        </span>
-                      </label>
-                    </div>
-                  ) : (
-                    <label className={styles.tfLabel}>
+                  {!isMCQ && (
+                    <label className={styles.tfLabel} title="Mark as correct answer">
                       <input
                         type="checkbox"
                         checked={question.correctOption === letter}
@@ -1099,6 +1061,34 @@ function QuestionCard({
                     className={styles.optionInput}
                     disabled={question.questionType === 'true_false'}
                   />
+                  {isMCQ && (
+                    <div className={styles.tfButtonGroup}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newArr = (correctStr.padEnd(5, '-')).split('');
+                          newArr[idx] = correctStr[idx] === 'T' ? '-' : 'T';
+                          onUpdate(question.id, 'correctOption', newArr.join(''));
+                        }}
+                        className={`${styles.tfBtn} ${correctStr[idx] === 'T' ? styles.tfBtnTrueActive : ''}`}
+                        title="Mark as True"
+                      >
+                        True
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newArr = (correctStr.padEnd(5, '-')).split('');
+                          newArr[idx] = correctStr[idx] === 'F' ? '-' : 'F';
+                          onUpdate(question.id, 'correctOption', newArr.join(''));
+                        }}
+                        className={`${styles.tfBtn} ${correctStr[idx] === 'F' ? styles.tfBtnFalseActive : ''}`}
+                        title="Mark as False"
+                      >
+                        False
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -100,16 +100,11 @@ export default function QuizTakePage() {
         if (data.existingAnswers) {
           data.existingAnswers.forEach((ans: any) => {
             if (initialAnswers[ans.questionId]) {
-              // For MCQ, isLocked stays false (per-option locking via T/F/- string)
-              // For SBA/true_false, isLocked = true if answered
-              const question = (data.questions || []).find((q: any) => q.id === ans.questionId);
-              const isMcq = question?.questionType === 'mcq';
-              
               initialAnswers[ans.questionId] = {
                 ...initialAnswers[ans.questionId],
                 selectedOption: ans.selectedOption,
                 isCorrect: ans.isCorrect,
-                isLocked: isMcq ? false : !!ans.selectedOption,
+                isLocked: false,
                 saved: true,
               };
             }
@@ -285,7 +280,8 @@ export default function QuizTakePage() {
   }, [answers, saveAnswers]);
 
   const handleAnswerSelect = (questionId: string, optionLetter: string, mcqSelection?: 'T' | 'F') => {
-    const q = questions.find(q => q.id === questionId);
+    if (showResults) return;
+    const q = questions.find(item => item.id === questionId);
     if (!q) return;
 
     let newSelectedForSave = optionLetter;
@@ -296,11 +292,7 @@ export default function QuizTakePage() {
       if (q.questionType === 'mcq') {
         const idx = optionLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
         const currentStr = current?.selectedOption || '-'.repeat(5);
-        
-        // Per-option lock: if this option is already marked (T or F), don't allow change
-        if (currentStr[idx] !== '-') return prev;
-        
-        const newArr = currentStr.split('');
+        const newArr = currentStr.padEnd(5, '-').split('');
         newArr[idx] = mcqSelection || 'T';
         const newSelectedOption = newArr.join('');
         newSelectedForSave = newSelectedOption;
@@ -310,21 +302,18 @@ export default function QuizTakePage() {
           [questionId]: {
             ...current,
             selectedOption: newSelectedOption,
-            isLocked: false, // MCQ uses per-option locking, not whole-question
+            isLocked: false,
             saved: false,
           },
         };
       } else {
-        // SBA / true_false: lock entire question on first selection
-        if (current?.isLocked) return prev;
-        
         newSelectedForSave = optionLetter;
         return {
           ...prev,
           [questionId]: {
             ...current,
             selectedOption: optionLetter,
-            isLocked: true,
+            isLocked: false,
             saved: false,
           },
         };
@@ -332,20 +321,8 @@ export default function QuizTakePage() {
     });
     
     // Immediately persist to server
-    // Need to compute the value outside setState since setState is async
     setTimeout(() => {
-      const currentAnswer = answers[questionId];
-      if (q.questionType === 'mcq') {
-        const idx = optionLetter.charCodeAt(0) - 65;
-        const currentStr = currentAnswer?.selectedOption || '-'.repeat(5);
-        if (currentStr[idx] !== '-') return; // already locked, don't save again
-        const newArr = currentStr.split('');
-        newArr[idx] = mcqSelection || 'T';
-        saveAnswerImmediately(questionId, newArr.join(''));
-      } else {
-        if (currentAnswer?.isLocked) return;
-        saveAnswerImmediately(questionId, optionLetter);
-      }
+      saveAnswerImmediately(questionId, newSelectedForSave);
     }, 0);
   };
 
@@ -550,11 +527,6 @@ export default function QuizTakePage() {
                     }}>
                       {q.questionType === 'mcq' ? '✓✗ True False selection [T_F]' : '○ Best option selection [SBA]'}
                     </span>
-                    {q.questionType !== 'mcq' && answers[q.id]?.isLocked && (
-                      <span className={styles.lockedBadge}>
-                        <Lock className={styles.lockedIcon} /> Locked
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -566,16 +538,12 @@ export default function QuizTakePage() {
                       const originalIdx = option.letter.charCodeAt(0) - 65;
                       const isT = currentStr[originalIdx] === 'T';
                       const isF = currentStr[originalIdx] === 'F';
-                      const isOptionLocked = currentStr[originalIdx] !== '-'; // per-option lock
                       
                       const correctStr = q.correctOption || 'F'.repeat(5);
                       const isCorrectT = correctStr[originalIdx] === 'T';
                       const isCorrectF = correctStr[originalIdx] === 'F';
                       
                       let optionClass = styles.mcqMatrixRow;
-                      if (isOptionLocked && !showResults) {
-                        optionClass += ` ${styles.optionLocked}`;
-                      }
                       if (showResults) {
                         if ((isT && isCorrectT) || (isF && isCorrectF)) {
                            optionClass += ` ${styles.optionCorrect}`;
@@ -586,31 +554,29 @@ export default function QuizTakePage() {
                       
                       return (
                         <div key={`${q.id}-${option.letter}`} className={optionClass}>
-                          <div className={styles.mcqMatrixButtons}>
-                            <button
-                              onClick={() => !isOptionLocked && handleAnswerSelect(q.id, option.letter, 'T')}
-                              disabled={isOptionLocked || showResults}
-                              className={`${styles.mcqBtn} ${isT ? styles.mcqBtnSelected : ''} ${showResults && isCorrectT ? styles.mcqBtnCorrect : ''} ${showResults && isT && !isCorrectT ? styles.mcqBtnWrong : ''}`}
-                              title="True"
-                            ><Check size={18} /></button>
-                            <button
-                              onClick={() => !isOptionLocked && handleAnswerSelect(q.id, option.letter, 'F')}
-                              disabled={isOptionLocked || showResults}
-                              className={`${styles.mcqBtn} ${isF ? styles.mcqBtnSelected : ''} ${showResults && isCorrectF ? styles.mcqBtnCorrect : ''} ${showResults && isF && !isCorrectF ? styles.mcqBtnWrong : ''}`}
-                              title="False"
-                            ><X size={18} /></button>
-                          </div>
-                          
                           <div className={styles.mcqMatrixLabel}>
                             <span className={styles.optionLetter}>{option.letter}</span>
                             <span className={styles.optionText}>{option.text}</span>
                           </div>
-                          
-                          {isOptionLocked && !showResults && (
-                            <span className={styles.lockedBadge} style={{ fontSize: '11px', padding: '2px 8px' }}>
-                              <Lock className={styles.lockedIcon} />
-                            </span>
-                          )}
+
+                          <div className={styles.mcqMatrixButtons}>
+                            <button
+                              onClick={() => handleAnswerSelect(q.id, option.letter, 'T')}
+                              disabled={showResults}
+                              className={`${styles.mcqBtn} ${styles.trueBtn} ${isT ? styles.mcqBtnSelected : ''} ${showResults && isCorrectT ? styles.mcqBtnCorrect : ''} ${showResults && isT && !isCorrectT ? styles.mcqBtnWrong : ''}`}
+                              title="True"
+                            >
+                              True
+                            </button>
+                            <button
+                              onClick={() => handleAnswerSelect(q.id, option.letter, 'F')}
+                              disabled={showResults}
+                              className={`${styles.mcqBtn} ${styles.falseBtn} ${isF ? styles.mcqBtnSelected : ''} ${showResults && isCorrectF ? styles.mcqBtnCorrect : ''} ${showResults && isF && !isCorrectF ? styles.mcqBtnWrong : ''}`}
+                              title="False"
+                            >
+                              False
+                            </button>
+                          </div>
                           
                           {showResults && (
                              <span className={styles.mcqMatrixResult}>
@@ -618,18 +584,16 @@ export default function QuizTakePage() {
                              </span>
                           )}
                         </div>
-                      )
+                      );
                     })
                   ) : (
                     q.options.map((option) => {
                       const answer = answers[q.id];
                       const isSelected = answer?.selectedOption === option.letter;
-                      const isLocked = answer?.isLocked;
                       const showResult = showResults && answer?.selectedOption !== undefined;
                       
                       let optionClass = styles.optionCard;
                       if (isSelected && !showResults) optionClass += ` ${styles.optionSelected}`;
-                      if (isLocked && !showResults) optionClass += ` ${styles.optionLocked}`;
                       
                       if (showResults) {
                         if (option.letter === q.correctOption) {
@@ -642,12 +606,12 @@ export default function QuizTakePage() {
                       return (
                         <button
                           key={`${q.id}-${option.letter}`}
-                          onClick={() => !isLocked && handleAnswerSelect(q.id, option.letter)}
-                          disabled={isLocked || showResults}
+                          onClick={() => handleAnswerSelect(q.id, option.letter)}
+                          disabled={showResults}
                           className={optionClass}
                           role="radio"
                           aria-checked={isSelected}
-                          aria-disabled={isLocked || showResults}
+                          aria-disabled={showResults}
                         >
                           <span className={styles.optionLetter}>{option.letter}</span>
                           <span className={styles.optionText}>{option.text}</span>

@@ -1,4 +1,4 @@
-export type CurriculumContentType = 'folder' | 'youtube' | 'self-hosted' | 'document';
+export type CurriculumContentType = 'folder' | 'youtube' | 'self-hosted' | 'document' | 'quiz';
 export type CourseReleaseModeValue = 'fixed_interval' | 'groups_per_week' | 'day_of_week' | 'explicit_dates' | 'instant' | 'circular';
 
 export interface LessonAvailabilityOverride {
@@ -17,6 +17,7 @@ export interface BuilderCurriculumNode {
   releaseGroupId?: string | null;
   releaseAt?: string | null;
   mediaVaultFolderId?: string | null;
+  quizId?: string | null;
   attachments?: any[];
   children?: BuilderCurriculumNode[];
 }
@@ -91,8 +92,9 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
   if (rawTypeStr === 'video') rawTypeStr = 'self-hosted';
   if (rawTypeStr === 'pdf') rawTypeStr = 'document';
   if (rawTypeStr === 'module') rawTypeStr = 'folder';
+  if (rawTypeStr === 'exam' || rawTypeStr === 'quiz') rawTypeStr = 'quiz';
 
-  if (!['folder', 'youtube', 'self-hosted', 'document'].includes(rawTypeStr)) {
+  if (!['folder', 'youtube', 'self-hosted', 'document', 'quiz'].includes(rawTypeStr)) {
     rawTypeStr = 'folder';
   }
   const rawType = rawTypeStr as CurriculumContentType;
@@ -120,6 +122,7 @@ const normalizeNode = (raw: unknown): BuilderCurriculumNode | null => {
     releaseGroupId: normalizeNullableText(raw.releaseGroupId),
     releaseAt: normalizeNullableText(raw.releaseAt),
     mediaVaultFolderId: normalizeNullableText((raw as any).mediaVaultFolderId),
+    quizId: normalizeNullableText((raw as any).quizId),
     attachments: Array.isArray((raw as any).attachments) ? (raw as any).attachments : undefined,
     children,
   };

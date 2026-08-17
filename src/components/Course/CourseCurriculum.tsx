@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./CourseCurriculum.module.css";
-import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder, CheckCircle2, FileText } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder, CheckCircle2, FileText, ClipboardList } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDisplayDate } from "@/lib/date-format";
 
-export type ContentType = 'youtube' | 'self-hosted' | 'document';
+export type ContentType = 'youtube' | 'self-hosted' | 'document' | 'quiz';
 
 export interface CurriculumNode {
     id: string;
@@ -12,6 +13,7 @@ export interface CurriculumNode {
     type: 'folder' | ContentType;
     duration?: string;
     url?: string;
+    quizId?: string;
     locked?: boolean;
     completed?: boolean;
     availableAt?: string | null;
@@ -49,14 +51,21 @@ const areAllChildrenCompleted = (item: CurriculumNode): boolean => {
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
+    const router = useRouter();
     const [isOpen, setIsOpen] = useState(!node.locked);
     const isFolder = node.type === 'folder';
+    const isQuiz = node.type === 'quiz';
     const isActive = node.id === activeNodeId;
 
     const handleClick = () => {
         if (isFolder) {
             if (node.locked) return;
             setIsOpen(!isOpen);
+        } else if (isQuiz) {
+            if (node.locked) return;
+            if (node.quizId) {
+                router.push(`/dashboard/quizzes/${node.quizId}`);
+            }
         } else {
             if (node.locked) {
                 return;
@@ -92,6 +101,23 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
                                 <span className={areAllChildrenCompleted(node) ? styles.completedBadge : styles.availableNow} style={{ marginLeft: 'auto', fontSize: '0.8rem' }}>
                                     {areAllChildrenCompleted(node) ? "Completed" : "Available"}
                                 </span>
+                            )}
+                        </>
+                    ) : isQuiz ? (
+                        <>
+                            <ClipboardList size={16} className={styles.playIcon} style={{ color: 'var(--primary-color, #6366f1)' }} />
+                            <span className={styles.title}>{node.title}</span>
+                            {node.duration && <span style={{ fontSize: '0.75rem', opacity: 0.7, marginLeft: '6px' }}>({node.duration})</span>}
+                            {node.completed && <CheckCircle2 size={14} className={styles.completedIcon} style={{ marginLeft: 'auto' }} />}
+                            {node.locked && (
+                                <>
+                                    <Lock size={14} className={styles.lockIcon} style={{ marginLeft: 'auto' }} />
+                                    {node.availableAt && (
+                                        <div className={styles.availableAt} style={{ marginLeft: '6px', fontSize: '0.75rem', textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+                                            <span>{formatDisplayDate(node.availableAt)}</span>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </>
                     ) : (

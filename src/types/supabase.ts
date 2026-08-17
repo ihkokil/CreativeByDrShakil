@@ -32,6 +32,36 @@ export type Database = {
         }
         Relationships: []
       }
+      CourseQuiz: {
+        Row: {
+          id: string
+          courseId: string
+          quizId: string
+          curriculumNodeId: string | null
+          sortOrder: number
+          createdAt: string
+          updatedAt: string
+        }
+        Insert: {
+          id?: string
+          courseId: string
+          quizId: string
+          curriculumNodeId?: string | null
+          sortOrder?: number
+          createdAt?: string
+          updatedAt?: string
+        }
+        Update: {
+          id?: string
+          courseId?: string
+          quizId?: string
+          curriculumNodeId?: string | null
+          sortOrder?: number
+          createdAt?: string
+          updatedAt?: string
+        }
+        Relationships: []
+      }
       Account: {
         Row: {
           access_token: string | null

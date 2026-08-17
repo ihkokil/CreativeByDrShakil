@@ -121,8 +121,74 @@ export async function GET(
       }
     }
 
-    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
-    const curriculum = ensureGroupInheritance(populatedCurriculum);
+    // Fetch course quizzes
+    const { data: courseQuizzes = [] } = await supabase
+      .from('CourseQuiz')
+      .select('id, quizId, curriculumNodeId, sortOrder')
+      .eq('courseId', course.id)
+      .order('sortOrder', { ascending: true });
+
+    const quizIds = (courseQuizzes || []).map((cq: any) => cq.quizId);
+    let quizMap = new Map<string, any>();
+    let completedQuizIds = new Set<string>();
+
+    if (quizIds.length > 0) {
+      const [{ data: quizData = [] }, { data: userAttempts = [] }] = await Promise.all([
+        supabase
+          .from('Quiz')
+          .select('id, title, durationMinutes, numQuestionsToServe, status')
+          .in('id', quizIds)
+          .eq('status', 'published'),
+        supabase
+          .from('QuizAttempt')
+          .select('quizId, status')
+          .eq('studentId', payload.sub)
+          .in('quizId', quizIds)
+          .in('status', ['submitted', 'auto_submitted']),
+      ]);
+
+      (quizData || []).forEach((q: any) => quizMap.set(q.id, q));
+      (userAttempts || []).forEach((a: any) => completedQuizIds.add(a.quizId));
+    }
+
+    // Attach module-level quizzes to raw curriculum
+    const attachModuleQuizzes = (nodes: any[]): any[] => {
+      return nodes.map(node => {
+        const matchingQuizzes = (courseQuizzes || []).filter(
+          (cq: any) => cq.curriculumNodeId && cq.curriculumNodeId === node.id && quizMap.has(cq.quizId)
+        );
+
+        let updatedChildren = node.children ? attachModuleQuizzes(node.children) : [];
+
+        if (matchingQuizzes.length > 0) {
+          const quizNodes = matchingQuizzes.map((cq: any) => {
+            const q = quizMap.get(cq.quizId);
+            return {
+              id: `quiz_${cq.id}`,
+              title: q.title,
+              type: 'quiz',
+              quizId: q.id,
+              duration: q.durationMinutes ? `${q.durationMinutes} min` : undefined,
+              completed: completedQuizIds.has(q.id),
+              children: [],
+            };
+          });
+
+          // Avoid duplicates if already attached
+          const existingQuizIds = new Set(updatedChildren.filter((c: any) => c.type === 'quiz').map((c: any) => c.quizId));
+          const newQuizNodes = quizNodes.filter((qn: any) => !existingQuizIds.has(qn.quizId));
+          updatedChildren = [...updatedChildren, ...newQuizNodes];
+        }
+
+        return {
+          ...node,
+          children: updatedChildren.length > 0 ? updatedChildren : (node.children || []),
+        };
+      });
+    };
+
+    const curriculumWithModuleQuizzes = attachModuleQuizzes(rawCurriculum);
+    const curriculum = ensureGroupInheritance(curriculumWithModuleQuizzes);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
 
@@ -203,27 +269,81 @@ export async function GET(
     const markCompleted = (nodes: any[]): any[] =>
       nodes.map(node => ({
         ...node,
-        completed: completedIds.has(node.id),
+        completed: node.type === 'quiz' ? (completedQuizIds.has(node.quizId) || completedIds.has(node.id)) : completedIds.has(node.id),
         children: node.children ? markCompleted(node.children) : undefined,
       }));
 
     const processedCurriculum = markCompleted(annotatedCurriculum);
 
+    // Build "All Quizzes" virtual folder:
+    // 1. Quizzes explicitly assigned to "All Quizzes" (curriculumNodeId is null/empty)
+    // 2. Plus any module-assigned quizzes that are currently unlocked
+    const globalCourseQuizzes = (courseQuizzes || []).filter(
+      (cq: any) => (!cq.curriculumNodeId || cq.curriculumNodeId === '') && quizMap.has(cq.quizId)
+    );
+
+    const allQuizzesItems: any[] = globalCourseQuizzes.map((cq: any) => {
+      const q = quizMap.get(cq.quizId);
+      return {
+        id: `quiz_${cq.id}`,
+        title: q.title,
+        type: 'quiz',
+        quizId: q.id,
+        duration: q.durationMinutes ? `${q.durationMinutes} min` : undefined,
+        locked: false,
+        availableAt: null,
+        completed: completedQuizIds.has(q.id),
+      };
+    });
+
+    // Traverse processedCurriculum to collect unlocked module quizzes
+    const collectUnlockedQuizzes = (nodes: any[]) => {
+      for (const node of nodes) {
+        if (node.type === 'quiz' && !node.locked) {
+          if (!allQuizzesItems.some((item: any) => item.quizId === node.quizId)) {
+            allQuizzesItems.push({
+              ...node,
+              locked: false,
+              availableAt: null,
+            });
+          }
+        }
+        if (node.children && Array.isArray(node.children)) {
+          collectUnlockedQuizzes(node.children);
+        }
+      }
+    };
+    collectUnlockedQuizzes(processedCurriculum);
+
     // Process "All Resources" folder positioning and visibility
     const allResourcesNode = processedCurriculum.find((n: any) => String(n.title).trim().toLowerCase() === 'all resources');
-    const otherNodes = processedCurriculum.filter((n: any) => String(n.title).trim().toLowerCase() !== 'all resources');
+    const otherNodes = processedCurriculum.filter((n: any) => {
+      const titleLower = String(n.title).trim().toLowerCase();
+      return titleLower !== 'all resources' && titleLower !== 'all quizzes' && titleLower !== 'all quizes';
+    });
 
-    let finalCurriculum = processedCurriculum;
+    let topVirtualNodes: any[] = [];
     if (allResourcesNode) {
       const hasDocs = Array.isArray(allResourcesNode.children) && allResourcesNode.children.length > 0;
       if (hasDocs) {
         allResourcesNode.locked = false;
         allResourcesNode.availableAt = null;
-        finalCurriculum = [allResourcesNode, ...otherNodes];
-      } else {
-        finalCurriculum = otherNodes;
+        topVirtualNodes.push(allResourcesNode);
       }
     }
+
+    if (allQuizzesItems.length > 0) {
+      topVirtualNodes.push({
+        id: 'all-quizzes-root',
+        title: 'All Quizzes',
+        type: 'folder',
+        locked: false,
+        availableAt: null,
+        children: allQuizzesItems,
+      });
+    }
+
+    const finalCurriculum = [...topVirtualNodes, ...otherNodes];
 
     return NextResponse.json({
       courseId: course.id,

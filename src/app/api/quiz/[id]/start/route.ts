@@ -41,6 +41,29 @@ export async function POST(
         return NextResponse.json({ error: 'Quiz is not available.' }, { status: 400 });
       }
 
+      // Check course enrollment
+      const { data: courseQuiz } = await supabase
+        .from('CourseQuiz')
+        .select('id, courseId, curriculumNodeId')
+        .eq('quizId', quizId)
+        .maybeSingle();
+
+      if (!courseQuiz) {
+        return NextResponse.json({ error: 'Quiz is not linked to any course.' }, { status: 403 });
+      }
+
+      const { data: order } = await supabase
+        .from('Order')
+        .select('id, enrolledAt, batchId, updatedAt')
+        .eq('userId', payload.sub)
+        .eq('courseId', courseQuiz.courseId)
+        .eq('status', 'approved')
+        .maybeSingle();
+
+      if (!order) {
+        return NextResponse.json({ error: 'You must be enrolled in the course to start this quiz.' }, { status: 403 });
+      }
+
       // Time window check
       if (quiz.startDatetime && new Date(quiz.startDatetime) > now) {
         return NextResponse.json({ error: 'Quiz has not started yet.' }, { status: 403 });

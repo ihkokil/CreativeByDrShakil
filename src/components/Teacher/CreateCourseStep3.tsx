@@ -2,15 +2,16 @@
 
 import { useEffect, useState, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X, Settings2, Repeat, LayoutList } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X, Settings2, Repeat, LayoutList, ClipboardList, PlusCircle, Check } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
 import { getPreviousTargetDay, generateModuleSchedule, generatePreviewSchedule } from "@/lib/module-scheduling";
 
 export interface StarterItem {
   id: string;
-  type: "folder" | "youtube" | "self-hosted" | "document" | string;
+  type: "folder" | "youtube" | "self-hosted" | "document" | "quiz" | string;
   title: string;
   url?: string;
+  quizId?: string;
   items?: StarterItem[]; 
 }
 
@@ -28,6 +29,21 @@ interface LibraryNode {
   url: string | null;
   duration: string | null;
   parentId: string | null;
+}
+
+interface LinkedCourseQuiz {
+  id: string;
+  courseId: string;
+  quizId: string;
+  curriculumNodeId: string | null;
+  sortOrder: number;
+  quiz: {
+    id: string;
+    title: string;
+    durationMinutes: number;
+    numQuestionsToServe: number;
+    status: string;
+  } | null;
 }
 
 // Date Helpers
@@ -65,6 +81,14 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
   const [releaseMode, setReleaseMode] = useState<"fixed_interval" | "circular">("fixed_interval");
   const [targetDay, setTargetDay] = useState<number>(5);
 
+  // Linked course quizzes state
+  const [linkedQuizzes, setLinkedQuizzes] = useState<LinkedCourseQuiz[]>([]);
+  const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
+  const [quizModal, setQuizModal] = useState<{ open: boolean; targetNodeId: string | null; targetTitle: string } | null>(null);
+  const [modalSelectedQuizIds, setModalSelectedQuizIds] = useState<string[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalSaving, setModalSaving] = useState(false);
+
   // Generated schedule: mapping topic ID to scheduled ISO Date string
   const [scheduleMap, setScheduleMap] = useState<Record<string, string>>({});
 
@@ -74,6 +98,83 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+  };
+
+  const fetchLinkedQuizzes = async () => {
+    if (!courseId) return;
+    try {
+      const res = await fetch(`/api/teacher/courses/${courseId}/quizzes`, { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setLinkedQuizzes(data.quizzes || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch linked quizzes", e);
+    }
+  };
+
+  const handleOpenQuizModal = async (targetNodeId: string | null, targetTitle: string) => {
+    setQuizModal({ open: true, targetNodeId, targetTitle });
+    setModalLoading(true);
+    try {
+      const [allQuizzesRes, courseQuizzesRes] = await Promise.all([
+        fetch('/api/quiz?limit=100', { headers: getAuthHeaders() }),
+        fetch(`/api/teacher/courses/${courseId}/quizzes`, { headers: getAuthHeaders() }),
+      ]);
+      const allQuizzesData = allQuizzesRes.ok ? await allQuizzesRes.json() : { quizzes: [] };
+      const courseQuizzesData = courseQuizzesRes.ok ? await courseQuizzesRes.json() : { quizzes: [] };
+
+      setAvailableQuizzes(allQuizzesData.quizzes || []);
+      const currentLinked = (courseQuizzesData.quizzes || []).filter(
+        (cq: any) => cq.curriculumNodeId === targetNodeId
+      );
+      setModalSelectedQuizIds(currentLinked.map((cq: any) => cq.quizId));
+    } catch (e) {
+      console.error("Failed to load teacher quizzes for modal", e);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleSaveQuizzes = async () => {
+    if (!courseId || !quizModal) return;
+    setModalSaving(true);
+    try {
+      const res = await fetch(`/api/teacher/courses/${courseId}/quizzes`, {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          quizIds: modalSelectedQuizIds,
+          curriculumNodeId: quizModal.targetNodeId,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to link quizzes");
+      }
+      await fetchLinkedQuizzes();
+      setQuizModal(null);
+    } catch (err: any) {
+      alert(err.message || "Failed to link quizzes");
+    } finally {
+      setModalSaving(false);
+    }
+  };
+
+  const handleUnlinkQuiz = async (quizId: string) => {
+    if (!courseId) return;
+    if (!confirm("Are you sure you want to remove this quiz from this course?")) return;
+    try {
+      const res = await fetch(`/api/teacher/courses/${courseId}/quizzes?quizId=${quizId}`, {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        setLinkedQuizzes(prev => prev.filter(q => q.quizId !== quizId));
+      }
+    } catch (e) {
+      console.error("Failed to unlink quiz", e);
+    }
   };
 
   const collectItemsRecursively = (nodes: LibraryNode[], parentId: string): StarterItem[] => {
@@ -239,6 +340,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
 
         setTopicOptions(allTopics);
         setSelectedTopicIds(initialSelectedOrder);
+        await fetchLinkedQuizzes();
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load course");
@@ -638,6 +740,84 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
             </p>
           )}
 
+          {/* All Quizzes (Global / Always Available) Folder */}
+          <div style={{
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid var(--glass-border)",
+            borderRadius: "14px",
+            padding: "18px 20px",
+            marginBottom: "20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "36px", height: "36px", borderRadius: "8px",
+                  background: "var(--primary-color-alpha, rgba(237,28,40,0.15))",
+                  display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)"
+                }}>
+                  <ClipboardList size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: "700", fontSize: "1.05rem" }}>All Quizzes (Always Available)</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                    Quizzes in this folder are available to enrolled students from the beginning.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleOpenQuizModal(null, "All Quizzes (Global)")}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "6px",
+                  padding: "8px 14px", borderRadius: "8px",
+                  background: "var(--primary)", color: "white",
+                  border: "none", fontWeight: "600", fontSize: "0.85rem", cursor: "pointer"
+                }}
+              >
+                <Plus size={16} /> Add Quiz
+              </button>
+            </div>
+
+            {/* List of quizzes in All Quizzes */}
+            {linkedQuizzes.filter(q => !q.curriculumNodeId).length === 0 ? (
+              <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontStyle: "italic", padding: "8px 0" }}>
+                No global quizzes added yet. Click "Add Quiz" to attach quizzes here.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
+                {linkedQuizzes.filter(q => !q.curriculumNodeId).map(lq => (
+                  <div key={lq.id} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "10px 14px", background: "rgba(0,0,0,0.15)",
+                    border: "1px solid rgba(255,255,255,0.06)", borderRadius: "8px"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <ClipboardList size={16} style={{ color: "var(--primary)" }} />
+                      <span style={{ fontWeight: "600", fontSize: "0.95rem" }}>{lq.quiz?.title || "Quiz"}</span>
+                      {lq.quiz?.durationMinutes && (
+                        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>({lq.quiz.durationMinutes} min)</span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleUnlinkQuiz(lq.quizId)}
+                      style={{
+                        background: "transparent", border: "none", color: "var(--text-muted)",
+                        cursor: "pointer", padding: "4px 8px", borderRadius: "4px", fontSize: "0.8rem"
+                      }}
+                      title="Remove quiz"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {selectedTopicIds.length === 0 ? (
               <div style={{ 
@@ -656,44 +836,218 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                 const [y, m, d] = isoDate ? isoDate.split('-').map(Number) : [0, 0, 0];
                 const displayDate = isoDate ? formatDisplayDate(new Date(y, m - 1, d)) : "";
 
+                const moduleQuizzes = linkedQuizzes.filter(q => q.curriculumNodeId === mod.id);
+
                 return (
                   <div key={`${mod.id}-${index}`} style={{ 
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    display: "flex", flexDirection: "column",
                     padding: "16px 20px", border: "1px solid var(--glass-border)", borderRadius: "12px",
-                    background: "rgba(0,0,0,0.1)"
+                    background: "rgba(0,0,0,0.1)", gap: "12px"
                   }}>
-                    <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-                      <div style={{ 
-                        width: "180px", color: "var(--primary)", fontWeight: "600", fontSize: "0.95rem",
-                        display: "flex", alignItems: "center", gap: "8px"
-                      }}>
-                        <Calendar size={16} /> {displayDate}
-                      </div>
-                      <div style={{ width: "2px", height: "30px", background: "var(--glass-border)" }} />
-                      <div>
-                        <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{topic.title}</div>
-                        <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
-                          Module #{mod.originalIndex + 1} &bull; {topic.subTopics.length} items
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+                        <div style={{ 
+                          width: "180px", color: "var(--primary)", fontWeight: "600", fontSize: "0.95rem",
+                          display: "flex", alignItems: "center", gap: "8px"
+                        }}>
+                          <Calendar size={16} /> {displayDate}
+                        </div>
+                        <div style={{ width: "2px", height: "30px", background: "var(--glass-border)" }} />
+                        <div>
+                          <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{topic.title}</div>
+                          <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", marginTop: "4px" }}>
+                            Module #{mod.originalIndex + 1} &bull; {topic.subTopics.length} items &bull; {moduleQuizzes.length} {moduleQuizzes.length === 1 ? 'Quiz' : 'Quizzes'}
+                          </div>
                         </div>
                       </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenQuizModal(mod.id, topic.title)}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: "4px",
+                            padding: "6px 12px", borderRadius: "6px",
+                            background: "rgba(255,255,255,0.06)", color: "var(--text-primary)",
+                            border: "1px solid var(--glass-border)", fontWeight: "600", fontSize: "0.8rem", cursor: "pointer"
+                          }}
+                        >
+                          <Plus size={14} /> Add Quiz
+                        </button>
+                        <button 
+                          onClick={() => removeTopic(mod.id)}
+                          style={{ 
+                            background: "transparent", border: "none", color: "var(--text-muted)", 
+                            cursor: "pointer", padding: "8px", borderRadius: "50%",
+                            display: "flex", alignItems: "center", justifyContent: "center"
+                          }}
+                          title="Remove module"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
                     </div>
-                    <button 
-                      onClick={() => removeTopic(mod.id)}
-                      style={{ 
-                        background: "transparent", border: "none", color: "var(--text-muted)", 
-                        cursor: "pointer", padding: "8px", borderRadius: "50%",
-                        display: "flex", alignItems: "center", justifyContent: "center"
-                      }}
-                      title="Remove module"
-                    >
-                      <X size={20} />
-                    </button>
+
+                    {/* Show module quizzes if any */}
+                    {moduleQuizzes.length > 0 && (
+                      <div style={{
+                        display: "flex", flexDirection: "column", gap: "6px",
+                        padding: "10px 14px", background: "rgba(255,255,255,0.02)",
+                        borderRadius: "8px", border: "1px dashed rgba(255,255,255,0.08)"
+                      }}>
+                        <div style={{ fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", color: "var(--text-muted)", letterSpacing: "0.5px" }}>
+                          Module Quizzes (Unlocks with this module)
+                        </div>
+                        {moduleQuizzes.map(mq => (
+                          <div key={mq.id} style={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            fontSize: "0.9rem"
+                          }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <ClipboardList size={14} style={{ color: "var(--primary)" }} />
+                              <span style={{ fontWeight: "500" }}>{mq.quiz?.title || "Quiz"}</span>
+                              {mq.quiz?.durationMinutes && (
+                                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>({mq.quiz.durationMinutes} min)</span>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleUnlinkQuiz(mq.quizId)}
+                              style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer" }}
+                              title="Remove quiz"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })
             )}
           </div>
         </div>
+
+        {/* Quiz Picker Modal */}
+        {quizModal && quizModal.open && (
+          <div style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 9999, padding: "20px"
+          }}>
+            <div style={{
+              background: "var(--card-bg, #1a1a1a)", border: "1px solid var(--glass-border)",
+              borderRadius: "16px", width: "100%", maxWidth: "560px", maxHeight: "80vh",
+              display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.6)"
+            }}>
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "18px 24px", borderBottom: "1px solid var(--glass-border)"
+              }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "700" }}>Add Quizzes</h3>
+                  <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                    Target: <strong style={{ color: "var(--primary)" }}>{quizModal.targetTitle}</strong>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuizModal(null)}
+                  style={{ background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ padding: "20px 24px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "10px" }}>
+                {modalLoading ? (
+                  <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>Loading your published quizzes...</div>
+                ) : availableQuizzes.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+                    No quizzes found. Please create and publish quizzes first in Teacher Dashboard &gt; Quizzes.
+                  </div>
+                ) : (
+                  availableQuizzes.map((q: any) => {
+                    const isSelected = modalSelectedQuizIds.includes(q.id);
+                    const isLinkedElsewhere = q.courseId && q.courseId !== courseId;
+
+                    return (
+                      <div
+                        key={q.id}
+                        onClick={() => {
+                          if (isLinkedElsewhere) return;
+                          if (isSelected) {
+                            setModalSelectedQuizIds(prev => prev.filter(id => id !== q.id));
+                          } else {
+                            setModalSelectedQuizIds(prev => [...prev, q.id]);
+                          }
+                        }}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "12px 16px", borderRadius: "10px",
+                          border: `1px solid ${isSelected ? "var(--primary)" : "var(--glass-border)"}`,
+                          background: isSelected ? "var(--primary-color-alpha, rgba(237,28,40,0.1))" : "rgba(255,255,255,0.02)",
+                          cursor: isLinkedElsewhere ? "not-allowed" : "pointer",
+                          opacity: isLinkedElsewhere ? 0.5 : 1,
+                          transition: "all 0.2s"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <div style={{
+                            width: "20px", height: "20px", borderRadius: "4px",
+                            border: `2px solid ${isSelected ? "var(--primary)" : "rgba(255,255,255,0.3)"}`,
+                            background: isSelected ? "var(--primary)" : "transparent",
+                            display: "flex", alignItems: "center", justifyContent: "center", color: "white"
+                          }}>
+                            {isSelected && <Check size={14} />}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: "600", fontSize: "0.95rem" }}>{q.title}</div>
+                            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                              {q.numQuestionsToServe || (q._count?.questions ?? 0)} questions &bull; {q.durationMinutes ? `${q.durationMinutes} min` : 'Unlimited'}
+                              {isLinkedElsewhere && <span style={{ color: "#ef4444", marginLeft: "8px" }}>(Linked to {q.courseName || 'another course'})</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              <div style={{
+                display: "flex", justifyContent: "flex-end", gap: "10px",
+                padding: "16px 24px", borderTop: "1px solid var(--glass-border)", background: "rgba(0,0,0,0.2)"
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setQuizModal(null)}
+                  style={{
+                    padding: "8px 16px", borderRadius: "8px",
+                    background: "transparent", color: "var(--text-muted)",
+                    border: "1px solid var(--glass-border)", cursor: "pointer", fontWeight: "600"
+                  }}
+                  disabled={modalSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveQuizzes}
+                  style={{
+                    padding: "8px 20px", borderRadius: "8px",
+                    background: "var(--primary)", color: "white",
+                    border: "none", cursor: "pointer", fontWeight: "600"
+                  }}
+                  disabled={modalSaving || modalLoading}
+                >
+                  {modalSaving ? "Saving..." : "Save Selection"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className={styles.actions}>
           <button
