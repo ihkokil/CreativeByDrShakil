@@ -164,20 +164,31 @@ export async function GET(request: NextRequest) {
 
         const annotated = annotateCurriculumAvailability(curriculum, computedReleaseGroupDates, new Date(), courseOverrides);
 
-        const indexNodes = (nodes: any[]) => {
+        const indexNodes = (nodes: any[], parentAvail?: { isLocked: boolean; availableAt: string | null; moduleName: string }) => {
           for (const n of nodes) {
-            availabilityMap.set(`${c.id}_${n.id}`, {
+            const nodeAvail = {
               isLocked: Boolean(n.locked),
               availableAt: n.availableAt || null,
               moduleName: n.title || 'Module',
-            });
+            };
+            const effectiveAvail = parentAvail?.isLocked ? parentAvail : nodeAvail;
+            availabilityMap.set(`${c.id}_${n.id}`, effectiveAvail);
+            if (n.mediaVaultFolderId) {
+              availabilityMap.set(`${c.id}_${n.mediaVaultFolderId}`, effectiveAvail);
+            }
             if (n.children && Array.isArray(n.children)) {
-              indexNodes(n.children);
+              indexNodes(n.children, effectiveAvail);
             }
           }
         };
         indexNodes(annotated);
       }
+
+      // Fetch VideoLibraryNode structure for mapping subfolders
+      const { data: vaultNodes = [] } = await supabase
+        .from('VideoLibraryNode')
+        .select('id, parentId, title, type');
+      const vaultMap = new Map((vaultNodes || []).map((vn: any) => [vn.id, vn]));
 
       // Query published quizzes
       let quizQuery = supabase
@@ -218,19 +229,43 @@ export async function GET(request: NextRequest) {
         attemptsMap.get(qId)!.push(a);
       }
 
-      const result = (dbQuizzes || []).map((q: any) => {
+      let result = (dbQuizzes || []).map((q: any) => {
         const link = (courseQuizLinks || []).find((cq: any) => cq.quizId === q.id);
         const course = link ? courseMap.get(link.courseId) : null;
         let isLocked = false;
         let availableAt: string | null = null;
-        let moduleName = 'All Quizzes';
+        let moduleName = 'All Quizes';
 
         if (link && link.curriculumNodeId) {
-          const avail = availabilityMap.get(`${link.courseId}_${link.curriculumNodeId}`);
+          let avail = availabilityMap.get(`${link.courseId}_${link.curriculumNodeId}`);
+          if (!avail) {
+            let currVaultId = link.curriculumNodeId;
+            while (currVaultId && !avail) {
+              const vNode = vaultMap.get(currVaultId);
+              if (vNode) {
+                avail = availabilityMap.get(`${link.courseId}_${vNode.id}`);
+                if (!avail && vNode.parentId) {
+                  currVaultId = vNode.parentId;
+                  continue;
+                }
+              }
+              break;
+            }
+          }
+
           if (avail) {
             isLocked = avail.isLocked;
             availableAt = avail.availableAt;
             moduleName = avail.moduleName;
+          } else {
+            const vNode = vaultMap.get(link.curriculumNodeId);
+            if (vNode && (String(vNode.title).trim().toLowerCase() === 'all quizes' || String(vNode.title).trim().toLowerCase() === 'all quizzes')) {
+              isLocked = false;
+              availableAt = null;
+              moduleName = 'All Quizes';
+            } else if (vNode) {
+              moduleName = vNode.title;
+            }
           }
         }
 
@@ -275,6 +310,18 @@ export async function GET(request: NextRequest) {
           } : null,
         };
       });
+
+      if (status) {
+        if (status === 'locked') {
+          result = result.filter(q => q.isLocked);
+        } else if (status === 'available' || status === 'not_attempted') {
+          result = result.filter(q => !q.isLocked && q.status === 'Not Attempted');
+        } else if (status === 'in_progress') {
+          result = result.filter(q => !q.isLocked && q.status === 'In Progress');
+        } else if (status === 'completed') {
+          result = result.filter(q => !q.isLocked && q.status === 'Completed');
+        }
+      }
 
       return NextResponse.json({
         quizzes: result,

@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Loader from "@/components/UI/Loader";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud, ClipboardList, Search, CheckSquare, PlusCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useModal } from "@/hooks/useModal";
 
-export type ContentType = 'youtube' | 'self-hosted' | 'document';
+export type ContentType = 'youtube' | 'self-hosted' | 'document' | 'quiz';
 
 export interface CurriculumNode {
     id: string;
@@ -14,6 +14,7 @@ export interface CurriculumNode {
     type: 'folder' | ContentType;
     duration?: string;
     url?: string;
+    quizId?: string;
     parentId?: string | null;
     attachments?: { name: string; url: string; type?: string; size?: number }[];
     children?: CurriculumNode[];
@@ -71,6 +72,7 @@ function buildTree(flatNodes: FlatNode[]): CurriculumNode[] {
             title: node.title,
             type: node.type as CurriculumNode['type'],
             url: node.url || undefined,
+            quizId: node.type === 'quiz' ? (node.url || node.id) : undefined,
             attachments: node.attachments || undefined,
             duration: node.duration || undefined,
             children: node.type === 'folder' ? [] : undefined,
@@ -169,10 +171,15 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                         <>
                             {node.type === 'document' ? (
                                 <FileText size={18} className={styles.playIcon} />
+                            ) : node.type === 'quiz' ? (
+                                <ClipboardList size={18} className={styles.playIcon} style={{ color: '#8b5cf6' }} />
                             ) : (
                                 <PlayCircle size={18} className={styles.playIcon} />
                             )}
                             <span className={styles.videoTitle}>{node.title}</span>
+                            {node.type === 'quiz' && (
+                                <span className={styles.quizBadge}>Quiz{node.duration ? ` • ${node.duration}` : ''}</span>
+                            )}
                         </>
                     )}
                 </div>
@@ -240,11 +247,19 @@ export default function ModuleLibraryManager() {
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
     const [isDocModalOpen, setIsDocModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+    const [quizModalTargetTitle, setQuizModalTargetTitle] = useState("");
+    const [availableQuizzes, setAvailableQuizzes] = useState<any[]>([]);
+    const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
+    const [quizSearch, setQuizSearch] = useState("");
+    const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+    const [savingQuizzes, setSavingQuizzes] = useState(false);
 
     useModal(isFolderModalOpen, () => setIsFolderModalOpen(false));
     useModal(isVideoModalOpen, () => setIsVideoModalOpen(false));
     useModal(isDocModalOpen, () => setIsDocModalOpen(false));
     useModal(isEditModalOpen, () => setIsEditModalOpen(false));
+    useModal(isQuizModalOpen, () => setIsQuizModalOpen(false));
     const [editingNode, setEditingNode] = useState<CurriculumNode | null>(null);
     const [activeParentId, setActiveParentId] = useState<string | null>(null);
 
@@ -354,6 +369,67 @@ export default function ModuleLibraryManager() {
         setDocAttachments([]);
         setIsDocModalOpen(true); 
     };
+    const handleOpenQuizModal = async (targetFolderId: string, folderTitle: string) => {
+        setActiveParentId(targetFolderId);
+        setQuizModalTargetTitle(folderTitle || "Folder");
+        setSelectedQuizIds([]);
+        setQuizSearch("");
+        setIsQuizModalOpen(true);
+        setLoadingQuizzes(true);
+
+        try {
+            const res = await fetch('/api/quiz?status=published', { headers: getAuthHeaders() });
+            if (res.ok) {
+                const data = await res.json();
+                setAvailableQuizzes(data.quizzes || []);
+            } else {
+                const res2 = await fetch('/api/quiz', { headers: getAuthHeaders() });
+                if (res2.ok) {
+                    const data2 = await res2.json();
+                    setAvailableQuizzes(data2.quizzes || []);
+                }
+            }
+        } catch (err: any) {
+            console.error("Failed to fetch quizzes", err);
+        } finally {
+            setLoadingQuizzes(false);
+        }
+    };
+
+    const handleSubmitQuizzes = async () => {
+        if (selectedQuizIds.length === 0 || !activeParentId || savingQuizzes) return;
+        setSavingQuizzes(true);
+        try {
+            const res = await fetch('/api/teacher/video-library', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    type: 'quiz',
+                    quizIds: selectedQuizIds,
+                    parentId: activeParentId,
+                }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to add quizzes.');
+
+            setIsQuizModalOpen(false);
+            setSelectedQuizIds([]);
+            await fetchLibrary();
+        } catch (err: any) {
+            alert(err.message || 'Failed to add quizzes.');
+        } finally {
+            setSavingQuizzes(false);
+        }
+    };
+
+    const filteredQuizzes = useMemo(() => {
+        if (!quizSearch.trim()) return availableQuizzes;
+        const q = quizSearch.toLowerCase();
+        return availableQuizzes.filter((quiz: any) =>
+            String(quiz.title || '').toLowerCase().includes(q)
+        );
+    }, [availableQuizzes, quizSearch]);
 
     const formatDuration = (seconds: number) => {
         if (!seconds || isNaN(seconds)) return "";
@@ -461,6 +537,13 @@ export default function ModuleLibraryManager() {
 
     const handleEditClick = (node: CurriculumNode, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
+        if (node.type === 'quiz') {
+            const qId = node.url || node.quizId;
+            if (qId) {
+                window.open(`/teacher/dashboard/quizzes/${qId}/edit`, '_blank');
+                return;
+            }
+        }
         setEditingNode(node);
         setFolderTitle(node.title);
         setVideoTitle(node.title);
@@ -725,6 +808,10 @@ export default function ModuleLibraryManager() {
                                 <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
                                     <FileText size={16} /> Document
                                 </button>
+                            ) : (String(activeRootNode?.title || '').trim().toLowerCase() === 'all quizes' || String(activeRootNode?.title || '').trim().toLowerCase() === 'all quizzes') ? (
+                                <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                    <PlusCircle size={16} /> Add Quiz
+                                </button>
                             ) : path.length === 1 && activeRootNode?.parentId === null ? (
                                 <>
                                     <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
@@ -733,14 +820,26 @@ export default function ModuleLibraryManager() {
                                     <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
                                         <Video size={16} /> Video
                                     </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                        <FileText size={16} /> Document
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                        <ClipboardList size={16} /> Quiz
+                                    </button>
                                 </>
                             ) : (
                                 <>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
+                                        <Folder size={16} /> Folder
+                                    </button>
                                     <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
                                         <Video size={16} /> Video
                                     </button>
                                     <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
                                         <FileText size={16} /> Document
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                        <ClipboardList size={16} /> Quiz
                                     </button>
                                 </>
                             )}
@@ -751,7 +850,7 @@ export default function ModuleLibraryManager() {
                         <div className={styles.emptyState}>
                             <FolderOpen size={48} className={styles.emptyIcon} />
                             <h3>Folder is Empty</h3>
-                            <p>Add subfolders or modules to construct this section.</p>
+                            <p>Add subfolders, quizzes, or modules to construct this section.</p>
                         </div>
                     ) : (
                         <div className={styles.libraryGrid} style={{ padding: '20px' }}>
@@ -793,17 +892,33 @@ export default function ModuleLibraryManager() {
                                         </button>
                                     </div>
 
-                                    <div className={styles.rootIconWrapper}>
-                                        {node.type === 'folder' ? <FolderOpen size={28} /> : (node.type === 'document' ? <FileText size={28} /> : <PlayCircle size={28} />)}
+                                    <div className={styles.rootIconWrapper} style={node.type === 'quiz' ? { background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' } : undefined}>
+                                        {node.type === 'folder' 
+                                            ? (String(node.title).trim().toLowerCase() === 'all quizes' || String(node.title).trim().toLowerCase() === 'all quizzes'
+                                                ? <ClipboardList size={28} style={{ color: '#8b5cf6' }} />
+                                                : (String(node.title).trim().toLowerCase() === 'all resources'
+                                                    ? <FileText size={28} style={{ color: '#3b82f6' }} />
+                                                    : <FolderOpen size={28} />))
+                                            : (node.type === 'document' 
+                                                ? <FileText size={28} /> 
+                                                : (node.type === 'quiz' 
+                                                    ? <ClipboardList size={28} style={{ color: '#8b5cf6' }} /> 
+                                                    : <PlayCircle size={28} />))}
                                     </div>
                                     <div>
                                         <h3 className={styles.rootTitle}>{node.title}</h3>
                                         <span className={styles.rootMeta}>
                                             {node.type === 'folder' 
-                                                ? `${node.children?.length || 0} items inside` 
+                                                ? (String(node.title).trim().toLowerCase() === 'all quizes' || String(node.title).trim().toLowerCase() === 'all quizzes'
+                                                    ? `${node.children?.length || 0} quizzes inside`
+                                                    : (String(node.title).trim().toLowerCase() === 'all resources'
+                                                        ? `${node.children?.length || 0} documents inside`
+                                                        : `${node.children?.length || 0} items inside`))
                                                 : node.type === 'document' 
                                                     ? 'Document' 
-                                                    : (node.duration ? `Duration: ${node.duration}` : 'Video')}
+                                                    : node.type === 'quiz'
+                                                        ? (node.duration ? `Quiz • ${node.duration}` : 'Quiz')
+                                                        : (node.duration ? `Duration: ${node.duration}` : 'Video')}
                                         </span>
                                     </div>
                                 </motion.div>
@@ -834,6 +949,10 @@ export default function ModuleLibraryManager() {
                                 <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
                                     <FileText size={16} /> Document
                                 </button>
+                            ) : (String(activeRootNode?.title || '').trim().toLowerCase() === 'all quizes' || String(activeRootNode?.title || '').trim().toLowerCase() === 'all quizzes') ? (
+                                <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                    <PlusCircle size={16} /> Add Quiz
+                                </button>
                             ) : path.length === 1 && activeRootNode?.parentId === null ? (
                                 <>
                                     <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
@@ -842,14 +961,26 @@ export default function ModuleLibraryManager() {
                                     <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
                                         <Video size={16} /> Video
                                     </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                        <FileText size={16} /> Document
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                        <ClipboardList size={16} /> Quiz
+                                    </button>
                                 </>
                             ) : (
                                 <>
+                                    <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
+                                        <Folder size={16} /> Folder
+                                    </button>
                                     <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
                                         <Video size={16} /> Video
                                     </button>
                                     <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
                                         <FileText size={16} /> Document
+                                    </button>
+                                    <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                        <ClipboardList size={16} /> Quiz
                                     </button>
                                 </>
                             )}
@@ -1159,6 +1290,118 @@ export default function ModuleLibraryManager() {
                                 )}
                                 <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>{isSubmitting ? 'Updating...' : 'Save Changes'}</button>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Quiz Selector Modal */}
+            <AnimatePresence>
+                {isQuizModalOpen && (
+                    <div className={styles.modalOverlay} onClick={() => setIsQuizModalOpen(false)}>
+                        <motion.div className={`${styles.modal} ${styles.quizModal}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} onClick={e => e.stopPropagation()}>
+                            <div className={styles.modalHeader}>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Add Quizzes to {quizModalTargetTitle}</h3>
+                                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                                        Select from your published quizzes to attach to this folder.
+                                    </p>
+                                </div>
+                                <button className={styles.closeBtn} onClick={() => setIsQuizModalOpen(false)}><X size={20} /></button>
+                            </div>
+
+                            <div className={styles.quizModalBody}>
+                                <div className={styles.quizModalSearch}>
+                                    <Search size={16} className={styles.searchIcon} />
+                                    <input
+                                        type="text"
+                                        placeholder="Search quizzes by title..."
+                                        value={quizSearch}
+                                        onChange={(e) => setQuizSearch(e.target.value)}
+                                        className={styles.quizSearchInput}
+                                        autoFocus
+                                    />
+                                </div>
+
+                                <div className={styles.quizListContainer}>
+                                    {loadingQuizzes ? (
+                                        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                                            <Loader variant="inline" text="Loading quizzes..." />
+                                        </div>
+                                    ) : filteredQuizzes.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>
+                                            {availableQuizzes.length === 0 ? (
+                                                <>
+                                                    <p style={{ fontWeight: 600, marginBottom: '6px' }}>No Published Quizzes Found</p>
+                                                    <p style={{ fontSize: '13px' }}>Create and publish quizzes in the Quizzes section first.</p>
+                                                </>
+                                            ) : (
+                                                <p>No quizzes matching &quot;{quizSearch}&quot;</p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        filteredQuizzes.map((quiz: any) => {
+                                            const isSelected = selectedQuizIds.includes(quiz.id);
+                                            const isAlreadyInFolder = activeRootNode?.children?.some((c: any) => c.type === 'quiz' && (c.url === quiz.id || c.quizId === quiz.id));
+
+                                            return (
+                                                <div
+                                                    key={quiz.id}
+                                                    className={`${styles.quizOptionRow} ${isSelected ? styles.quizOptionRowSelected : ''}`}
+                                                    onClick={() => {
+                                                        if (isSelected) {
+                                                            setSelectedQuizIds(selectedQuizIds.filter(id => id !== quiz.id));
+                                                        } else {
+                                                            setSelectedQuizIds([...selectedQuizIds, quiz.id]);
+                                                        }
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => {}}
+                                                        className={styles.quizCheckbox}
+                                                    />
+                                                    <div className={styles.quizOptionInfo}>
+                                                        <div className={styles.quizOptionTitle}>
+                                                            {quiz.title}
+                                                            {isAlreadyInFolder && (
+                                                                <span className={styles.alreadyAddedBadge}>In Folder</span>
+                                                            )}
+                                                        </div>
+                                                        <div className={styles.quizOptionMeta}>
+                                                            {quiz.numQuestionsToServe || quiz.questionsCount || 0} Questions • {quiz.durationMinutes || 0} mins
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className={styles.quizModalFooter}>
+                                <span className={styles.quizSelectedCount}>
+                                    {selectedQuizIds.length} quiz{selectedQuizIds.length !== 1 ? 'zes' : ''} selected
+                                </span>
+                                <div className={styles.quizModalActions}>
+                                    <button
+                                        type="button"
+                                        className={styles.cancelBtn}
+                                        onClick={() => setIsQuizModalOpen(false)}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={styles.submitBtn}
+                                        disabled={selectedQuizIds.length === 0 || savingQuizzes}
+                                        onClick={handleSubmitQuizzes}
+                                    >
+                                        {savingQuizzes ? 'Adding...' : `Add Selected (${selectedQuizIds.length})`}
+                                    </button>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 )}

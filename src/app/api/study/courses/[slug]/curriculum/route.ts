@@ -155,7 +155,7 @@ export async function GET(
     const attachModuleQuizzes = (nodes: any[]): any[] => {
       return nodes.map(node => {
         const matchingQuizzes = (courseQuizzes || []).filter(
-          (cq: any) => cq.curriculumNodeId && cq.curriculumNodeId === node.id && quizMap.has(cq.quizId)
+          (cq: any) => cq.curriculumNodeId && (cq.curriculumNodeId === node.id || (node.mediaVaultFolderId && cq.curriculumNodeId === node.mediaVaultFolderId)) && quizMap.has(cq.quizId)
         );
 
         let updatedChildren = node.children ? attachModuleQuizzes(node.children) : [];

@@ -42,23 +42,46 @@ export async function GET(request: NextRequest) {
         if (error) throw error;
 
         // Auto-repair / Migration logic:
-        // 1. Ensure every root course folder has an "All Resources" folder at sortOrder: -1
-        // 2. Wrap any direct non-folder nodes in root course folders into wrapper folders
+        // 1. Ensure every root course folder has an "All Resources" folder at sortOrder: -2
+        // 2. Ensure every root course folder has an "All Quizes" folder at sortOrder: -1
+        // 3. Wrap any direct non-folder nodes in root course folders into wrapper folders
         let databaseModified = false;
         const allNodes = nodes || [];
         const rootCourseNodes = allNodes.filter((n: any) => n.parentId === null && n.type === 'folder');
 
         for (const rootNode of rootCourseNodes) {
+            const nowStr = new Date().toISOString();
+
             // 1. Check for "All Resources" folder
-            const hasAllResources = allNodes.some(
+            const allResNode = allNodes.find(
                 (n: any) => n.parentId === rootNode.id && String(n.title).trim().toLowerCase() === 'all resources'
             );
-            if (!hasAllResources) {
+            if (!allResNode) {
                 const allResId = crypto.randomUUID();
-                const nowStr = new Date().toISOString();
                 await supabase.from('VideoLibraryNode').insert({
                     id: allResId,
                     title: 'All Resources',
+                    type: 'folder',
+                    parentId: rootNode.id,
+                    sortOrder: -2,
+                    createdAt: nowStr,
+                    updatedAt: nowStr,
+                } as any);
+                databaseModified = true;
+            } else if (allResNode.sortOrder !== -2) {
+                await supabase.from('VideoLibraryNode').update({ sortOrder: -2 } as any).eq('id', allResNode.id);
+                databaseModified = true;
+            }
+
+            // 2. Check for "All Quizes" folder
+            const allQuizNode = allNodes.find(
+                (n: any) => n.parentId === rootNode.id && (String(n.title).trim().toLowerCase() === 'all quizes' || String(n.title).trim().toLowerCase() === 'all quizzes')
+            );
+            if (!allQuizNode) {
+                const allQuizId = crypto.randomUUID();
+                await supabase.from('VideoLibraryNode').insert({
+                    id: allQuizId,
+                    title: 'All Quizes',
                     type: 'folder',
                     parentId: rootNode.id,
                     sortOrder: -1,
@@ -66,15 +89,17 @@ export async function GET(request: NextRequest) {
                     updatedAt: nowStr,
                 } as any);
                 databaseModified = true;
+            } else if (allQuizNode.sortOrder !== -1) {
+                await supabase.from('VideoLibraryNode').update({ sortOrder: -1 } as any).eq('id', allQuizNode.id);
+                databaseModified = true;
             }
 
-            // 2. Check for non-folder direct children under root course folder
+            // 3. Check for non-folder direct children under root course folder
             const directNonFolderChildren = allNodes.filter(
                 (n: any) => n.parentId === rootNode.id && n.type !== 'folder'
             );
             for (const child of directNonFolderChildren) {
                 const wrapperId = crypto.randomUUID();
-                const nowStr = new Date().toISOString();
                 // Create wrapper folder
                 await supabase.from('VideoLibraryNode').insert({
                     id: wrapperId,
@@ -108,35 +133,31 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST — Create a new node (folder or video)
+// POST — Create a new node (folder, video, document, or quiz)
 export async function POST(request: NextRequest) {
     try {
         const authCheck = await requireTeacherOrAdmin(request);
         if (!authCheck.ok) return authCheck.response;
 
         const body = await request.json();
-        const title = String(body?.title || '').trim();
         const type = String(body?.type || 'folder').trim();
-        const url = body?.url ? String(body.url).trim() : null;
-        const duration = body?.duration ? String(body.duration).trim() : null;
         let parentId = body?.parentId || null;
-        const attachments = Array.isArray(body?.attachments) ? body.attachments : null;
 
-        if (!title) {
-            return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
-        }
-
-        if (!['folder', 'youtube', 'self-hosted', 'document'].includes(type)) {
+        if (!['folder', 'youtube', 'self-hosted', 'document', 'quiz'].includes(type)) {
             return NextResponse.json({ error: 'Invalid type.' }, { status: 400 });
         }
 
         const supabase = getSupabaseAdmin();
+        const nowStr = new Date().toISOString();
 
-        let isParentRootCourseFolder = false;
+        // Find parent node if exists
+        let parentNode: any = null;
+        let rootCourseFolder: any = null;
+
         if (parentId) {
             const { data: parent } = await supabase
               .from('VideoLibraryNode')
-              .select('id, parentId')
+              .select('*')
               .eq('id', parentId)
               .limit(1)
               .maybeSingle();
@@ -144,19 +165,168 @@ export async function POST(request: NextRequest) {
             if (!parent) {
                 return NextResponse.json({ error: 'Parent node not found.' }, { status: 404 });
             }
-            if (parent.parentId === null) {
-                isParentRootCourseFolder = true;
+            parentNode = parent;
+
+            // Traverse up to find root course folder
+            let current: any = parent;
+            while (current && current.parentId !== null) {
+                const { data: ancestor } = await supabase
+                    .from('VideoLibraryNode')
+                    .select('*')
+                    .eq('id', current.parentId)
+                    .limit(1)
+                    .maybeSingle();
+                current = ancestor;
             }
+            rootCourseFolder = current;
+        }
+
+        // Handle Quizzes
+        if (type === 'quiz') {
+            const quizIds: string[] = Array.isArray(body?.quizIds) && body.quizIds.length > 0
+                ? body.quizIds
+                : (body?.quizId ? [body.quizId] : (body?.url ? [body.url] : []));
+
+            if (quizIds.length === 0) {
+                return NextResponse.json({ error: 'At least one quiz ID is required.' }, { status: 400 });
+            }
+
+            // Fetch quiz details
+            const { data: quizzes = [] } = await supabase
+                .from('Quiz')
+                .select('id, title, durationMinutes')
+                .in('id', quizIds);
+
+            if (!quizzes || quizzes.length === 0) {
+                return NextResponse.json({ error: 'Selected quiz(zes) not found.' }, { status: 404 });
+            }
+
+            // Match root course folder to Course table
+            let course: any = null;
+            if (rootCourseFolder) {
+                const { data: courseData } = await supabase
+                    .from('Course')
+                    .select('id, title')
+                    .ilike('title', rootCourseFolder.title)
+                    .limit(1)
+                    .maybeSingle();
+                course = courseData;
+            }
+
+            const isAllQuizzesFolder = parentNode && (
+                String(parentNode.title).trim().toLowerCase() === 'all quizes' ||
+                String(parentNode.title).trim().toLowerCase() === 'all quizzes'
+            );
+
+            // Check if any quizzes are already linked to another course
+            if (course) {
+                const { data: existingLinks = [] } = await supabase
+                    .from('CourseQuiz')
+                    .select('quizId, courseId')
+                    .in('quizId', quizIds);
+
+                const conflicting = (existingLinks || []).filter((l: any) => l.courseId !== course.id);
+                if (conflicting.length > 0) {
+                    return NextResponse.json(
+                        { error: 'One or more selected quizzes are already linked to another course.' },
+                        { status: 400 }
+                    );
+                }
+            }
+
+            let query = supabase.from('VideoLibraryNode').select('sortOrder').order('sortOrder', { ascending: false }).limit(1);
+            if (parentId) {
+                query = query.eq('parentId', parentId);
+            } else {
+                query = query.is('parentId', null);
+            }
+            const { data: result } = await query.maybeSingle();
+            let nextOrder = ((result as any)?.sortOrder ?? -1) + 1;
+
+            const insertedNodes: any[] = [];
+            for (const q of quizzes) {
+                // Check if already in this folder
+                const { data: alreadyInFolder } = await supabase
+                    .from('VideoLibraryNode')
+                    .select('id')
+                    .eq('parentId', parentId)
+                    .eq('type', 'quiz')
+                    .eq('url', q.id)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (!alreadyInFolder) {
+                    const nodeId = crypto.randomUUID();
+                    const insertValues = {
+                        id: nodeId,
+                        title: q.title,
+                        type: 'quiz',
+                        url: q.id,
+                        duration: q.durationMinutes ? `${q.durationMinutes} min` : null,
+                        parentId,
+                        sortOrder: nextOrder++,
+                        createdAt: nowStr,
+                        updatedAt: nowStr,
+                    };
+                    await supabase.from('VideoLibraryNode').insert(insertValues as any);
+                    insertedNodes.push(insertValues);
+                }
+
+                // Link CourseQuiz if course exists
+                if (course) {
+                    const { data: existingCq } = await supabase
+                        .from('CourseQuiz')
+                        .select('id')
+                        .eq('courseId', course.id)
+                        .eq('quizId', q.id)
+                        .limit(1)
+                        .maybeSingle();
+
+                    const targetCurriculumNodeId = isAllQuizzesFolder ? null : parentId;
+
+                    if (existingCq) {
+                        await supabase
+                            .from('CourseQuiz')
+                            .update({
+                                curriculumNodeId: targetCurriculumNodeId,
+                                updatedAt: nowStr,
+                            } as any)
+                            .eq('id', existingCq.id);
+                    } else {
+                        await supabase.from('CourseQuiz').insert({
+                            id: crypto.randomUUID(),
+                            courseId: course.id,
+                            quizId: q.id,
+                            curriculumNodeId: targetCurriculumNodeId,
+                            sortOrder: nextOrder,
+                            createdAt: nowStr,
+                            updatedAt: nowStr,
+                        } as any);
+                    }
+                }
+            }
+
+            return NextResponse.json({ success: true, nodes: insertedNodes, count: insertedNodes.length }, { status: 201 });
+        }
+
+        // Standard Folder / Video / Document node creation
+        const title = String(body?.title || '').trim();
+        const url = body?.url ? String(body.url).trim() : null;
+        const duration = body?.duration ? String(body.duration).trim() : null;
+        const attachments = Array.isArray(body?.attachments) ? body.attachments : null;
+
+        if (!title) {
+            return NextResponse.json({ error: 'Title is required.' }, { status: 400 });
         }
 
         // If trying to add a video/document directly in a root course folder, auto-create wrapper folder
+        const isParentRootCourseFolder = parentNode && parentNode.parentId === null;
         if (isParentRootCourseFolder && type !== 'folder') {
             let queryFolder = supabase.from('VideoLibraryNode').select('sortOrder').eq('parentId', parentId).order('sortOrder', { ascending: false }).limit(1);
             const { data: folderOrderRes } = await queryFolder.maybeSingle();
             const wrapperOrder = ((folderOrderRes as any)?.sortOrder ?? -1) + 1;
             
             const wrapperFolderId = crypto.randomUUID();
-            const nowStr = new Date().toISOString();
 
             await supabase.from('VideoLibraryNode').insert({
                 id: wrapperFolderId,
@@ -168,7 +338,6 @@ export async function POST(request: NextRequest) {
                 updatedAt: nowStr,
             } as any);
 
-            // Now target parent becomes the newly created wrapper folder
             parentId = wrapperFolderId;
         }
 
@@ -183,7 +352,6 @@ export async function POST(request: NextRequest) {
         const nextOrder = ((result as any)?.sortOrder ?? -1) + 1;
 
         const nodeId = crypto.randomUUID();
-        const nowStr = new Date().toISOString();
         const insertValues = {
             id: nodeId,
             title,
@@ -204,8 +372,8 @@ export async function POST(request: NextRequest) {
 
         const node = {
             ...insertValues,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            createdAt: nowStr,
+            updatedAt: nowStr,
         };
 
         return NextResponse.json({ node }, { status: 201 });

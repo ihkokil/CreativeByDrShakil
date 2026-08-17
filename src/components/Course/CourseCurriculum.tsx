@@ -61,15 +61,8 @@ const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps)
         if (isFolder) {
             if (node.locked) return;
             setIsOpen(!isOpen);
-        } else if (isQuiz) {
-            if (node.locked) return;
-            if (node.quizId) {
-                router.push(`/dashboard/quizzes/${node.quizId}`);
-            }
         } else {
-            if (node.locked) {
-                return;
-            }
+            if (node.locked) return;
             onVideoSelect(node);
         }
     };

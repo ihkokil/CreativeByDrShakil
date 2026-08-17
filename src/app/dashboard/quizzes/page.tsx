@@ -205,7 +205,8 @@ export default function QuizzesPage() {
             className={styles.filterSelect}
           >
             <option value="">All Status</option>
-            <option value="not_attempted">Available</option>
+            <option value="available">Available (Unlocked)</option>
+            <option value="locked">Locked (Coming Soon)</option>
             <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
           </select>

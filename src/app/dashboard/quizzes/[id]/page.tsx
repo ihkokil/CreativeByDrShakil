@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Clock,
@@ -46,7 +46,10 @@ interface Quiz {
 export default function QuizDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const quizId = params.id as string;
+  const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
+
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +63,7 @@ export default function QuizDetailPage() {
         
         if (!res.ok) {
           if (res.status === 403) {
-            router.push('/dashboard/quizzes');
+            router.push(returnUrl || '/dashboard/quizzes');
             return;
           }
           throw new Error(data.error || 'Failed to load quiz');
@@ -78,7 +81,7 @@ export default function QuizDetailPage() {
     };
 
     fetchQuiz();
-  }, [quizId, router]);
+  }, [quizId, router, returnUrl]);
 
   const handleStartQuiz = async () => {
     if (!quiz) return;
@@ -89,15 +92,15 @@ export default function QuizDetailPage() {
       });
       const data = await res.json();
       
-      if (!res.ok) {
-        if (data.attemptId) {
-          router.push(`/dashboard/quizzes/${quizId}/attempt/${data.attemptId}`);
-          return;
-        }
+      const targetAttemptId = data.attemptId;
+      if (!res.ok && !targetAttemptId) {
         throw new Error(data.error || 'Failed to start quiz');
       }
       
-      router.push(`/dashboard/quizzes/${quizId}/attempt/${data.attemptId}`);
+      const targetUrl = returnUrl 
+        ? `/dashboard/quizzes/${quizId}/attempt/${targetAttemptId}?returnUrl=${encodeURIComponent(returnUrl)}`
+        : `/dashboard/quizzes/${quizId}/attempt/${targetAttemptId}`;
+      router.push(targetUrl);
     } catch (err: any) {
       alert(err.message || 'Failed to start quiz');
     } finally {
@@ -107,7 +110,10 @@ export default function QuizDetailPage() {
 
   const handleContinueQuiz = () => {
     if (quiz?.attempt?.id) {
-      router.push(`/dashboard/quizzes/${quizId}/attempt/${quiz.attempt.id}`);
+      const targetUrl = returnUrl 
+        ? `/dashboard/quizzes/${quizId}/attempt/${quiz.attempt.id}?returnUrl=${encodeURIComponent(returnUrl)}`
+        : `/dashboard/quizzes/${quizId}/attempt/${quiz.attempt.id}`;
+      router.push(targetUrl);
     }
   };
 
@@ -147,9 +153,9 @@ export default function QuizDetailPage() {
           <AlertCircle className={styles.errorIcon} />
           <h2>Unable to Load Quiz</h2>
           <p>{error || 'Quiz not found or access denied'}</p>
-          <Link href="/dashboard/quizzes" className={styles.backBtn}>
+          <Link href={returnUrl || "/dashboard/quizzes"} className={styles.backBtn}>
             <ChevronLeft className={styles.btnIcon} />
-            Back to Quizzes
+            {returnUrl ? 'Back to Course' : 'Back to Quizzes'}
           </Link>
         </div>
       </div>
@@ -174,9 +180,9 @@ export default function QuizDetailPage() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <Link href="/dashboard/quizzes" className={styles.backLink}>
+        <Link href={returnUrl || "/dashboard/quizzes"} className={styles.backLink}>
           <ChevronLeft className={styles.backIcon} />
-          Back to Quizzes
+          {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
         </Link>
         
         <div className={styles.quizTitle}>

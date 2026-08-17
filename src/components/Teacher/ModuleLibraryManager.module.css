@@ -1132,3 +1132,182 @@
 .dragOverBelow {
     border-bottom: 2px solid var(--primary) !important;
 }
+
+/* Quiz Specific Styles */
+.quizBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-left: 8px;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.quizModal {
+    max-width: 740px !important;
+    width: 95% !important;
+    height: 80vh !important;
+    max-height: 760px !important;
+    min-height: 520px !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.quizModalBody {
+    padding: 20px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+}
+
+.quizModalSearch {
+    position: relative;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.quizSearchInput {
+    width: 100%;
+    padding: 12px 16px 12px 42px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: var(--surface-soft, rgba(255, 255, 255, 0.05));
+    color: var(--foreground);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.quizSearchInput:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.quizListContainer {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quizOptionRow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quizOptionRow:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.quizOptionRowSelected {
+    background: rgba(139, 92, 246, 0.1) !important;
+    border-color: rgba(139, 92, 246, 0.4) !important;
+}
+
+.quizCheckbox {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary, #8b5cf6);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.quizOptionInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.quizOptionTitle {
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    word-break: break-word;
+}
+
+.quizOptionMeta {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.alreadyAddedBadge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.quizModalFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px 22px;
+    border-top: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.01);
+    flex-shrink: 0;
+}
+
+.quizSelectedCount {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.quizModalActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cancelBtn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    padding: 11px 22px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cancelBtn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--foreground);
+}

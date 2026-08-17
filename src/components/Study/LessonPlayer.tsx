@@ -3,6 +3,7 @@
 import { Lock, FileText, Video as VideoIcon } from "lucide-react";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import VidstackPlayer from "./VidstackPlayer";
+import StudyQuizPlayer from "./StudyQuizPlayer";
 import styles from "./LessonPlayer.module.css";
 
 interface LessonPlayerProps {
@@ -11,6 +12,7 @@ interface LessonPlayerProps {
     title: string;
     type: string;
     url?: string;
+    quizId?: string;
     attachments?: {
       name: string;
       url: string;
@@ -115,6 +117,17 @@ export default function LessonPlayer({
   }
 
   const lType = (lesson.type || "").toLowerCase();
+  const isQuizType = lType === "quiz" || Boolean((lesson as any).quizId);
+
+  if (isQuizType) {
+    return (
+      <StudyQuizPlayer
+        lesson={lesson}
+        onComplete={onComplete}
+      />
+    );
+  }
+
   const isDocumentType =
     lType === "document" ||
     lType === "slide" ||

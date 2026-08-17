@@ -53,6 +53,7 @@ export default function QuizTakePage() {
   const searchParams = useSearchParams();
   const quizId = params.id as string;
   const attemptId = params.attemptId as string;
+  const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
   
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
@@ -392,7 +393,10 @@ export default function QuizTakePage() {
         });
       }
       
-      router.push(`/dashboard/quizzes/${quizId}/result?attempt=${attemptId}`);
+      const targetUrl = returnUrl
+        ? `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}&returnUrl=${encodeURIComponent(returnUrl)}`
+        : `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}`;
+      router.push(targetUrl);
     } catch (err: any) {
       setError(err.message);
       setSubmitting(false);
@@ -456,9 +460,9 @@ export default function QuizTakePage() {
           <AlertCircle className={styles.errorIcon} />
           <h2>Unable to Load Quiz</h2>
           <p>{error}</p>
-          <Link href="/dashboard/quizzes" className={styles.backBtn}>
+          <Link href={returnUrl || "/dashboard/quizzes"} className={styles.backBtn}>
             <ChevronLeft className={styles.btnIcon} />
-            Back to Quizzes
+            {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
           </Link>
         </div>
       </div>

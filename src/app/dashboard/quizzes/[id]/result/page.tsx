@@ -83,8 +83,9 @@ export default function QuizResultPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const quizId = params.id as string;
-  const attemptId = searchParams.get('attempt') || '';
-  const isAutoSubmitted = searchParams.get('auto') === 'true';
+  const attemptId = searchParams ? searchParams.get('attempt') || '' : '';
+  const isAutoSubmitted = searchParams ? searchParams.get('auto') === 'true' : false;
+  const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
   
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,7 +107,10 @@ export default function QuizResultPage() {
         throw new Error(resData.error || 'Failed to start quiz');
       }
       
-      router.push(`/dashboard/quizzes/${quizId}/attempt/${resData.attemptId}`);
+      const targetUrl = returnUrl
+        ? `/dashboard/quizzes/${quizId}/attempt/${resData.attemptId}?returnUrl=${encodeURIComponent(returnUrl)}`
+        : `/dashboard/quizzes/${quizId}/attempt/${resData.attemptId}`;
+      router.push(targetUrl);
     } catch (err: any) {
       alert(err.message || 'Failed to start quiz');
     } finally {
@@ -122,7 +126,7 @@ export default function QuizResultPage() {
         
         if (!res.ok) {
           if (res.status === 403 || res.status === 404) {
-            router.push('/dashboard/quizzes');
+            router.push(returnUrl || '/dashboard/quizzes');
             return;
           }
           throw new Error(result.error || 'Failed to load results');
@@ -276,9 +280,9 @@ export default function QuizResultPage() {
     <div className={styles.container}>
       <div id="quiz-result-content">
         <header className={styles.header}>
-        <Link href="/dashboard/quizzes" className={styles.backLink}>
+        <Link href={returnUrl || "/dashboard/quizzes"} className={styles.backLink}>
           <ChevronLeft className={styles.backIcon} />
-          Back to Quizzes
+          {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
         </Link>
       </header>
 

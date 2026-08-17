@@ -101,13 +101,33 @@ export async function DELETE(
 
         const { data: existing } = await supabase
             .from('VideoLibraryNode')
-            .select('id')
+            .select('id, type, url, parentId')
             .eq('id', id)
             .limit(1)
             .maybeSingle();
             
         if (!existing) {
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
+        }
+
+        // If it's a quiz node, clean up CourseQuiz record
+        if (existing.type === 'quiz' && existing.url) {
+            await supabase.from('CourseQuiz').delete().eq('quizId', existing.url);
+        } else if (existing.type === 'folder') {
+            // If deleting a folder, also delete CourseQuiz links attached to this folder
+            await supabase.from('CourseQuiz').delete().eq('curriculumNodeId', id);
+            
+            // Also check for any direct child quiz nodes
+            const { data: childQuizzes = [] } = await supabase
+                .from('VideoLibraryNode')
+                .select('url')
+                .eq('parentId', id)
+                .eq('type', 'quiz');
+                
+            const childQuizIds = (childQuizzes || []).map((q: any) => q.url).filter(Boolean);
+            if (childQuizIds.length > 0) {
+                await supabase.from('CourseQuiz').delete().in('quizId', childQuizIds);
+            }
         }
 
         // Supabase DB cascade will handle children deletion via the schema relation ON DELETE CASCADE

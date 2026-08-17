@@ -62,10 +62,11 @@ export async function populateMediaVaultNodes(nodes: any[], customSupabase?: any
 
         if (nodesByFolder.has(updatedItem.mediaVaultFolderId)) {
           const vaultChildren = nodesByFolder.get(updatedItem.mediaVaultFolderId)!.map(vn => ({
-            id: vn.id,
+            id: vn.type === 'quiz' ? `quiz_${vn.id}` : vn.id,
             title: vn.title,
             type: vn.type || 'self-hosted',
             url: vn.url || null,
+            quizId: vn.type === 'quiz' ? (vn.url || vn.id) : undefined,
             attachments: vn.attachments || null,
             duration: vn.duration || null,
             children: [],
