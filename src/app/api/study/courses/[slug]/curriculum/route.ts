@@ -187,7 +187,8 @@ export async function GET(
       });
     };
 
-    const curriculumWithModuleQuizzes = attachModuleQuizzes(rawCurriculum);
+    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
+    const curriculumWithModuleQuizzes = attachModuleQuizzes(populatedCurriculum);
     const curriculum = ensureGroupInheritance(curriculumWithModuleQuizzes);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
