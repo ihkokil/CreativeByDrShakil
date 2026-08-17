@@ -914,27 +914,30 @@ export default function TeacherQuizResultsPage() {
                                 <span className={styles.optionText}>{option.text}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                {/* True Pill */}
                                 <div style={{ 
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                  minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                  background: isCorrectT ? 'var(--success-color, #10b981)' : ((isT && !isCorrectT) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
-                                  border: (isT && !isCorrectT) ? '2px solid var(--error-color, #ef4444)' : ((isT && isCorrectT) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
-                                  color: (isCorrectT || (isT && !isCorrectT)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                                  minWidth: '68px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                                  background: isT ? (isCorrectT ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)') : (isCorrectT ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)'), 
+                                  border: isT ? (isCorrectT ? '1px solid #10b981' : '1px solid #ef4444') : (isCorrectT ? '1px dashed rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'), 
+                                  color: isT ? (isCorrectT ? '#10b981' : '#ef4444') : (isCorrectT ? '#10b981' : 'var(--text-muted, #71717a)') 
                                 }}>
-                                  True
+                                  {isT ? (isCorrectT ? '✓ True' : '✗ True') : (isCorrectT ? '✓ True' : 'True')}
                                 </div>
+                                {/* False Pill */}
                                 <div style={{ 
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                                  minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                  background: isCorrectF ? 'var(--success-color, #10b981)' : ((isF && !isCorrectF) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
-                                  border: (isF && !isCorrectF) ? '2px solid var(--error-color, #ef4444)' : ((isF && isCorrectF) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
-                                  color: (isCorrectF || (isF && !isCorrectF)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                                  minWidth: '68px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                                  background: isF ? (isCorrectF ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)') : (isCorrectF ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)'), 
+                                  border: isF ? (isCorrectF ? '1px solid #10b981' : '1px solid #ef4444') : (isCorrectF ? '1px dashed rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'), 
+                                  color: isF ? (isCorrectF ? '#10b981' : '#ef4444') : (isCorrectF ? '#10b981' : 'var(--text-muted, #71717a)') 
                                 }}>
-                                  False
+                                  {isF ? (isCorrectF ? '✓ False' : '✗ False') : (isCorrectF ? '✓ False' : 'False')}
                                 </div>
-                                <div style={{ minWidth: '60px', textAlign: 'right' }}>
-                                  {answered && isCorrect && <span className={styles.correctBadge}>Correct</span>}
-                                  {answered && !isCorrect && <span className={styles.wrongBadge}>Wrong</span>}
+                                <div style={{ minWidth: '80px', textAlign: 'right' }}>
+                                  {answered && isCorrect && <span className={styles.correctBadge}>✓ Correct</span>}
+                                  {answered && !isCorrect && <span className={styles.wrongBadge}>✗ Wrong</span>}
+                                  {!answered && <span className={styles.skippedBadge}>— Skipped</span>}
                                 </div>
                               </div>
                             </div>
@@ -944,19 +947,20 @@ export default function TeacherQuizResultsPage() {
                         question.options?.map((option: any) => {
                           const isStudentAnswer = option.letter === question.studentAnswer;
                           const isCorrectAnswer = option.letter === question.correctOption;
+                          const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
 
                           let optionClass = styles.reviewOption;
-                          if (isCorrectAnswer) optionClass += ` ${styles.optionCorrect}`;
-                          if (isStudentAnswer && !isCorrectAnswer) optionClass += ` ${styles.optionIncorrect}`;
                           if (isStudentAnswer && isCorrectAnswer) optionClass += ` ${styles.optionStudentCorrect}`;
+                          else if (isWrongAnswer) optionClass += ` ${styles.optionIncorrect}`;
+                          else if (isCorrectAnswer) optionClass += ` ${styles.optionCorrect}`;
 
                           return (
                             <div key={`${question.questionId}-${option.letter}`} className={optionClass}>
                               <span className={styles.optionLetter}>{option.letter}</span>
                               <span className={styles.optionText}>{option.text}</span>
-                              {isCorrectAnswer && <span className={styles.correctBadge}>Correct</span>}
-                              {isStudentAnswer && !isCorrectAnswer && <span className={styles.wrongBadge}>Your Answer</span>}
-                              {isStudentAnswer && isCorrectAnswer && <span className={styles.correctBadge}>Your Answer</span>}
+                              {isStudentAnswer && isCorrectAnswer && <span className={styles.correctBadge}>✓ Student Answer (Correct)</span>}
+                              {isWrongAnswer && <span className={styles.wrongBadge}>✗ Student Answer</span>}
+                              {!isStudentAnswer && isCorrectAnswer && <span className={styles.keyBadge}>✓ Correct Answer</span>}
                             </div>
                           );
                         })
