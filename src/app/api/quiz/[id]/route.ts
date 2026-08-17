@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
@@ -13,10 +12,7 @@ export async function GET(
     const payload = await getAuthPayload(request);
     const isTeacher = payload && (payload.role === 'teacher' || payload.role === 'admin');
     
-    const token = await extractCookieToken();
-
-    
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: quizRow } = await supabase
       .from('Quiz')
@@ -180,10 +176,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
     
-    const token = await extractCookieToken();
-
-    
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: existingQuiz } = await supabase
       .from('Quiz')
@@ -363,10 +356,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
     
-    const token = await extractCookieToken();
-
-    
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: existingQuiz } = await supabase
       .from('Quiz')

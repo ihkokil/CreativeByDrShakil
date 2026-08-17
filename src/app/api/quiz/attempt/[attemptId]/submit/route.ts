@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth';
 
 async function gradeAttempt(attemptId: string, quizId: string, submissionStatus: 'submitted' | 'auto_submitted', supabase: any, timeTakenSeconds?: number) {
@@ -154,9 +153,7 @@ export async function POST(
     }
 
     const { attemptId } = await params;
-    const token = await extractCookieToken();
-
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: attempt, error: attemptError }: { data: any; error: any } = await supabase
       .from('QuizAttempt')

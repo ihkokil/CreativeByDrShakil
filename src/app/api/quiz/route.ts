@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase, getSupabaseAdmin } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
+import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import {
@@ -28,7 +27,6 @@ export async function GET(request: NextRequest) {
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     const offset = (page - 1) * limit;
-    const token = await extractCookieToken();
     const supabase = getSupabaseAdmin();
 
     let orderColumn = 'createdAt';
@@ -510,10 +508,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title, duration, and number of questions to serve are required.' }, { status: 400 });
     }
 
-    const token = await extractCookieToken();
-
-
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     if (categoryId) {
       const { data: category } = await supabase.from('QuizCategory').select('id').eq('id', categoryId).limit(1).maybeSingle();
