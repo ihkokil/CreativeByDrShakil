@@ -773,11 +773,33 @@
   border-radius: 5px;
   display: inline-block;
   box-sizing: border-box;
-  transition: border-color ease 0.2s;
+  transition: all ease 0.2s;
   cursor: pointer;
   flex-shrink: 0;
   margin-top: 2px;
   --checkbox-bg: var(--bg-secondary);
+}
+
+.checkbox:checked + .checkmark {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.checkmark::after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 11px;
+  border: solid white;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox:checked + .checkmark::after {
+  display: block;
 }
 
 .tfCheckboxes {

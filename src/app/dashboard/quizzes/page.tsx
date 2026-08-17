@@ -333,7 +333,7 @@ export default function QuizzesPage() {
                           <div className={styles.statContent}>
                             <span className={styles.statLabel}>Top Score</span>
                             <span className={`${styles.statValue} ${quiz.topScore !== null ? styles.scoreValue : ''}`}>
-                              {quiz.topScore !== null && quiz.topScore !== undefined ? `${quiz.topScore.toFixed(1)}%` : '—'}
+                              {quiz.topScore !== null && quiz.topScore !== undefined ? `${quiz.topScore.toFixed(1)} Marks` : '—'}
                             </span>
                           </div>
                         </div>
@@ -345,7 +345,7 @@ export default function QuizzesPage() {
                           <div className={styles.statContent}>
                             <span className={styles.statLabel}>Avg Score</span>
                             <span className={`${styles.statValue} ${quiz.avgScore !== null ? styles.scoreValue : ''}`}>
-                              {quiz.avgScore !== null && quiz.avgScore !== undefined ? `${quiz.avgScore.toFixed(1)}%` : '—'}
+                              {quiz.avgScore !== null && quiz.avgScore !== undefined ? `${quiz.avgScore.toFixed(1)} Marks` : '—'}
                             </span>
                           </div>
                         </div>
@@ -357,7 +357,7 @@ export default function QuizzesPage() {
                           <div className={styles.statContent}>
                             <span className={styles.statLabel}>1st Attempt</span>
                             <span className={`${styles.statValue} ${quiz.firstAttemptScore !== null && quiz.firstAttemptScore !== undefined ? styles.scoreValue : ''}`}>
-                              {quiz.firstAttemptScore !== null && quiz.firstAttemptScore !== undefined ? `${quiz.firstAttemptScore.toFixed(1)}%` : '—'}
+                              {quiz.firstAttemptScore !== null && quiz.firstAttemptScore !== undefined ? `${quiz.firstAttemptScore.toFixed(1)} Marks` : '—'}
                             </span>
                           </div>
                         </div>

@@ -320,10 +320,10 @@ export default function QuizResultPage() {
                   }}
                 >
                   <div className={styles.scoreInner}>
-                    <span className={`${styles.scoreValue} ${getScoreColor(attempt.percentageScore)}`}>
-                      {attempt.percentageScore.toFixed(1)}%
+                    <span className={`${styles.scoreValue} ${getScoreColor(attempt.netScore)}`}>
+                      {attempt.netScore.toFixed(1)}
                     </span>
-                    <span className={styles.scoreLabel}>Overall Score</span>
+                    <span className={styles.scoreLabel}>Net Marks</span>
                   </div>
                 </div>
               </div>
@@ -359,7 +359,7 @@ export default function QuizResultPage() {
               {quiz.allowNegativeMarking && attempt.negativeMarks > 0 && (
                 <div className={styles.negativeMarks}>
                   <XCircle className={styles.negativeIcon} />
-                  <span>Negative marks: <strong>{attempt.negativeMarks.toFixed(2)}</strong> ({(quiz.negativeValue <= 1 && quiz.negativeValue > 0 ? quiz.negativeValue * 100 : quiz.negativeValue).toFixed(0)}% per wrong answer)</span>
+                  <span>Negative marks deducted: <strong>{attempt.negativeMarks.toFixed(2)}</strong> ({quiz.negativeValue} marks per wrong answer)</span>
                 </div>
               )}
             </div>
@@ -423,12 +423,8 @@ export default function QuizResultPage() {
                       </div>
                     )}
                     <div className={styles.breakdownTotal}>
-                      <span>Net Score</span>
-                      <span className={getScoreColor(attempt.netScore)}>{attempt.netScore.toFixed(2)}</span>
-                    </div>
-                    <div className={styles.breakdownTotal}>
-                      <span>Percentage</span>
-                      <span className={getScoreColor(attempt.percentageScore)}>{attempt.percentageScore.toFixed(1)}%</span>
+                      <span>Total Net Score</span>
+                      <span className={getScoreColor(attempt.netScore)}>{attempt.netScore.toFixed(2)} Marks</span>
                     </div>
                   </div>
                 </div>
@@ -709,7 +705,7 @@ export default function QuizResultPage() {
                           </td>
                           <td className={styles.scoreCell}>
                             <span className={getScoreColor(entry.netScore)}>
-                              {entry.netScore.toFixed(1)}%
+                              {entry.netScore.toFixed(1)} Marks
                             </span>
                           </td>
                           <td className={styles.timeCell}>

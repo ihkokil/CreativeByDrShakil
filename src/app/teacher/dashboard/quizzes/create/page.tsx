@@ -604,18 +604,18 @@ export default function QuizBuilderPage() {
               </div>
 
               <div>
-                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>SBA Negative Marks (%)</label>
+                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>SBA Negative Marks (Per Wrong Answer)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="number"
-                    step="1"
+                    step="0.05"
                     min="0"
-                    max="100"
                     value={formData.sbaNegative}
                     onChange={e => updateFormData('sbaNegative', parseFloat(e.target.value) || 0)}
                     className={styles.input}
+                    placeholder="e.g. 0.25"
                   />
-                  <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>%</span>
+                  <span style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '13px' }}>marks</span>
                 </div>
               </div>
             </div>
@@ -631,7 +631,7 @@ export default function QuizBuilderPage() {
                 <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>T/F Marks Per Option</label>
                 <input
                   type="number"
-                  step="0.1"
+                  step="0.05"
                   min="0"
                   value={formData.tfMarks}
                   onChange={e => updateFormData('tfMarks', parseFloat(e.target.value) || 0)}
@@ -640,18 +640,18 @@ export default function QuizBuilderPage() {
               </div>
 
               <div>
-                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>T/F Negative Marks (%)</label>
+                <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>T/F Negative Marks (Per Wrong Option)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="number"
-                    step="1"
+                    step="0.01"
                     min="0"
-                    max="100"
                     value={formData.tfNegative}
                     onChange={e => updateFormData('tfNegative', parseFloat(e.target.value) || 0)}
                     className={styles.input}
+                    placeholder="e.g. 0.05"
                   />
-                  <span style={{ fontWeight: 'bold', color: 'var(--text-muted)' }}>%</span>
+                  <span style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '13px' }}>marks</span>
                 </div>
               </div>
             </div>

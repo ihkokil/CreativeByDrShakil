@@ -202,7 +202,7 @@ export async function GET(request: NextRequest) {
     const completedCount = completedQuizIds.size;
     const availableCount = (publishedQuizzes || []).filter((q: any) => !completedQuizIds.has(q.id)).length;
     const averageScore = completedAttempts.length > 0 
-      ? Math.round(completedAttempts.reduce((sum: number, a: any) => sum + a.percentageScore, 0) / completedAttempts.length)
+      ? Number((completedAttempts.reduce((sum: number, a: any) => sum + (Number(a.netScore) || 0), 0) / completedAttempts.length).toFixed(1))
       : 0;
 
     const recentQuizAttempts = completedAttempts.slice(0, 3).map((a: any) => ({

@@ -237,13 +237,13 @@ export default function TeacherQuizResultsPage() {
       uniqueStudentsMap.set(sub.studentId, {
         studentId: sub.studentId,
         studentName: sub.studentName || 'Unknown',
-        bestScore: sub.percentageScore ?? sub.netScore ?? 0,
+        bestScore: sub.netScore ?? 0,
         attempts: [],
       });
     }
     const studentObj = uniqueStudentsMap.get(sub.studentId)!;
-    if ((sub.percentageScore ?? sub.netScore ?? 0) > studentObj.bestScore) {
-      studentObj.bestScore = sub.percentageScore ?? sub.netScore ?? 0;
+    if ((sub.netScore ?? 0) > studentObj.bestScore) {
+      studentObj.bestScore = sub.netScore ?? 0;
     }
     studentObj.attempts.push(sub);
   });
@@ -379,7 +379,7 @@ export default function TeacherQuizResultsPage() {
                     <BarChart2 className={styles.cardIconSvg} />
                   </div>
                   <div className={styles.cardContent}>
-                    <div className={`${styles.cardValue} ${getScoreColor(summary.averageScore)}`}>{summary.averageScore.toFixed(1)}%</div>
+                    <div className={`${styles.cardValue} ${getScoreColor(summary.averageScore)}`}>{summary.averageScore.toFixed(1)} Marks</div>
                     <div className={styles.cardLabel}>Average Score</div>
                   </div>
                 </div>
@@ -389,7 +389,7 @@ export default function TeacherQuizResultsPage() {
                     <Trophy className={styles.cardIconSvg} />
                   </div>
                   <div className={styles.cardContent}>
-                    <div className={`${styles.cardValue} ${getScoreColor(summary.highestScore)}`}>{summary.highestScore.toFixed(1)}%</div>
+                    <div className={`${styles.cardValue} ${getScoreColor(summary.highestScore)}`}>{summary.highestScore.toFixed(1)} Marks</div>
                     <div className={styles.cardLabel}>Highest Score</div>
                   </div>
                 </div>
@@ -503,7 +503,7 @@ export default function TeacherQuizResultsPage() {
                                   </td>
                                   <td className={styles.scoreCell}>
                                     <span className={`${styles.scoreValue} ${getScoreColor(st.bestScore)}`}>
-                                      {st.bestScore.toFixed(1)}%
+                                      {st.bestScore.toFixed(1)} Marks
                                     </span>
                                   </td>
                                   <td>
@@ -545,24 +545,27 @@ export default function TeacherQuizResultsPage() {
                         Score Distribution
                       </h3>
                       <div className={styles.scoreBars}>
-                        {[
-                          { label: '90-100%', count: leaderboard.filter(e => e.percentageScore >= 90).length },
-                          { label: '80-89%', count: leaderboard.filter(e => e.percentageScore >= 80 && e.percentageScore < 90).length },
-                          { label: '70-79%', count: leaderboard.filter(e => e.percentageScore >= 70 && e.percentageScore < 80).length },
-                          { label: '60-69%', count: leaderboard.filter(e => e.percentageScore >= 60 && e.percentageScore < 70).length },
-                          { label: 'Below 60%', count: leaderboard.filter(e => e.percentageScore < 60).length },
-                        ].map((item, i) => (
-                          <div key={i} className={styles.scoreBar}>
-                            <span className={styles.scoreLabel}>{item.label}</span>
-                            <div className={styles.barContainer}>
-                              <div
-                                className={styles.barFill}
-                                style={{ width: `${summary.totalAttempts > 0 ? (item.count / summary.totalAttempts) * 100 : 0}%` }}
-                              ></div>
+                        {(() => {
+                          const maxScore = Math.max(...leaderboard.map(e => e.netScore), 1);
+                          return [
+                            { label: `Top Range (≥ ${(maxScore * 0.8).toFixed(1)} marks)`, count: leaderboard.filter(e => e.netScore >= maxScore * 0.8).length },
+                            { label: `Upper Mid (${(maxScore * 0.6).toFixed(1)} - ${(maxScore * 0.8).toFixed(1)} marks)`, count: leaderboard.filter(e => e.netScore >= maxScore * 0.6 && e.netScore < maxScore * 0.8).length },
+                            { label: `Mid Range (${(maxScore * 0.4).toFixed(1)} - ${(maxScore * 0.6).toFixed(1)} marks)`, count: leaderboard.filter(e => e.netScore >= maxScore * 0.4 && e.netScore < maxScore * 0.6).length },
+                            { label: `Lower Mid (${(maxScore * 0.2).toFixed(1)} - ${(maxScore * 0.4).toFixed(1)} marks)`, count: leaderboard.filter(e => e.netScore >= maxScore * 0.2 && e.netScore < maxScore * 0.4).length },
+                            { label: `Low Range (< ${(maxScore * 0.2).toFixed(1)} marks)`, count: leaderboard.filter(e => e.netScore < maxScore * 0.2).length },
+                          ].map((item, i) => (
+                            <div key={i} className={styles.scoreBar}>
+                              <span className={styles.scoreLabel}>{item.label}</span>
+                              <div className={styles.barContainer}>
+                                <div
+                                  className={styles.barFill}
+                                  style={{ width: `${summary.totalAttempts > 0 ? (item.count / summary.totalAttempts) * 100 : 0}%` }}
+                                ></div>
+                              </div>
+                              <span className={styles.scoreCount}>{item.count}</span>
                             </div>
-                            <span className={styles.scoreCount}>{item.count}</span>
-                          </div>
-                        ))}
+                          ));
+                        })()}
                       </div>
                     </div>
 
@@ -655,7 +658,7 @@ export default function TeacherQuizResultsPage() {
                             </td>
                             <td className={styles.scoreCell}>
                               <span className={`${styles.scoreValue} ${getScoreColor(entry.netScore)}`}>
-                                {entry.netScore.toFixed(1)}%
+                                {entry.netScore.toFixed(1)} Marks
                               </span>
                             </td>
                             <td className={styles.detailCell}>
@@ -702,8 +705,8 @@ export default function TeacherQuizResultsPage() {
                           <span className={styles.analyticsNumber}>Q{index + 1}</span>
                           <h4 className={styles.analyticsQuestion}>{q.questionText}</h4>
                           <div className={styles.analyticsStats}>
-                            <span className={`${styles.analyticsStat} ${q.correctPercentage >= 70 ? 'text-success' : q.correctPercentage >= 50 ? 'text-warning' : 'text-error'}`}>
-                              {q.correctPercentage.toFixed(1)}% correct
+                            <span className={`${styles.analyticsStat} ${q.correctCount / (q.totalAttempts || 1) >= 0.7 ? 'text-success' : q.correctCount / (q.totalAttempts || 1) >= 0.5 ? 'text-warning' : 'text-error'}`}>
+                              {q.correctCount} / {q.totalAttempts} correct
                             </span>
                             <span className={styles.analyticsStat}>{q.totalAttempts} attempts</span>
                           </div>
@@ -733,13 +736,13 @@ export default function TeacherQuizResultsPage() {
                                   </div>
                                   <div className={styles.tfBarContainer}>
                                     <div className={styles.tfBarFillT} style={{ width: `${tPercentage}%` }} title={`True: ${counts.T}`}>
-                                      {tPercentage > 15 && `${tPercentage.toFixed(0)}%`}
+                                      {counts.T > 0 && `${counts.T} T`}
                                     </div>
                                     <div className={styles.tfBarFillF} style={{ width: `${fPercentage}%` }} title={`False: ${counts.F}`}>
-                                      {fPercentage > 15 && `${fPercentage.toFixed(0)}%`}
+                                      {counts.F > 0 && `${counts.F} F`}
                                     </div>
                                     <div className={styles.tfBarFillS} style={{ width: `${sPercentage}%` }} title={`Skipped: ${counts.S}`}>
-                                      {sPercentage > 15 && `${sPercentage.toFixed(0)}%`}
+                                      {counts.S > 0 && `${counts.S} S`}
                                     </div>
                                   </div>
                                   <div className={styles.tfLegend}>
@@ -770,7 +773,7 @@ export default function TeacherQuizResultsPage() {
                                     </span>
                                     <span className={styles.tfLegend} style={{ marginTop: 0 }}>
                                       <span className={styles.legendItem} style={{ fontSize: '14px', color: 'var(--text-color)' }}>
-                                        Selected by {count} ({percentage.toFixed(1)}%)
+                                        Selected by {count} student{count !== 1 ? 's' : ''}
                                       </span>
                                     </span>
                                   </div>
@@ -780,10 +783,10 @@ export default function TeacherQuizResultsPage() {
                                       style={{ width: `${percentage}%` }}
                                       title={`Selected by: ${count}`}
                                     >
-                                      {percentage > 5 && `${percentage.toFixed(0)}%`}
+                                      {count > 0 && `${count}`}
                                     </div>
                                     <div className={styles.tfBarFillS} style={{ width: `${100 - percentage}%` }} title={`Not Selected: ${q.totalAttempts - count}`}>
-                                      {(100 - percentage) > 15 && `${(100 - percentage).toFixed(0)}%`}
+                                      {(q.totalAttempts - count) > 0 && `${q.totalAttempts - count}`}
                                     </div>
                                   </div>
                                 </div>
@@ -795,7 +798,7 @@ export default function TeacherQuizResultsPage() {
                         {q.mostCommonWrongOption && (
                           <div className={styles.wrongNote}>
                             <XCircle className={styles.wrongIcon} />
-                            Most common wrong answer: Option {q.mostCommonWrongOption}
+                            <span>Most Common Error: <strong>Option {q.mostCommonWrongOption}</strong></span>
                           </div>
                         )}
                       </div>
@@ -825,8 +828,8 @@ export default function TeacherQuizResultsPage() {
 
             <div className={styles.attemptSummary}>
               <div className={styles.attemptScoreCard}>
-                <div className={`${styles.attemptScoreValue} ${getScoreColor(attempt.percentageScore)}`}>
-                  {attempt.percentageScore.toFixed(1)}%
+                <div className={`${styles.attemptScoreValue} ${getScoreColor(attempt.netScore)}`}>
+                  {attempt.netScore.toFixed(1)} Marks
                 </div>
                 <div className={styles.attemptScoreLabel}>Final Score</div>
               </div>
@@ -994,7 +997,7 @@ export default function TeacherQuizResultsPage() {
                   <h3 className={styles.modalStudentName}>{selectedStudent.studentName}</h3>
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Total {selectedStudent.attempts.length} {selectedStudent.attempts.length === 1 ? 'attempt taken' : 'attempts taken'} • Best Score: {selectedStudent.bestScore.toFixed(1)}%
+                  Total {selectedStudent.attempts.length} {selectedStudent.attempts.length === 1 ? 'attempt taken' : 'attempts taken'} • Best Score: {selectedStudent.bestScore.toFixed(1)} Marks
                 </p>
               </div>
               <button
@@ -1040,8 +1043,8 @@ export default function TeacherQuizResultsPage() {
                             <td style={{ color: 'var(--text-muted)' }}>
                               {att.submittedAt ? new Date(att.submittedAt).toLocaleDateString() + ' ' + new Date(att.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                             </td>
-                            <td className={getScoreColor(att.percentageScore)} style={{ fontWeight: 800 }}>
-                              {att.percentageScore.toFixed(1)}%
+                            <td className={getScoreColor(att.netScore)} style={{ fontWeight: 800 }}>
+                              {att.netScore.toFixed(1)} Marks
                             </td>
                             <td className="text-success" style={{ fontWeight: 700 }}>{att.correctCount}</td>
                             <td className="text-error" style={{ fontWeight: 700 }}>{att.wrongCount}</td>
@@ -1112,8 +1115,8 @@ export default function TeacherQuizResultsPage() {
                 <div className={styles.attemptView} style={{ animation: 'none', borderTop: '1px solid var(--border-color)', paddingTop: '20px', marginTop: '10px' }}>
                   <div className={styles.attemptSummary}>
                     <div className={styles.attemptScoreCard}>
-                      <div className={`${styles.attemptScoreValue} ${getScoreColor(selectedAttemptData.percentageScore)}`}>
-                        {selectedAttemptData.percentageScore.toFixed(1)}%
+                      <div className={`${styles.attemptScoreValue} ${getScoreColor(selectedAttemptData.netScore)}`}>
+                        {selectedAttemptData.netScore.toFixed(1)} Marks
                       </div>
                       <div className={styles.attemptScoreLabel}>Attempt #{selectedAttemptData.attemptNumber} Score</div>
                     </div>

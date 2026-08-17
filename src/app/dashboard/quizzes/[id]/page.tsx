@@ -224,7 +224,7 @@ export default function QuizDetailPage() {
                 <span className={styles.ruleLabel}>Negative Marking</span>
                 <span className={styles.ruleValue}>
                   {quiz.allowNegativeMarking 
-                    ? `-${(quiz.negativeValue <= 1 && quiz.negativeValue > 0 ? quiz.negativeValue * 100 : quiz.negativeValue).toFixed(0)}% per wrong`
+                    ? `-${quiz.negativeValue} mark${quiz.negativeValue !== 1 ? 's' : ''} per wrong`
                     : 'Not applicable'
                   }
                 </span>
@@ -232,15 +232,19 @@ export default function QuizDetailPage() {
             </div>
             
             <div className={styles.ruleCard}>
-              <div className={styles.ruleIcon}><Zap className={styles.ruleIconSvg} /></div>
+              <div className={styles.ruleIcon}><RotateCcw className={styles.ruleIconSvg} /></div>
               <div className={styles.ruleContent}>
-                <span className={styles.ruleLabel}>Answer Locking</span>
-                <span className={styles.ruleValue}>Answers lock once selected</span>
+                <span className={styles.ruleLabel}>Attempts</span>
+                <span className={styles.ruleValue}>
+                  {quiz.allowMultipleAttempts 
+                    ? (quiz.maxAttempts && quiz.maxAttempts > 0 ? `Max ${quiz.maxAttempts} attempts` : 'Unlimited retries') 
+                    : '1 attempt allowed'}
+                </span>
               </div>
             </div>
             
             <div className={styles.ruleCard}>
-              <div className={styles.ruleIcon}><RotateCcw className={styles.ruleIconSvg} /></div>
+              <div className={styles.ruleIcon}><Zap className={styles.ruleIconSvg} /></div>
               <div className={styles.ruleContent}>
                 <span className={styles.ruleLabel}>Ranking</span>
                 <span className={styles.ruleValue}>{getPositionTypeLabel(quiz.positionType)}</span>
@@ -256,8 +260,8 @@ export default function QuizDetailPage() {
               <h3>Instructions</h3>
               <ul>
                 <li>This quiz consists of <strong>{quiz.numQuestionsToServe} questions</strong> to be completed in <strong>{formatDuration(quiz.durationMinutes)}</strong>.</li>
-                <li>Each correct answer carries <strong>{quiz.marksPerCorrect} mark{quiz.marksPerCorrect !== 1 ? 's' : ''}</strong>.{quiz.allowNegativeMarking ? ` Wrong answers will deduct ${quiz.negativeValue <= 1 && quiz.negativeValue > 0 ? quiz.negativeValue * 100 : quiz.negativeValue}% of the marks (${quiz.marksPerCorrect * (quiz.negativeValue <= 1 && quiz.negativeValue > 0 ? quiz.negativeValue : quiz.negativeValue / 100)} marks).` : ' There is no negative marking.'}</li>
-                <li>Once you select an answer, it <strong>cannot be changed</strong>.</li>
+                <li>Each correct answer carries <strong>{quiz.marksPerCorrect} mark{quiz.marksPerCorrect !== 1 ? 's' : ''}</strong>.{quiz.allowNegativeMarking ? ` Wrong answers will deduct ${quiz.negativeValue} mark${quiz.negativeValue !== 1 ? 's' : ''}.` : ' There is no negative marking.'}</li>
+                <li>You can freely change your selected answers <strong>anytime before submission</strong> within the time limit.</li>
                 <li>The quiz will be <strong>auto-submitted</strong> when the timer runs out.</li>
                 <li>Do not <strong>close, refresh, or switch tabs</strong> during the quiz.</li>
                 <li>Your answers are <strong>saved automatically</strong> in real time.</li>
