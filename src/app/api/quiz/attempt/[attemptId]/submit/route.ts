@@ -18,26 +18,19 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
   // Fetch quiz settings
   const { data: quiz }: { data: any } = await supabase
     .from('Quiz')
-    .select('marksPerCorrect, allowNegativeMarking, negativeValue, sbaMarks, sbaNegative, tfMarks, tfNegative')
+    .select('marksPerCorrect, allowNegativeMarking, negativeValue')
     .eq('id', quizId)
     .limit(1)
     .maybeSingle();
 
-  const marksPerCorrect = quiz?.marksPerCorrect ?? 1;
+  const marksPerCorrect = Number(quiz?.marksPerCorrect) || 1;
   const allowNegativeMarking = quiz?.allowNegativeMarking ?? false;
-  const negativeValue = quiz?.negativeValue ?? 0;
+  const negativeValue = allowNegativeMarking ? (Number(quiz?.negativeValue) || 0) : 0;
   
-  const sbaMarks = quiz?.sbaMarks || marksPerCorrect;
-  const sbaNegative = (quiz?.sbaNegative !== undefined && quiz?.sbaNegative !== null) 
-    ? Number(quiz.sbaNegative) 
-    : (allowNegativeMarking ? Number(negativeValue) : 0);
-  const tfMarks = quiz?.tfMarks || (marksPerCorrect / 5);
-  const tfNegative = (quiz?.tfNegative !== undefined && quiz?.tfNegative !== null) 
-    ? Number(quiz.tfNegative) 
-    : (allowNegativeMarking ? Number(negativeValue) : 0);
-  
-  const sbaNegativeAbsolute = sbaNegative;
-  const tfNegativeAbsolute = tfNegative;
+  const sbaMarks = marksPerCorrect;
+  const sbaNegativeAbsolute = negativeValue;
+  const tfMarks = marksPerCorrect / 5;
+  const tfNegativeAbsolute = negativeValue / 5;
 
   const correctMap = new Map((questions || []).map((q: any) => [q.id, q.correctOption]));
   const answersMap = new Map((answers || []).map((a: any) => [a.questionId, a.selectedOption]));

@@ -34,6 +34,7 @@ interface Quiz {
   allowMultipleAttempts: boolean;
   maxAttempts: number | null;
   attemptsCount: number;
+  completedAttemptsCount?: number;
   topScore: number | null;
   avgScore: number | null;
   _count: { questions: number };
@@ -46,7 +47,16 @@ interface Quiz {
   attempt?: {
     id: string;
     status: string;
-    netScore: number;
+    netScore?: number;
+    score?: number;
+    attemptNumber: number;
+    submittedAt: string | null;
+  } | null;
+  latestCompletedAttempt?: {
+    id: string;
+    status: string;
+    netScore?: number;
+    score?: number;
     attemptNumber: number;
     submittedAt: string | null;
   } | null;
@@ -108,13 +118,17 @@ export default function QuizzesPage() {
         </span>
       );
     }
-    if (quiz.attempt) {
-      if (quiz.attempt.status === 'in_progress') {
-        return <span className={`${styles.badge} ${styles.inProgress}`}><ClockIcon className={styles.badgeIcon} /> In Progress</span>;
-      }
-      if (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted') {
-        return <span className={`${styles.badge} ${styles.completed}`}><CheckCircle className={styles.badgeIcon} /> Completed</span>;
-      }
+    if (quiz.attempt?.status === 'in_progress') {
+      return <span className={`${styles.badge} ${styles.inProgress}`}><ClockIcon className={styles.badgeIcon} /> In Progress</span>;
+    }
+    const hasCompleted = Boolean(
+      quiz.latestCompletedAttempt || 
+      (quiz.completedAttemptsCount && quiz.completedAttemptsCount > 0) ||
+      quiz.topScore !== null || 
+      (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted' || quiz.attempt.status === 'completed'))
+    );
+    if (hasCompleted) {
+      return <span className={`${styles.badge} ${styles.completed}`}><CheckCircle className={styles.badgeIcon} /> Completed</span>;
     }
     return <span className={`${styles.badge} ${styles.notAttempted}`}><AlertCircle className={styles.badgeIcon} /> Available</span>;
   };
@@ -248,14 +262,19 @@ export default function QuizzesPage() {
                 {group.quizzes.map(quiz => {
                   const isLocked = Boolean(quiz.isLocked);
                   const isInProgress = !isLocked && quiz.attempt?.status === 'in_progress';
-                  const isCompleted = !isLocked && (quiz.attempt?.status === 'submitted' || quiz.attempt?.status === 'auto_submitted');
+                  const hasCompletedAttempt = Boolean(
+                    quiz.latestCompletedAttempt ||
+                    (quiz.completedAttemptsCount && quiz.completedAttemptsCount > 0) ||
+                    (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted' || quiz.attempt.status === 'completed'))
+                  );
+                  const resultAttemptId = quiz.latestCompletedAttempt?.id || (quiz.attempt?.status !== 'in_progress' ? quiz.attempt?.id : null);
                   
                   const canStart = !isLocked && !isInProgress && (
                     !quiz.attempt || (
                       quiz.allowMultipleAttempts && (
                         !quiz.maxAttempts || 
                         quiz.maxAttempts === 0 || 
-                        (quiz.attempt?.attemptNumber ?? 0) < quiz.maxAttempts
+                        (quiz.attemptsCount ?? 0) < quiz.maxAttempts
                       )
                     )
                   );
@@ -380,22 +399,22 @@ export default function QuizzesPage() {
                                 <RotateCcw className={styles.btnIcon} /> Continue
                               </Link>
                             )}
-                            {canStart && (
+                            {hasCompletedAttempt && resultAttemptId && (
                               <Link
-                                href={`/dashboard/quizzes/${quiz.id}`}
-                                className={`${styles.actionBtn} ${styles.startBtn}`}
-                                title="Start Quiz"
-                              >
-                                <Play className={styles.btnIcon} /> {quiz.attemptsCount > 0 ? 'Re-attempt' : 'Start'}
-                              </Link>
-                            )}
-                            {isCompleted && quiz.attempt?.id && (
-                              <Link
-                                href={`/dashboard/quizzes/${quiz.id}/result?attempt=${quiz.attempt.id}`}
+                                href={`/dashboard/quizzes/${quiz.id}/result?attempt=${resultAttemptId}`}
                                 className={`${styles.actionBtn} ${styles.resultBtn}`}
                                 title="View Result"
                               >
                                 <FileText className={styles.btnIcon} /> Result
+                              </Link>
+                            )}
+                            {canStart && (
+                              <Link
+                                href={`/dashboard/quizzes/${quiz.id}`}
+                                className={`${styles.actionBtn} ${styles.startBtn}`}
+                                title={quiz.attemptsCount > 0 ? "Re-attempt Quiz" : "Start Quiz"}
+                              >
+                                <Play className={styles.btnIcon} /> {quiz.attemptsCount > 0 ? 'Re-attempt' : 'Start'}
                               </Link>
                             )}
                           </>

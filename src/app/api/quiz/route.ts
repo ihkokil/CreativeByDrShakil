@@ -268,21 +268,37 @@ export async function GET(request: NextRequest) {
         }
 
         const userAttempts = attemptsMap.get(q.id) || [];
-        const completedAttempts = userAttempts.filter((a: any) => a.status === 'submitted' || a.status === 'auto_submitted');
+        const completedAttempts = userAttempts.filter((a: any) => 
+          a.status === 'submitted' || a.status === 'auto_submitted' || a.status === 'completed'
+        );
         const inProgressAttempt = userAttempts.find((a: any) => a.status === 'in_progress');
 
         let quizStatus = 'Not Attempted';
-        if (userAttempts.length > 0) {
-          if (inProgressAttempt) quizStatus = 'In Progress';
-          else if (completedAttempts.length > 0) quizStatus = 'Completed';
+        if (inProgressAttempt) {
+          quizStatus = 'In Progress';
+        } else if (completedAttempts.length > 0) {
+          quizStatus = 'Completed';
         }
 
-        const scores = completedAttempts.map((a: any) => Number(a.netScore));
+        const scores = completedAttempts
+          .map((a: any) => (a.netScore !== null && a.netScore !== undefined ? Number(a.netScore) : NaN))
+          .filter((s: number) => !isNaN(s) && isFinite(s));
+
         const topScore = scores.length > 0 ? Math.max(...scores) : null;
         const avgScore = scores.length > 0 ? (scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length) : null;
+        
         const firstAttempt = completedAttempts.find((a: any) => a.attemptNumber === 1);
-        const firstAttemptScore = firstAttempt ? Number(firstAttempt.netScore) : null;
-        const latestAttempt = userAttempts.length > 0 ? userAttempts.reduce((prev: any, curr: any) => prev.attemptNumber > curr.attemptNumber ? prev : curr) : null;
+        const firstAttemptScore = firstAttempt && firstAttempt.netScore !== null && firstAttempt.netScore !== undefined && !isNaN(Number(firstAttempt.netScore))
+          ? Number(firstAttempt.netScore)
+          : null;
+
+        const latestAttempt = userAttempts.length > 0
+          ? userAttempts.reduce((prev: any, curr: any) => ((curr.attemptNumber || 0) > (prev.attemptNumber || 0) ? curr : prev))
+          : null;
+
+        const latestCompletedAttempt = completedAttempts.length > 0
+          ? completedAttempts.reduce((prev: any, curr: any) => ((curr.attemptNumber || 0) > (prev.attemptNumber || 0) ? curr : prev))
+          : null;
 
         return {
           ...q,
@@ -295,6 +311,7 @@ export async function GET(request: NextRequest) {
           availableAt,
           status: quizStatus,
           attemptsCount: userAttempts.length,
+          completedAttemptsCount: completedAttempts.length,
           topScore,
           avgScore,
           firstAttemptScore,
@@ -302,9 +319,18 @@ export async function GET(request: NextRequest) {
           attempt: latestAttempt ? {
             id: latestAttempt.id,
             attemptNumber: latestAttempt.attemptNumber,
+            netScore: latestAttempt.netScore,
             score: latestAttempt.netScore,
             submittedAt: latestAttempt.submittedAt,
             status: latestAttempt.status,
+          } : null,
+          latestCompletedAttempt: latestCompletedAttempt ? {
+            id: latestCompletedAttempt.id,
+            attemptNumber: latestCompletedAttempt.attemptNumber,
+            netScore: latestCompletedAttempt.netScore,
+            score: latestCompletedAttempt.netScore,
+            submittedAt: latestCompletedAttempt.submittedAt,
+            status: latestCompletedAttempt.status,
           } : null,
         };
       });
@@ -493,10 +519,6 @@ export async function POST(request: NextRequest) {
       allowNegativeMarking,
       negativeValue,
       marksPerCorrect,
-      sbaMarks,
-      sbaNegative,
-      tfMarks,
-      tfNegative,
       startDatetime,
       endDatetime,
       shuffleQuestions,
@@ -534,10 +556,6 @@ export async function POST(request: NextRequest) {
       allowNegativeMarking: allowNegativeMarking || false,
       negativeValue: negativeValue !== undefined ? negativeValue : 20,
       marksPerCorrect: marksPerCorrect || 1,
-      sbaMarks: sbaMarks !== undefined ? sbaMarks : 1,
-      sbaNegative: sbaNegative !== undefined ? sbaNegative : 0,
-      tfMarks: tfMarks !== undefined ? tfMarks : 1,
-      tfNegative: tfNegative !== undefined ? tfNegative : 0,
       startDatetime: startDatetime ? new Date(startDatetime).toISOString() : null,
       endDatetime: endDatetime ? new Date(endDatetime).toISOString() : null,
       status: (status || 'draft') as 'draft' | 'published' | 'archived',
