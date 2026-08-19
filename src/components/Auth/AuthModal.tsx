@@ -7,7 +7,6 @@ import Link from "next/link";
 import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home, Lock, ArrowRight, ArrowLeft, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useModalLock } from "@/hooks/useModalLock";
-import { resolveEmail } from "@/lib/email-resolver";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
 
 
@@ -126,6 +125,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             return;
         }
         const resolved = result.email;
+        setEmail(resolved);
 
         setLoading(true);
         setMessage(null);
@@ -185,7 +185,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ identifier: resolveEmail(email.trim()), password }),
+                body: JSON.stringify({ identifier: email.trim(), password }),
             });
             const data = await response.json();
 
@@ -224,7 +224,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: resolveEmail(email.trim()), otp: otpCode }),
+                body: JSON.stringify({ email: email.trim(), otp: otpCode }),
             });
             const data = await response.json();
 
@@ -251,7 +251,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: resolveEmail(email.trim()) }),
+                body: JSON.stringify({ email: email.trim() }),
             });
             const data = await response.json();
 
@@ -297,7 +297,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: resolveEmail(email.trim()),
+                    email: email.trim(),
                     password,
                     fullName,
                     phone,
@@ -335,6 +335,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             return;
         }
         const resolved = result.email;
+        setEmail(resolved);
 
         setLoading(true);
         setMessage(null);
@@ -380,7 +381,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/verify-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: resolveEmail(email.trim()), otp: otpCode }),
+                body: JSON.stringify({ email: email.trim(), otp: otpCode }),
             });
             const data = await response.json();
 
@@ -417,7 +418,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             const response = await fetch('/api/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: resolveEmail(email.trim()), password }),
+                body: JSON.stringify({ email: email.trim(), password }),
             });
             const data = await response.json();
 

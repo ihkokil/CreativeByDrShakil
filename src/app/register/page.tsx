@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "@/components/Auth/Auth.module.css";
 import pageStyles from "../auth/AuthPages.module.css";
-import { resolveEmail } from "@/lib/email-resolver";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
 import { useAuth } from "@/context/AuthContext";
 import { Mail, Lock, User, Phone, FileText, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
@@ -77,6 +76,7 @@ function RegisterContent() {
             return;
         }
         const resolved = result.email;
+        setEmail(resolved);
 
         setLoading(true);
         setMessage(null);
@@ -139,7 +139,7 @@ function RegisterContent() {
             const response = await fetch("/api/auth/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: resolveEmail(email.trim()) }),
+                body: JSON.stringify({ email: email.trim() }),
             });
             const data = await response.json();
 
@@ -175,7 +175,7 @@ function RegisterContent() {
             const response = await fetch("/api/auth/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: resolveEmail(email.trim()), otp: otpCode }),
+                body: JSON.stringify({ email: email.trim(), otp: otpCode }),
             });
             const data = await response.json();
 
@@ -217,7 +217,7 @@ function RegisterContent() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    email: resolveEmail(email.trim()),
+                    email: email.trim(),
                     password,
                     fullName,
                     phone,

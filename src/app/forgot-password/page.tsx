@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "@/components/Auth/Auth.module.css";
 import pageStyles from "../auth/AuthPages.module.css";
-import { resolveEmail } from "@/lib/email-resolver";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
 import { useAuth } from "@/context/AuthContext";
 import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
@@ -49,6 +48,7 @@ export default function ForgotPasswordPage() {
             return;
         }
         const resolved = result.email;
+        setEmail(resolved);
 
         setLoading(true);
         setMessage(null);
@@ -131,7 +131,7 @@ export default function ForgotPasswordPage() {
             const response = await fetch("/api/auth/verify-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: resolveEmail(email.trim()), otp: otpCode }),
+                body: JSON.stringify({ email: email.trim(), otp: otpCode }),
             });
             const data = await response.json();
 
@@ -168,7 +168,7 @@ export default function ForgotPasswordPage() {
             const response = await fetch("/api/auth/reset-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: resolveEmail(email.trim()), password }),
+                body: JSON.stringify({ email: email.trim(), password }),
             });
             const data = await response.json();
 

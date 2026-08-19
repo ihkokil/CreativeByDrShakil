@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "@/components/Auth/Auth.module.css";
 import pageStyles from "../auth/AuthPages.module.css";
-import { resolveEmail } from "@/lib/email-resolver";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
 import { useAuth } from "@/context/AuthContext";
 import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
@@ -44,6 +43,7 @@ function LoginContent() {
             return;
         }
         const resolved = result.email;
+        setEmail(resolved);
 
         setLoading(true);
         setMessage(null);
@@ -103,7 +103,7 @@ function LoginContent() {
             const response = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifier: resolveEmail(email.trim()), password }),
+                body: JSON.stringify({ identifier: email.trim(), password }),
             });
             const data = await response.json();
 

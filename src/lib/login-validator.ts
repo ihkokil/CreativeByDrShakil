@@ -1,5 +1,3 @@
-import { resolveEmail } from "./email-resolver";
-
 export type ValidationResult =
   | { valid: true; email: string }
   | { valid: false; reason: string };
@@ -15,15 +13,14 @@ export function normalizeLoginIdentifier(input: string): ValidationResult {
     return { valid: false, reason: "Please enter your email address." };
   }
 
-  if (!trimmed.includes("@") && isPhoneNumber(trimmed)) {
+  if (isPhoneNumber(trimmed)) {
     return { valid: false, reason: "Please enter your email address. Phone numbers are not supported for login." };
   }
 
-  const email = resolveEmail(trimmed);
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmed)) {
     return { valid: false, reason: "Please enter a valid email address." };
   }
 
-  return { valid: true, email };
+  return { valid: true, email: trimmed };
 }
