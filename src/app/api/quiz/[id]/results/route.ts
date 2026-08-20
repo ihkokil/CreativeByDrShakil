@@ -35,15 +35,20 @@ export async function GET(
     }
     
     if (isStudent) {
-      const { data: attempt } = await supabase
+      const attemptIdParam = request.nextUrl.searchParams.get('attempt');
+      let attemptQuery = supabase
         .from('QuizAttempt')
         .select('*')
         .eq('quizId', id)
-        .eq('studentId', payload.sub)
-        .in('status', ['submitted', 'auto_submitted'])
-        .order('submittedAt', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .eq('studentId', payload.sub);
+
+      if (attemptIdParam) {
+        attemptQuery = attemptQuery.eq('id', attemptIdParam);
+      } else {
+        attemptQuery = attemptQuery.in('status', ['submitted', 'auto_submitted']).order('submittedAt', { ascending: false });
+      }
+
+      const { data: attempt } = await attemptQuery.limit(1).maybeSingle();
       
       if (!attempt) {
         return NextResponse.json({ error: 'No completed attempt found.' }, { status: 404 });
@@ -66,32 +71,67 @@ export async function GET(
         
       const mappingQuestionMap = new Map((mappingQuestions || []).map((q: any) => [q.id, q]));
       
-      const attemptWithRelations = {
-        ...(attempt as any),
-        answers: attemptAnswers || [],
-        questionMappings: (attemptMappings || []).map((m: any) => ({
-          ...m,
-          question: mappingQuestionMap.get(m.questionId)!,
-        })),
-      };
+      let questionMappings = (attemptMappings || []).map((m: any) => ({
+        ...m,
+        question: mappingQuestionMap.get(m.questionId) || null,
+      })).filter((m: any) => m.question !== null);
+
+      // Fallback: If no QuizQuestionMapping was stored, load directly from Question table
+      if (questionMappings.length === 0) {
+        const { data: fallbackQuestions = [] } = await supabase
+          .from('Question')
+          .select('*')
+          .eq('quizId', id)
+          .order('createdAt', { ascending: true });
+        
+        questionMappings = (fallbackQuestions || []).map((q: any, idx: number) => ({
+          id: `fallback-${q.id}`,
+          attemptId: (attempt as any).id,
+          questionId: q.id,
+          displayOrder: idx,
+          optionOrder: null,
+          question: q,
+        }));
+      }
       
-      const answerMap = new Map(attemptWithRelations.answers.map((a: any) => [a.questionId, a]));
+      const answerMap = new Map((attemptAnswers || []).map((a: any) => [a.questionId, a]));
       
-      const questionsReview = attemptWithRelations.questionMappings
-        .sort((a: any, b: any) => a.displayOrder - b.displayOrder)
+      const questionsReview = questionMappings
+        .sort((a: any, b: any) => (a.displayOrder || 0) - (b.displayOrder || 0))
         .map((m: any) => {
-          const q = m.question!;
+          const q = m.question;
+          if (!q) return null;
           const answer = answerMap.get(q.id);
-          let options = [
+          let originalOptions = [
             { letter: 'A', text: q.optionA },
             { letter: 'B', text: q.optionB },
             { letter: 'C', text: q.optionC },
             { letter: 'D', text: q.optionD },
             { letter: 'E', text: q.optionE },
-          ].filter(o => o.text !== null && o.text !== undefined && o.text !== '');
+          ];
+          if (q.questionType !== 'mcq') {
+            originalOptions = originalOptions.filter(o => o.text !== null && o.text !== undefined && String(o.text).trim() !== '');
+          }
           
+          let options = originalOptions;
           if (m.optionOrder && Array.isArray(m.optionOrder)) {
-            options = m.optionOrder.map((idx: number) => options[idx]).filter(Boolean);
+            options = m.optionOrder.map((key: any) => {
+              if (typeof key === 'number') {
+                const letters = ['A', 'B', 'C', 'D', 'E'];
+                const letter = letters[key];
+                return originalOptions.find(o => o.letter === letter);
+              } else if (typeof key === 'string') {
+                return originalOptions.find(o => o.letter === key);
+              }
+              return null;
+            }).filter(Boolean) as any[];
+
+            const orderedLetters = new Set(options.map(o => o.letter));
+            originalOptions.forEach(o => {
+              if (!orderedLetters.has(o.letter)) {
+                options.push(o);
+              }
+            });
           }
           
           const studentAns = (answer as any)?.selectedOption || null;
@@ -99,8 +139,37 @@ export async function GET(
           let isPartial = false;
           
           if (studentAns && q.correctOption) {
-            if (q.questionType === 'sba' || q.questionType === 'true_false') {
+            if (q.questionType === 'sba') {
               isCorrect = studentAns === q.correctOption;
+            } else if (q.questionType === 'true_false') {
+              // True_False with 5 options: each correct option = 2 marks, each wrong = -0.5
+              const correctOptions = (q.correctOption || '').split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+              const studentOptions = (studentAns || '').split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+              
+              let correctCount = 0;
+              let wrongCount = 0;
+              
+              // Count correct and wrong options
+              const allOptions = ['A', 'B', 'C', 'D', 'E'];
+              allOptions.forEach((letter, idx) => {
+                const correctHasOption = correctOptions.some((o: string) => o.toLowerCase().startsWith(letter.toLowerCase()));
+                const studentHasOption = studentOptions.some((o: string) => o.toLowerCase().startsWith(letter.toLowerCase()));
+                
+                if (correctHasOption && studentHasOption) {
+                  correctCount++;
+                } else if (correctHasOption && !studentHasOption) {
+                  // Student skipped this option, but it's correct - no penalty
+                  // Actually for true_false, if option is correct and student didn't answer, it's not wrong
+                } else if (!correctHasOption && studentHasOption) {
+                  wrongCount++;
+                }
+                // Both wrong or both correct handled elsewhere
+              });
+              
+              // Calculate: correct * 2 - wrong * 0.5
+              const score = correctCount * 2 - wrongCount * 0.5;
+              isCorrect = score > 0 || (score === 0 && correctCount > 0);
+              isPartial = score > 0 && score < (correctCount * 2); // partially correct
             } else if (q.questionType === 'mcq') {
               if (studentAns === q.correctOption) {
                 isCorrect = true;
@@ -123,17 +192,17 @@ export async function GET(
 
           return {
             questionId: q.id,
-            questionText: q.questionText,
-            questionType: q.questionType,
+            questionText: q.questionText || '',
+            questionType: q.questionType || 'sba',
             options,
-            correctOption: q.correctOption,
-            explanation: q.explanation,
+            correctOption: q.correctOption || '',
+            explanation: q.explanation || null,
             studentAnswer: studentAns,
             isCorrect: isCorrect,
             isPartial: isPartial,
             isSkipped: !studentAns,
           };
-        });
+        }).filter(Boolean);
       
       const { data: allAttempts = [] } = await supabase
         .from('QuizAttempt')
@@ -179,15 +248,16 @@ export async function GET(
         } else {
           studentAttempts.sort((a, b) => {
             if (rankingType === 'first_attempt') {
-              return a.attemptNumber - b.attemptNumber;
+              return new Date(a.createdAt || a.submittedAt || 0).getTime() - new Date(b.createdAt || b.submittedAt || 0).getTime();
             }
             if (rankingType === 'last_attempt') {
-              return b.attemptNumber - a.attemptNumber;
+              return new Date(b.createdAt || b.submittedAt || 0).getTime() - new Date(a.createdAt || a.submittedAt || 0).getTime();
             }
-            if (b.netScore !== a.netScore) {
-              return b.netScore - a.netScore;
+            if (rankingType === 'best_attempt') {
+              return (b.netScore || 0) - (a.netScore || 0);
             }
-            return (a.timeTakenSeconds || 0) - (b.timeTakenSeconds || 0);
+            // default: best attempt (highest score)
+            return (b.netScore || 0) - (a.netScore || 0);
           });
           filteredAttempts.push(studentAttempts[0]);
         }
@@ -214,16 +284,16 @@ export async function GET(
       
       return NextResponse.json({
         attempt: {
-          id: attemptWithRelations.id,
-          netScore: attemptWithRelations.netScore,
-          percentageScore: attemptWithRelations.percentageScore,
-          correctCount: attemptWithRelations.correctCount,
-          wrongCount: attemptWithRelations.wrongCount,
-          skippedCount: attemptWithRelations.skippedCount,
-          negativeMarks: attemptWithRelations.negativeMarks,
-          timeTakenSeconds: attemptWithRelations.timeTakenSeconds,
-          submittedAt: attemptWithRelations.submittedAt,
-          attemptNumber: attemptWithRelations.attemptNumber,
+          id: (attempt as any).id,
+          netScore: (attempt as any).netScore,
+          percentageScore: (attempt as any).percentageScore,
+          correctCount: (attempt as any).correctCount,
+          wrongCount: (attempt as any).wrongCount,
+          skippedCount: (attempt as any).skippedCount,
+          negativeMarks: (attempt as any).negativeMarks,
+          timeTakenSeconds: (attempt as any).timeTakenSeconds,
+          submittedAt: (attempt as any).submittedAt,
+          attemptNumber: (attempt as any).attemptNumber,
           rank,
         },
         quiz: {
@@ -323,13 +393,13 @@ export async function GET(
       } else {
         studentAttempts.sort((a, b) => {
           if (teacherRankingType === 'first_attempt') {
-            return a.attemptNumber - b.attemptNumber;
+            return new Date(a.createdAt || a.submittedAt || 0).getTime() - new Date(b.createdAt || b.submittedAt || 0).getTime();
           }
           if (teacherRankingType === 'last_attempt') {
-            return b.attemptNumber - a.attemptNumber;
+            return new Date(b.createdAt || b.submittedAt || 0).getTime() - new Date(a.createdAt || a.submittedAt || 0).getTime();
           }
           if (b.netScore !== a.netScore) {
-            return b.netScore - a.netScore;
+            return (b.netScore || 0) - (a.netScore || 0);
           }
           return (a.timeTakenSeconds || 0) - (b.timeTakenSeconds || 0);
         });
@@ -454,6 +524,35 @@ export async function GET(
             else optionDistribution[stem].S++;
           }
         }
+      } else if (q.questionType === 'true_false') {
+        // True_False: count correct vs wrong options per question
+        const correctOptions = (q.correctOption || '').split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+        optionDistribution = { A: 0, B: 0, C: 0, D: 0, E: 0 };
+        let correctCount = 0;
+        let wrongCount = 0;
+        
+        const allOptions = ['A', 'B', 'C', 'D', 'E'];
+        for (const a of answers) {
+          const studentOptions = (a.selectedOption || '').split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+          allOptions.forEach((letter, idx) => {
+            const correctHasOption = correctOptions.some((o: string) => o.toLowerCase().startsWith(letter.toLowerCase()));
+            const studentHasOption = studentOptions.some((o: string) => o.toLowerCase().startsWith(letter.toLowerCase()));
+            
+            if (correctHasOption && studentHasOption) {
+              optionDistribution[letter]++;
+              correctCount++;
+            } else if (!correctHasOption && studentHasOption) {
+              optionDistribution[letter]++;
+              wrongCount++;
+            } else if (correctHasOption && !studentHasOption) {
+              // Option is correct but student skipped - don't count in distribution
+            }
+          });
+        }
+        
+        mostCommonWrongOption = wrongCount > 0 ? 
+          Object.entries(optionDistribution).sort((a: any, b: any) => b[1] - a[1])[0]?.[0] || null 
+          : null;
       } else {
         optionDistribution = { A: 0, B: 0, C: 0, D: 0, E: 0 };
         for (const a of answers) {
@@ -515,8 +614,31 @@ export async function GET(
             let isPartial = false;
             
             if (studentAns && q.correctOption) {
-              if (q.questionType === 'sba' || q.questionType === 'true_false') {
+              if (q.questionType === 'sba') {
                 isCorrect = studentAns === q.correctOption;
+              } else if (q.questionType === 'true_false') {
+                // True_False with 5 options: each correct option = 2 marks, each wrong = -0.5
+                const correctOptions = (q.correctOption || '').split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+                const studentOptions = (studentAns || '').split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+                
+                let correctCount = 0;
+                let wrongCount = 0;
+                
+                const allOptions = ['A', 'B', 'C', 'D', 'E'];
+                allOptions.forEach((letter, idx) => {
+                  const correctHasOption = correctOptions.some((o: string) => o.toLowerCase().startsWith(letter.toLowerCase()));
+                  const studentHasOption = studentOptions.some((o: string) => o.toLowerCase().startsWith(letter.toLowerCase()));
+                  
+                  if (correctHasOption && studentHasOption) {
+                    correctCount++;
+                  } else if (!correctHasOption && studentHasOption) {
+                    wrongCount++;
+                  }
+                });
+                
+                const score = correctCount * 2 - wrongCount * 0.5;
+                isCorrect = score > 0 || (score === 0 && correctCount > 0);
+                isPartial = score > 0 && score < (correctCount * 2);
               } else if (q.questionType === 'mcq') {
                 if (studentAns === q.correctOption) {
                   isCorrect = true;

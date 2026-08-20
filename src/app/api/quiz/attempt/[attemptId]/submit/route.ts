@@ -42,6 +42,8 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
   let grossScore = 0;
   let penalty = 0;
 
+  const answersReturn: Record<string, { isCorrect: boolean }> = {};
+
   for (const q of questions) {
     const qId = q.id;
     const correctOption = q.correctOption as string;
@@ -50,8 +52,11 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
 
     if (!selected) {
       unansweredCount++;
+      answersReturn[qId] = { isCorrect: false };
       continue;
     }
+
+    let isCorrect = false;
 
     if (qType === 'mcq') {
       // Multiple True/False (e.g. "FFTFT")
@@ -70,8 +75,13 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
         }
       }
       
-      if (correctStems === length) correctCount++;
-      else if (incorrectStems > 0) incorrectCount++;
+      if (correctStems === length) {
+        correctCount++;
+        isCorrect = true;
+      }
+      else if (incorrectStems > 0) {
+        incorrectCount++;
+      }
       
       grossScore += correctStems * tfMarks;
       penalty += incorrectStems * tfNegativeAbsolute;
@@ -80,11 +90,14 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
       if (selected === correctOption) {
         correctCount++;
         grossScore += sbaMarks;
+        isCorrect = true;
       } else {
         incorrectCount++;
         penalty += sbaNegativeAbsolute;
       }
     }
+    
+    answersReturn[qId] = { isCorrect };
   }
 
   const totalQuestions = questions.length;
@@ -126,6 +139,7 @@ async function gradeAttempt(attemptId: string, quizId: string, submissionStatus:
   if (updateError) throw updateError;
 
   return {
+    answers: answersReturn,
     correctCount,
     wrongCount: incorrectCount,
     skippedCount: unansweredCount,
@@ -172,7 +186,7 @@ export async function POST(
     return NextResponse.json({
       success: true,
       attemptId,
-      ...result,
+      results: result,
     });
   } catch (error: any) {
     console.error('[quiz/submit] error:', error);

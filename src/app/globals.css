@@ -109,6 +109,17 @@
   --layout-page-top: 80px;
   --layout-page-bottom: 80px;
   --text-muted: #a0a0a0;
+  --text-secondary: #a1a1aa;
+
+  /* Feedback Surface & Border Tokens (Dark Mode) */
+  --success-surface: rgba(16, 185, 129, 0.08);
+  --success-border: rgba(16, 185, 129, 0.3);
+  --error-surface: rgba(239, 68, 68, 0.08);
+  --error-border: rgba(239, 68, 68, 0.3);
+  --warning-surface: rgba(245, 158, 11, 0.08);
+  --warning-border: rgba(245, 158, 11, 0.3);
+  --info-surface: rgba(14, 165, 233, 0.08);
+  --info-border: rgba(14, 165, 233, 0.3);
 
   /* Dropdown Specifics (Merged from Development) */
   --dropdown-bg: color-mix(in srgb, var(--card-bg) 90%, transparent);
@@ -121,8 +132,8 @@
   --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 88%, var(--foreground));
 
   /* Component Compatibility (Dark Theme) */
-  --surface: #1e293b;
-  --surface-alt: #0f172a;
+  --surface: #141414;
+  --surface-alt: #1a1a1a;
   --border: rgba(255, 255, 255, 0.1);
   --bg-hover: rgba(255, 255, 255, 0.05);
   --text: #ffffff;
@@ -144,10 +155,21 @@
   --glass-highlight: rgba(0, 0, 0, 0.02);
   --card-bg: #ffffff;
   --text-muted: #64748b;
+  --text-secondary: #475569;
   --surface-soft: rgba(15, 23, 42, 0.03);
   --surface-strong: rgba(37, 99, 235, 0.08);
   --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
   --shadow-medium: 0 18px 36px rgba(15, 23, 42, 0.14);
+
+  /* Feedback Surface & Border Tokens (Light Mode) */
+  --success-surface: rgba(16, 185, 129, 0.1);
+  --success-border: rgba(16, 185, 129, 0.35);
+  --error-surface: rgba(239, 68, 68, 0.08);
+  --error-border: rgba(239, 68, 68, 0.35);
+  --warning-surface: rgba(245, 158, 11, 0.1);
+  --warning-border: rgba(245, 158, 11, 0.35);
+  --info-surface: rgba(14, 165, 233, 0.1);
+  --info-border: rgba(14, 165, 233, 0.35);
   
   --dropdown-bg: color-mix(in srgb, white 96%, var(--surface-strong));
   --dropdown-border: var(--glass-border);
@@ -159,12 +181,12 @@
   --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 92%, var(--foreground));
 
   /* Component Compatibility (Light Theme) */
-  --surface: #ffffff;
-  --surface-alt: #f1f5f9;
-  --border: rgba(15, 23, 42, 0.1);
-  --bg-hover: rgba(15, 23, 42, 0.05);
+  --surface: #f1f5f9;
+  --surface-alt: #e2e8f0;
+  --border: rgba(0, 0, 0, 0.1);
+  --bg-hover: rgba(0, 0, 0, 0.04);
   --text: #0f172a;
-  --primary-dark: #b91c1c;
+  --primary-dark: #991b1b;
 }
 
 * {

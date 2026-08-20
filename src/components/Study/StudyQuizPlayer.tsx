@@ -107,6 +107,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
   const handleStartQuiz = async () => {
     if (!quiz) return;
     setStarting(true);
+    setError(null);
     try {
       const res = await fetch(`/api/quiz/${quizId}/start`, {
         method: "POST",
@@ -122,7 +123,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
         `/dashboard/quizzes/${quizId}/attempt/${targetAttemptId}?returnUrl=${encodeURIComponent(returnUrl)}`
       );
     } catch (err: any) {
-      alert(err.message || "Failed to start quiz");
+      setError(err.message || "Failed to start quiz");
     } finally {
       setStarting(false);
     }
@@ -170,7 +171,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
     );
   }
 
-  if (error || !quiz) {
+  if (!quiz) {
     return (
       <div className={styles.container}>
         <div className={styles.errorState}>
@@ -220,6 +221,13 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
         </div>
         {quiz.description && <p className={styles.description}>{quiz.description}</p>}
       </header>
+
+      {error && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
 
       <main className={styles.main}>
         <section className={styles.rulesSection}>
@@ -278,7 +286,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
                 <span className={styles.ruleValue}>
                   {quiz.allowNegativeMarking
                     ? `-${quiz.negativeValue || 0.25} mark${(quiz.negativeValue || 0.25) !== 1 ? "s" : ""} per wrong`
-                    : "Not applicable"}
+                    : "No negative marking"}
                 </span>
               </div>
             </div>
@@ -315,7 +323,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
           <div className={styles.warningCard}>
             <AlertCircle className={styles.warningIcon} />
             <div className={styles.warningContent}>
-              <h3>Instructions</h3>
+              <h3>Exam Instructions & Rules</h3>
               <ul>
                 <li>
                   This quiz consists of <strong>{quiz.numQuestionsToServe} questions</strong> to be
@@ -356,7 +364,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
               className={canStart ? styles.secondaryBtn : styles.primaryBtn}
             >
               <CheckCircle className={styles.btnIcon} />
-              {canStart ? "View Last Result" : "View Result"}
+              {canStart ? "Review Answers" : "View Result & Answers"}
             </Link>
           )}
 

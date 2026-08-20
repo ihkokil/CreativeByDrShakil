@@ -101,6 +101,7 @@ export async function GET(
       return NextResponse.json({ error: 'Not authorized to view this quiz.' }, { status: 403 });
     }
     
+    let allAttemptsData: any[] = [];
     let attempt = null;
     if (payload && payload.role === 'student') {
       const { data: attemptRow } = await supabase
@@ -129,6 +130,14 @@ export async function GET(
         attemptMappingsData = mappings || [];
       }
       attempt = attemptRow ? { ...(attemptRow as any), answers: attemptAnswersData, questionMappings: attemptMappingsData } : null;
+      
+      const { data: attemptsRows } = await supabase
+        .from('QuizAttempt')
+        .select('*')
+        .eq('quizId', id)
+        .eq('studentId', payload.sub)
+        .order('startedAt', { ascending: false });
+      allAttemptsData = attemptsRows || [];
     }
     
     const questionsWithOptions = quizData.questions.map((q: any) => ({
@@ -147,6 +156,7 @@ export async function GET(
         ...quizData,
         questions: questionsWithOptions,
       },
+      allAttempts: allAttemptsData,
       attempt: attempt ? {
         id: attempt.id,
         status: attempt.status,

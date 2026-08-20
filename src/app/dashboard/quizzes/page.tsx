@@ -37,6 +37,8 @@ interface Quiz {
   completedAttemptsCount?: number;
   topScore: number | null;
   avgScore: number | null;
+  userRank?: number | null;
+  totalParticipants?: number;
   _count: { questions: number };
   courseId?: string | null;
   courseName?: string | null;
@@ -65,8 +67,10 @@ interface Quiz {
 
 export default function QuizzesPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'duration' | 'alphabetical'>('newest');
@@ -76,9 +80,18 @@ export default function QuizzesPage() {
   const [error, setError] = useState<string | null>(null);
   const limit = 20;
 
+  // Debounce search query by 300ms to avoid excessive API requests
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchQuizzes();
-  }, [search, statusFilter, courseFilter, sortBy, page]);
+  }, [debouncedSearch, statusFilter, courseFilter, sortBy, page]);
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -87,7 +100,7 @@ export default function QuizzesPage() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        search,
+        search: debouncedSearch,
         sortBy: sortBy === 'newest' ? 'createdAt' : sortBy === 'oldest' ? 'createdAt' : sortBy === 'duration' ? 'durationMinutes' : 'title',
         sortOrder: sortBy === 'oldest' ? 'asc' : 'desc',
       });
@@ -101,6 +114,9 @@ export default function QuizzesPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to fetch quizzes');
       
       setQuizzes(data.quizzes || []);
+      if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) {
+        setAvailableCourses(data.courses);
+      }
       setTotalCount(data.pagination?.total || 0);
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (err: any) {
@@ -142,8 +158,27 @@ export default function QuizzesPage() {
     return `${minutes} mins`;
   };
 
-  // Group unique courses for filter dropdown
+  const formatUnlockDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const dateFormatted = formatDisplayDate(dateStr);
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      if (hours !== 0 || minutes !== 0) {
+        const timeFormatted = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `${dateFormatted} • ${timeFormatted}`;
+      }
+      return dateFormatted;
+    } catch {
+      return formatDisplayDate(dateStr);
+    }
+  };
+
+  // Group unique courses for filter dropdown (fallback if availableCourses is empty)
   const uniqueCourses = useMemo(() => {
+    if (availableCourses.length > 0) {
+      return availableCourses.map(c => ({ id: c.id, name: c.title }));
+    }
     const map = new Map<string, string>();
     quizzes.forEach(q => {
       if (q.courseId && q.courseName) {
@@ -151,7 +186,7 @@ export default function QuizzesPage() {
       }
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [quizzes]);
+  }, [availableCourses, quizzes]);
 
   // Group quizzes by course for organized display
   const courseGroups = useMemo(() => {
@@ -167,7 +202,7 @@ export default function QuizzesPage() {
     return Array.from(map.values());
   }, [quizzes]);
 
-  if (loading) {
+  if (loading && quizzes.length === 0) {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>
@@ -182,7 +217,7 @@ export default function QuizzesPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>Course Quizzes</h1>
-        <p className={styles.subtitle}>Test your knowledge from your enrolled courses and modules</p>
+        <p className={styles.subtitle}>Practice and test your knowledge across your enrolled medical courses and modules</p>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
@@ -194,8 +229,9 @@ export default function QuizzesPage() {
             type="text"
             placeholder="Search quizzes by title..."
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => setSearch(e.target.value)}
             className={styles.searchInput}
+            aria-label="Search quizzes"
           />
         </div>
         
@@ -205,6 +241,7 @@ export default function QuizzesPage() {
               value={courseFilter}
               onChange={(e) => { setCourseFilter(e.target.value); setPage(1); }}
               className={styles.filterSelect}
+              aria-label="Filter by course"
             >
               <option value="">All Enrolled Courses</option>
               {uniqueCourses.map(c => (
@@ -217,6 +254,7 @@ export default function QuizzesPage() {
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
             className={styles.filterSelect}
+            aria-label="Filter by status"
           >
             <option value="">All Status</option>
             <option value="available">Available (Unlocked)</option>
@@ -229,6 +267,7 @@ export default function QuizzesPage() {
             value={sortBy}
             onChange={(e) => { setSortBy(e.target.value as any); setPage(1); }}
             className={styles.filterSelect}
+            aria-label="Sort by"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -241,8 +280,8 @@ export default function QuizzesPage() {
       {quizzes.length === 0 ? (
         <div className={styles.emptyState}>
           <Trophy className={styles.emptyIcon} />
-          <h3>No quizzes available</h3>
-          <p>Quizzes from your enrolled courses will appear here. If you just enrolled, check your courses in the study dashboard.</p>
+          <h3>No quizzes found</h3>
+          <p>Quizzes from your enrolled courses will appear here. Try adjusting your search or filters.</p>
         </div>
       ) : (
         <>
@@ -307,7 +346,7 @@ export default function QuizzesPage() {
                           {getStatusBadge(quiz)}
                           {isLocked && quiz.availableAt && (
                             <span className={styles.unlockDateText}>
-                              Unlocks: {formatDisplayDate(quiz.availableAt)} - 10:00 PM
+                              Unlocks: {formatUnlockDate(quiz.availableAt)}
                             </span>
                           )}
                         </div>
@@ -360,12 +399,12 @@ export default function QuizzesPage() {
 
                         <div className={styles.statItem}>
                           <div className={styles.statIconWrapper}>
-                            <Trophy className={styles.statIcon} style={{ opacity: 0.7 }} />
+                            <Trophy className={styles.statIcon} />
                           </div>
                           <div className={styles.statContent}>
-                            <span className={styles.statLabel}>Avg Score</span>
-                            <span className={`${styles.statValue} ${quiz.avgScore !== null ? styles.scoreValue : ''}`}>
-                              {quiz.avgScore !== null && quiz.avgScore !== undefined ? `${quiz.avgScore.toFixed(1)} Marks` : '—'}
+                            <span className={styles.statLabel}>Your Rank</span>
+                            <span className={`${styles.statValue} ${quiz.userRank ? styles.rankValue : ''}`}>
+                              {quiz.userRank ? `#${quiz.userRank} / ${quiz.totalParticipants || '—'}` : '—'}
                             </span>
                           </div>
                         </div>
@@ -394,7 +433,7 @@ export default function QuizzesPage() {
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}/attempt/${quiz.attempt.id}`}
                                 className={`${styles.actionBtn} ${styles.continueBtn}`}
-                                title="Continue Quiz"
+                                title="Continue In-Progress Quiz"
                               >
                                 <RotateCcw className={styles.btnIcon} /> Continue
                               </Link>
@@ -403,9 +442,9 @@ export default function QuizzesPage() {
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}/result?attempt=${resultAttemptId}`}
                                 className={`${styles.actionBtn} ${styles.resultBtn}`}
-                                title="View Result"
+                                title="Review Answers and Explanations"
                               >
-                                <FileText className={styles.btnIcon} /> Result
+                                <FileText className={styles.btnIcon} /> Review Answers
                               </Link>
                             )}
                             {canStart && (
@@ -415,6 +454,15 @@ export default function QuizzesPage() {
                                 title={quiz.attemptsCount > 0 ? "Re-attempt Quiz" : "Start Quiz"}
                               >
                                 <Play className={styles.btnIcon} /> {quiz.attemptsCount > 0 ? 'Re-attempt' : 'Start'}
+                              </Link>
+                            )}
+                            {quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted') && (
+                              <Link
+                                href={`/dashboard/quizzes/${quiz.id}/result?attempt=${quiz.attempt.id}`}
+                                className={`${styles.actionBtn} ${styles.secondaryBtn}`}
+                                title="Review Responses"
+                              >
+                                <FileText className={styles.btnIcon} /> Review Responses
                               </Link>
                             )}
                           </>

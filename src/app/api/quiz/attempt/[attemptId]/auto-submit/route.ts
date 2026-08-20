@@ -40,6 +40,8 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
   let grossScore = 0;
   let penalty = 0;
 
+  const answersReturn: Record<string, { isCorrect: boolean }> = {};
+
   for (const q of questions) {
     const qId = q.id;
     const correctOption = q.correctOption as string;
@@ -48,8 +50,11 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
 
     if (!selected) {
       unansweredCount++;
+      answersReturn[qId] = { isCorrect: false };
       continue;
     }
+
+    let isCorrect = false;
 
     if (qType === 'mcq') {
       let correctStems = 0;
@@ -66,8 +71,13 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
         }
       }
       
-      if (correctStems === length) correctCount++;
-      else if (incorrectStems > 0) incorrectCount++;
+      if (correctStems === length) {
+        correctCount++;
+        isCorrect = true;
+      }
+      else if (incorrectStems > 0) {
+        incorrectCount++;
+      }
       
       grossScore += correctStems * tfMarks;
       penalty += incorrectStems * tfNegativeAbsolute;
@@ -75,11 +85,14 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
       if (selected === correctOption) {
         correctCount++;
         grossScore += sbaMarks;
+        isCorrect = true;
       } else {
         incorrectCount++;
         penalty += sbaNegativeAbsolute;
       }
     }
+    
+    answersReturn[qId] = { isCorrect };
   }
 
   const totalQuestions = questions.length;
@@ -120,7 +133,7 @@ async function gradeAttemptForAutoSubmit(attemptId: string, quizId: string, supa
 
   if (updateError) throw updateError;
 
-  return { correctCount, wrongCount: incorrectCount, skippedCount: unansweredCount, totalQuestions, netScore, percentageScore };
+  return { answers: answersReturn, correctCount, wrongCount: incorrectCount, skippedCount: unansweredCount, totalQuestions, netScore, percentageScore };
 }
 
 export async function POST(
@@ -160,7 +173,7 @@ export async function POST(
       success: true,
       attemptId,
       autoSubmitted: true,
-      ...result,
+      results: result,
     });
   } catch (error: any) {
     console.error('[quiz/auto-submit] error:', error);

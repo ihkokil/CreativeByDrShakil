@@ -210,9 +210,10 @@ export async function GET(request: NextRequest) {
       if (qErr) throw qErr;
 
       const quizIds = (dbQuizzes || []).map((q: any) => q.id);
-      const [{ data: questions = [] }, { data: attempts = [] }] = await Promise.all([
+      const [{ data: questions = [] }, { data: attempts = [] }, { data: allSubmittedAttempts = [] }] = await Promise.all([
         quizIds.length > 0 ? supabase.from('Question').select('quizId, id').in('quizId', quizIds) : Promise.resolve({ data: [] }),
-        quizIds.length > 0 ? supabase.from('QuizAttempt').select('id, quizId, status, netScore, attemptNumber, submittedAt').eq('studentId', payload.sub).in('quizId', quizIds) : Promise.resolve({ data: [] }),
+        quizIds.length > 0 ? supabase.from('QuizAttempt').select('id, quizId, status, netScore, attemptNumber, submittedAt, timeTakenSeconds').eq('studentId', payload.sub).in('quizId', quizIds) : Promise.resolve({ data: [] }),
+        quizIds.length > 0 ? supabase.from('QuizAttempt').select('quizId, studentId, netScore, attemptNumber, timeTakenSeconds, submittedAt').in('quizId', quizIds).in('status', ['submitted', 'auto_submitted']) : Promise.resolve({ data: [] }),
       ]);
 
       const questionsMap = new Map<string, number>();
@@ -225,6 +226,13 @@ export async function GET(request: NextRequest) {
         const qId = (a as any).quizId;
         if (!attemptsMap.has(qId)) attemptsMap.set(qId, []);
         attemptsMap.get(qId)!.push(a);
+      }
+
+      const allAttemptsMap = new Map<string, any[]>();
+      for (const a of allSubmittedAttempts || []) {
+        const qId = (a as any).quizId;
+        if (!allAttemptsMap.has(qId)) allAttemptsMap.set(qId, []);
+        allAttemptsMap.get(qId)!.push(a);
       }
 
       let result = (dbQuizzes || []).map((q: any) => {
@@ -300,6 +308,47 @@ export async function GET(request: NextRequest) {
           ? completedAttempts.reduce((prev: any, curr: any) => ((curr.attemptNumber || 0) > (prev.attemptNumber || 0) ? curr : prev))
           : null;
 
+        // Dynamic rank calculation across all students
+        const quizAllAttempts = allAttemptsMap.get(q.id) || [];
+        const studentBestMap = new Map<string, any>();
+        for (const att of quizAllAttempts) {
+          const sId = att.studentId;
+          if (!sId) continue;
+          const isFirstOnly = q.positionType === 'first_attempt';
+          if (isFirstOnly) {
+            if (att.attemptNumber === 1) {
+              studentBestMap.set(sId, att);
+            }
+          } else {
+            const existing = studentBestMap.get(sId);
+            if (!existing) {
+              studentBestMap.set(sId, att);
+            } else {
+              const currScore = Number(att.netScore || 0);
+              const prevScore = Number(existing.netScore || 0);
+              if (currScore > prevScore) {
+                studentBestMap.set(sId, att);
+              } else if (currScore === prevScore) {
+                const currTime = Number(att.timeTakenSeconds || 999999);
+                const prevTime = Number(existing.timeTakenSeconds || 999999);
+                if (currTime < prevTime) {
+                  studentBestMap.set(sId, att);
+                }
+              }
+            }
+          }
+        }
+
+        const sortedParticipants = Array.from(studentBestMap.values()).sort((a, b) => {
+          const scoreDiff = Number(b.netScore || 0) - Number(a.netScore || 0);
+          if (scoreDiff !== 0) return scoreDiff;
+          return Number(a.timeTakenSeconds || 0) - Number(b.timeTakenSeconds || 0);
+        });
+
+        const studentRankIdx = sortedParticipants.findIndex((p: any) => p.studentId === payload.sub);
+        const userRank = studentRankIdx >= 0 ? studentRankIdx + 1 : null;
+        const totalParticipants = sortedParticipants.length;
+
         return {
           ...q,
           courseId: course?.id || null,
@@ -315,6 +364,8 @@ export async function GET(request: NextRequest) {
           topScore,
           avgScore,
           firstAttemptScore,
+          userRank,
+          totalParticipants,
           _count: { questions: questionsMap.get(q.id) || 0 },
           attempt: latestAttempt ? {
             id: latestAttempt.id,
@@ -347,8 +398,14 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      const allCoursesList = (courseRows || []).map((c: any) => ({
+        id: c.id,
+        title: c.title,
+      }));
+
       return NextResponse.json({
         quizzes: result,
+        courses: allCoursesList,
         pagination: { page, limit, total: totalCount || 0, totalPages: Math.ceil((totalCount || 0) / limit) },
       });
     }

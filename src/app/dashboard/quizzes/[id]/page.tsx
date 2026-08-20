@@ -41,6 +41,7 @@ interface Quiz {
     netScore: number;
     submittedAt: string | null;
   } | null;
+  allAttempts?: any[];
 }
 
 export default function QuizDetailPage() {
@@ -72,6 +73,7 @@ export default function QuizDetailPage() {
         setQuiz({
           ...data.quiz,
           attempt: data.attempt,
+          allAttempts: data.allAttempts,
         });
       } catch (err: any) {
         setError(err.message);
@@ -86,6 +88,7 @@ export default function QuizDetailPage() {
   const handleStartQuiz = async () => {
     if (!quiz) return;
     setStarting(true);
+    setError(null);
     try {
       const res = await fetch(`/api/quiz/${quizId}/start`, {
         method: 'POST',
@@ -102,7 +105,7 @@ export default function QuizDetailPage() {
         : `/dashboard/quizzes/${quizId}/attempt/${targetAttemptId}`;
       router.push(targetUrl);
     } catch (err: any) {
-      alert(err.message || 'Failed to start quiz');
+      setError(err.message || 'Failed to start quiz');
     } finally {
       setStarting(false);
     }
@@ -118,6 +121,7 @@ export default function QuizDetailPage() {
   };
 
   const formatDuration = (minutes: number) => {
+    if (!minutes || minutes === 0) return 'Unlimited';
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
@@ -131,7 +135,7 @@ export default function QuizDetailPage() {
       case 'best_attempt': return 'Best Attempt';
       case 'last_attempt': return 'Last Attempt';
       case 'first_attempt': return 'First Attempt';
-      default: return type;
+      default: return type || 'Best Attempt';
     }
   };
 
@@ -146,7 +150,7 @@ export default function QuizDetailPage() {
     );
   }
 
-  if (error || !quiz) {
+  if (!quiz) {
     return (
       <div className={styles.container}>
         <div className={styles.errorState}>
@@ -187,8 +191,23 @@ export default function QuizDetailPage() {
         
         <div className={styles.quizTitle}>
           <h1>{quiz.title}</h1>
+          {quiz.category && (
+            <span className={styles.categoryBadge}>{quiz.category.displayName}</span>
+          )}
         </div>
+        {quiz.description && (
+          <p className={styles.description} style={{ color: 'var(--text-secondary)', marginTop: '8px', fontSize: '15px' }}>
+            {quiz.description}
+          </p>
+        )}
       </header>
+
+      {error && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
 
       <main className={styles.main}>
         <section className={styles.rulesSection}>
@@ -231,7 +250,7 @@ export default function QuizDetailPage() {
                 <span className={styles.ruleValue}>
                   {quiz.allowNegativeMarking 
                     ? `-${quiz.negativeValue} mark${quiz.negativeValue !== 1 ? 's' : ''} per wrong`
-                    : 'Not applicable'
+                    : 'No negative marking'
                   }
                 </span>
               </div>
@@ -252,18 +271,30 @@ export default function QuizDetailPage() {
             <div className={styles.ruleCard}>
               <div className={styles.ruleIcon}><Zap className={styles.ruleIconSvg} /></div>
               <div className={styles.ruleContent}>
-                <span className={styles.ruleLabel}>Ranking</span>
+                <span className={styles.ruleLabel}>Ranking Method</span>
                 <span className={styles.ruleValue}>{getPositionTypeLabel(quiz.positionType)}</span>
               </div>
             </div>
           </div>
         </section>
 
+        {quiz.instructions && (
+          <section className={styles.warningSection} style={{ marginBottom: '16px' }}>
+            <div className={styles.warningCard} style={{ borderColor: 'rgba(14, 165, 233, 0.3)', background: 'rgba(14, 165, 233, 0.06)' }}>
+              <HelpCircle className={styles.warningIcon} style={{ color: '#0ea5e9' }} />
+              <div className={styles.warningContent}>
+                <h3 style={{ color: '#0ea5e9' }}>Custom Instructions</h3>
+                <p style={{ margin: 0, whiteSpace: 'pre-line', color: 'var(--foreground)' }}>{quiz.instructions}</p>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className={styles.warningSection}>
           <div className={styles.warningCard}>
             <AlertCircle className={styles.warningIcon} />
             <div className={styles.warningContent}>
-              <h3>Instructions</h3>
+              <h3>Exam Instructions & Rules</h3>
               <ul>
                 <li>This quiz consists of <strong>{quiz.numQuestionsToServe} questions</strong> to be completed in <strong>{formatDuration(quiz.durationMinutes)}</strong>.</li>
                 <li>Each correct answer carries <strong>{quiz.marksPerCorrect} mark{quiz.marksPerCorrect !== 1 ? 's' : ''}</strong>.{quiz.allowNegativeMarking ? ` Wrong answers will deduct ${quiz.negativeValue} mark${quiz.negativeValue !== 1 ? 's' : ''}.` : ' There is no negative marking.'}</li>
@@ -276,10 +307,53 @@ export default function QuizDetailPage() {
           </div>
         </section>
 
+        {quiz.allAttempts && quiz.allAttempts.length > 0 && (
+          <section className={styles.warningSection} style={{ marginTop: '16px' }}>
+            <div className={styles.warningCard} style={{ borderColor: 'rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.06)' }}>
+              <CheckCircle className={styles.warningIcon} style={{ color: '#10b981' }} />
+              <div className={styles.warningContent} style={{ width: '100%' }}>
+                <h3 style={{ color: '#10b981', marginBottom: '12px' }}>Past Responses</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {quiz.allAttempts.map((pastAttempt: any, idx: number) => (
+                    <Link
+                      key={pastAttempt.id}
+                      href={`/dashboard/quizzes/${quizId}/result?attempt=${pastAttempt.id}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: '12px', 
+                        background: 'var(--bg-secondary)', 
+                        borderRadius: '8px', 
+                        textDecoration: 'none',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 600 }}>Attempt {quiz.allAttempts!.length - idx}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          {new Date(pastAttempt.submittedAt || pastAttempt.startedAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <span style={{ fontWeight: 600, color: '#10b981' }}>Score: {pastAttempt.netScore}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6', fontSize: '14px', fontWeight: 500 }}>
+                          View Result <ChevronLeft style={{ transform: 'rotate(180deg)' }} size={16} />
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         <footer className={styles.actions}>
-          <Link href="/dashboard/quizzes" className={styles.secondaryBtn}>
+          <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
             <ChevronLeft className={styles.btnIcon} />
-            Back to Quizzes
+            {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
           </Link>
           
           {isInProgress && (
@@ -291,11 +365,11 @@ export default function QuizDetailPage() {
           
           {isCompleted && (
             <Link 
-              href={`/dashboard/quizzes/${quizId}/result?attempt=${quiz.attempt?.id}`} 
+              href={`/dashboard/quizzes/${quizId}/result?attempt=${quiz.attempt?.id}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} 
               className={canStart ? styles.secondaryBtn : styles.primaryBtn}
             >
               <CheckCircle className={styles.btnIcon} />
-              {canStart ? 'View Last Result' : 'View Result'}
+              {canStart ? 'Review Answers' : 'View Result & Answers'}
             </Link>
           )}
           
@@ -309,7 +383,7 @@ export default function QuizDetailPage() {
               ) : (
                 <>
                   <Play className={styles.btnIcon} />
-                  {quiz.attempt ? 'Start New Attempt' : 'Start Quiz'}
+                  {quiz.attempt ? 'Retake Quiz' : 'Start Quiz'}
                 </>
               )}
             </button>

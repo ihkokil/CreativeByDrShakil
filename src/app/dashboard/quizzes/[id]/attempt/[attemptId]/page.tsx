@@ -280,6 +280,17 @@ export default function QuizTakePage() {
     };
   }, [answers, saveAnswers]);
 
+  // Keyboard dismissal for modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showSubmitConfirm) {
+        setShowSubmitConfirm(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSubmitConfirm]);
+
   const handleAnswerSelect = (questionId: string, optionLetter: string, mcqSelection?: 'T' | 'F') => {
     if (showResults) return;
     const q = questions.find(item => item.id === questionId);
@@ -291,10 +302,13 @@ export default function QuizTakePage() {
       const current = prev[questionId];
       
       if (q.questionType === 'mcq') {
+        const optionCount = q.options?.length || 5;
         const idx = optionLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
-        const currentStr = current?.selectedOption || '-'.repeat(5);
-        const newArr = currentStr.padEnd(5, '-').split('');
-        newArr[idx] = mcqSelection || 'T';
+        const currentStr = current?.selectedOption || '-'.repeat(optionCount);
+        const newArr = currentStr.padEnd(optionCount, '-').split('');
+        if (idx >= 0 && idx < optionCount) {
+          newArr[idx] = mcqSelection || 'T';
+        }
         const newSelectedOption = newArr.join('');
         newSelectedForSave = newSelectedOption;
 
@@ -441,6 +455,10 @@ export default function QuizTakePage() {
   const answeredCount = Object.values(answers).filter(a => a.selectedOption).length;
   const totalQuestions = questions.length;
   const unansweredCount = totalQuestions - answeredCount;
+  const progressPercent = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+  const totalDurationSeconds = (attempt?.durationMinutes || 0) * 60;
+  const isTimeWarning = timeRemaining !== null && timeRemaining !== Infinity && timeRemaining <= Math.max(60, totalDurationSeconds * 0.1);
+  const isTimeCritical = timeRemaining !== null && timeRemaining !== Infinity && timeRemaining <= 30;
 
   if (loading) {
     return (
@@ -473,24 +491,26 @@ export default function QuizTakePage() {
     <div className={styles.container}>
       {/* Tab Warning Toast */}
       {tabWarningShown && !showResults && (
-        <div className={styles.tabWarning}>
+        <div className={styles.tabWarning} role="alert">
           <AlertCircle className={styles.warningIcon} />
-          <span>Don't close this tab! Your quiz will be auto-submitted.</span>
-          <button onClick={() => setTabWarningShown(false)} className={styles.warningClose}>&times;</button>
+          <span>Your answers are automatically saved. Please keep this tab active to track your timer accurately.</span>
+          <button onClick={() => setTabWarningShown(false)} className={styles.warningClose} aria-label="Dismiss">&times;</button>
         </div>
       )}
 
-      {/* Top Navigation Bar (replaces floating dock) */}
+      {/* Top Navigation Bar with Progress Bar */}
       {!showResults && (
         <header className={styles.topBar}>
-          <div className={styles.topBarProgress}>
-            <CheckCircle className={styles.topBarProgressIcon} />
-            <span>{answeredCount}/{totalQuestions}</span>
+          <div className={styles.topBarProgress} title={`${answeredCount} of ${totalQuestions} answered`}>
+            <span>{answeredCount}/{totalQuestions} Answered</span>
+            <div className={styles.progressBarTrack} role="progressbar" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={totalQuestions}>
+              <div className={styles.progressBarFill} style={{ width: `${progressPercent}%` }} />
+            </div>
           </div>
 
           <div className={styles.topBarDivider} />
 
-          <div className={`${styles.topBarTimer} ${timeRemaining !== null && timeRemaining <= 300 && timeRemaining !== Infinity ? styles.timerWarning : ''}`}>
+          <div className={`${styles.topBarTimer} ${isTimeCritical ? styles.timerCritical : isTimeWarning ? styles.timerWarning : ''}`}>
             <Clock className={styles.topBarTimerIcon} />
             <span>{formatTime(timeRemaining)}</span>
           </div>
@@ -512,6 +532,7 @@ export default function QuizTakePage() {
           {questions.map((q, index) => {
             const isCurrent = index === currentQuestionIndex;
             const isAnswered = !!answers[q.id]?.selectedOption;
+            const isSba = q.questionType !== 'mcq';
             return (
               <article
                 key={q.id}
@@ -525,25 +546,22 @@ export default function QuizTakePage() {
                     {q.questionText}
                   </h2>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <span className={styles.lockedBadge} style={{ 
-                      background: q.questionType === 'mcq' ? 'rgba(14, 165, 233, 0.15)' : 'rgba(168, 85, 247, 0.15)',
-                      color: q.questionType === 'mcq' ? '#0ea5e9' : '#a855f7',
-                    }}>
-                      {q.questionType === 'mcq' ? '✓✗ True False selection [T_F]' : '○ Best option selection [SBA]'}
+                    <span className={`${styles.typeBadge} ${isSba ? styles.typeBadgeSba : styles.typeBadgeTf}`}>
+                      {isSba ? 'Single Best Answer' : 'True / False'}
                     </span>
                   </div>
                 </div>
 
-                <div className={styles.optionsGrid} role="radiogroup" aria-label={`Options for question ${index + 1}`}>
+                <div className={styles.optionsGrid} role={isSba ? "radiogroup" : "group"} aria-label={`Options for question ${index + 1}`}>
                   {q.questionType === 'mcq' ? (
                     q.options.map((option, idx) => {
                       const answer = answers[q.id];
-                      const currentStr = answer?.selectedOption || '-'.repeat(5);
+                      const currentStr = answer?.selectedOption || '-'.repeat(q.options.length || 5);
                       const originalIdx = option.letter.charCodeAt(0) - 65;
                       const isT = currentStr[originalIdx] === 'T';
                       const isF = currentStr[originalIdx] === 'F';
                       
-                      const correctStr = q.correctOption || 'F'.repeat(5);
+                      const correctStr = q.correctOption || 'F'.repeat(q.options.length || 5);
                       const isCorrectT = correctStr[originalIdx] === 'T';
                       const isCorrectF = correctStr[originalIdx] === 'F';
                       
@@ -565,18 +583,22 @@ export default function QuizTakePage() {
 
                           <div className={styles.mcqMatrixButtons}>
                             <button
+                              type="button"
                               onClick={() => handleAnswerSelect(q.id, option.letter, 'T')}
                               disabled={showResults}
                               className={`${styles.mcqBtn} ${styles.trueBtn} ${isT ? styles.mcqBtnSelected : ''} ${showResults && isCorrectT ? styles.mcqBtnCorrect : ''} ${showResults && isT && !isCorrectT ? styles.mcqBtnWrong : ''}`}
-                              title="True"
+                              aria-pressed={isT}
+                              aria-label={`Mark option ${option.letter} as True`}
                             >
                               True
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleAnswerSelect(q.id, option.letter, 'F')}
                               disabled={showResults}
                               className={`${styles.mcqBtn} ${styles.falseBtn} ${isF ? styles.mcqBtnSelected : ''} ${showResults && isCorrectF ? styles.mcqBtnCorrect : ''} ${showResults && isF && !isCorrectF ? styles.mcqBtnWrong : ''}`}
-                              title="False"
+                              aria-pressed={isF}
+                              aria-label={`Mark option ${option.letter} as False`}
                             >
                               False
                             </button>
@@ -594,7 +616,6 @@ export default function QuizTakePage() {
                     q.options.map((option) => {
                       const answer = answers[q.id];
                       const isSelected = answer?.selectedOption === option.letter;
-                      const showResult = showResults && answer?.selectedOption !== undefined;
                       
                       let optionClass = styles.optionCard;
                       if (isSelected && !showResults) optionClass += ` ${styles.optionSelected}`;
@@ -610,6 +631,7 @@ export default function QuizTakePage() {
                       return (
                         <button
                           key={`${q.id}-${option.letter}`}
+                          type="button"
                           onClick={() => handleAnswerSelect(q.id, option.letter)}
                           disabled={showResults}
                           className={optionClass}
@@ -661,8 +683,14 @@ export default function QuizTakePage() {
           {/* Submit Confirmation Modal */}
           {showSubmitConfirm && (
             <div className={styles.modalOverlay} onClick={() => setShowSubmitConfirm(false)}>
-              <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                <h3>Submit Quiz?</h3>
+              <div 
+                className={styles.modal} 
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="submit-modal-title"
+                onClick={e => e.stopPropagation()}
+              >
+                <h3 id="submit-modal-title">Submit Quiz?</h3>
                 <p>
                   You have answered <strong>{answeredCount}</strong> out of <strong>{totalQuestions}</strong> questions.
                   {unansweredCount > 0 && (
@@ -675,12 +703,14 @@ export default function QuizTakePage() {
                 </p>
                 <div className={styles.modalActions}>
                   <button
+                    type="button"
                     onClick={() => setShowSubmitConfirm(false)}
                     className={styles.modalCancel}
                   >
                     Continue Quiz
                   </button>
                   <button
+                    type="button"
                     onClick={handleSubmit}
                     disabled={submitting}
                     className={styles.modalConfirm}
@@ -694,7 +724,7 @@ export default function QuizTakePage() {
 
           {/* Auto-submit notification */}
           {autoSubmitted && showResults && (
-            <div className={styles.autoSubmitNotice}>
+            <div className={styles.autoSubmitNotice} role="alert">
               <AlertCircle className={styles.noticeIcon} />
               <p>Time expired. Quiz has been auto-submitted.</p>
               <Link href={`/dashboard/quizzes/${quizId}/result?attempt=${attemptId}`} className={styles.viewResultsBtn}>
@@ -704,7 +734,6 @@ export default function QuizTakePage() {
           )}
         </section>
       </main>
-
     </div>
   );
 }
