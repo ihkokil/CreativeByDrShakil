@@ -987,7 +987,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                           display: "flex", alignItems: "center", justifyContent: "space-between",
                           padding: "12px 16px", borderRadius: "10px",
                           border: `1px solid ${isSelected ? "var(--primary)" : "var(--glass-border)"}`,
-                          background: isSelected ? "var(--primary-color-alpha, rgba(237,28,40,0.1))" : "rgba(255,255,255,0.02)",
+                          background: isSelected ? "var(--primary-color-alpha, rgba(237,28,40,0.1))" : "var(--surface-soft)",
                           cursor: isLinkedElsewhere ? "not-allowed" : "pointer",
                           opacity: isLinkedElsewhere ? 0.5 : 1,
                           transition: "all 0.2s"
@@ -996,14 +996,14 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                           <div style={{
                             width: "20px", height: "20px", borderRadius: "4px",
-                            border: `2px solid ${isSelected ? "var(--primary)" : "rgba(255,255,255,0.3)"}`,
+                            border: `2px solid ${isSelected ? "var(--primary)" : "var(--glass-border)"}`,
                             background: isSelected ? "var(--primary)" : "transparent",
                             display: "flex", alignItems: "center", justifyContent: "center", color: "white"
                           }}>
                             {isSelected && <Check size={14} />}
                           </div>
                           <div>
-                            <div style={{ fontWeight: "600", fontSize: "0.95rem" }}>{q.title}</div>
+                            <div style={{ fontWeight: "600", fontSize: "0.95rem", color: "var(--foreground)" }}>{q.title}</div>
                             <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
                               {q.numQuestionsToServe || (q._count?.questions ?? 0)} questions &bull; {q.durationMinutes ? `${q.durationMinutes} min` : 'Unlimited'}
                               {isLinkedElsewhere && <span style={{ color: "#ef4444", marginLeft: "8px" }}>(Linked to {q.courseName || 'another course'})</span>}
@@ -1018,7 +1018,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
 
               <div style={{
                 display: "flex", justifyContent: "flex-end", gap: "10px",
-                padding: "16px 24px", borderTop: "1px solid var(--glass-border)", background: "rgba(0,0,0,0.2)"
+                padding: "16px 24px", borderTop: "1px solid var(--glass-border)", background: "var(--surface-soft)"
               }}>
                 <button
                   type="button"

@@ -33,14 +33,16 @@
 
 :global([data-theme='light']) .container {
   --card-bg: #ffffff;
-  --input-bg: rgba(0, 0, 0, 0.02);
-  --bg-secondary: rgba(0, 0, 0, 0.03);
-  --bg-tertiary: rgba(0, 0, 0, 0.06);
+  --input-bg: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-tertiary: #e2e8f0;
   --border-color: rgba(0, 0, 0, 0.1);
   --border-color-hover: rgba(0, 0, 0, 0.2);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
   --add-btn-bg: rgba(0, 0, 0, 0.02);
   --add-btn-hover: rgba(0, 0, 0, 0.05);
-  --shadow-color: rgba(15, 23, 42, 0.08);
+  --shadow-color: rgba(15, 23, 42, 0.12);
 }
 
 .container {
@@ -1317,14 +1319,15 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   z-index: 2000;
   animation: fadeIn 0.2s ease;
-  backdrop-filter: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 @keyframes fadeIn {
@@ -1333,8 +1336,8 @@
 }
 
 .modal {
-  background: #121214;
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   max-width: 720px;
   width: 100%;
@@ -1342,9 +1345,9 @@
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 20px 60px var(--shadow-color);
   animation: slideUp 0.3s ease;
-  backdrop-filter: none;
+  color: var(--text-primary);
 }
 
 @keyframes slideUp {
@@ -1357,15 +1360,16 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-  background: #121214;
+  background: var(--card-bg);
 }
 
 .modalHeader h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .modalClose {
@@ -1389,6 +1393,8 @@
   flex: 1 1 auto;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
+  background: var(--card-bg);
+  color: var(--text-primary);
 }
 
 .modalBody::-webkit-scrollbar {
@@ -1400,12 +1406,12 @@
 }
 
 .modalBody::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--border-color);
   border-radius: 3px;
 }
 
 .modalBody::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--border-color-hover);
 }
 
 .modalBody > p {
@@ -1418,7 +1424,7 @@
   background: none;
   border: none;
   color: var(--primary-color);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   padding: 0;
   font-size: inherit;
@@ -1430,8 +1436,8 @@
 }
 
 .dropZone {
-  border: 2px dashed var(--border-color, rgba(255, 255, 255, 0.2));
-  background: #1a1a1d;
+  border: 2px dashed var(--border-color);
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 32px 20px;
   text-align: center;
@@ -1482,10 +1488,11 @@
 .importPreview {
   margin-top: 20px;
   padding: 16px;
-  background: var(--bg-secondary, #1a1a1e);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .importPreview h4 {
@@ -1497,6 +1504,7 @@
 
 .previewTable {
   width: 100%;
+  min-width: 500px;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -1505,7 +1513,8 @@
 .previewTable td {
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .previewTable th {
@@ -1514,6 +1523,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  background: var(--bg-tertiary);
 }
 
 .previewTable tr.invalidRow {
@@ -1545,8 +1555,8 @@
   align-items: center;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
-  background: #121214;
+  border-top: 1px solid var(--border-color);
+  background: var(--card-bg);
   flex-shrink: 0;
   z-index: 10;
 }
@@ -1585,9 +1595,9 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  background: var(--bg-secondary, #27272a);
+  background: var(--bg-secondary);
   color: var(--text-primary);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -1596,7 +1606,7 @@
 }
 
 .modalFooter .secondaryBtn:hover {
-  background: var(--bg-tertiary, #3f3f46);
+  background: var(--bg-tertiary);
   border-color: var(--primary-color);
 }
 

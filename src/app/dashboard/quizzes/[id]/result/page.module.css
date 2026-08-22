@@ -1110,6 +1110,26 @@
 /* Leaderboard Tab */
 .leaderboardContainer {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.leaderboardContainer::-webkit-scrollbar {
+  height: 8px;
+}
+
+.leaderboardContainer::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.leaderboardContainer::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.leaderboardContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .leaderboardTitle {
@@ -1155,6 +1175,7 @@
 
 .leaderboardTable {
   width: 100%;
+  min-width: 650px;
   border-collapse: collapse;
   font-size: 14px;
 }

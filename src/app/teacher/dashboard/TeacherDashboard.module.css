@@ -364,14 +364,34 @@
 .tableContainer {
     width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     margin-top: 24px;
     background: color-mix(in srgb, var(--card-bg) 40%, transparent);
     border-radius: 12px;
     border: 1px solid var(--glass-border);
 }
 
+.tableContainer::-webkit-scrollbar {
+    height: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+    background: var(--surface-soft);
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
 .table {
     width: 100%;
+    min-width: 750px;
     border-collapse: collapse;
 }
 

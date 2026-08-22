@@ -543,6 +543,7 @@
 
 .leaderboardTable {
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
   text-align: left;
 }

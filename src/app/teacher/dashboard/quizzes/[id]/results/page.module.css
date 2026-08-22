@@ -538,13 +538,34 @@
 
 .tableContainer {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
 }
 
+.tableContainer::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .leaderboardTable {
   width: 100%;
+  min-width: 800px;
   border-collapse: collapse;
   font-size: 15px;
 }
@@ -1991,14 +2012,35 @@
 
 .modalAttemptsTableWrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: var(--bg-secondary);
   margin-bottom: 8px;
 }
 
+.modalAttemptsTableWrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.modalAttemptsTableWrapper::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+.modalAttemptsTableWrapper::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.modalAttemptsTableWrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .modalAttemptsTable {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   font-size: 13px;
   text-align: left;

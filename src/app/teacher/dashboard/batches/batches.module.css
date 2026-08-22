@@ -523,36 +523,57 @@
 
 /* Table Container & Table */
 .tableContainer {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg, rgba(255, 255, 255, 0.025));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
+.tableContainer::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+  background: var(--surface-soft);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .table {
   width: 100%;
+  min-width: 850px;
   border-collapse: collapse;
   text-align: left;
 }
 
 .table th {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--surface-soft);
   padding: 14px 20px;
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .table td {
   padding: 16px 20px;
   font-size: 0.9rem;
   color: var(--foreground);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--glass-border);
   vertical-align: middle;
 }
 
@@ -561,7 +582,7 @@
 }
 
 .table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-soft);
 }
 
 .studentAvatar {
@@ -631,8 +652,8 @@
 }
 
 .drawerContent {
-  background: #111418;
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--card-bg, var(--background));
+  border-left: 1px solid var(--glass-border);
   padding: 32px;
   max-width: 600px;
   width: min(100vw, 600px);
@@ -640,11 +661,12 @@
   height: 100dvh;
   max-height: 100vh;
   max-height: 100dvh;
-  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   gap: 20px;
   overflow-y: auto;
+  color: var(--foreground);
 }
 
 .drawerHeader {
@@ -653,7 +675,7 @@
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .drawerCloseBtn {
@@ -671,7 +693,7 @@
 
 .drawerCloseBtn:hover {
   color: var(--foreground);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-soft);
 }
 
 .modalTitle {
@@ -697,8 +719,8 @@
   width: 100%;
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
   color: var(--foreground);
   font-size: 0.95rem;
   outline: none;
@@ -717,8 +739,8 @@
 }
 
 .cancelBtn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
   color: var(--foreground);
   padding: 9px 18px;
   border-radius: 8px;
@@ -729,7 +751,7 @@
 }
 
 .cancelBtn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--surface-strong);
 }
 
 @media (max-width: 768px) {

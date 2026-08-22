@@ -150,7 +150,7 @@
 .inputGroup input {
     width: 100%;
     padding: 16px 20px 16px 50px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     border-radius: 14px;
     color: var(--foreground);
@@ -162,7 +162,7 @@
 .inputGroup input:focus {
     outline: none;
     border-color: #8b5cf6;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-strong);
 }
 
 .message {
@@ -265,7 +265,7 @@
     padding: 12px 14px;
     border-radius: 14px;
     border: 1px solid var(--glass-border);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     color: var(--foreground);
     font-size: 0.95rem;
     font-family: inherit;
@@ -275,7 +275,7 @@
 .selectInput:focus {
     outline: none;
     border-color: #8b5cf6;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-strong);
 }
 
 .actionsRow {
@@ -294,7 +294,7 @@
 
 .secondaryBtn:hover {
     transform: translateY(-2px);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-soft);
     box-shadow: none;
 }
 

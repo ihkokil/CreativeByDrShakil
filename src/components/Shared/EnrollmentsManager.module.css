@@ -447,10 +447,28 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.tableContainer::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+  background: var(--surface-soft);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 500px;
+  min-width: 820px;
 }
 
 .table th, .table td {

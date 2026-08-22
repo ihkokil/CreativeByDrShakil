@@ -88,7 +88,7 @@
 .inputGroup input {
     width: 100%;
     padding: 10px 14px 10px 42px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     color: var(--foreground);
@@ -100,7 +100,7 @@
 .inputGroup input:focus {
     outline: none;
     border-color: #8b5cf6;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-strong);
 }
 
 .message {
@@ -159,7 +159,7 @@
     display: flex;
     gap: 6px;
     margin-bottom: 12px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     padding: 4px;
     border-radius: 12px;
 }
@@ -183,7 +183,7 @@
 
 .tab:hover {
     color: var(--foreground);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-strong);
 }
 
 .activeTab {
@@ -214,7 +214,7 @@
     overflow-y: auto;
     border: 1px solid var(--glass-border);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-soft);
 }
 
 .emptyState {
@@ -239,7 +239,7 @@
 }
 
 .studentCard:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-strong);
 }
 
 .selectedCard {

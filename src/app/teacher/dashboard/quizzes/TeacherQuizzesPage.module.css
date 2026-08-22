@@ -210,11 +210,32 @@
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.tableContainer::-webkit-scrollbar {
+  height: 8px;
+}
+
+.tableContainer::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.tableContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .table {
   width: 100%;
+  min-width: 1080px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 14px;
@@ -422,6 +443,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: max-content;
+  white-space: nowrap;
 }
 
 .rowActionBtn {
@@ -741,7 +764,7 @@
 .modal h3 {
   font-size: 22px;
   font-weight: 700;
-  color: var(--text-color);
+  color: var(--text-primary);
   margin: 0 0 12px;
 }
 
@@ -749,7 +772,7 @@
   font-size: 15px;
   color: var(--text-secondary);
   line-height: 1.5;
-  margin: 0 0 32px;
+  margin: 0 0 24px;
 }
 
 .modalActions {
@@ -762,7 +785,7 @@
 .modalCancel {
   background: transparent;
   border: 1px solid var(--border-color);
-  color: var(--text-color);
+  color: var(--text-primary);
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -771,7 +794,7 @@
 }
 
 .modalCancel:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-secondary);
 }
 
 .modalConfirm {
@@ -796,16 +819,6 @@
 
 .modalConfirm.danger {
   background: #ef4444;
-}
-
-@media (max-width: 1024px) {
-  .tableContainer {
-    overflow-x: auto;
-  }
-
-  .table {
-    min-width: 800px;
-  }
 }
 
 @media (max-width: 640px) {
@@ -858,17 +871,6 @@
   }
 
   .tableContainer {
-    border-radius: 0;
-    border: none;
-    border-top: 1px solid var(--border-color);
-  }
-
-  .table th:nth-child(2),
-  .table td:nth-child(2),
-  .table th:nth-child(3),
-  .table td:nth-child(3),
-  .table th:nth-child(4),
-  .table td:nth-child(4) {
-    display: none;
+    border-radius: 8px;
   }
 }

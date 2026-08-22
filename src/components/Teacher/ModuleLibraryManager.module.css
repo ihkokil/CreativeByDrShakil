@@ -373,7 +373,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.6rem 0.75rem;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface-soft);
     border-radius: 8px;
     border: 1px solid var(--glass-border);
     transition: background 0.2s;
@@ -381,7 +381,7 @@
 }
 
 .docItem:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-strong);
 }
 
 .docName {
@@ -421,19 +421,19 @@
 
 .docList::-webkit-scrollbar-track,
 .form::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-soft);
     border-radius: 4px;
 }
 
 .docList::-webkit-scrollbar-thumb,
 .form::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--glass-border);
     border-radius: 4px;
 }
 
 .docList::-webkit-scrollbar-thumb:hover,
 .form::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: var(--text-muted);
 }
 
 .formGroup {
@@ -459,7 +459,7 @@
 .formGroup select {
     width: 100%;
     padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     color: var(--foreground);
@@ -471,6 +471,7 @@
 .formGroup select:focus {
     outline: none;
     border-color: var(--primary);
+    background: var(--surface-strong);
 }
 
 .row {
