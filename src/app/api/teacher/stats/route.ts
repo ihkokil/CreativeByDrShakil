@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { parseCurriculumJson, countLessons } from '@/lib/teacher-course-builder';
+import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -62,9 +66,6 @@ export async function GET(request: NextRequest) {
       revenueByCourse[order.courseId] = (revenueByCourse[order.courseId] || 0) + (order.totalAmount || 0);
     }
 
-    const { parseCurriculumJson, countLessons } = require('@/lib/teacher-course-builder');
-    const { populateMediaVaultNodes } = require('@/lib/media-vault-populator');
-
     const courseStats = (courses || []).map((c: any) => ({
       id: c.id,
       title: c.title,
@@ -76,10 +77,10 @@ export async function GET(request: NextRequest) {
     // Pre-hydrate all curriculums
     const hydratedCourses = await Promise.all(
       (courses || []).map(async (c: any) => {
-        let parsed = [];
+        let parsed: any[] = [];
         try {
           parsed = c.curriculumJson ? parseCurriculumJson(c.curriculumJson) : [];
-        } catch(e){}
+        } catch (e) {}
         const hydrated = await populateMediaVaultNodes(parsed, supabase);
         return {
           ...c,

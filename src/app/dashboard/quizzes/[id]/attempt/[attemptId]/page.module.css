@@ -2,9 +2,9 @@
   --primary-color: var(--primary);
   --primary-light: rgba(237, 28, 40, 0.1);
   --bg-primary: var(--background);
-  --bg-secondary: rgba(255, 255, 255, 0.03);
-  --bg-tertiary: rgba(255, 255, 255, 0.06);
-  --card-bg: rgba(20, 20, 20, 0.7);
+  --bg-secondary: rgba(26, 26, 32, 0.88);
+  --bg-tertiary: rgba(34, 34, 42, 0.92);
+  --card-bg: rgba(18, 18, 22, 0.90);
   --border-color: var(--glass-border);
   --text-color: var(--foreground);
   --text-muted: var(--text-muted);
@@ -22,12 +22,12 @@
 }
 
 :global([data-theme='light']) .container {
-  --card-bg: #ffffff;
-  --bg-secondary: var(--surface-soft, rgba(15, 23, 42, 0.03));
-  --bg-tertiary: var(--surface-strong, rgba(37, 99, 235, 0.08));
-  --border-color: var(--glass-border, rgba(0, 0, 0, 0.12));
-  --text-muted: var(--text-muted, #64748b);
-  --text-secondary: var(--text-secondary, #475569);
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --bg-secondary: rgba(241, 245, 249, 0.90);
+  --bg-tertiary: rgba(226, 232, 240, 0.92);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-muted: var(--text-muted, #475569);
+  --text-secondary: var(--text-secondary, #334155);
   --select-border: #0284c7;
   --select-bg: rgba(2, 132, 199, 0.08);
 }

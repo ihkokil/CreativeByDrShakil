@@ -55,13 +55,13 @@
   --error: #ef4444;
   --info: #0ea5e9;
 
-  /* Surfaces & Glass */
-  --glass: rgba(15, 15, 15, 0.85);
-  --glass-border: rgba(255, 255, 255, 0.16);
+  /* Surfaces & Subtle Glass (Calibrated 88-90% opacity for perfect readability) */
+  --glass: rgba(13, 13, 16, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.10);
   --glass-highlight: rgba(255, 255, 255, 0.03);
-  --card-bg: rgba(20, 20, 20, 0.9);
-  --surface-soft: rgba(255, 255, 255, 0.04);
-  --surface-strong: rgba(255, 255, 255, 0.08);
+  --card-bg: rgba(18, 18, 22, 0.90);
+  --surface-soft: rgba(24, 24, 28, 0.88);
+  --surface-strong: rgba(34, 34, 40, 0.92);
   
   /* Typography Scale */
   --text-tiny: 0.8125rem;
@@ -83,9 +83,9 @@
   --weight-black: 900;
 
   /* Elevation */
-  --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
-  --shadow-medium: 0 18px 42px rgba(0, 0, 0, 0.32);
-  --shadow-premium: 0 24px 64px -12px rgba(0, 0, 0, 0.5);
+  --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow-medium: 0 18px 42px rgba(0, 0, 0, 0.38);
+  --shadow-premium: 0 24px 64px -12px rgba(0, 0, 0, 0.55);
   
   /* Motion Constants */
   --ease-premium: cubic-bezier(0.23, 1, 0.32, 1);
@@ -112,29 +112,29 @@
   --text-secondary: #a1a1aa;
 
   /* Feedback Surface & Border Tokens (Dark Mode) */
-  --success-surface: rgba(16, 185, 129, 0.08);
+  --success-surface: rgba(16, 185, 129, 0.12);
   --success-border: rgba(16, 185, 129, 0.3);
-  --error-surface: rgba(239, 68, 68, 0.08);
+  --error-surface: rgba(239, 68, 68, 0.12);
   --error-border: rgba(239, 68, 68, 0.3);
-  --warning-surface: rgba(245, 158, 11, 0.08);
+  --warning-surface: rgba(245, 158, 11, 0.12);
   --warning-border: rgba(245, 158, 11, 0.3);
-  --info-surface: rgba(14, 165, 233, 0.08);
+  --info-surface: rgba(14, 165, 233, 0.12);
   --info-border: rgba(14, 165, 233, 0.3);
 
-  /* Dropdown Specifics (Merged from Development) */
-  --dropdown-bg: color-mix(in srgb, var(--card-bg) 90%, transparent);
+  /* Dropdown Specifics */
+  --dropdown-bg: rgba(24, 24, 28, 0.95);
   --dropdown-border: var(--glass-border);
-  --dropdown-hover: var(--surface-soft);
+  --dropdown-hover: rgba(36, 36, 44, 0.95);
   --dropdown-focus: var(--primary);
-  --dropdown-menu-bg: color-mix(in srgb, var(--card-bg) 96%, black 4%);
+  --dropdown-menu-bg: rgba(20, 20, 24, 0.96);
   --dropdown-menu-text: var(--foreground);
-  --dropdown-menu-active: color-mix(in srgb, var(--primary) 34%, var(--surface-soft));
-  --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 88%, var(--foreground));
+  --dropdown-menu-active: color-mix(in srgb, var(--primary) 25%, #18181c);
+  --dropdown-placeholder: var(--text-muted);
 
   /* Component Compatibility (Dark Theme) */
-  --surface: #141414;
-  --surface-alt: #1a1a1a;
-  --border: rgba(255, 255, 255, 0.1);
+  --surface: rgba(20, 20, 24, 0.90);
+  --surface-alt: rgba(26, 26, 32, 0.92);
+  --border: rgba(255, 255, 255, 0.10);
   --bg-hover: rgba(255, 255, 255, 0.05);
   --text: #ffffff;
   --primary-dark: #b91c1c;
@@ -143,23 +143,23 @@
 [data-theme='light'] {
   --background: #f8fafc;
   --bg-gradient:
-    radial-gradient(circle at 9% 11%, rgba(237, 28, 40, 0.12), transparent 36%),
-    radial-gradient(circle at 90% 13%, rgba(220, 38, 38, 0.08), transparent 34%),
-    radial-gradient(circle at 50% 98%, rgba(248, 113, 113, 0.06), transparent 42%);
+    radial-gradient(circle at 9% 11%, rgba(237, 28, 40, 0.08), transparent 36%),
+    radial-gradient(circle at 90% 13%, rgba(220, 38, 38, 0.06), transparent 34%),
+    radial-gradient(circle at 50% 98%, rgba(248, 113, 113, 0.04), transparent 42%);
   --foreground: #0f172a;
   --primary: #ed1c28;
   --secondary: #dc2626;
   --accent: #b91c1c;
-  --glass: rgba(255, 255, 255, 0.92);
-  --glass-border: rgba(0, 0, 0, 0.15);
+  --glass: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(0, 0, 0, 0.08);
   --glass-highlight: rgba(0, 0, 0, 0.02);
-  --card-bg: #ffffff;
-  --text-muted: #64748b;
-  --text-secondary: #475569;
-  --surface-soft: rgba(15, 23, 42, 0.03);
-  --surface-strong: rgba(37, 99, 235, 0.08);
-  --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.08);
-  --shadow-medium: 0 18px 36px rgba(15, 23, 42, 0.14);
+  --card-bg: rgba(255, 255, 255, 0.90);
+  --text-muted: #475569;
+  --text-secondary: #334155;
+  --surface-soft: rgba(241, 245, 249, 0.88);
+  --surface-strong: rgba(226, 232, 240, 0.92);
+  --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.06);
+  --shadow-medium: 0 18px 36px rgba(15, 23, 42, 0.1);
 
   /* Feedback Surface & Border Tokens (Light Mode) */
   --success-surface: rgba(16, 185, 129, 0.1);
@@ -171,19 +171,19 @@
   --info-surface: rgba(14, 165, 233, 0.1);
   --info-border: rgba(14, 165, 233, 0.35);
   
-  --dropdown-bg: color-mix(in srgb, white 96%, var(--surface-strong));
+  --dropdown-bg: rgba(255, 255, 255, 0.95);
   --dropdown-border: var(--glass-border);
-  --dropdown-hover: var(--surface-soft);
+  --dropdown-hover: rgba(241, 245, 249, 0.95);
   --dropdown-focus: var(--primary);
-  --dropdown-menu-bg: color-mix(in srgb, white 96%, var(--surface-soft));
+  --dropdown-menu-bg: rgba(255, 255, 255, 0.96);
   --dropdown-menu-text: var(--foreground);
-  --dropdown-menu-active: color-mix(in srgb, var(--primary) 20%, white);
-  --dropdown-placeholder: color-mix(in srgb, var(--text-muted) 92%, var(--foreground));
+  --dropdown-menu-active: color-mix(in srgb, var(--primary) 15%, #ffffff);
+  --dropdown-placeholder: var(--text-muted);
 
   /* Component Compatibility (Light Theme) */
-  --surface: #f1f5f9;
-  --surface-alt: #e2e8f0;
-  --border: rgba(0, 0, 0, 0.1);
+  --surface: rgba(255, 255, 255, 0.90);
+  --surface-alt: rgba(241, 245, 249, 0.92);
+  --border: rgba(0, 0, 0, 0.08);
   --bg-hover: rgba(0, 0, 0, 0.04);
   --text: #0f172a;
   --primary-dark: #991b1b;

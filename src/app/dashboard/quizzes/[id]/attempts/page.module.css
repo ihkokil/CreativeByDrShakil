@@ -2,12 +2,12 @@
   --primary-color: var(--primary, #ed1c28);
   --primary-light: rgba(237, 28, 40, 0.1);
   --bg-primary: var(--background, #0a0a0a);
-  --bg-secondary: rgba(255, 255, 255, 0.03);
-  --card-bg: rgba(20, 20, 20, 0.7);
-  --border-color: var(--glass-border, rgba(255, 255, 255, 0.1));
+  --bg-secondary: rgba(26, 26, 32, 0.88);
+  --card-bg: rgba(18, 18, 22, 0.90);
+  --border-color: var(--glass-border);
   --text-color: var(--foreground, #ffffff);
   --text-secondary: var(--text-muted, #a1a1aa);
-  --text-muted: #71717a;
+  --text-muted: #a0a0a0;
   --success-color: #10b981;
   --error-color: #ef4444;
   --warning-color: #f59e0b;
@@ -21,9 +21,11 @@
 }
 
 :global([data-theme='light']) .container {
-  --card-bg: #ffffff;
-  --bg-secondary: rgba(0, 0, 0, 0.03);
-  --border-color: rgba(0, 0, 0, 0.1);
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --bg-secondary: rgba(241, 245, 249, 0.90);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-muted: #475569;
+  --text-secondary: #334155;
 }
 
 .header {

@@ -5,28 +5,28 @@
   --bg-primary: var(--background);
   --text-primary: var(--foreground);
   --text-secondary: var(--text-muted);
-  --card-bg: rgba(20, 20, 20, 0.7);
+  --card-bg: #141418;
   --border-color: var(--glass-border);
-  --input-bg: rgba(255, 255, 255, 0.02);
-  --bg-secondary: rgba(255, 255, 255, 0.03);
-  --error-bg: rgba(239, 68, 68, 0.15);
+  --input-bg: #18181c;
+  --bg-secondary: #18181c;
+  --error-bg: var(--error-surface);
   --error-text: #ef4444;
   --error-color: #ef4444;
-  --warning-bg: rgba(245, 158, 11, 0.15);
+  --warning-bg: var(--warning-surface);
   --warning-text: #f59e0b;
-  --info-bg: rgba(14, 165, 233, 0.15);
+  --info-bg: var(--info-surface);
   --info-text: #0ea5e9;
-  --success-bg: rgba(16, 185, 129, 0.15);
+  --success-bg: var(--success-surface);
   --success-text: #10b981;
-  --row-btn-bg: rgba(255, 255, 255, 0.02);
+  --row-btn-bg: #1e1e24;
 }
 
 :global([data-theme='light']) .container {
   --card-bg: #ffffff;
-  --input-bg: rgba(0, 0, 0, 0.02);
-  --bg-secondary: rgba(0, 0, 0, 0.03);
-  --border-color: rgba(0, 0, 0, 0.1);
-  --row-btn-bg: rgba(0, 0, 0, 0.02);
+  --input-bg: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --row-btn-bg: #f1f5f9;
 }
 
 .container {

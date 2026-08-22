@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 
+export const dynamic = 'force-dynamic';
+
 function normalizeSubmission(submission: any) {
   let parsedImageUrls = [];
   if (typeof submission.imageUrls === 'string') {

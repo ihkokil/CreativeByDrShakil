@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
 import crypto from 'crypto';
+import path from 'path';
 import { getSupabaseAdmin } from '@/lib/db';
+import { uploadFileToStorage } from '@/utils/storage';
 import {
   sendContactSubmissionAcknowledgement,
   sendContactSubmissionNotification,
   type ContactIssueType,
 } from '@/lib/contact-emails';
 
-
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-
-const ALLOWED_ISSUES: ContactIssueType[] = ['query', 'technical_assistance', 'billing', 'course_access', 'other'];
-const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
 const MAX_IMAGES = 3;
-const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
 
 const sanitizeFileName = (fileName: string) =>
   fileName
@@ -27,132 +25,135 @@ const sanitizeFileName = (fileName: string) =>
 
 export async function POST(request: NextRequest) {
   const submissionId = crypto.randomUUID();
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'contact-submissions', submissionId);
 
   try {
-    // Check Content-Length before parsing
-    const contentLength = request.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > 50 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Request payload too large. Maximum 50MB allowed.' }, { status: 413 });
-    }
-
-    const formData = await request.formData();
-    const fullName = String(formData.get('fullName') || '').trim();
-    const phone = String(formData.get('phone') || '').trim();
-    const email = String(formData.get('email') || '').trim();
-    const issueType = String(formData.get('issueType') || '').trim() as ContactIssueType;
-    const subject = String(formData.get('subject') || '').trim();
-    const message = String(formData.get('message') || '').trim();
-    const imageEntries = formData.getAll('images').filter((item): item is File => item instanceof File && item.size > 0);
-
-    if (!fullName || !phone || !email || !issueType || !subject || !message) {
-      return NextResponse.json({ error: 'Please complete all required fields.' }, { status: 400 });
-    }
-
-    if (!ALLOWED_ISSUES.includes(issueType)) {
-      return NextResponse.json({ error: 'Please choose a valid issue type.' }, { status: 400 });
-    }
-
-    if (imageEntries.length > MAX_IMAGES) {
-      return NextResponse.json({ error: 'You can upload up to 3 images.' }, { status: 400 });
-    }
-
-    await fs.mkdir(uploadDir, { recursive: true });
-
+    let fullName = '';
+    let email = '';
+    let phone = '';
+    let message = '';
+    let subject = '';
+    let issueType: ContactIssueType = 'query';
     const imageUrls: string[] = [];
 
-    for (const [index, image] of imageEntries.entries()) {
-      if (!ALLOWED_IMAGE_TYPES.has(image.type)) {
-        return NextResponse.json({ error: 'Only JPG, PNG, WEBP, and GIF images are allowed.' }, { status: 400 });
+    const contentType = request.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      fullName = String(body.fullName || '').trim();
+      email = String(body.email || '').trim();
+      phone = String(body.phone || '').trim();
+      message = String(body.message || '').trim();
+      subject = String(body.subject || '').trim();
+      if (body.issueType) issueType = body.issueType;
+    } else {
+      const formData = await request.formData();
+      fullName = String(formData.get('fullName') || '').trim();
+      email = String(formData.get('email') || '').trim();
+      phone = String(formData.get('phone') || '').trim();
+      message = String(formData.get('message') || '').trim();
+      subject = String(formData.get('subject') || '').trim();
+      const rawIssue = String(formData.get('issueType') || '').trim();
+      if (rawIssue) issueType = rawIssue as ContactIssueType;
+
+      const imageEntries = formData.getAll('images').filter((item): item is File => item instanceof File && item.size > 0);
+
+      if (imageEntries.length > MAX_IMAGES) {
+        return NextResponse.json({ error: `You can upload up to ${MAX_IMAGES} images.` }, { status: 400 });
       }
 
-      if (image.size > MAX_IMAGE_SIZE_BYTES) {
-        return NextResponse.json({ error: 'Each image must be 5MB or smaller.' }, { status: 400 });
+      for (const [index, image] of imageEntries.entries()) {
+        if (!ALLOWED_IMAGE_TYPES.has(image.type)) {
+          return NextResponse.json({ error: 'Only JPG, PNG, WEBP, and GIF images are allowed.' }, { status: 400 });
+        }
+
+        if (image.size > MAX_IMAGE_SIZE_BYTES) {
+          return NextResponse.json({ error: 'Each image must be 10MB or smaller.' }, { status: 400 });
+        }
+
+        const safeName = sanitizeFileName(image.name || `screenshot-${index + 1}.png`);
+        const ext = path.extname(safeName) || '.png';
+        const fileName = `contact-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+        const arrayBuffer = await image.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        try {
+          const publicUrl = await uploadFileToStorage(
+            buffer,
+            fileName,
+            image.type,
+            'uploads/contact-submissions'
+          );
+          imageUrls.push(publicUrl);
+        } catch (uploadErr) {
+          console.error('[Contact Image Upload Error]', uploadErr);
+        }
       }
+    }
 
-      const safeName = sanitizeFileName(image.name || `image-${index + 1}.png`);
-      const ext = path.extname(safeName) || '.png';
-      const fileName = `${index + 1}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-      const relativePath = path.posix.join('uploads', 'contact-submissions', submissionId, fileName);
-      const absolutePath = path.join(uploadDir, fileName);
+    if (!fullName) {
+      return NextResponse.json({ error: 'Please provide your full name.' }, { status: 400 });
+    }
 
-      const arrayBuffer = await image.arrayBuffer();
-      await fs.writeFile(absolutePath, Buffer.from(arrayBuffer));
-      imageUrls.push(`/${relativePath}`);
+    if (!email || !email.includes('@')) {
+      return NextResponse.json({ error: 'Please provide a valid email address.' }, { status: 400 });
+    }
+
+    if (!message) {
+      return NextResponse.json({ error: 'Please enter your message or complain.' }, { status: 400 });
+    }
+
+    // Default subject if not provided
+    if (!subject) {
+      subject = message.length > 50 ? `${message.slice(0, 47)}...` : message;
     }
 
     const insertValues = {
-        id: submissionId,
-        fullName,
-        phone,
-        email,
-        issueType,
-        subject,
-        message,
-        imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
-        status: 'open',
+      id: submissionId,
+      fullName,
+      phone: phone || null,
+      email,
+      issueType: issueType || 'query',
+      subject: subject || 'Message / Complain',
+      message,
+      imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
+      status: 'open',
     };
 
     const supabase = getSupabaseAdmin();
     const { error: insertError } = await supabase.from('ContactSubmission')
-// @ts-ignore
-.insert(insertValues);
-    if (insertError) throw insertError;
-    
-    const { data: submissionRow } = await supabase.from('ContactSubmission').select('*').eq('id', submissionId).limit(1).maybeSingle();
-    const submission = submissionRow || {
-        ...insertValues,
-        adminReply: null,
-        adminReplySentAt: null,
-        repliedByAdminId: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
+      // @ts-ignore
+      .insert(insertValues);
 
-    let parsedImageUrls: string[] = [];
-    try {
-      if (submission.imageUrls) {
-        const raw = submission.imageUrls;
-        parsedImageUrls = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
-      }
-    } catch {
-      parsedImageUrls = [];
-    }
+    if (insertError) throw insertError;
 
     const emailPayload = {
-      fullName: submission.fullName,
-      email: submission.email,
-      phone: submission.phone,
-      issueType: submission.issueType as ContactIssueType,
-      subject: submission.subject,
-      message: submission.message,
-      imageUrls: parsedImageUrls,
-      submissionId: submission.id,
-      createdAt: new Date(submission.createdAt),
+      fullName,
+      email,
+      phone: phone || null,
+      issueType,
+      subject: insertValues.subject,
+      message,
+      imageUrls,
+      submissionId,
+      createdAt: new Date(),
     };
 
-    await Promise.allSettled([
+    // Send admin notification to support@creativebydrshakil.com and user confirmation
+    Promise.allSettled([
       sendContactSubmissionNotification(emailPayload),
       sendContactSubmissionAcknowledgement(emailPayload),
-    ]);
+    ]).catch((err) => console.error('[Contact Email Dispatch Error]', err));
 
     return NextResponse.json({
+      success: true,
       submission: {
-        id: submission.id,
-        createdAt: submission.createdAt,
+        id: submissionId,
+        imageUrls,
+        createdAt: new Date().toISOString(),
       },
     }, { status: 201 });
   } catch (error: any) {
-    await fs.rm(uploadDir, { recursive: true, force: true }).catch(() => undefined);
-    console.error('[Contact Submission Error]', {
-      message: error?.message,
-      code: error?.code,
-      status: error?.status,
-    });
-    // Check if it's a payload size error
-    if (error?.message?.includes('PAYLOAD') || error?.code === 'PAYLOAD_TOO_LARGE') {
-      return NextResponse.json({ error: 'Images are too large. Please reduce file sizes or upload fewer images.' }, { status: 413 });
-    }
+    console.error('[Contact Submission Error]', error);
     return NextResponse.json({ error: error?.message || 'Failed to process your submission. Please try again.' }, { status: 500 });
   }
 }

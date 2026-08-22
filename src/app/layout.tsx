@@ -49,6 +49,11 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
+                    }}
+                />
                 <script src="/polyfills.js" />
                 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
                 <link rel="preconnect" href="https://www.youtube.com" />

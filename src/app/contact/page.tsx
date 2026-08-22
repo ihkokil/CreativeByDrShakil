@@ -1,34 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar/Navbar';
 import Footer from '@/components/Footer/Footer';
 import styles from './Contact.module.css';
-import { ArrowRight, CheckCircle2, ImagePlus, Loader2, Mail, Phone, X } from 'lucide-react';
-
-type IssueType = '' | 'query' | 'technical_assistance' | 'billing' | 'course_access' | 'other';
+import { ArrowRight, CheckCircle2, ImagePlus, Loader2, Mail, MessageSquare, ShieldCheck, X } from 'lucide-react';
 
 type SelectedImage = {
   file: File;
   previewUrl: string;
 };
 
-const ISSUE_OPTIONS: Array<{ value: IssueType; label: string }> = [
-  { value: 'query', label: 'Query' },
-  { value: 'technical_assistance', label: 'Technical assistance' },
-  { value: 'billing', label: 'Billing' },
-  { value: 'course_access', label: 'Course access' },
-  { value: 'other', label: 'Other' },
-];
-
 const MAX_IMAGES = 3;
 
 export default function ContactPage() {
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [issueType, setIssueType] = useState<IssueType>('');
-  const [subject, setSubject] = useState('');
+  const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,17 +31,12 @@ export default function ContactPage() {
 
   const canAddMore = images.length < MAX_IMAGES;
 
-  const issueLabel = useMemo(
-    () => ISSUE_OPTIONS.find((option) => option.value === issueType)?.label || 'Query',
-    [issueType]
-  );
-
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
     if (images.length + files.length > MAX_IMAGES) {
-      setError(`You can upload up to ${MAX_IMAGES} images.`);
+      setError(`You can upload up to ${MAX_IMAGES} screenshots or images.`);
       event.target.value = '';
       return;
     }
@@ -81,10 +64,8 @@ export default function ContactPage() {
 
   const resetForm = () => {
     setFullName('');
-    setPhone('');
     setEmail('');
-    setIssueType('');
-    setSubject('');
+    setPhone('');
     setMessage('');
     setImages([]);
   };
@@ -98,10 +79,10 @@ export default function ContactPage() {
     try {
       const formData = new FormData();
       formData.append('fullName', fullName);
-      formData.append('phone', phone);
       formData.append('email', email);
-      formData.append('issueType', issueType);
-      formData.append('subject', subject);
+      if (phone.trim()) {
+        formData.append('phone', phone.trim());
+      }
       formData.append('message', message);
 
       images.forEach((entry) => {
@@ -116,13 +97,13 @@ export default function ContactPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data?.error || 'We could not submit your request. Please try again.');
+        setError(data?.error || 'We could not submit your message. Please try again.');
         return;
       }
 
       setSuccess({
         submissionId: data?.submission?.id || 'received',
-        text: 'Your message has been sent. Our support team will review it and reply by email.',
+        text: 'Your message has been sent successfully. Our team will review and reply to you via email shortly.',
       });
       resetForm();
     } catch {
@@ -138,15 +119,15 @@ export default function ContactPage() {
 
       <section className={styles.hero}>
         <div className={styles.heroContent}>
-          <p className={styles.kicker}>Support</p>
+          <p className={styles.kicker}>Support & Feedback</p>
           <h1>Contact our team</h1>
           <p className={styles.lead}>
-            Send us your question, issue, or feedback. We’ll reply by email and keep a record inside the admin dashboard so nothing gets lost.
+            Have a question, complaint, or feedback? Send us a message below and we’ll get back to you directly by email.
           </p>
           <div className={styles.heroPills}>
-            <span><Mail size={16} /> support inbox</span>
-            <span><Phone size={16} /> responsive follow-up</span>
-            <span><CheckCircle2 size={16} /> tracked in admin panel</span>
+            <span><Mail size={16} /> support@creativebydrshakil.com</span>
+            <span><ShieldCheck size={16} /> Verified support inbox</span>
+            <span><CheckCircle2 size={16} /> Fast email response</span>
           </div>
         </div>
       </section>
@@ -156,132 +137,142 @@ export default function ContactPage() {
           <div className={styles.formHeader}>
             <div>
               <p className={styles.formKicker}>Send a message</p>
-              <h2>We’ll route it to the right team</h2>
+              <h2>How can we help you?</h2>
             </div>
-            <div className={styles.supportTag}>Issue: {issueLabel}</div>
           </div>
 
-          <label className={`${styles.field} ${styles.fullWidth}`}>
-            <span>Full name</span>
-            <input value={fullName} onChange={(event) => setFullName(event.target.value)} required />
-          </label>
-
-          <div className={styles.row}>
+          <div className={styles.fieldsStack}>
             <label className={styles.field}>
-              <span>Phone</span>
-              <input type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} required />
-            </label>
-            <label className={styles.field}>
-              <span>Email</span>
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            </label>
-          </div>
-
-          <div className={styles.issueSubjectRow}>
-            <label className={`${styles.field} ${styles.issueField}`}>
-              <span>Issue</span>
-              <select value={issueType} onChange={(event) => setIssueType(event.target.value as IssueType)}>
-                <option value="" disabled>Select type</option>
-                {ISSUE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <span>Full Name <strong className={styles.requiredMark}>*</strong></span>
+              <input
+                type="text"
+                placeholder="Enter your full name"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                required
+              />
             </label>
 
-            <label className={`${styles.field} ${styles.subjectField}`}>
-              <span>Subject</span>
-              <input value={subject} onChange={(event) => setSubject(event.target.value)} required />
-            </label>
-          </div>
+            <div className={styles.row}>
+              <label className={styles.field}>
+                <span>Email Address <strong className={styles.requiredMark}>*</strong></span>
+                <input
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </label>
 
-          <label className={`${styles.field} ${styles.fullWidth}`}>
-            <span>Message</span>
-            <textarea value={message} onChange={(event) => setMessage(event.target.value)} rows={7} required />
-          </label>
-
-          <div className={styles.uploadBlock}>
-            <div className={styles.uploadHeader}>
-              <div>
-                <h3>Attach images</h3>
-                <p>Upload up to 3 screenshots or reference images.</p>
-              </div>
-              <span>{images.length}/{MAX_IMAGES}</span>
+              <label className={styles.field}>
+                <span>Phone Number <span className={styles.optionalMark}>(Optional)</span></span>
+                <input
+                  type="tel"
+                  placeholder="e.g. 01700-000000"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
+              </label>
             </div>
 
-            <label className={`${styles.uploadButton} ${!canAddMore ? styles.uploadDisabled : ''}`}>
-              <ImagePlus size={18} />
-              <span>{canAddMore ? 'Choose images' : 'Image limit reached'}</span>
-              <input type="file" accept="image/*" multiple onChange={handleImageChange} disabled={!canAddMore} />
+            <label className={styles.field}>
+              <span>Message / Complain <strong className={styles.requiredMark}>*</strong></span>
+              <textarea
+                placeholder="Describe your question, complain, or issue in detail..."
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                rows={6}
+                required
+              />
             </label>
 
-            {images.length > 0 && (
-              <div className={styles.previewGrid}>
-                {images.map((entry, index) => (
-                  <div key={`${entry.file.name}-${index}`} className={styles.previewItem}>
-                    <img src={entry.previewUrl} alt={`Attachment ${index + 1}`} />
-                    <button type="button" onClick={() => removeImage(index)} aria-label={`Remove image ${index + 1}`}>
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
+            {/* Optional Image Attachments */}
+            <div className={styles.uploadBlock}>
+              <div className={styles.uploadHeader}>
+                <div>
+                  <span className={styles.uploadTitle}>Attach Screenshots / Images</span>
+                  <p className={styles.uploadSubtitle}>Upload up to {MAX_IMAGES} reference screenshots (optional).</p>
+                </div>
+                <span className={styles.uploadCount}>{images.length}/{MAX_IMAGES}</span>
               </div>
-            )}
+
+              <label className={`${styles.uploadButton} ${!canAddMore ? styles.uploadDisabled : ''}`}>
+                <ImagePlus size={18} />
+                <span>{canAddMore ? 'Choose screenshots or images' : 'Maximum images selected'}</span>
+                <input type="file" accept="image/*" multiple onChange={handleImageChange} disabled={!canAddMore} />
+              </label>
+
+              {images.length > 0 && (
+                <div className={styles.previewGrid}>
+                  {images.map((entry, index) => (
+                    <div key={`${entry.file.name}-${index}`} className={styles.previewItem}>
+                      <img src={entry.previewUrl} alt={`Attachment ${index + 1}`} />
+                      <button type="button" onClick={() => removeImage(index)} aria-label={`Remove image ${index + 1}`}>
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {error && <p className={styles.error}>{error}</p>}
           {success && (
             <div className={styles.successBox}>
-              <CheckCircle2 size={18} />
+              <CheckCircle2 size={20} className={styles.successIcon} />
               <div>
-                <strong>Message sent</strong>
+                <strong>Message Sent Successfully</strong>
                 <p>{success.text}</p>
-                <small>Reference: {success.submissionId}</small>
+                <small>Reference ID: {success.submissionId}</small>
               </div>
             </div>
           )}
 
           <button className={styles.submitBtn} type="submit" disabled={loading}>
-            {loading ? <Loader2 size={18} className={styles.spin} /> : null}
-            {loading ? 'Sending...' : 'Send message'}
-            {!loading ? <ArrowRight size={18} /> : null}
+            {loading ? <Loader2 size={18} className={styles.spin} /> : <MessageSquare size={18} />}
+            <span>{loading ? 'Sending...' : 'Send Message / Complain'}</span>
+            {!loading && <ArrowRight size={18} />}
           </button>
         </form>
 
         <aside className={styles.sideCard}>
           <div className={styles.sidePanel}>
-            <p className={styles.formKicker}>Before you send</p>
-            <h3>We’ll help faster if you include screenshots</h3>
-            <ul>
-              <li>Use the issue dropdown to route your request to the right team.</li>
-              <li>Include the course name, feature, or dashboard section.</li>
-              <li>Mention when the issue started and what you already tried.</li>
-              <li>Attach clear screenshots with errors or unexpected behavior.</li>
-              <li>Keep one request per topic so tracking stays clean.</li>
-            </ul>
+            <p className={styles.formKicker}>Support Desk</p>
+            <h3>Direct Email Contact</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', lineHeight: '1.7', margin: '8px 0 16px 0' }}>
+              You can also reach our official support inbox directly from your email client:
+            </p>
+            
+            <div className={styles.directEmailBox}>
+              <Mail size={20} className={styles.directEmailIcon} />
+              <div>
+                <span style={{ display: 'block', fontSize: '0.76rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', fontWeight: '700' }}>Official Support</span>
+                <a href="mailto:support@creativebydrshakil.com" className={styles.emailLink}>
+                  support@creativebydrshakil.com
+                </a>
+              </div>
+            </div>
+
             <div className={styles.tipGrid}>
               <div>
-                <strong>Response window</strong>
-                <p>Usually within 12-24 hours on working days.</p>
+                <strong>Response Window</strong>
+                <p>Usually within 12–24 hours on working days.</p>
               </div>
               <div>
-                <strong>High priority</strong>
-                <p>Billing and access requests are reviewed first.</p>
+                <strong>Account & Access</strong>
+                <p>Course enrollment and billing inquiries are prioritized.</p>
               </div>
             </div>
           </div>
 
           <div className={styles.sidePanelAlt}>
-            <p className={styles.formKicker}>What happens next</p>
+            <p className={styles.formKicker}>What happens next?</p>
             <div className={styles.timeline}>
-              <div><strong>1.</strong><span>We store your request in the admin inbox.</span></div>
-              <div><strong>2.</strong><span>An admin receives email notification immediately.</span></div>
-              <div><strong>3.</strong><span>You get a response by email when handled.</span></div>
-            </div>
-            <div className={styles.contactMini}>
-              <a href="mailto:contact@drshakil.com">contact@drshakil.com</a>
-              <a href="tel:+8801700000000">+880 1700-000000</a>
+              <div><strong>1.</strong><span>Your message is delivered instantly to our support staff.</span></div>
+              <div><strong>2.</strong><span>You receive an automated confirmation email receipt.</span></div>
+              <div><strong>3.</strong><span>Our support team reviews your inquiry and replies directly to your email.</span></div>
             </div>
           </div>
         </aside>
