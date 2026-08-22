@@ -20,7 +20,7 @@ function escapeHtml(value: string) {
 
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
   const token = getTelegramToken();
-  if (!token) return;
+  if (!token || !callbackQueryId) return;
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
@@ -62,6 +62,21 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
     if (!res.ok) {
       const errBody = await res.text();
       console.error('[Telegram Webhook] sendMessage failed:', res.status, errBody);
+
+      // If HTML entity parsing fails, retry as plain text so it never fails silently
+      if (errBody.includes('can\'t parse entities') || errBody.includes('entity')) {
+        const plainText = text.replace(/<[^>]+>/g, '');
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: plainText,
+            reply_markup: replyMarkup,
+            disable_web_page_preview: true,
+          }),
+        });
+      }
     }
   } catch (err) {
     console.error('[Telegram Webhook] sendMessage error:', err);
@@ -70,12 +85,19 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
 
 export async function POST(request: NextRequest) {
   let globalCallbackQueryId: string | undefined = undefined;
+  let currentChatId: string | number | undefined = undefined;
+
   try {
     const body = await request.json();
     const supabase = getSupabaseAdmin();
     const callbackQuery = body?.callback_query;
     if (callbackQuery?.id) {
       globalCallbackQueryId = callbackQuery.id;
+    }
+    if (callbackQuery?.message?.chat?.id) {
+      currentChatId = callbackQuery.message.chat.id;
+    } else if (body?.message?.chat?.id) {
+      currentChatId = body.message.chat.id;
     }
 
     // -------------------------------------------------------------
@@ -169,8 +191,8 @@ export async function POST(request: NextRequest) {
 
         // Check for ForceReply context for custom dates
         if (message.reply_to_message && message.reply_to_message.text) {
-          const replyText = message.reply_to_message.text;
-          const contextMatch = replyText.match(/\[Context: (amcd\|[^\]]+|ed\|[^\]]+)\]/);
+          const rText = message.reply_to_message.text;
+          const contextMatch = rText.match(/\[Context: (amcd\|[^\]]+|ed\|[^\]]+)\]/);
           if (contextMatch) {
             const rawDate = text.trim();
             let dateObj: Date | null = null;
@@ -1123,7 +1145,10 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[Telegram Webhook Error]', error?.message || error);
     if (globalCallbackQueryId) {
-      await answerCallbackQuery(globalCallbackQueryId, 'An error occurred.');
+      await answerCallbackQuery(globalCallbackQueryId, 'Error: ' + (error?.message || 'Action failed.'));
+    }
+    if (currentChatId) {
+      await sendTelegramReply(currentChatId, `⚠️ <b>Error processing action:</b> ${escapeHtml(error?.message || 'Operation failed. Please try again.')}`);
     }
     return NextResponse.json({ ok: true });
   }

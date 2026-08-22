@@ -171,6 +171,21 @@ async function sendTelegramMessage({
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`[Telegram Error] HTTP ${response.status} sending message to chatId ${chatId}:`, errorText);
+
+        // If entity parsing failed, retry as plain text
+        if (errorText.includes('can\'t parse entities') || errorText.includes('entity')) {
+          const plainText = text.replace(/<[^>]+>/g, '');
+          await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: plainText,
+              reply_markup: replyMarkup,
+              disable_web_page_preview: true,
+            }),
+          });
+        }
       } else {
         console.log(`[Telegram Success] Message delivered to chatId ${chatId}`);
       }
@@ -220,7 +235,7 @@ export async function sendTelegramVerification({
 Please verify this payment.
 `;
 
-  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: await buildApproveRejectKeyboard(orderId) });
+  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
 }
 
 /**
@@ -266,7 +281,7 @@ export async function sendTelegramPurchaseNotification({
     adminOrderUrl,
   });
 
-  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: await buildApproveRejectKeyboard(orderId) });
+  await sendTelegramMessage({ chatIds: allChatIds, text: message, replyMarkup: buildApproveRejectKeyboard(orderId) });
 }
 
 /**
@@ -302,6 +317,21 @@ export async function editTelegramMessage({
     if (!response.ok) {
       const errorData = await response.text();
       console.error('[Telegram editMessageText Error]:', errorData);
+
+      if (errorData.includes('can\'t parse entities') || errorData.includes('entity')) {
+        const plainText = text.replace(/<[^>]+>/g, '');
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            message_id: messageId,
+            text: plainText,
+            reply_markup: replyMarkup,
+            disable_web_page_preview: true,
+          }),
+        });
+      }
     }
   } catch (error: any) {
     console.error('[Telegram editMessageText Network Error]:', error?.message || error);
