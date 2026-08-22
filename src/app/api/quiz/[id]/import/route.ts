@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
+import { recalculateQuizResults, normalizeQuestionType } from '@/lib/quiz-engine';
 
-// Simple CSV parser for standard CSV format
 function parseCSV(text: string) {
-  const result = [];
-  let row = [];
+  const result: string[][] = [];
+  let row: string[] = [];
   let inQuotes = false;
   let currentVal = '';
   
@@ -62,10 +61,8 @@ export async function POST(
     }
 
     const { id: quizId } = await params;
-    const url = new URL(request.url);
-    const isPreview = url.searchParams.get('preview') === 'true';
+    const supabase = getSupabaseAdmin();
 
-    // Check if formData
     const contentType = request.headers.get('content-type') || '';
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
@@ -82,8 +79,8 @@ export async function POST(
         return NextResponse.json({ error: 'File is empty or missing data.' }, { status: 400 });
       }
       
-      const validRows = [];
-      const invalidRows = [];
+      const validRows: any[] = [];
+      const invalidRows: any[] = [];
       
       for (let i = 1; i < parsed.length; i++) {
         const row = parsed[i];
@@ -98,11 +95,11 @@ export async function POST(
         const correctOption = row[6]?.trim()?.toUpperCase();
         const explanation = row[7]?.trim();
         
-        let questionType = 'sba';
-        if (correctOption && /^[TF]{5}$/.test(correctOption)) {
-          questionType = 'mcq'; // True/False matrix (DB stores as mcq)
-        } else if (correctOption && /^[A-E]$/.test(correctOption)) {
-          questionType = 'sba'; // MCQ (DB stores as sba)
+        let questionType: 'sba' | 'true_false' = 'sba';
+        if (correctOption && /^[TF]{5}$/i.test(correctOption)) {
+          questionType = 'true_false';
+        } else if (correctOption && /^[A-E]$/i.test(correctOption)) {
+          questionType = 'sba';
         }
         
         const errors = [];
@@ -110,13 +107,17 @@ export async function POST(
         if (!correctOption) errors.push('Correct option missing');
         if (!optionA) errors.push('Option A missing');
         if (!optionB) errors.push('Option B missing');
-        if (questionType === 'mcq' && correctOption.length !== 5) errors.push('T_F answer must be exactly 5 characters of T and F');
-        if (questionType === 'sba' && !/^[A-E]$/.test(correctOption)) errors.push('SBA answer must be a single letter from A to E');
+        if (questionType === 'true_false' && correctOption.length !== 5) {
+          errors.push('TRUE_FALSE answer must be exactly 5 characters of T and F (e.g. TFTFT)');
+        }
+        if (questionType === 'sba' && !/^[A-E]$/i.test(correctOption)) {
+          errors.push('SBA answer must be a single letter from A to E');
+        }
         
         if (errors.length > 0) {
           invalidRows.push({
             data: row,
-            errors
+            errors,
           });
         } else {
           validRows.push({
@@ -128,7 +129,7 @@ export async function POST(
             optionB,
             optionC,
             optionD,
-            optionE
+            optionE,
           });
         }
       }
@@ -138,10 +139,11 @@ export async function POST(
         validCount: validRows.length,
         invalidCount: invalidRows.length,
         validRows,
-        invalidRows
+        invalidRows,
       });
     }
 
+    // JSON Body import
     const body = await request.json();
     const { questions } = body;
 
@@ -149,11 +151,8 @@ export async function POST(
       return NextResponse.json({ error: 'questions array is required.' }, { status: 400 });
     }
 
-    const token = await extractCookieToken();
-    const supabase = getSupabase(token);
-
     if (quizId !== 'new') {
-      const { data: quiz }: { data: any } = await supabase
+      const { data: quiz } = await supabase
         .from('Quiz')
         .select('id, createdBy')
         .eq('id', quizId)
@@ -164,7 +163,7 @@ export async function POST(
         return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
       }
 
-      if (payload.role === 'teacher' && quiz.createdBy !== payload.sub) {
+      if (payload.role === 'teacher' && (quiz as any).createdBy !== payload.sub) {
         return NextResponse.json({ error: 'Not authorized to import into this quiz.' }, { status: 403 });
       }
     }
@@ -177,19 +176,25 @@ export async function POST(
         continue;
       }
 
+      const qType = normalizeQuestionType(q.questionType);
+      let corr = String(q.correctOption).trim().toUpperCase();
+      if (qType === 'true_false' && corr.length !== 5) {
+        corr = corr.padEnd(5, 'F').slice(0, 5);
+      }
+
       await supabase.from('Question')
         // @ts-ignore
         .insert({
           id: nanoid(),
           quizId: quizId === 'new' ? null : quizId,
           questionText: q.questionText.trim(),
-          questionType: q.questionType || 'sba',
+          questionType: qType,
           optionA: q.optionA.trim(),
           optionB: q.optionB.trim(),
           optionC: q.optionC?.trim() || null,
           optionD: q.optionD?.trim() || null,
           optionE: q.optionE?.trim() || null,
-          correctOption: q.correctOption.trim(),
+          correctOption: corr,
           explanation: q.explanation?.trim() || null,
           createdAt: nowStr,
           updatedAt: nowStr,
@@ -199,20 +204,20 @@ export async function POST(
     }
 
     if (quizId !== 'new') {
-      await supabase
-        .from('Quiz')
-        // @ts-ignore
-        .update({ updatedAt: nowStr })
-        .eq('id', quizId);
+      try {
+        await recalculateQuizResults(quizId, supabase);
+      } catch (err) {
+        console.warn('Recalculate error after CSV import:', err);
+      }
     }
 
     return NextResponse.json({
       success: true,
       imported,
-      message: `Imported ${imported} questions.`,
+      message: `Successfully imported ${imported} questions.`,
     });
   } catch (error: any) {
-    console.error('[quiz/import] error:', error);
+    console.error('POST /api/quiz/[id]/import error:', error);
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
   }
 }

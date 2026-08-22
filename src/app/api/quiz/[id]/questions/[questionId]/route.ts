@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabase } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
+import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { recalculateQuizResults, normalizeQuestionType } from '@/lib/quiz-engine';
 
 export async function PUT(
   request: NextRequest,
@@ -13,11 +13,8 @@ export async function PUT(
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
-    
-    const token = await extractCookieToken();
 
-    
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: existingQuiz } = await supabase
       .from('Quiz')
@@ -29,11 +26,11 @@ export async function PUT(
     if (!existingQuiz) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
     }
-    
+
     if (payload.role === 'teacher' && existingQuiz.createdBy !== payload.sub) {
       return NextResponse.json({ error: 'Not authorized to edit this quiz.' }, { status: 403 });
     }
-    
+
     const { data: existingQuestion } = await supabase
       .from('Question')
       .select('*')
@@ -41,52 +38,52 @@ export async function PUT(
       .eq('quizId', id)
       .limit(1)
       .maybeSingle();
-    
+
     if (!existingQuestion) {
       return NextResponse.json({ error: 'Question not found.' }, { status: 404 });
     }
-    
+
     const body = await request.json();
     const { questionText, questionType, optionA, optionB, optionC, optionD, optionE, correctOption, explanation } = body;
-    
+
     if (questionText !== undefined && !questionText.trim()) {
       return NextResponse.json({ error: 'Question text cannot be empty.' }, { status: 400 });
     }
-    
+
     const newOptionA = optionA !== undefined ? optionA : (existingQuestion as any).optionA;
     const newOptionB = optionB !== undefined ? optionB : (existingQuestion as any).optionB;
     const newOptionC = optionC !== undefined ? optionC : (existingQuestion as any).optionC;
     const newOptionD = optionD !== undefined ? optionD : (existingQuestion as any).optionD;
     const newOptionE = optionE !== undefined ? optionE : (existingQuestion as any).optionE;
-    const newCorrectOption = correctOption !== undefined ? correctOption : (existingQuestion as any).correctOption;
-    
-    const options = [newOptionA, newOptionB, newOptionC, newOptionD, newOptionE].filter(o => o && (typeof o === 'string' ? o.trim() : true));
-    if (options.length < 2) {
-      return NextResponse.json({ error: 'At least 2 options are required.' }, { status: 400 });
-    }
-    
-    const newQuestionType = questionType !== undefined ? questionType : (existingQuestion as any).questionType;
-    if (newQuestionType === 'sba' || newQuestionType === 'true_false') {
-      if (!options.includes(newCorrectOption)) {
-        return NextResponse.json({ error: 'Correct option must match one of the provided options.' }, { status: 400 });
+    let newCorrectOption = (correctOption !== undefined ? correctOption : (existingQuestion as any).correctOption || '').trim().toUpperCase();
+
+    const rawType = questionType !== undefined ? questionType : (existingQuestion as any).questionType;
+    const normalizedType = normalizeQuestionType(rawType);
+
+    if (normalizedType === 'true_false') {
+      if (newCorrectOption.length !== 5 || !/^[TF]{5}$/i.test(newCorrectOption)) {
+        newCorrectOption = newCorrectOption.padEnd(5, 'F').slice(0, 5);
       }
-    } else if (newQuestionType === 'mcq') {
-      if (!/^[TF]+$/i.test(newCorrectOption)) {
-        return NextResponse.json({ error: 'For MCQ, correct option must be a string of T and F.' }, { status: 400 });
+    } else {
+      // SBA
+      if (!/^[A-E]$/i.test(newCorrectOption)) {
+        return NextResponse.json({ error: 'For SBA questions, correct answer must be one letter (A, B, C, D, or E).' }, { status: 400 });
       }
     }
-    
-    const updateData: any = { updatedAt: new Date().toISOString() };
-    if (questionText !== undefined) updateData.questionText = questionText.trim();
-    if (questionType !== undefined) updateData.questionType = questionType as 'mcq' | 'true_false' | 'sba';
-    if (optionA !== undefined) updateData.optionA = optionA?.trim() || null;
-    if (optionB !== undefined) updateData.optionB = optionB?.trim() || null;
-    if (optionC !== undefined) updateData.optionC = optionC?.trim() || null;
-    if (optionD !== undefined) updateData.optionD = optionD?.trim() || null;
-    if (optionE !== undefined) updateData.optionE = optionE?.trim() || null;
-    if (correctOption !== undefined) updateData.correctOption = correctOption.trim();
-    if (explanation !== undefined) updateData.explanation = explanation?.trim() || null;
-    
+
+    const updateData: any = {
+      questionText: questionText !== undefined ? questionText.trim() : (existingQuestion as any).questionText,
+      questionType: normalizedType,
+      optionA: newOptionA ? String(newOptionA).trim() : '',
+      optionB: newOptionB ? String(newOptionB).trim() : '',
+      optionC: newOptionC ? String(newOptionC).trim() : null,
+      optionD: newOptionD ? String(newOptionD).trim() : null,
+      optionE: newOptionE ? String(newOptionE).trim() : null,
+      correctOption: newCorrectOption,
+      explanation: explanation !== undefined ? (explanation ? String(explanation).trim() : null) : (existingQuestion as any).explanation,
+      updatedAt: new Date().toISOString(),
+    };
+
     const { error: updateError } = await supabase
       .from('Question')
       .update(updateData as any)
@@ -95,6 +92,13 @@ export async function PUT(
 
     if (updateError) throw updateError;
 
+    // Automatic cascade re-grading for all student attempts of this quiz
+    try {
+      await recalculateQuizResults(id, supabase);
+    } catch (recalcErr) {
+      console.warn('Recalculate error after question update:', recalcErr);
+    }
+
     const { data: updatedQuestion } = await supabase
       .from('Question')
       .select('*')
@@ -102,7 +106,7 @@ export async function PUT(
       .eq('quizId', id)
       .limit(1)
       .maybeSingle();
-    
+
     return NextResponse.json({ question: updatedQuestion });
   } catch (error: any) {
     console.error('PUT /api/quiz/[id]/questions/[questionId] error:', error);
@@ -120,11 +124,8 @@ export async function DELETE(
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
-    
-    const token = await extractCookieToken();
 
-    
-    const supabase = getSupabase(token);
+    const supabase = getSupabaseAdmin();
 
     const { data: existingQuiz } = await supabase
       .from('Quiz')
@@ -136,11 +137,11 @@ export async function DELETE(
     if (!existingQuiz) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
     }
-    
+
     if (payload.role === 'teacher' && (existingQuiz as any).createdBy !== payload.sub) {
       return NextResponse.json({ error: 'Not authorized to delete from this quiz.' }, { status: 403 });
     }
-    
+
     const { data: existingQuestion } = await supabase
       .from('Question')
       .select('id')
@@ -148,11 +149,11 @@ export async function DELETE(
       .eq('quizId', id)
       .limit(1)
       .maybeSingle();
-    
+
     if (!existingQuestion) {
       return NextResponse.json({ error: 'Question not found.' }, { status: 404 });
     }
-    
+
     const { error: deleteError } = await supabase
       .from('Question')
       .delete()
@@ -160,7 +161,14 @@ export async function DELETE(
       .eq('quizId', id);
 
     if (deleteError) throw deleteError;
-    
+
+    // Automatic cascade re-grading for all student attempts
+    try {
+      await recalculateQuizResults(id, supabase);
+    } catch (recalcErr) {
+      console.warn('Recalculate error after question delete:', recalcErr);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('DELETE /api/quiz/[id]/questions/[questionId] error:', error);

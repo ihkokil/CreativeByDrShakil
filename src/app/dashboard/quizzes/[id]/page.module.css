@@ -18,8 +18,7 @@
 }
 
 .container {
-
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 24px 16px;
 }
@@ -229,6 +228,7 @@
   flex-wrap: wrap;
   gap: 12px;
   padding: 24px;
+  align-items: center;
   justify-content: flex-end;
 }
 
@@ -239,15 +239,16 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 28px;
+  padding: 12px 20px;
   border-radius: 10px;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
   border: none;
   text-decoration: none;
-  min-width: 160px;
+  white-space: nowrap;
+  flex: 1 1 auto;
 }
 
 .primaryBtn {

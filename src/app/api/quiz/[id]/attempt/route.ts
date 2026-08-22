@@ -158,7 +158,7 @@ export async function POST(
     
     const mappings = selectedQuestions.map((q, index) => {
       const validIndices: number[] = [];
-      if (q.questionType === 'mcq') {
+      if (q.questionType === 'mcq' || q.questionType === 'true_false') {
         validIndices.push(0, 1, 2, 3, 4);
       } else {
         if (q.optionA) validIndices.push(0);

@@ -215,28 +215,72 @@ export default function TeacherQuizzesPage() {
       const res = await fetch(`/api/teacher/courses/${courseId}`);
       if (res.ok) {
         const data = await res.json();
-        const curJson = data.course?.curriculumJson;
-        if (curJson) {
+        const modules: Array<{ id: string; title: string }> = [];
+        const seenIds = new Set<string>();
+
+        // 1. Prefer server-populated data.curriculum (which already resolves Media Vault folders and normalization)
+        let tree: any[] = Array.isArray(data.curriculum) ? data.curriculum : [];
+
+        // 2. Fallback to parsing data.course.curriculumJson if data.curriculum is empty
+        if (tree.length === 0 && data.course?.curriculumJson) {
           try {
-            const parsed = JSON.parse(curJson);
-            const modules: Array<{ id: string; title: string }> = [];
-            const extractFolders = (nodes: any[]) => {
-              for (const n of nodes) {
-                if (n.type === 'folder' || n.type === 'module' || n.children) {
-                  modules.push({ id: n.id, title: n.title });
-                }
-                if (n.children && Array.isArray(n.children)) {
-                  extractFolders(n.children);
-                }
-              }
-            };
-            extractFolders(Array.isArray(parsed) ? parsed : []);
-            setCourseModules(modules);
-            return;
+            const parsed = typeof data.course.curriculumJson === 'string'
+              ? JSON.parse(data.course.curriculumJson)
+              : data.course.curriculumJson;
+            tree = Array.isArray(parsed) ? parsed : (parsed.modules || parsed.topics || parsed.curriculum || []);
           } catch {}
         }
+
+        const extractFolders = (nodes: any[], prefix = '') => {
+          if (!Array.isArray(nodes)) return;
+          for (const n of nodes) {
+            if (!n || !n.id) continue;
+
+            const childrenList = Array.isArray(n.children) ? n.children :
+                                 Array.isArray(n.subTopics) ? n.subTopics :
+                                 Array.isArray(n.items) ? n.items : [];
+
+            // A node is a folder/module if it's explicitly marked or contains sub-items or is a Media Vault folder
+            const isContainer = n.type === 'folder' ||
+                                n.type === 'module' ||
+                                n.type === 'topic' ||
+                                n.type === 'chapter' ||
+                                n.type === 'section' ||
+                                Boolean(n.mediaVaultFolderId) ||
+                                childrenList.length > 0;
+
+            const displayTitle = prefix ? `${prefix} > ${n.title || 'Untitled Module'}` : (n.title || 'Untitled Module');
+
+            if (isContainer && !seenIds.has(n.id)) {
+              seenIds.add(n.id);
+              modules.push({ id: n.id, title: displayTitle });
+            }
+
+            if (childrenList.length > 0) {
+              extractFolders(childrenList, displayTitle);
+            }
+          }
+        };
+
+        if (tree.length > 0) {
+          extractFolders(tree);
+        } else if (Array.isArray(data.groups) && data.groups.length > 0) {
+          // 3. Fallback to release groups if curriculum tree was not found
+          for (const g of data.groups) {
+            const gid = g.nodeId || g.id;
+            if (gid && !seenIds.has(gid)) {
+              seenIds.add(gid);
+              modules.push({ id: gid, title: g.title || g.mainTopicTitle || 'Module' });
+            }
+          }
+        }
+
+        setCourseModules(modules);
+        return;
       }
-    } catch {}
+    } catch (err) {
+      console.error('Error loading course modules:', err);
+    }
     setCourseModules([]);
   };
 
@@ -917,7 +961,7 @@ export default function TeacherQuizzesPage() {
                   <h3 style={{ fontSize: '18px', fontWeight: '600' }}>{question.questionText}</h3>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginLeft: '32px' }}>
-                  {question.questionType === 'mcq' ? (
+                  {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
                     [
                       { letter: 'A', text: question.optionA },
                       { letter: 'B', text: question.optionB },

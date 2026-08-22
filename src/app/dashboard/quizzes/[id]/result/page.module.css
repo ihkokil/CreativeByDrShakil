@@ -393,12 +393,18 @@
   padding: 24px;
 }
 
-/* Summary Analytics Grid */
+/* Summary Analytics Grid (2 columns x 2 rows) */
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .summaryCard {
@@ -763,30 +769,288 @@
   gap: 8px;
 }
 
-.reviewOption {
+/* Ultra-Compact Single-Row True/False Review */
+.tfCompactRow {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 11px 16px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background: var(--bg-secondary);
   transition: all 0.15s ease;
 }
 
-.reviewOption.optionCorrect {
-  border-color: rgba(5, 150, 105, 0.4);
-  background: rgba(5, 150, 105, 0.05);
+.tfCompactCorrect {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.04);
 }
 
-.reviewOption.optionIncorrect {
-  border-color: rgba(220, 38, 38, 0.35);
-  background: rgba(220, 38, 38, 0.04);
+.tfCompactIncorrect {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.04);
 }
 
-.reviewOption.optionStudentCorrect {
-  border-color: rgba(5, 150, 105, 0.45);
-  background: rgba(5, 150, 105, 0.07);
+.tfCompactSkipped {
+  border-color: var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.tfCompactLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tfCompactText {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.tfCompactRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.userPillCorrect {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  white-space: nowrap;
+}
+
+.userPillWrong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+  white-space: nowrap;
+}
+
+.userPillSkipped {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.keyPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #059669;
+  border: 1px solid #047857;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.keyPillTrue {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  background: #059669;
+  border: 1px solid #047857;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+  white-space: nowrap;
+}
+
+.keyPillFalse {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  background: #dc2626;
+  border: 1px solid #b91c1c;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.3);
+  white-space: nowrap;
+}
+
+.outcomeBadgeWrapper {
+  min-width: 76px;
+  text-align: right;
+}
+
+.tfOutcomeSuccess,
+.tfOutcomeDanger,
+.tfOutcomeMuted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.tfOutcomeSuccess {
+  background: rgba(5, 150, 105, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(5, 150, 105, 0.35);
+}
+
+.tfOutcomeDanger {
+  background: rgba(220, 38, 38, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+
+.tfOutcomeMuted {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+@media (max-width: 640px) {
+  .tfCompactRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .tfCompactRight {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+/* SBA Review Rows */
+.sbaReviewRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  margin-bottom: 8px;
+}
+
+.sbaRowLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sbaRowRight {
+  flex-shrink: 0;
+}
+
+.sbaCorrect {
+  border-color: #059669;
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.sbaIncorrect {
+  border-color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.sbaKeyHighlight {
+  border: 1.5px dashed #059669;
+  background: rgba(5, 150, 105, 0.04);
+}
+
+.sbaNeutral {
+  background: var(--bg-secondary);
+}
+
+.sbaBadgeSuccess {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.sbaBadgeDanger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.sbaBadgeKey {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: #059669;
+  border: 1px solid #047857;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+  letter-spacing: 0.2px;
+}
+
+@media (max-width: 640px) {
+  .sbaReviewRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .sbaRowRight {
+    align-self: flex-end;
+  }
 }
 
 .optionLetter {
@@ -804,63 +1068,11 @@
   border: 1px solid var(--border-color);
 }
 
-.reviewOption.optionCorrect .optionLetter,
-.reviewOption.optionStudentCorrect .optionLetter {
-  background: rgba(5, 150, 105, 0.15);
-  border-color: rgba(5, 150, 105, 0.4);
-  color: var(--success-color);
-}
-
-.reviewOption.optionIncorrect .optionLetter {
-  background: rgba(220, 38, 38, 0.12);
-  border-color: rgba(220, 38, 38, 0.35);
-  color: var(--error-color);
-}
-
 .optionText {
   flex: 1;
   font-size: 14px;
   color: var(--text-color);
   line-height: 1.5;
-}
-
-.correctBadge,
-.wrongBadge,
-.keyBadge,
-.skippedBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 6px;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-}
-
-.correctBadge {
-  background: var(--success-light);
-  border: 1px solid rgba(5, 150, 105, 0.3);
-  color: var(--success-color);
-}
-
-.wrongBadge {
-  background: var(--error-light);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  color: var(--error-color);
-}
-
-.keyBadge {
-  background: rgba(5, 150, 105, 0.08);
-  border: 1px dashed rgba(5, 150, 105, 0.4);
-  color: var(--success-color);
-}
-
-.skippedBadge {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
 }
 
 .explanation {

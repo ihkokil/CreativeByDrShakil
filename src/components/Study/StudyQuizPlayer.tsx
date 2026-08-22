@@ -195,7 +195,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
           quiz.maxAttempts === 0 ||
           (quiz.attempt?.attemptNumber ?? 0) < quiz.maxAttempts)));
 
-  const totalMarks = quiz.numQuestionsToServe * (quiz.marksPerCorrect || 1);
+  const totalMarks = (quiz as any).totalMarks !== undefined ? (quiz as any).totalMarks : (quiz.numQuestionsToServe * (quiz.marksPerCorrect || 1));
 
   return (
     <div className={styles.container}>
@@ -282,11 +282,15 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
                 )}
               </div>
               <div className={styles.ruleContent}>
-                <span className={styles.ruleLabel}>Negative Marking</span>
+                <span className={styles.ruleLabel}>Scoring Policy</span>
                 <span className={styles.ruleValue}>
-                  {quiz.allowNegativeMarking
-                    ? `-${quiz.negativeValue || 0.25} mark${(quiz.negativeValue || 0.25) !== 1 ? "s" : ""} per wrong`
-                    : "No negative marking"}
+                  {((quiz as any).sbaMarks !== undefined || (quiz as any).tfMarks !== undefined)
+                    ? `SBA: +${(quiz as any).sbaMarks ?? 2} / -${(quiz as any).sbaNegative ?? 0} | T/F: +${(quiz as any).tfMarks ?? 2} / -${(quiz as any).tfNegative ?? 0.5}`
+                    : (quiz.allowNegativeMarking
+                      ? `+${quiz.marksPerCorrect || 1} / -${quiz.negativeValue || 0.25} per question`
+                      : "No negative marking"
+                    )
+                  }
                 </span>
               </div>
             </div>

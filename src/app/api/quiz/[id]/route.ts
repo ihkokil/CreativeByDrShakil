@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
+import { recalculateQuizResults, computeMaxMarksForQuestions, getScoringRules, calculateDynamicLeaderboard } from '@/lib/quiz-engine';
 
 export async function GET(
   request: NextRequest,
@@ -103,7 +104,7 @@ export async function GET(
     
     let allAttemptsData: any[] = [];
     let attempt = null;
-    if (payload && payload.role === 'student') {
+    if (payload && payload.sub) {
       const { data: attemptRow } = await supabase
         .from('QuizAttempt')
         .select('*')
@@ -151,12 +152,48 @@ export async function GET(
       ].filter(o => o.text !== null && o.text !== undefined && o.text !== ''),
     }));
     
+    const totalMarks = computeMaxMarksForQuestions(quizData.questions, quizData);
+
+    // Calculate dynamic leaderboard across all completed attempts
+    const { data: rawSubmittedAttempts = [] } = await supabase
+      .from('QuizAttempt')
+      .select('id, quizId, studentId, netScore, percentageScore, correctCount, wrongCount, skippedCount, attemptNumber, timeTakenSeconds, submittedAt, status')
+      .eq('quizId', id);
+
+    const isCompletedStatus = (st: string) => {
+      const s = (st || '').toLowerCase().trim();
+      return s === 'submitted' || s === 'auto_submitted' || s === 'completed';
+    };
+
+    const completedRawAttempts = (rawSubmittedAttempts || []).filter((a: any) => isCompletedStatus(a.status) || (a.netScore !== null && a.netScore !== undefined));
+    const studentIds = [...new Set(completedRawAttempts.map((a: any) => a.studentId))];
+    const { data: rawUsers = [] } = studentIds.length > 0
+      ? await supabase.from('User').select('id, fullName, email').in('id', studentIds)
+      : { data: [] };
+    const userMap = new Map((rawUsers || []).map((u: any) => [u.id, u]));
+
+    const attemptsWithUsers = completedRawAttempts.map((a: any) => ({
+      ...a,
+      student: userMap.get(a.studentId) || null,
+      studentName: userMap.get(a.studentId)?.fullName || 'Student',
+    }));
+
+    const { leaderboard, userRank, totalParticipants } = calculateDynamicLeaderboard(
+      quizData,
+      attemptsWithUsers,
+      payload?.sub || null
+    );
+    
     return NextResponse.json({
       quiz: {
         ...quizData,
+        totalMarks,
         questions: questionsWithOptions,
       },
       allAttempts: allAttemptsData,
+      leaderboard,
+      userRank,
+      totalParticipants,
       attempt: attempt ? {
         id: attempt.id,
         status: attempt.status,
@@ -217,6 +254,10 @@ export async function PUT(
       allowNegativeMarking,
       negativeValue,
       marksPerCorrect,
+      sbaMarks,
+      sbaNegative,
+      tfMarks,
+      tfNegative,
       startDatetime,
       endDatetime,
       shuffleQuestions,
@@ -257,6 +298,10 @@ export async function PUT(
     if (allowNegativeMarking !== undefined) updateData.allowNegativeMarking = allowNegativeMarking;
     if (negativeValue !== undefined) updateData.negativeValue = negativeValue;
     if (marksPerCorrect !== undefined) updateData.marksPerCorrect = marksPerCorrect;
+    if (sbaMarks !== undefined) updateData.sbaMarks = sbaMarks;
+    if (sbaNegative !== undefined) updateData.sbaNegative = sbaNegative;
+    if (tfMarks !== undefined) updateData.tfMarks = tfMarks;
+    if (tfNegative !== undefined) updateData.tfNegative = tfNegative;
     if (startDatetime !== undefined) updateData.startDatetime = startDatetime ? new Date(startDatetime).toISOString() : null;
     if (endDatetime !== undefined) updateData.endDatetime = endDatetime ? new Date(endDatetime).toISOString() : null;
     if (shuffleQuestions !== undefined) updateData.shuffleQuestions = shuffleQuestions;
@@ -300,15 +345,23 @@ export async function PUT(
 
       const nowStr = new Date().toISOString();
       for (const q of questions) {
+        let qType = q.questionType || 'sba';
+        if (qType === 'mcq') qType = 'true_false';
+
+        let correctOpt = (q.correctOption || '').trim().toUpperCase();
+        if (qType === 'true_false' && correctOpt.length !== 5) {
+          correctOpt = correctOpt.padEnd(5, 'F').slice(0, 5);
+        }
+
         const questionData = {
-          questionText: q.questionText.trim(),
-          questionType: q.questionType,
-          optionA: q.optionA.trim(),
-          optionB: q.optionB.trim(),
+          questionText: (q.questionText || '').trim(),
+          questionType: qType,
+          optionA: (q.optionA || '').trim(),
+          optionB: (q.optionB || '').trim(),
           optionC: q.optionC?.trim() || null,
           optionD: q.optionD?.trim() || null,
           optionE: q.optionE?.trim() || null,
-          correctOption: q.correctOption.trim(),
+          correctOption: correctOpt,
           explanation: q.explanation?.trim() || null,
           updatedAt: nowStr,
         };
@@ -321,9 +374,8 @@ export async function PUT(
         } else {
           await supabase
             .from('Question')
-            
-// @ts-ignore
-.insert({
+            // @ts-ignore
+            .insert({
               id: nanoid(),
               quizId: id,
               ...questionData,
@@ -331,6 +383,13 @@ export async function PUT(
             } as any);
         }
       }
+    }
+
+    // Recalculate all student attempt scores and rankings dynamically
+    try {
+      await recalculateQuizResults(id, supabase);
+    } catch (recalcErr) {
+      console.warn('Error during recalculateQuizResults on quiz update:', recalcErr);
     }
     
     const { data: updatedQuiz } = await supabase

@@ -293,21 +293,24 @@ export default function QuizTakePage() {
 
   const handleAnswerSelect = (questionId: string, optionLetter: string, mcqSelection?: 'T' | 'F') => {
     if (showResults) return;
+    
     const q = questions.find(item => item.id === questionId);
     if (!q) return;
-
-    let newSelectedForSave = optionLetter;
+    
+    let newSelectedForSave: string | null = null;
+    const isTF = q.questionType === 'true_false' || q.questionType === 'mcq';
 
     setAnswers(prev => {
       const current = prev[questionId];
       
-      if (q.questionType === 'mcq') {
-        const optionCount = q.options?.length || 5;
-        const idx = optionLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
-        const currentStr = current?.selectedOption || '-'.repeat(optionCount);
+      if (isTF) {
+        const optionCount = 5;
+        const idx = optionLetter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3, E=4
+        const currentStr = current?.selectedOption || '-----';
         const newArr = currentStr.padEnd(optionCount, '-').split('');
         if (idx >= 0 && idx < optionCount) {
-          newArr[idx] = mcqSelection || 'T';
+          // If clicking the active button again, clear it (toggle off), else set T/F
+          newArr[idx] = (newArr[idx] === mcqSelection) ? '-' : (mcqSelection || 'T');
         }
         const newSelectedOption = newArr.join('');
         newSelectedForSave = newSelectedOption;
@@ -322,12 +325,13 @@ export default function QuizTakePage() {
           },
         };
       } else {
-        newSelectedForSave = optionLetter;
+        const newOpt = (current?.selectedOption === optionLetter) ? null : optionLetter;
+        newSelectedForSave = newOpt;
         return {
           ...prev,
           [questionId]: {
             ...current,
-            selectedOption: optionLetter,
+            selectedOption: newOpt,
             isLocked: false,
             saved: false,
           },
@@ -337,7 +341,9 @@ export default function QuizTakePage() {
     
     // Immediately persist to server
     setTimeout(() => {
-      saveAnswerImmediately(questionId, newSelectedForSave);
+      if (newSelectedForSave !== undefined) {
+        saveAnswerImmediately(questionId, newSelectedForSave || '');
+      }
     }, 0);
   };
 
@@ -354,11 +360,11 @@ export default function QuizTakePage() {
       if (!res.ok) throw new Error(data.error || 'Auto-submit failed');
       
       setShowResults(true);
-      // Update answers with correct/incorrect
-      if (data.results) {
+      const resultsMap = data.results?.questionResults || data.results?.answers;
+      if (resultsMap) {
         setAnswers(prev => {
           const updated = { ...prev };
-          Object.entries(data.results.answers).forEach(([qId, result]: [string, any]) => {
+          Object.entries(resultsMap).forEach(([qId, result]: [string, any]) => {
             if (updated[qId]) {
               updated[qId] = {
                 ...updated[qId],
@@ -369,12 +375,20 @@ export default function QuizTakePage() {
           return updated;
         });
       }
+
+      // Redirect to full results page after a brief delay
+      setTimeout(() => {
+        const targetUrl = returnUrl
+          ? `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}&returnUrl=${encodeURIComponent(returnUrl)}`
+          : `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}`;
+        router.push(targetUrl);
+      }, 1500);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setSubmitting(false);
     }
-  }, [showResults, attemptId, saveAnswers]);
+  }, [showResults, attemptId, saveAnswers, quizId, returnUrl, router]);
 
   // Auto-submit if time expires while tab was closed or when timer hits zero
   useEffect(() => {
@@ -395,10 +409,11 @@ export default function QuizTakePage() {
       if (!res.ok) throw new Error(data.error || 'Submit failed');
       
       setShowResults(true);
-      if (data.results) {
+      const resultsMap = data.results?.questionResults || data.results?.answers;
+      if (resultsMap) {
         setAnswers(prev => {
           const updated = { ...prev };
-          Object.entries(data.results.answers).forEach(([qId, result]: [string, any]) => {
+          Object.entries(resultsMap).forEach(([qId, result]: [string, any]) => {
             if (updated[qId]) {
               updated[qId] = { ...updated[qId], isCorrect: result.isCorrect };
             }
@@ -530,9 +545,13 @@ export default function QuizTakePage() {
         {/* Question Content */}
         <section className={styles.questionContent} aria-label="Quiz questions">
           {questions.map((q, index) => {
-            const isCurrent = index === currentQuestionIndex;
-            const isAnswered = !!answers[q.id]?.selectedOption;
-            const isSba = q.questionType !== 'mcq';
+            const isTF = q.questionType === 'true_false' || q.questionType === 'mcq';
+            const isSba = !isTF;
+            const isCurrent = currentQuestionIndex === index;
+            const currentAns = answers[q.id]?.selectedOption;
+            const isAnswered = isTF
+              ? Boolean(currentAns && currentAns.length === 5 && !currentAns.includes('-'))
+              : Boolean(currentAns);
             return (
               <article
                 key={q.id}
@@ -553,7 +572,7 @@ export default function QuizTakePage() {
                 </div>
 
                 <div className={styles.optionsGrid} role={isSba ? "radiogroup" : "group"} aria-label={`Options for question ${index + 1}`}>
-                  {q.questionType === 'mcq' ? (
+                  {isTF ? (
                     q.options.map((option, idx) => {
                       const answer = answers[q.id];
                       const currentStr = answer?.selectedOption || '-'.repeat(q.options.length || 5);

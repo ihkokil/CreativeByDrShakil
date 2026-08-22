@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Check,
   X,
+  FileText,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -49,15 +50,19 @@ type LeaderboardEntry = {
 interface AttemptData {
   id: string;
   netScore: number;
+  grossScore?: number;
   percentageScore: number;
   correctCount: number;
   wrongCount: number;
+  partialCount?: number;
   skippedCount: number;
   negativeMarks: number;
+  totalMarks?: number;
   timeTakenSeconds: number;
   submittedAt: string;
   attemptNumber: number;
   rank: number | null;
+  questionsReview?: QuestionReview[];
 }
 
 interface QuizData {
@@ -90,10 +95,13 @@ export default function QuizResultPage() {
   const isAutoSubmitted = searchParams ? searchParams.get('auto') === 'true' : false;
   const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
   
+  const tabParam = searchParams ? searchParams.get('tab') : null;
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'summary' | 'leaderboard'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'leaderboard' | 'answers'>(
+    tabParam === 'answers' ? 'answers' : (tabParam === 'leaderboard' ? 'leaderboard' : 'summary')
+  );
   const [downloading, setDownloading] = useState(false);
   const [retaking, setRetaking] = useState(false);
 
@@ -271,14 +279,24 @@ export default function QuizResultPage() {
 
   const attempt = data?.attempt || ({} as any);
   const quiz = data?.quiz || ({} as any);
-  const questionsReview = Array.isArray(data?.questionsReview) ? [...data.questionsReview] : [];
+  const questionsReview = Array.isArray(data?.questionsReview) 
+    ? [...data.questionsReview] 
+    : (Array.isArray(attempt?.questionsReview) ? [...attempt.questionsReview] : []);
   const leaderboard = Array.isArray(data?.leaderboard) ? data.leaderboard : [];
 
-  const actualCorrectCount = questionsReview.filter(q => q && q.isCorrect).length;
-  const actualPartialCount = questionsReview.filter(q => q && q.isPartial).length;
-  const actualSkippedCount = questionsReview.filter(q => q && q.isSkipped).length;
-  const actualWrongCount = questionsReview.filter(q => q && !q.isCorrect && !q.isPartial && !q.isSkipped).length;
-  const totalQs = questionsReview.length || 1;
+  const actualCorrectCount = attempt.correctCount !== undefined && attempt.correctCount !== null
+    ? attempt.correctCount
+    : questionsReview.filter(q => q && q.isCorrect).length;
+  const actualPartialCount = attempt.partialCount !== undefined && attempt.partialCount !== null
+    ? attempt.partialCount
+    : questionsReview.filter(q => q && q.isPartial).length;
+  const actualSkippedCount = attempt.skippedCount !== undefined && attempt.skippedCount !== null
+    ? attempt.skippedCount
+    : questionsReview.filter(q => q && q.isSkipped).length;
+  const actualWrongCount = attempt.wrongCount !== undefined && attempt.wrongCount !== null
+    ? attempt.wrongCount
+    : questionsReview.filter(q => q && !q.isCorrect && !q.isPartial && !q.isSkipped).length;
+  const totalQs = quiz.numQuestionsToServe || questionsReview.length || (actualCorrectCount + actualPartialCount + actualWrongCount + actualSkippedCount) || 1;
   
   // Calculate scores based on question types (SBA: 2 correct/-1 wrong, True_False: 2 correct/-0.5 per wrong option)
   const marksPerCorrect = quiz.marksPerCorrect || 1;
@@ -294,9 +312,6 @@ export default function QuizResultPage() {
     if (q.isCorrect) {
       rawCorrectScore += marksPerCorrect;
     } else if (q.isPartial) {
-      // Partial - count how many options were answered correctly vs incorrectly
-      // For SBA: partial means some correct some wrong, scored proportionally
-      // For True_False: handled separately based on option correctness
       rawCorrectScore += marksPerCorrect * 0.5; // approximate partial
     } else if (q.isSkipped) {
       rawSkippedCount++;
@@ -312,9 +327,8 @@ export default function QuizResultPage() {
   const grossScore = netScore - rawWrongScore; // net already subtracted negatives, so gross = net + wrongs
   const partialMarksEarned = Math.max(0, rawCorrectScore - marksPerCorrect * actualCorrectCount);
   
-  // Recalculate: total possible marks = all questions × marks per correct
-  const numQuestions = quiz.numQuestionsToServe || questionsReview.length || 1;
-  const totalMarks = quiz.totalMarks || (numQuestions * marksPerCorrect) || 1;
+  // Recalculate: total possible marks
+  const totalMarks = attempt.totalMarks || quiz.totalMarks || (totalQs * marksPerCorrect) || 1;
   const percentageScore = attempt.percentageScore !== undefined && attempt.percentageScore !== null 
     ? attempt.percentageScore 
     : Math.min(100, Math.max(0, ((netScore || 0) / totalMarks) * 100));
@@ -331,92 +345,103 @@ export default function QuizResultPage() {
           </Link>
         </header>
 
-        {/* Score Summary */}
-        <section id="score-section" className={styles.scoreSection}>
-          <div className={styles.scoreCard}>
-            <div className={styles.scoreCardTop}>
-              <div className={styles.scoreCardLeft}>
-                <div className={styles.quizHeader}>
-                  <h1 className={styles.quizTitle}>{quiz.title}</h1>
-                  <div className={styles.quizMeta}>
-                    <span className={styles.metaItem}>
-                      <Target className={styles.metaIcon} /> Attempt #{attempt.attemptNumber}
-                    </span>
-                    <span className={styles.metaItem}>
-                      <Clock className={styles.metaIcon} /> {formatTime(attempt.timeTakenSeconds)}
-                    </span>
-                    {attempt.rank && (
+        {/* Score Summary Banner */}
+        {activeTab !== 'answers' ? (
+          <section id="score-section" className={styles.scoreSection}>
+            <div className={styles.scoreCard}>
+              <div className={styles.scoreCardTop}>
+                <div className={styles.scoreCardLeft}>
+                  <div className={styles.quizHeader}>
+                    <h1 className={styles.quizTitle}>{quiz.title}</h1>
+                    <div className={styles.quizMeta}>
                       <span className={styles.metaItem}>
-                        <Trophy className={styles.metaIcon} /> Rank #{attempt.rank} / {leaderboard.length}
+                        <Target className={styles.metaIcon} /> Attempt #{attempt.attemptNumber}
                       </span>
+                      <span className={styles.metaItem}>
+                        <Clock className={styles.metaIcon} /> {formatTime(attempt.timeTakenSeconds)}
+                      </span>
+                      {attempt.rank && (
+                        <span className={styles.metaItem}>
+                          <Trophy className={styles.metaIcon} /> Rank #{attempt.rank} / {leaderboard.length}
+                        </span>
+                      )}
+                    </div>
+                    
+                    {isAutoSubmitted && (
+                      <div className={styles.autoSubmitBadge}>
+                        <Clock className={styles.badgeIcon} />
+                        Auto-submitted (time expired)
+                      </div>
                     )}
                   </div>
-                  
-                  {isAutoSubmitted && (
-                    <div className={styles.autoSubmitBadge}>
-                      <Clock className={styles.badgeIcon} />
-                      Auto-submitted (time expired)
-                    </div>
-                  )}
                 </div>
-              </div>
-              
-              <div className={styles.scoreCardRight}>
-                <div 
-                  className={styles.scoreCircle}
-                  style={{
-                    background: `conic-gradient(var(--success-color) 0% ${actualCorrectCount / totalQs * 100}%, var(--info-color) ${actualCorrectCount / totalQs * 100}% ${(actualCorrectCount + actualPartialCount) / totalQs * 100}%, var(--error-color) ${(actualCorrectCount + actualPartialCount) / totalQs * 100}% ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}%, var(--border-color) ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}% 100%)`
-                  }}
-                  role="img"
-                  aria-label={`Score: ${Number(attempt.netScore || 0).toFixed(1)} out of ${totalMarks.toFixed(1)} marks (${percentageScore.toFixed(1)}%)`}
-                >
-                  <div className={styles.scoreInner}>
-                    <span className={`${styles.scoreValue} ${getScoreColorClass(percentageScore)}`}>
-                      {Number(attempt.netScore || 0).toFixed(1)}
-                    </span>
-                    <span className={styles.scoreTotalDenominator}>/ {totalMarks.toFixed(1)} Marks</span>
-                    <span className={styles.scorePercentLabel}>{percentageScore.toFixed(1)}% Accuracy</span>
+                
+                <div className={styles.scoreCardRight}>
+                  <div 
+                    className={styles.scoreCircle}
+                    style={{
+                      background: `conic-gradient(var(--success-color) 0% ${actualCorrectCount / totalQs * 100}%, var(--info-color) ${actualCorrectCount / totalQs * 100}% ${(actualCorrectCount + actualPartialCount) / totalQs * 100}%, var(--error-color) ${(actualCorrectCount + actualPartialCount) / totalQs * 100}% ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}%, var(--border-color) ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}% 100%)`
+                    }}
+                    role="img"
+                    aria-label={`Score: ${Number(attempt.netScore || 0).toFixed(1)} out of ${totalMarks.toFixed(1)} marks (${percentageScore.toFixed(1)}%)`}
+                  >
+                    <div className={styles.scoreInner}>
+                      <span className={`${styles.scoreValue} ${getScoreColorClass(percentageScore)}`}>
+                        {Number(attempt.netScore || 0).toFixed(1)}
+                      </span>
+                      <span className={styles.scoreTotalDenominator}>/ {totalMarks.toFixed(1)} Marks</span>
+                      <span className={styles.scorePercentLabel}>{percentageScore.toFixed(1)}% Accuracy</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <div className={styles.scoreDetails}>
-              <div className={styles.detailRow}>
-                <div className={styles.detailItem}>
-                  <div className={`${styles.detailValue} ${styles.colorSuccess}`}>{actualCorrectCount}</div>
-                  <div className={styles.detailLabel}>Correct</div>
-                </div>
-                {actualPartialCount > 0 && (
-                  <>
-                    <div className={styles.detailDivider} />
-                    <div className={styles.detailItem}>
-                      <div className={`${styles.detailValue} ${styles.colorWarning}`}>{actualPartialCount}</div>
-                      <div className={styles.detailLabel}>Partial</div>
-                    </div>
-                  </>
-                )}
-                <div className={styles.detailDivider} />
-                <div className={styles.detailItem}>
-                  <div className={`${styles.detailValue} ${styles.colorError}`}>{actualWrongCount}</div>
-                  <div className={styles.detailLabel}>Wrong</div>
-                </div>
-                <div className={styles.detailDivider} />
-                <div className={styles.detailItem}>
-                  <div className={`${styles.detailValue} ${styles.colorMuted}`}>{actualSkippedCount}</div>
-                  <div className={styles.detailLabel}>Skipped</div>
-                </div>
-              </div>
               
-              {quiz.allowNegativeMarking && attempt.negativeMarks > 0 && (
-                <div className={styles.negativeMarks}>
-                  <XCircle className={styles.negativeIcon} />
-                  <span>Negative marks deducted: <strong>{attempt.negativeMarks.toFixed(2)}</strong> ({quiz.negativeValue} marks per wrong answer)</span>
+              <div className={styles.scoreDetails}>
+                <div className={styles.detailRow}>
+                  <div className={styles.detailItem}>
+                    <div className={`${styles.detailValue} ${styles.colorSuccess}`}>{actualCorrectCount}</div>
+                    <div className={styles.detailLabel}>Correct</div>
+                  </div>
+                  {actualPartialCount > 0 && (
+                    <>
+                      <div className={styles.detailDivider} />
+                      <div className={styles.detailItem}>
+                        <div className={`${styles.detailValue} ${styles.colorWarning}`}>{actualPartialCount}</div>
+                        <div className={styles.detailLabel}>Partial</div>
+                      </div>
+                    </>
+                  )}
+                  <div className={styles.detailDivider} />
+                  <div className={styles.detailItem}>
+                    <div className={`${styles.detailValue} ${styles.colorError}`}>{actualWrongCount}</div>
+                    <div className={styles.detailLabel}>Wrong</div>
+                  </div>
+                  <div className={styles.detailDivider} />
+                  <div className={styles.detailItem}>
+                    <div className={`${styles.detailValue} ${styles.colorMuted}`}>{actualSkippedCount}</div>
+                    <div className={styles.detailLabel}>Skipped</div>
+                  </div>
                 </div>
-              )}
+                
+                {Number(attempt.negativeMarks || 0) > 0 && (
+                  <div className={styles.negativeMarks}>
+                    <XCircle className={styles.negativeIcon} />
+                    <span>Negative marks deducted: <strong>{Number(attempt.negativeMarks).toFixed(2)}</strong></span>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : (
+          <section className={styles.scoreSection} style={{ marginBottom: '20px' }}>
+            <div className={styles.scoreCard} style={{ padding: '24px 28px' }}>
+              <h1 className={styles.quizTitle} style={{ fontSize: '24px', marginBottom: '8px' }}>{quiz.title}</h1>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
+                Official Question Bank Answer Keys & Detailed Explanations
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* Tab Navigation */}
         <nav className={styles.tabNav} role="tablist">
@@ -429,7 +454,18 @@ export default function QuizResultPage() {
             className={`${styles.tabBtn} ${activeTab === 'summary' ? styles.tabActive : ''}`}
           >
             <BarChart2 className={styles.tabIcon} />
-            Summary & Review
+            Attempt Analysis
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'answers'}
+            aria-controls="panel-answers"
+            id="tab-answers"
+            onClick={() => setActiveTab('answers')}
+            className={`${styles.tabBtn} ${activeTab === 'answers' ? styles.tabActive : ''}`}
+          >
+            <FileText className={styles.tabIcon} />
+            Review Answers & Explanations
           </button>
           <button
             role="tab"
@@ -450,6 +486,7 @@ export default function QuizResultPage() {
           {activeTab === 'summary' && (
             <div id="panel-summary" className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-summary">
               <div id="summary-grid-section" className={styles.summaryGrid}>
+                {/* Card 1: Score Breakdown (Top-Left) */}
                 <div className={styles.summaryCard}>
                   <h3 className={styles.cardTitle}>
                     <TrendingUp className={styles.cardIcon} />
@@ -457,24 +494,16 @@ export default function QuizResultPage() {
                   </h3>
                   <div className={styles.breakdown}>
                     <div className={styles.breakdownItem}>
-                      <span className={styles.breakdownLabel}>Correct Answers</span>
+                      <span className={styles.breakdownLabel}>Marks Gained</span>
                       <span className={`${styles.breakdownValue} ${styles.colorSuccess}`}>
-                        {actualCorrectCount} × {quiz.marksPerCorrect} = {(actualCorrectCount * quiz.marksPerCorrect).toFixed(1)}
+                        +{Number(attempt.grossScore !== undefined && attempt.grossScore !== null ? attempt.grossScore : (netScore + Number(attempt.negativeMarks || 0))).toFixed(2)}
                       </span>
                     </div>
-                    {actualPartialCount > 0 && (
+                    {Number(attempt.negativeMarks || 0) > 0 && (
                       <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownLabel}>Partial Marks</span>
-                        <span className={`${styles.breakdownValue} ${styles.colorWarning}`}>
-                          +{partialMarksEarned.toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                    {quiz.allowNegativeMarking && actualWrongCount > 0 && (
-                      <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownLabel}>Wrong Answers Penalty</span>
+                        <span className={styles.breakdownLabel}>Negative Penalty</span>
                         <span className={`${styles.breakdownValue} ${styles.colorError}`}>
-                          -{Number(attempt.negativeMarks || 0).toFixed(2)}
+                          -{Number(attempt.negativeMarks).toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -485,52 +514,7 @@ export default function QuizResultPage() {
                   </div>
                 </div>
 
-                <div className={styles.summaryCard}>
-                  <h3 className={styles.cardTitle}>
-                    <Clock className={styles.cardIcon} />
-                    Time & Efficiency
-                  </h3>
-                  <div className={styles.timeAnalysis}>
-                    <div className={styles.timeItem}>
-                      <span className={styles.timeLabel}>Time Taken</span>
-                      <span className={styles.timeValue}>{formatTime(attempt.timeTakenSeconds)}</span>
-                    </div>
-                    <div className={styles.timeItem}>
-                      <span className={styles.timeLabel}>Time Limit</span>
-                      <span className={styles.timeValue}>{quiz.durationMinutes ? `${quiz.durationMinutes}m` : 'Unlimited'}</span>
-                    </div>
-                    <div className={styles.timeItem}>
-                      <span className={styles.timeLabel}>Pace</span>
-                      <span className={styles.timeValue}>
-                        {totalQs > 0 
-                          ? `${(attempt.timeTakenSeconds / totalQs).toFixed(0)}s per question`
-                          : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.summaryCard}>
-                  <h3 className={styles.cardTitle}>
-                    <Award className={styles.cardIcon} />
-                    Dynamic Rank & Position
-                  </h3>
-                  <div className={styles.rankInfo}>
-                    <div className={styles.rankMain}>
-                      <span className={styles.rankLabel}>Your Rank</span>
-                      <span className={styles.rankValue}>#{attempt.rank || '—'}</span>
-                    </div>
-                    <div className={styles.rankLabel}>out of {leaderboard.length} participant{leaderboard.length !== 1 ? 's' : ''}</div>
-                    <div className={styles.rankMethod}>
-                      Ranking: {quiz.positionType ? 
-                        (quiz.positionType === 'first_attempt' ? 'First Attempt' : 
-                         quiz.positionType === 'last_attempt' ? 'Last Attempt' : 
-                         quiz.positionType === 'average_attempt' ? 'Average Attempt' : 'Best Attempt')
-                        : (attempt.attemptNumber === 1 ? 'First Attempt' : 'Best Attempt')} • Tie-breaker: Time taken
-                    </div>
-                  </div>
-                </div>
-
+                {/* Card 2: Accuracy Breakdown (Top-Right) */}
                 <div className={styles.summaryCard}>
                   <h3 className={styles.cardTitle}>
                     <Target className={styles.cardIcon} />
@@ -557,6 +541,54 @@ export default function QuizResultPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Card 3: Time & Efficiency (Bottom-Left) */}
+                <div className={styles.summaryCard}>
+                  <h3 className={styles.cardTitle}>
+                    <Clock className={styles.cardIcon} />
+                    Time & Efficiency
+                  </h3>
+                  <div className={styles.timeAnalysis}>
+                    <div className={styles.timeItem}>
+                      <span className={styles.timeLabel}>Time Taken</span>
+                      <span className={styles.timeValue}>{formatTime(attempt.timeTakenSeconds)}</span>
+                    </div>
+                    <div className={styles.timeItem}>
+                      <span className={styles.timeLabel}>Time Limit</span>
+                      <span className={styles.timeValue}>{quiz.durationMinutes ? `${quiz.durationMinutes}m` : 'Unlimited'}</span>
+                    </div>
+                    <div className={styles.timeItem}>
+                      <span className={styles.timeLabel}>Pace</span>
+                      <span className={styles.timeValue}>
+                        {totalQs > 0 
+                          ? `${(attempt.timeTakenSeconds / totalQs).toFixed(0)}s per question`
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 4: Dynamic Rank & Position (Bottom-Right) */}
+                <div className={styles.summaryCard}>
+                  <h3 className={styles.cardTitle}>
+                    <Award className={styles.cardIcon} />
+                    Dynamic Rank & Position
+                  </h3>
+                  <div className={styles.rankInfo}>
+                    <div className={styles.rankMain}>
+                      <span className={styles.rankLabel}>Your Rank</span>
+                      <span className={styles.rankValue}>#{attempt.rank || '—'}</span>
+                    </div>
+                    <div className={styles.rankLabel}>out of {leaderboard.length} participant{leaderboard.length !== 1 ? 's' : ''}</div>
+                    <div className={styles.rankMethod}>
+                      Ranking: {quiz.positionType ? 
+                        (quiz.positionType === 'first_attempt' ? 'First Attempt' : 
+                         quiz.positionType === 'last_attempt' ? 'Last Attempt' : 
+                         quiz.positionType === 'average_attempt' ? 'Average Attempt' : 'Best Attempt')
+                        : (attempt.attemptNumber === 1 ? 'First Attempt' : 'Best Attempt')} • Tie-breaker: Time taken
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Action Buttons Top */}
@@ -564,6 +596,10 @@ export default function QuizResultPage() {
                 <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
                   <ChevronLeft className={styles.btnIcon} />
                   {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
+                </Link>
+                <Link href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} className={styles.secondaryBtn}>
+                  <Trophy className={styles.btnIcon} />
+                  All Attempts
                 </Link>
                 {quiz.allowMultipleAttempts && (!quiz.maxAttempts || attempt.attemptNumber < quiz.maxAttempts) && (
                   <button type="button" onClick={handleRetakeQuiz} disabled={retaking} className={styles.retakeBtn}>
@@ -612,9 +648,8 @@ export default function QuizResultPage() {
                       </div>
                       
                       <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
-                      
-                      <div className={styles.reviewOptions}>
-                        {question.questionType === 'mcq' ? (
+                                  <div className={styles.reviewOptions}>
+                        {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
                           question.options.map((option) => {
                              const studentStr = question.studentAnswer || '-'.repeat(question.options.length || 5);
                              const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
@@ -626,43 +661,56 @@ export default function QuizResultPage() {
                              const answered = isT || isF;
                              const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
                              
-                             let optionClass = styles.reviewOption;
+                             let rowStatusClass = styles.tfCompactSkipped;
                              if (answered) {
-                               if (isCorrect) optionClass += ` ${styles.optionStudentCorrect}`;
-                               else optionClass += ` ${styles.optionIncorrect}`;
+                               rowStatusClass = isCorrect ? styles.tfCompactCorrect : styles.tfCompactIncorrect;
                              }
                              
                              return (
-                                <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '11px 16px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                                <div key={`${question.questionId}-${option.letter}`} className={`${styles.tfCompactRow} ${rowStatusClass}`}>
+                                  {/* Left: Letter Badge + Statement Text */}
+                                  <div className={styles.tfCompactLeft}>
                                     <span className={styles.optionLetter}>{option.letter}</span>
-                                    <span className={styles.optionText}>{option.text}</span>
+                                    <span className={styles.tfCompactText}>{option.text}</span>
                                   </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                    {/* True Pill */}
-                                    <div style={{ 
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                                      minWidth: '66px', padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                      background: isT ? (isCorrectT ? 'rgba(5, 150, 105, 0.14)' : 'rgba(220, 38, 38, 0.14)') : (isCorrectT ? 'rgba(5, 150, 105, 0.06)' : 'var(--bg-secondary)'), 
-                                      border: isT ? (isCorrectT ? '1px solid #059669' : '1px solid #dc2626') : (isCorrectT ? '1px dashed rgba(5, 150, 105, 0.45)' : '1px solid var(--border-color)'), 
-                                      color: isT ? (isCorrectT ? '#059669' : '#dc2626') : (isCorrectT ? '#059669' : 'var(--text-muted)') 
-                                    }}>
-                                      {isT ? (isCorrectT ? '✓ True' : '✗ True') : (isCorrectT ? '✓ True' : 'True')}
+
+                                  {/* Right: User's Choice + Correct Option Badge + Status Chip */}
+                                  <div className={styles.tfCompactRight}>
+                                    {/* User's choice (Lightly highlighted) */}
+                                    {answered ? (
+                                      <div className={isCorrect ? styles.userPillCorrect : styles.userPillWrong} title="Your answered option">
+                                        {isCorrect ? <Check size={13} /> : <X size={13} />}
+                                        <span>You: {isT ? 'True' : 'False'}</span>
+                                      </div>
+                                    ) : (
+                                      <div className={styles.userPillSkipped} title="You skipped this statement">
+                                        <span>You: —</span>
+                                      </div>
+                                    )}
+
+                                    {/* Official Correct Option (Boldly highlighted) */}
+                                    <div className={styles.keyPill} title="Official correct option">
+                                      <Check size={12} />
+                                      <span>Correct: {isCorrectT ? 'True' : 'False'}</span>
                                     </div>
-                                    {/* False Pill */}
-                                    <div style={{ 
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                                      minWidth: '66px', padding: '5px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                      background: isF ? (isCorrectF ? 'rgba(5, 150, 105, 0.14)' : 'rgba(220, 38, 38, 0.14)') : (isCorrectF ? 'rgba(5, 150, 105, 0.06)' : 'var(--bg-secondary)'), 
-                                      border: isF ? (isCorrectF ? '1px solid #059669' : '1px solid #dc2626') : (isCorrectF ? '1px dashed rgba(5, 150, 105, 0.45)' : '1px solid var(--border-color)'), 
-                                      color: isF ? (isCorrectF ? '#059669' : '#dc2626') : (isCorrectF ? '#059669' : 'var(--text-muted)') 
-                                    }}>
-                                      {isF ? (isCorrectF ? '✓ False' : '✗ False') : (isCorrectF ? '✓ False' : 'False')}
-                                    </div>
-                                    <div style={{ minWidth: '76px', textAlign: 'right' }}>
-                                      {answered && isCorrect && <span className={styles.correctBadge}>✓ Correct</span>}
-                                      {answered && !isCorrect && <span className={styles.wrongBadge}>✗ Wrong</span>}
-                                      {!answered && <span className={styles.skippedBadge}>— Skipped</span>}
+
+                                    {/* Outcome Badge */}
+                                    <div className={styles.outcomeBadgeWrapper}>
+                                      {answered && isCorrect && (
+                                        <span className={styles.tfOutcomeSuccess}>
+                                          <Check size={12} /> Correct
+                                        </span>
+                                      )}
+                                      {answered && !isCorrect && (
+                                        <span className={styles.tfOutcomeDanger}>
+                                          <X size={12} /> Wrong
+                                        </span>
+                                      )}
+                                      {!answered && (
+                                        <span className={styles.tfOutcomeMuted}>
+                                          &mdash; Skipped
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -674,18 +722,28 @@ export default function QuizResultPage() {
                             const isCorrectAnswer = option.letter === question.correctOption;
                             const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
                             
-                            let optionClass = styles.reviewOption;
-                            if (isStudentAnswer && isCorrectAnswer) optionClass += ` ${styles.optionStudentCorrect}`;
-                            else if (isWrongAnswer) optionClass += ` ${styles.optionIncorrect}`;
-                            else if (isCorrectAnswer) optionClass += ` ${styles.optionCorrect}`;
+                            let sbaClass = styles.sbaNeutral;
+                            if (isStudentAnswer && isCorrectAnswer) sbaClass = styles.sbaCorrect;
+                            else if (isWrongAnswer) sbaClass = styles.sbaIncorrect;
+                            else if (isCorrectAnswer) sbaClass = styles.sbaKeyHighlight;
                             
                             return (
-                              <div key={`${question.questionId}-${option.letter}`} className={optionClass}>
-                                <span className={styles.optionLetter}>{option.letter}</span>
-                                <span className={styles.optionText}>{option.text}</span>
-                                {isStudentAnswer && isCorrectAnswer && <span className={styles.correctBadge}>✓ Your Answer (Correct)</span>}
-                                {isWrongAnswer && <span className={styles.wrongBadge}>✗ Your Answer</span>}
-                                {!isStudentAnswer && isCorrectAnswer && <span className={styles.keyBadge}>✓ Correct Key</span>}
+                              <div key={`${question.questionId}-${option.letter}`} className={`${styles.sbaReviewRow} ${sbaClass}`}>
+                                <div className={styles.sbaRowLeft}>
+                                  <span className={styles.optionLetter}>{option.letter}</span>
+                                  <span className={styles.optionText}>{option.text}</span>
+                                </div>
+                                <div className={styles.sbaRowRight}>
+                                  {isStudentAnswer && isCorrectAnswer && (
+                                    <span className={styles.sbaBadgeSuccess}><Check size={13} /> Your Answer (Correct)</span>
+                                  )}
+                                  {isWrongAnswer && (
+                                    <span className={styles.sbaBadgeDanger}><X size={13} /> Your Answer (Wrong)</span>
+                                  )}
+                                  {!isStudentAnswer && isCorrectAnswer && (
+                                    <span className={styles.sbaBadgeKey}><Check size={13} /> Correct Option</span>
+                                  )}
+                                </div>
                               </div>
                             );
                           })
@@ -706,6 +764,131 @@ export default function QuizResultPage() {
                 </div>
 
                 {/* Bottom Actions repeated for convenience */}
+                <div className={styles.actions} style={{ marginTop: '32px' }}>
+                  <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
+                    <ChevronLeft className={styles.btnIcon} />
+                    {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
+                  </Link>
+                  <Link href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} className={styles.secondaryBtn}>
+                    <Trophy className={styles.btnIcon} />
+                    All Attempts
+                  </Link>
+                  {quiz.allowMultipleAttempts && (!quiz.maxAttempts || attempt.attemptNumber < quiz.maxAttempts) && (
+                    <button type="button" onClick={handleRetakeQuiz} disabled={retaking} className={styles.retakeBtn}>
+                      <RotateCcw className={styles.btnIcon} />
+                      {retaking ? 'Starting...' : 'Retake Quiz'}
+                    </button>
+                  )}
+                  <button type="button" onClick={handleDownloadPDF} disabled={downloading} className={styles.downloadBtn}>
+                    <Download className={styles.btnIcon} />
+                    {downloading ? 'Generating...' : 'Download Result (PDF)'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Pure Answer Key & Explanations Tab (No Score/Stats) */}
+          {activeTab === 'answers' && (
+            <div id="panel-answers" className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-answers">
+              <div className={styles.reviewSectionWrapper} style={{ marginTop: 0 }}>
+                <div className={styles.reviewHeader}>
+                  <div>
+                    <h2 className={styles.reviewTitle}>Official Answer Keys & Explanations</h2>
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      Pure educational review of all questions, correct answer keys, and medical rationales.
+                    </p>
+                  </div>
+                  <span className={styles.reviewNumber} style={{ fontSize: '13px', padding: '5px 12px' }}>
+                    {questionsReview.length} Questions
+                  </span>
+                </div>
+
+                <div className={styles.reviewList}>
+                  {questionsReview.map((question, index) => (
+                    <article key={`ans-${question.questionId}`} className={styles.reviewCard} style={{ borderLeftColor: '#0284c7' }}>
+                      <div className={styles.reviewCardHeader}>
+                        <div className={styles.reviewQuestionInfo}>
+                          <span className={styles.reviewNumber}>Q{index + 1}</span>
+                          <span style={{ 
+                            fontSize: '11.5px', 
+                            fontWeight: 700, 
+                            padding: '3px 8px', 
+                            borderRadius: '6px', 
+                            background: (question.questionType === 'true_false' || question.questionType === 'mcq') ? 'rgba(59, 130, 246, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                            color: (question.questionType === 'true_false' || question.questionType === 'mcq') ? '#3b82f6' : '#a855f7',
+                            border: '1px solid currentColor'
+                          }}>
+                            {(question.questionType === 'true_false' || question.questionType === 'mcq') ? 'True / False Matrix' : 'Single Best Answer'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
+
+                      <div className={styles.reviewOptions}>
+                        {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
+                          question.options.map((option) => {
+                            const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
+                            const originalIdx = option.letter.charCodeAt(0) - 65;
+                            const isCorrectT = correctStr[originalIdx] === 'T';
+
+                            return (
+                              <div key={`key-${question.questionId}-${option.letter}`} className={styles.tfCompactRow} style={{ borderColor: 'var(--border-color)' }}>
+                                <div className={styles.tfCompactLeft}>
+                                  <span className={styles.optionLetter}>{option.letter}</span>
+                                  <span className={styles.tfCompactText}>{option.text}</span>
+                                </div>
+                                <div className={styles.tfCompactRight}>
+                                  <div className={isCorrectT ? styles.keyPillTrue : styles.keyPillFalse}>
+                                    <Check size={13} />
+                                    <span>Correct: {isCorrectT ? 'TRUE' : 'FALSE'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          question.options.map((option) => {
+                            const isCorrectAnswer = option.letter === question.correctOption;
+
+                            return (
+                              <div 
+                                key={`key-${question.questionId}-${option.letter}`} 
+                                className={`${styles.sbaReviewRow} ${isCorrectAnswer ? styles.sbaCorrect : styles.sbaNeutral}`}
+                              >
+                                <div className={styles.sbaRowLeft}>
+                                  <span className={styles.optionLetter}>{option.letter}</span>
+                                  <span className={styles.optionText} style={{ fontWeight: isCorrectAnswer ? 600 : 400 }}>
+                                    {option.text}
+                                  </span>
+                                </div>
+                                <div className={styles.sbaRowRight}>
+                                  {isCorrectAnswer && (
+                                    <span className={styles.sbaBadgeSuccess}>
+                                      <Check size={13} /> Correct Option
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {question.explanation && question.explanation.trim() !== '' && (
+                        <div className={styles.explanation} style={{ marginTop: '14px' }}>
+                          <HelpCircle className={styles.explanationIcon} />
+                          <div>
+                            <strong>Medical Explanation:</strong>
+                            <p>{question.explanation}</p>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+
                 <div className={styles.actions} style={{ marginTop: '32px' }}>
                   <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
                     <ChevronLeft className={styles.btnIcon} />

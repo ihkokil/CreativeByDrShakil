@@ -236,7 +236,7 @@ export default function QuizzesPage() {
         </div>
         
         <div className={styles.filters}>
-          {uniqueCourses.length > 1 && (
+          {uniqueCourses.length >= 1 && (
             <select
               value={courseFilter}
               onChange={(e) => { setCourseFilter(e.target.value); setPage(1); }}
@@ -424,12 +424,46 @@ export default function QuizzesPage() {
 
                       <div className={styles.quizActions}>
                         {isLocked ? (
-                          <button disabled className={styles.lockedBtn} title="Module not yet unlocked">
+                          <button disabled className={`${styles.lockedBtn} ${styles.fullWidthAction}`} title="Module not yet unlocked">
                             <Lock size={14} /> Locked
                           </button>
                         ) : (
                           <>
-                            {isInProgress && quiz.attempt?.id && (
+                            {/* Row 1, Column 1: Review Answers */}
+                            {hasCompletedAttempt && resultAttemptId && (
+                              <Link
+                                href={`/dashboard/quizzes/${quiz.id}/result?attempt=${resultAttemptId}&tab=answers`}
+                                className={`${styles.actionBtn} ${styles.resultBtn}`}
+                                title="Review Official Answers and Explanations"
+                              >
+                                <FileText className={styles.btnIcon} /> Review Answers
+                              </Link>
+                            )}
+
+                            {/* Row 1, Column 2: Leaderboard */}
+                            {(quiz.attemptsCount > 0 || (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted'))) && (
+                              <Link
+                                href={`/dashboard/quizzes/${quiz.id}/attempts?tab=leaderboard`}
+                                className={`${styles.actionBtn} ${styles.leaderboardBtn}`}
+                                title="View Quiz Leaderboard and Student Rankings"
+                              >
+                                <Trophy className={styles.btnIcon} /> Leaderboard
+                              </Link>
+                            )}
+
+                            {/* Row 2, Column 1: Review Attempts */}
+                            {(quiz.attemptsCount > 0 || (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted'))) && (
+                              <Link
+                                href={`/dashboard/quizzes/${quiz.id}/attempts`}
+                                className={`${styles.actionBtn} ${styles.reviewAttemptsBtn}`}
+                                title="Review All Attempts with Detailed Score Analysis"
+                              >
+                                <RotateCcw className={styles.btnIcon} /> Review Attempts
+                              </Link>
+                            )}
+
+                            {/* Row 2, Column 2: Re-attempt / Continue / Start */}
+                            {isInProgress && quiz.attempt?.id ? (
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}/attempt/${quiz.attempt.id}`}
                                 className={`${styles.actionBtn} ${styles.continueBtn}`}
@@ -437,34 +471,15 @@ export default function QuizzesPage() {
                               >
                                 <RotateCcw className={styles.btnIcon} /> Continue
                               </Link>
-                            )}
-                            {hasCompletedAttempt && resultAttemptId && (
-                              <Link
-                                href={`/dashboard/quizzes/${quiz.id}/result?attempt=${resultAttemptId}`}
-                                className={`${styles.actionBtn} ${styles.resultBtn}`}
-                                title="Review Answers and Explanations"
-                              >
-                                <FileText className={styles.btnIcon} /> Review Answers
-                              </Link>
-                            )}
-                            {canStart && (
+                            ) : canStart ? (
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}`}
-                                className={`${styles.actionBtn} ${styles.startBtn}`}
+                                className={`${styles.actionBtn} ${styles.startBtn} ${!hasCompletedAttempt && quiz.attemptsCount === 0 ? styles.fullWidthAction : ''}`}
                                 title={quiz.attemptsCount > 0 ? "Re-attempt Quiz" : "Start Quiz"}
                               >
                                 <Play className={styles.btnIcon} /> {quiz.attemptsCount > 0 ? 'Re-attempt' : 'Start'}
                               </Link>
-                            )}
-                            {quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted') && (
-                              <Link
-                                href={`/dashboard/quizzes/${quiz.id}/result?attempt=${quiz.attempt.id}`}
-                                className={`${styles.actionBtn} ${styles.secondaryBtn}`}
-                                title="Review Responses"
-                              >
-                                <FileText className={styles.btnIcon} /> Review Responses
-                              </Link>
-                            )}
+                            ) : null}
                           </>
                         )}
                       </div>

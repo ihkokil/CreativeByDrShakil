@@ -15,6 +15,8 @@ import {
   Zap,
   Shuffle,
   RotateCcw,
+  Trophy,
+  FileText,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -179,7 +181,7 @@ export default function QuizDetailPage() {
     )
   );
 
-  const totalMarks = quiz.numQuestionsToServe * quiz.marksPerCorrect;
+  const totalMarks = (quiz as any).totalMarks !== undefined ? (quiz as any).totalMarks : (quiz.numQuestionsToServe * (quiz.marksPerCorrect || 1));
 
   return (
     <div className={styles.container}>
@@ -246,11 +248,14 @@ export default function QuizDetailPage() {
                 {quiz.allowNegativeMarking ? <XCircle className={styles.ruleIconSvg} /> : <Shield className={styles.ruleIconSvg} />}
               </div>
               <div className={styles.ruleContent}>
-                <span className={styles.ruleLabel}>Negative Marking</span>
+                <span className={styles.ruleLabel}>Scoring Policy</span>
                 <span className={styles.ruleValue}>
-                  {quiz.allowNegativeMarking 
-                    ? `-${quiz.negativeValue} mark${quiz.negativeValue !== 1 ? 's' : ''} per wrong`
-                    : 'No negative marking'
+                  {((quiz as any).sbaMarks !== undefined || (quiz as any).tfMarks !== undefined)
+                    ? `SBA: +${(quiz as any).sbaMarks ?? 2} / -${(quiz as any).sbaNegative ?? 0} | T/F: +${(quiz as any).tfMarks ?? 2} / -${(quiz as any).tfNegative ?? 0.5}`
+                    : (quiz.allowNegativeMarking 
+                      ? `+${quiz.marksPerCorrect || 1} / -${quiz.negativeValue || 0} per question`
+                      : `+${quiz.marksPerCorrect || 1} marks (No penalty)`
+                    )
                   }
                 </span>
               </div>
@@ -297,7 +302,9 @@ export default function QuizDetailPage() {
               <h3>Exam Instructions & Rules</h3>
               <ul>
                 <li>This quiz consists of <strong>{quiz.numQuestionsToServe} questions</strong> to be completed in <strong>{formatDuration(quiz.durationMinutes)}</strong>.</li>
-                <li>Each correct answer carries <strong>{quiz.marksPerCorrect} mark{quiz.marksPerCorrect !== 1 ? 's' : ''}</strong>.{quiz.allowNegativeMarking ? ` Wrong answers will deduct ${quiz.negativeValue} mark${quiz.negativeValue !== 1 ? 's' : ''}.` : ' There is no negative marking.'}</li>
+                <li>
+                  Scoring Policy: <strong>SBA: +{(quiz as any).sbaMarks ?? (quiz.marksPerCorrect || 2)} / -{(quiz as any).sbaNegative ?? (quiz.negativeValue || 0)}</strong> &bull; <strong>True/False: +{(quiz as any).tfMarks ?? 2} / -{(quiz as any).tfNegative ?? 0.5} per option</strong>.
+                </li>
                 <li>You can freely change your selected answers <strong>anytime before submission</strong> within the time limit.</li>
                 <li>The quiz will be <strong>auto-submitted</strong> when the timer runs out.</li>
                 <li>Do not <strong>close, refresh, or switch tabs</strong> during the quiz.</li>
@@ -306,49 +313,6 @@ export default function QuizDetailPage() {
             </div>
           </div>
         </section>
-
-        {quiz.allAttempts && quiz.allAttempts.length > 0 && (
-          <section className={styles.warningSection} style={{ marginTop: '16px' }}>
-            <div className={styles.warningCard} style={{ borderColor: 'rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.06)' }}>
-              <CheckCircle className={styles.warningIcon} style={{ color: '#10b981' }} />
-              <div className={styles.warningContent} style={{ width: '100%' }}>
-                <h3 style={{ color: '#10b981', marginBottom: '12px' }}>Past Responses</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {quiz.allAttempts.map((pastAttempt: any, idx: number) => (
-                    <Link
-                      key={pastAttempt.id}
-                      href={`/dashboard/quizzes/${quizId}/result?attempt=${pastAttempt.id}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
-                      style={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        padding: '12px', 
-                        background: 'var(--bg-secondary)', 
-                        borderRadius: '8px', 
-                        textDecoration: 'none',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-color)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 600 }}>Attempt {quiz.allAttempts!.length - idx}</span>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                          {new Date(pastAttempt.submittedAt || pastAttempt.startedAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <span style={{ fontWeight: 600, color: '#10b981' }}>Score: {pastAttempt.netScore}</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6', fontSize: '14px', fontWeight: 500 }}>
-                          View Result <ChevronLeft style={{ transform: 'rotate(180deg)' }} size={16} />
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
 
         <footer className={styles.actions}>
           <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
@@ -363,14 +327,26 @@ export default function QuizDetailPage() {
             </button>
           )}
           
-          {isCompleted && (
-            <Link 
-              href={`/dashboard/quizzes/${quizId}/result?attempt=${quiz.attempt?.id}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} 
-              className={canStart ? styles.secondaryBtn : styles.primaryBtn}
-            >
-              <CheckCircle className={styles.btnIcon} />
-              {canStart ? 'Review Answers' : 'View Result & Answers'}
-            </Link>
+          {(isCompleted || (quiz.allAttempts && quiz.allAttempts.length > 0)) && (
+            <>
+              <Link 
+                href={`/dashboard/quizzes/${quizId}/result?attempt=${quiz.attempt?.id || quiz.allAttempts?.[0]?.id}&tab=answers${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} 
+                className={styles.secondaryBtn}
+                title="View question keys and medical explanations"
+              >
+                <FileText className={styles.btnIcon} />
+                Review Answers
+              </Link>
+
+              <Link 
+                href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                className={styles.secondaryBtn}
+                title="View all your past attempts"
+              >
+                <Trophy className={styles.btnIcon} />
+                Review Attempts ({quiz.allAttempts?.length || 0})
+              </Link>
+            </>
           )}
           
           {canStart && (
@@ -383,7 +359,7 @@ export default function QuizDetailPage() {
               ) : (
                 <>
                   <Play className={styles.btnIcon} />
-                  {quiz.attempt ? 'Retake Quiz' : 'Start Quiz'}
+                  {quiz.attempt || (quiz.allAttempts && quiz.allAttempts.length > 0) ? 'Retake Quiz' : 'Start Quiz'}
                 </>
               )}
             </button>

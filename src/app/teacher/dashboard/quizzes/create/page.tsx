@@ -110,12 +110,12 @@ export default function QuizBuilderPage() {
     allowMultipleAttempts: true,
     maxAttempts: 0,
     allowNegativeMarking: false,
-    negativeValue: 20,
+    negativeValue: 0,
     marksPerCorrect: 2,
-    sbaMarks: 1,
+    sbaMarks: 2,
     sbaNegative: 0,
-    tfMarks: 1,
-    tfNegative: 0,
+    tfMarks: 2,
+    tfNegative: 0.5,
     startDatetime: '',
     endDatetime: '',
     shuffleQuestions: true,
@@ -156,15 +156,15 @@ export default function QuizBuilderPage() {
           } else if (key === 'maxAttempts' && data.quiz[key] === null) {
             (newFormData as any)[key] = 0;
           } else if (key === 'negativeValue') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 20;
+            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
           } else if (key === 'sbaMarks') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 1;
+            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 2;
           } else if (key === 'sbaNegative') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 0;
+            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
           } else if (key === 'tfMarks') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 1;
+            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 2;
           } else if (key === 'tfNegative') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined ? data.quiz[key] : 0;
+            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0.5;
           } else {
             (newFormData as any)[key] = data.quiz[key];
           }
@@ -200,19 +200,19 @@ export default function QuizBuilderPage() {
     }
   };
 
-  const addQuestion = () => {
+  const addQuestion = (type: 'sba' | 'true_false' = 'sba') => {
     const newId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newQuestion: Question = {
       id: newId,
       tempId: newId,
       questionText: '',
-      questionType: 'sba',
+      questionType: type,
       optionA: '',
       optionB: '',
       optionC: '',
       optionD: '',
       optionE: '',
-      correctOption: '',
+      correctOption: type === 'true_false' ? 'TTTTT' : 'A',
       explanation: '',
       collapsed: false,
       displayOrder: questions.length + 1,
@@ -297,7 +297,7 @@ export default function QuizBuilderPage() {
         optionE: r.data?.[5] || '',
         correctOption: r.data?.[6] || '',
         explanation: r.data?.[7] || '',
-        questionType: r.data?.[6] && /^[TF]{5}$/i.test(r.data[6]) ? 'mcq' : 'sba',
+        questionType: r.data?.[6] && /^[TF]{5}$/i.test(r.data[6]) ? 'true_false' : 'sba',
         valid: false,
         errors: r.errors || [],
       }));
@@ -358,31 +358,40 @@ export default function QuizBuilderPage() {
       return false;
     }
     if (formData.numQuestionsToServe > questions.filter(q => q.questionText.trim()).length) {
-      setError('Number of questions to serve cannot exceed total questions added');
+      setError('Number of questions to serve cannot exceed total questions in the bank');
       return false;
     }
     
     const validQuestions = questions.filter(q => q.questionText.trim());
-    for (const q of validQuestions) {
+    if (validQuestions.length === 0) {
+      setError('Please add at least one question to the quiz.');
+      return false;
+    }
+
+    for (let i = 0; i < validQuestions.length; i++) {
+      const q = validQuestions[i];
+      const isTF = q.questionType === 'true_false' || q.questionType === 'mcq';
+      const qLabel = `Question ${i + 1} ("${q.questionText.slice(0, 25)}...")`;
+
       if (!q.optionA.trim() || !q.optionB.trim()) {
-        setError(`Question "${q.questionText.slice(0, 30)}..." requires at least 2 options`);
+        setError(`${qLabel} requires at least Options A and B to be filled.`);
         return false;
       }
-      if (!q.correctOption) {
-        setError(`Question "${q.questionText.slice(0, 30)}..." requires a correct answer`);
-        return false;
-      }
-      
-      if (q.questionType === 'sba' || q.questionType === 'true_false') {
-        // Check that the selected correctOption letter refers to a non-empty option
-        const selectedOptionVal = q[`option${q.correctOption}` as keyof typeof q] as string;
-        if (!selectedOptionVal || !selectedOptionVal.trim()) {
-          setError(`Correct option for "${q.questionText.slice(0, 30)}..." doesn't match any option`);
+
+      if (isTF) {
+        if (!q.correctOption || q.correctOption.length !== 5 || !/^[TF]{5}$/i.test(q.correctOption)) {
+          setError(`${qLabel} is a True/False Matrix question and requires True/False set for all 5 statements.`);
           return false;
         }
-      } else if (q.questionType === 'mcq') {
-        if (!/^[TF]+$/i.test(q.correctOption)) {
-          setError(`MCQ "${q.questionText.slice(0, 30)}..." requires True/False selection for options`);
+      } else {
+        // SBA
+        if (!q.correctOption || !/^[A-E]$/i.test(q.correctOption)) {
+          setError(`${qLabel} is an SBA question and requires a selected Single Best Answer (A to E).`);
+          return false;
+        }
+        const selectedOptionVal = q[`option${q.correctOption.toUpperCase()}` as keyof typeof q] as string;
+        if (!selectedOptionVal || !selectedOptionVal.trim()) {
+          setError(`${qLabel}: selected option ${q.correctOption} is empty.`);
           return false;
         }
       }
@@ -649,11 +658,42 @@ export default function QuizBuilderPage() {
                     value={formData.tfNegative}
                     onChange={e => updateFormData('tfNegative', parseFloat(e.target.value) || 0)}
                     className={styles.input}
-                    placeholder="e.g. 0.05"
+                    placeholder="e.g. 0.5"
                   />
                   <span style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '13px' }}>marks</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Live Total Marks Summary Box */}
+          <div style={{ 
+            marginTop: '16px', 
+            padding: '16px 20px', 
+            borderRadius: '12px', 
+            background: 'rgba(59, 130, 246, 0.08)', 
+            border: '1px solid rgba(59, 130, 246, 0.3)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Trophy size={18} style={{ color: '#3b82f6' }} />
+                <span>Calculated Total Marks: </span>
+                <span style={{ color: '#3b82f6', fontSize: '18px' }}>
+                  {((questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length * (formData.sbaMarks || 0)) + 
+                    (questions.filter(q => (q.questionType === 'true_false' || q.questionType === 'mcq') && q.questionText.trim()).length * 5 * (formData.tfMarks || 0))).toFixed(1)} Marks
+                </span>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                {questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length} SBA ({questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length} × {formData.sbaMarks}m = {questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length * (formData.sbaMarks || 0)}m) + {questions.filter(q => (q.questionType === 'true_false' || q.questionType === 'mcq') && q.questionText.trim()).length} True/False ({questions.filter(q => (q.questionType === 'true_false' || q.questionType === 'mcq') && q.questionText.trim()).length} × 5 options × {formData.tfMarks}m = {questions.filter(q => (q.questionType === 'true_false' || q.questionType === 'mcq') && q.questionText.trim()).length * 5 * (formData.tfMarks || 0)}m)
+              </div>
+            </div>
+            <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+              Serves {formData.numQuestionsToServe} questions per student
             </div>
           </div>
 
@@ -754,7 +794,7 @@ export default function QuizBuilderPage() {
                 <span className={styles.iconBtnText}>Import CSV</span>
               </button>
               <button
-                onClick={addQuestion}
+                onClick={() => addQuestion('sba')}
                 className={styles.addQuestionBtn}
               >
                 <Plus className={styles.btnIcon} />
@@ -767,7 +807,7 @@ export default function QuizBuilderPage() {
             <div className={styles.emptyQuestions}>
               <FileText className={styles.emptyIcon} />
               <p>No questions added yet</p>
-              <button onClick={addQuestion} className={styles.addFirstBtn}>
+              <button onClick={() => addQuestion('sba')} className={styles.addFirstBtn}>
                 <Plus className={styles.btnIcon} />
                 Add Your First Question
               </button>
@@ -791,7 +831,7 @@ export default function QuizBuilderPage() {
               </div>
               <button
                 type="button"
-                onClick={addQuestion}
+                onClick={() => addQuestion('sba')}
                 className={styles.addQuestionBottomBtn}
               >
                 <Plus className={styles.btnIcon} />
@@ -908,7 +948,6 @@ export default function QuizBuilderPage() {
     </div>
   );
 }
-
 // Question Card Component
 function QuestionCard({ 
   question, 
@@ -922,24 +961,9 @@ function QuestionCard({
 }: any) {
   const [dragging, setDragging] = useState(false);
   
-  const options = [
-    { letter: 'A', value: question.optionA },
-    { letter: 'B', value: question.optionB },
-    { letter: 'C', value: question.optionC },
-    { letter: 'D', value: question.optionD },
-    { letter: 'E', value: question.optionE },
-  ].filter(o => o.value && o.value.trim());
-  
-  const typeLabel = question.questionType === 'sba' ? 'Best option selection [SBA]' : (question.questionType === 'mcq' ? 'True False selection [T_F]' : 'Legacy True/False');
-  
-  const validOptions = options.filter(o => o.value && o.value.trim());
-  
-  let hasCorrectOption = false;
-  if (question.questionType === 'mcq') {
-    hasCorrectOption = /^[TF]+$/i.test(question.correctOption);
-  } else {
-    hasCorrectOption = validOptions.some(o => o.letter === question.correctOption);
-  }
+  const isTF = question.questionType === 'true_false' || question.questionType === 'mcq';
+  const typeLabel = isTF ? 'True / False Matrix [T_F]' : 'Single Best Answer [SBA]';
+  const correctStr = (question.correctOption || (isTF ? 'TTTTT' : 'A')).toUpperCase().padEnd(5, 'T');
 
   return (
     <article 
@@ -948,10 +972,6 @@ function QuestionCard({
       onDragStart={e => { setDragging(true); e.dataTransfer.effectAllowed = 'move'; }}
       onDragEnd={() => setDragging(false)}
       onDragOver={e => e.preventDefault()}
-      onDrop={e => {
-        e.preventDefault();
-        // Reorder logic would go here
-      }}
     >
       <div className={styles.questionHeader}>
         <div className={styles.dragHandle} title="Drag to reorder">
@@ -960,17 +980,19 @@ function QuestionCard({
         
         <div className={styles.questionInfo}>
           <span className={styles.questionNumber}>Q{index + 1}</span>
-          <span className={styles.questionTypeBadge}>{typeLabel}</span>
+          <span className={`${styles.questionTypeBadge} ${isTF ? styles.badgeTF : styles.badgeSBA}`}>
+            {typeLabel}
+          </span>
         </div>
         
         <div className={styles.questionActions}>
-          <button onClick={() => onToggleCollapse(question.id)} className={styles.actionBtn} title={question.collapsed ? 'Expand' : 'Collapse'}>
+          <button type="button" onClick={() => onToggleCollapse(question.id)} className={styles.actionBtn} title={question.collapsed ? 'Expand' : 'Collapse'}>
             {question.collapsed ? <ChevronDown className={styles.actionIcon} /> : <ChevronUp className={styles.actionIcon} />}
           </button>
-          <button onClick={() => onDuplicate(question.id)} className={styles.actionBtn} title="Duplicate">
+          <button type="button" onClick={() => onDuplicate(question.id)} className={styles.actionBtn} title="Duplicate">
             <Copy className={styles.actionIcon} />
           </button>
-          <button onClick={() => onDelete(question.id)} className={`${styles.actionBtn} ${styles.danger}`} title="Delete">
+          <button type="button" onClick={() => onDelete(question.id)} className={`${styles.actionBtn} ${styles.danger}`} title="Delete">
             <Trash2 className={styles.actionIcon} />
           </button>
         </div>
@@ -979,11 +1001,11 @@ function QuestionCard({
       {!question.collapsed && (
         <div className={styles.questionBody}>
           <div className={styles.formGroup}>
-            <label className={styles.label}>Question Text <span className={styles.required}>*</span></label>
+            <label className={styles.label}>Question / Stem Text <span className={styles.required}>*</span></label>
             <textarea
               value={question.questionText}
               onChange={e => onUpdate(question.id, 'questionText', e.target.value)}
-              placeholder="Enter your question..."
+              placeholder={isTF ? "Enter stem (e.g. Regarding cranial nerves, which of the following statements are True or False?)..." : "Enter question text..."}
               className={styles.textarea}
               rows={3}
             />
@@ -992,85 +1014,87 @@ function QuestionCard({
           <div className={styles.formGroup}>
             <label className={styles.label}>Question Type</label>
             <select
-              value={question.questionType}
+              value={isTF ? 'true_false' : 'sba'}
               onChange={e => {
-                const newType = e.target.value as 'sba' | 'mcq' | 'true_false';
+                const newType = e.target.value as 'sba' | 'true_false';
                 onUpdate(question.id, 'questionType', newType);
                 if (newType === 'true_false') {
-                  onUpdate(question.id, 'optionA', 'True');
-                  onUpdate(question.id, 'optionB', 'False');
-                  onUpdate(question.id, 'optionC', '');
-                  onUpdate(question.id, 'optionD', '');
-                  onUpdate(question.id, 'optionE', '');
-                  if (question.correctOption !== 'A' && question.correctOption !== 'B') {
-                    onUpdate(question.id, 'correctOption', 'A');
+                  let existing = (question.correctOption || '').toUpperCase();
+                  if (existing.length !== 5 || !/^[TF]{5}$/.test(existing)) {
+                    existing = 'TTTTT';
                   }
-                } else if (newType === 'mcq') {
-                  if (question.correctOption?.length !== 5) {
-                    onUpdate(question.id, 'correctOption', '-----');
+                  onUpdate(question.id, 'correctOption', existing);
+                } else {
+                  let existing = (question.correctOption || '').toUpperCase();
+                  if (!/^[A-E]$/.test(existing)) {
+                    existing = 'A';
                   }
-                } else if (newType === 'sba') {
-                  if (question.correctOption?.length !== 1) {
-                    onUpdate(question.id, 'correctOption', '');
-                  }
+                  onUpdate(question.id, 'correctOption', existing);
                 }
               }}
               className={styles.select}
             >
-              <option value="sba">Best option selection [SBA]</option>
-              <option value="mcq">True False selection [T_F]</option>
+              <option value="sba">Single Best Answer [SBA] (1 correct option out of A–E)</option>
+              <option value="true_false">True / False Matrix [T_F] (5 options A–E, each True or False)</option>
             </select>
+          </div>
+
+          <div style={{ marginBottom: '8px' }}>
+            <label className={styles.label}>
+              {isTF ? 'Options / Statements (A to E) & Correct T/F Answers:' : 'Options (A to E) & Select Single Best Answer:'}
+            </label>
           </div>
           
           <div className={styles.optionsGrid}>
             {['A', 'B', 'C', 'D', 'E'].map((letter, idx) => {
-              const option = question[`option${letter}` as keyof typeof question] as string;
-              if (question.questionType === 'true_false' && idx > 1) return null;
-              
-              const isMCQ = question.questionType === 'mcq';
-              const correctStr = question.correctOption || '-----';
-              const isOptionCorrect = isMCQ ? (correctStr[idx] === 'T' || correctStr[idx] === 'F') : question.correctOption === letter;
+              const optionVal = question[`option${letter}` as keyof typeof question] as string || '';
+              const isSelectedSBA = !isTF && question.correctOption === letter;
+              const tfStatus = correctStr[idx] === 'F' ? 'F' : 'T';
               
               return (
-                <div key={letter} className={`${styles.optionRow} ${isOptionCorrect ? styles.correctOption : ''}`}>
-                  {!isMCQ && (
-                    <label className={styles.tfLabel} title="Mark as correct answer">
+                <div key={letter} className={`${styles.optionRow} ${isSelectedSBA ? styles.correctOption : ''}`}>
+                  {!isTF ? (
+                    <label className={styles.tfLabel} title="Select as correct answer">
                       <input
-                        type="checkbox"
+                        type="radio"
+                        name={`sba-correct-${question.id}`}
                         checked={question.correctOption === letter}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            onUpdate(question.id, 'correctOption', letter);
-                          } else {
-                            onUpdate(question.id, 'correctOption', '');
-                          }
-                        }}
-                        className={styles.checkbox}
+                        onChange={() => onUpdate(question.id, 'correctOption', letter)}
+                        style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
                       />
-                      <span className={`${styles.tfBox} ${styles.trueBox}`}>
-                        <span className={styles.tfTickAnim}></span>
-                      </span>
                     </label>
-                  )}
-                  <span className={styles.optionLetter}>{letter}</span>
+                  ) : null}
+
+                  <span className={styles.optionLetter} style={{ fontWeight: 'bold' }}>{letter}</span>
+
                   <input
                     type="text"
-                    value={option}
+                    value={optionVal}
                     onChange={e => onUpdate(question.id, `option${letter}`, e.target.value)}
-                    placeholder={`Option ${letter}`}
+                    placeholder={`Statement / Option ${letter}`}
                     className={styles.optionInput}
-                    disabled={question.questionType === 'true_false'}
                   />
-                  {isMCQ && (
-                    <div className={styles.tfButtonGroup}>
+
+                  {isTF && (
+                    <div className={styles.tfButtonGroup} style={{ display: 'flex', gap: '4px' }}>
                       <button
                         type="button"
                         onClick={() => {
-                          const newArr = (correctStr.padEnd(5, '-')).split('');
-                          newArr[idx] = correctStr[idx] === 'T' ? '-' : 'T';
-                          onUpdate(question.id, 'correctOption', newArr.join(''));
+                          const arr = correctStr.split('');
+                          arr[idx] = 'T';
+                          onUpdate(question.id, 'correctOption', arr.join(''));
                         }}
-                        className={`${styles.tfBtn} ${correctStr[idx] === 'T' ? styles.tfBtnTrueActive : ''}`}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          border: tfStatus === 'T' ? '2px solid #10b981' : '1px solid var(--border-color)',
+                          background: tfStatus === 'T' ? '#10b981' : 'transparent',
+                          color: tfStatus === 'T' ? '#ffffff' : 'var(--text-secondary)',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          transition: 'all 0.15s ease'
+                        }}
                         title="Mark as True"
                       >
                         True
@@ -1078,11 +1102,21 @@ function QuestionCard({
                       <button
                         type="button"
                         onClick={() => {
-                          const newArr = (correctStr.padEnd(5, '-')).split('');
-                          newArr[idx] = correctStr[idx] === 'F' ? '-' : 'F';
-                          onUpdate(question.id, 'correctOption', newArr.join(''));
+                          const arr = correctStr.split('');
+                          arr[idx] = 'F';
+                          onUpdate(question.id, 'correctOption', arr.join(''));
                         }}
-                        className={`${styles.tfBtn} ${correctStr[idx] === 'F' ? styles.tfBtnFalseActive : ''}`}
+                        style={{
+                          padding: '6px 14px',
+                          borderRadius: '6px',
+                          border: tfStatus === 'F' ? '2px solid #ef4444' : '1px solid var(--border-color)',
+                          background: tfStatus === 'F' ? '#ef4444' : 'transparent',
+                          color: tfStatus === 'F' ? '#ffffff' : 'var(--text-secondary)',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          transition: 'all 0.15s ease'
+                        }}
                         title="Mark as False"
                       >
                         False
@@ -1093,26 +1127,13 @@ function QuestionCard({
               );
             })}
           </div>
-          
-          {validOptions.length < 5 && question.questionType !== 'true_false' && (
-            <p className={styles.addOptionHint}>
-              You can leave trailing options blank if you don't need all 5.
-            </p>
-          )}
-          
-          {!hasCorrectOption && validOptions.length > 0 && (
-            <p className={styles.warning}>
-              <AlertCircle className={styles.warningIcon} />
-              Please select the correct answer(s)
-            </p>
-          )}
-          
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Explanation (optional)</label>
+
+          <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+            <label className={styles.label}>Explanation (Optional - shown after submission)</label>
             <textarea
-              value={question.explanation}
+              value={question.explanation || ''}
               onChange={e => onUpdate(question.id, 'explanation', e.target.value)}
-              placeholder="Explanation shown to students after quiz submission"
+              placeholder="Explain why the answers are correct..."
               className={styles.textarea}
               rows={2}
             />

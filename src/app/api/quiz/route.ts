@@ -61,11 +61,24 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ quizzes: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
       }
 
-      let enrolledCourseIds = Array.from(new Set((orders || []).map((o: any) => o.courseId)));
+      const allEnrolledCourseIds = Array.from(new Set((orders || []).map((o: any) => o.courseId)));
+      
+      // Fetch all courses the student is enrolled in (for the course filter dropdown)
+      const { data: allStudentCourseRows = [] } = await supabase
+        .from('Course')
+        .select('id, title, slug, releaseMode, releaseStartAt, releaseIntervalDays, releaseGroupsPerWeek, releaseDaysOfWeek, releaseGroupDates, curriculumJson, courseStartDate')
+        .in('id', allEnrolledCourseIds);
+
+      const allCoursesList = (allStudentCourseRows || []).map((c: any) => ({
+        id: c.id,
+        title: c.title,
+      }));
+
+      let enrolledCourseIds = allEnrolledCourseIds;
       if (courseIdFilter) {
         enrolledCourseIds = enrolledCourseIds.filter(id => id === courseIdFilter);
         if (enrolledCourseIds.length === 0) {
-          return NextResponse.json({ quizzes: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
+          return NextResponse.json({ quizzes: [], courses: allCoursesList, pagination: { page: 1, limit, total: 0, totalPages: 0 } });
         }
       }
 
@@ -76,18 +89,12 @@ export async function GET(request: NextRequest) {
         .in('courseId', enrolledCourseIds);
 
       if (!courseQuizLinks || courseQuizLinks.length === 0) {
-        return NextResponse.json({ quizzes: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
+        return NextResponse.json({ quizzes: [], courses: allCoursesList, pagination: { page: 1, limit, total: 0, totalPages: 0 } });
       }
 
       const linkedQuizIds = Array.from(new Set(courseQuizLinks.map((cq: any) => cq.quizId)));
 
-      // 3. Fetch Course details for module availability calculation
-      const { data: courseRows = [] } = await supabase
-        .from('Course')
-        .select('id, title, slug, releaseMode, releaseStartAt, releaseIntervalDays, releaseGroupsPerWeek, releaseDaysOfWeek, releaseGroupDates, curriculumJson, courseStartDate')
-        .in('id', enrolledCourseIds);
-
-      const courseMap = new Map((courseRows || []).map((c: any) => [c.id, c]));
+      const courseMap = new Map((allStudentCourseRows || []).map((c: any) => [c.id, c]));
 
       // 4. Fetch StudentModuleAvailability overrides & Batch info
       const [{ data: overrideRows = [] }, { data: batchRows = [] }] = await Promise.all([
@@ -212,8 +219,8 @@ export async function GET(request: NextRequest) {
       const quizIds = (dbQuizzes || []).map((q: any) => q.id);
       const [{ data: questions = [] }, { data: attempts = [] }, { data: allSubmittedAttempts = [] }] = await Promise.all([
         quizIds.length > 0 ? supabase.from('Question').select('quizId, id').in('quizId', quizIds) : Promise.resolve({ data: [] }),
-        quizIds.length > 0 ? supabase.from('QuizAttempt').select('id, quizId, status, netScore, attemptNumber, submittedAt, timeTakenSeconds').eq('studentId', payload.sub).in('quizId', quizIds) : Promise.resolve({ data: [] }),
-        quizIds.length > 0 ? supabase.from('QuizAttempt').select('quizId, studentId, netScore, attemptNumber, timeTakenSeconds, submittedAt').in('quizId', quizIds).in('status', ['submitted', 'auto_submitted']) : Promise.resolve({ data: [] }),
+        quizIds.length > 0 ? supabase.from('QuizAttempt').select('id, quizId, status, netScore, percentageScore, attemptNumber, submittedAt, timeTakenSeconds').eq('studentId', payload.sub).in('quizId', quizIds) : Promise.resolve({ data: [] }),
+        quizIds.length > 0 ? supabase.from('QuizAttempt').select('quizId, studentId, netScore, percentageScore, attemptNumber, timeTakenSeconds, submittedAt, status').in('quizId', quizIds) : Promise.resolve({ data: [] }),
       ]);
 
       const questionsMap = new Map<string, number>();
@@ -276,29 +283,38 @@ export async function GET(request: NextRequest) {
         }
 
         const userAttempts = attemptsMap.get(q.id) || [];
-        const completedAttempts = userAttempts.filter((a: any) => 
-          a.status === 'submitted' || a.status === 'auto_submitted' || a.status === 'completed'
-        );
-        const inProgressAttempt = userAttempts.find((a: any) => a.status === 'in_progress');
+        const isCompletedStatus = (st: string) => {
+          const s = (st || '').toLowerCase().trim();
+          return s === 'submitted' || s === 'auto_submitted' || s === 'completed';
+        };
+
+        const completedAttempts = userAttempts.filter((a: any) => isCompletedStatus(a.status));
+        const inProgressAttempt = userAttempts.find((a: any) => (a.status || '').toLowerCase().trim() === 'in_progress');
 
         let quizStatus = 'Not Attempted';
         if (inProgressAttempt) {
           quizStatus = 'In Progress';
-        } else if (completedAttempts.length > 0) {
+        } else if (completedAttempts.length > 0 || userAttempts.length > 0) {
           quizStatus = 'Completed';
         }
 
-        const scores = completedAttempts
-          .map((a: any) => (a.netScore !== null && a.netScore !== undefined ? Number(a.netScore) : NaN))
+        // Use completed attempts or userAttempts with scores
+        const attemptsToScore = completedAttempts.length > 0 ? completedAttempts : userAttempts;
+        const scores = attemptsToScore
+          .map((a: any) => {
+            const val = a.netScore !== null && a.netScore !== undefined ? Number(a.netScore) : (a.score !== null && a.score !== undefined ? Number(a.score) : NaN);
+            return val;
+          })
           .filter((s: number) => !isNaN(s) && isFinite(s));
 
         const topScore = scores.length > 0 ? Math.max(...scores) : null;
         const avgScore = scores.length > 0 ? (scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length) : null;
         
-        const firstAttempt = completedAttempts.find((a: any) => a.attemptNumber === 1);
-        const firstAttemptScore = firstAttempt && firstAttempt.netScore !== null && firstAttempt.netScore !== undefined && !isNaN(Number(firstAttempt.netScore))
+        // Find 1st attempt score
+        const firstAttempt = userAttempts.find((a: any) => Number(a.attemptNumber) === 1) || (userAttempts.length > 0 ? userAttempts[userAttempts.length - 1] : null);
+        const firstAttemptScore = firstAttempt && (firstAttempt.netScore !== null && firstAttempt.netScore !== undefined)
           ? Number(firstAttempt.netScore)
-          : null;
+          : (firstAttempt && firstAttempt.score !== null && firstAttempt.score !== undefined ? Number(firstAttempt.score) : (scores.length > 0 ? scores[0] : null));
 
         const latestAttempt = userAttempts.length > 0
           ? userAttempts.reduce((prev: any, curr: any) => ((curr.attemptNumber || 0) > (prev.attemptNumber || 0) ? curr : prev))
@@ -306,33 +322,34 @@ export async function GET(request: NextRequest) {
 
         const latestCompletedAttempt = completedAttempts.length > 0
           ? completedAttempts.reduce((prev: any, curr: any) => ((curr.attemptNumber || 0) > (prev.attemptNumber || 0) ? curr : prev))
-          : null;
+          : latestAttempt;
 
         // Dynamic rank calculation across all students
-        const quizAllAttempts = allAttemptsMap.get(q.id) || [];
+        const quizAllAttempts = (allAttemptsMap.get(q.id) || []).filter((a: any) => isCompletedStatus(a.status) || (a.netScore !== null && a.netScore !== undefined));
         const studentBestMap = new Map<string, any>();
         for (const att of quizAllAttempts) {
           const sId = att.studentId;
           if (!sId) continue;
           const isFirstOnly = q.positionType === 'first_attempt';
+          const score = Number(att.netScore ?? att.score ?? 0);
+          const timeSec = Number(att.timeTakenSeconds || 999999);
+
           if (isFirstOnly) {
-            if (att.attemptNumber === 1) {
-              studentBestMap.set(sId, att);
+            if (Number(att.attemptNumber) === 1 || !studentBestMap.has(sId)) {
+              studentBestMap.set(sId, { ...att, netScore: score, timeTakenSeconds: timeSec });
             }
           } else {
             const existing = studentBestMap.get(sId);
             if (!existing) {
-              studentBestMap.set(sId, att);
+              studentBestMap.set(sId, { ...att, netScore: score, timeTakenSeconds: timeSec });
             } else {
-              const currScore = Number(att.netScore || 0);
-              const prevScore = Number(existing.netScore || 0);
-              if (currScore > prevScore) {
-                studentBestMap.set(sId, att);
-              } else if (currScore === prevScore) {
-                const currTime = Number(att.timeTakenSeconds || 999999);
+              const prevScore = Number(existing.netScore ?? 0);
+              if (score > prevScore) {
+                studentBestMap.set(sId, { ...att, netScore: score, timeTakenSeconds: timeSec });
+              } else if (score === prevScore) {
                 const prevTime = Number(existing.timeTakenSeconds || 999999);
-                if (currTime < prevTime) {
-                  studentBestMap.set(sId, att);
+                if (timeSec < prevTime) {
+                  studentBestMap.set(sId, { ...att, netScore: score, timeTakenSeconds: timeSec });
                 }
               }
             }
@@ -346,8 +363,8 @@ export async function GET(request: NextRequest) {
         });
 
         const studentRankIdx = sortedParticipants.findIndex((p: any) => p.studentId === payload.sub);
-        const userRank = studentRankIdx >= 0 ? studentRankIdx + 1 : null;
-        const totalParticipants = sortedParticipants.length;
+        const userRank = studentRankIdx >= 0 ? studentRankIdx + 1 : (scores.length > 0 ? 1 : null);
+        const totalParticipants = Math.max(sortedParticipants.length, userRank ? 1 : 0);
 
         return {
           ...q,
@@ -397,11 +414,6 @@ export async function GET(request: NextRequest) {
           result = result.filter(q => !q.isLocked && q.status === 'Completed');
         }
       }
-
-      const allCoursesList = (courseRows || []).map((c: any) => ({
-        id: c.id,
-        title: c.title,
-      }));
 
       return NextResponse.json({
         quizzes: result,
@@ -576,6 +588,10 @@ export async function POST(request: NextRequest) {
       allowNegativeMarking,
       negativeValue,
       marksPerCorrect,
+      sbaMarks,
+      sbaNegative,
+      tfMarks,
+      tfNegative,
       startDatetime,
       endDatetime,
       shuffleQuestions,
@@ -611,8 +627,12 @@ export async function POST(request: NextRequest) {
       allowMultipleAttempts: allowMultipleAttempts || false,
       maxAttempts: maxAttempts || null,
       allowNegativeMarking: allowNegativeMarking || false,
-      negativeValue: negativeValue !== undefined ? negativeValue : 20,
-      marksPerCorrect: marksPerCorrect || 1,
+      sbaMarks: sbaMarks !== undefined ? sbaMarks : (marksPerCorrect || 2),
+      sbaNegative: sbaNegative !== undefined ? sbaNegative : (allowNegativeMarking ? (negativeValue || 0) : 0),
+      tfMarks: tfMarks !== undefined ? tfMarks : 2,
+      tfNegative: tfNegative !== undefined ? tfNegative : (allowNegativeMarking ? 0.5 : 0),
+      marksPerCorrect: sbaMarks !== undefined ? sbaMarks : (marksPerCorrect || 2),
+      negativeValue: sbaNegative !== undefined ? sbaNegative : (negativeValue || 0),
       startDatetime: startDatetime ? new Date(startDatetime).toISOString() : null,
       endDatetime: endDatetime ? new Date(endDatetime).toISOString() : null,
       status: (status || 'draft') as 'draft' | 'published' | 'archived',
@@ -625,32 +645,42 @@ export async function POST(request: NextRequest) {
     };
 
     const { error: insertError } = await supabase.from('Quiz')
-// @ts-ignore
-.insert(insertValues as any);
+      // @ts-ignore
+      .insert(insertValues as any);
     if (insertError) throw insertError;
 
     const newQuiz = insertValues;
 
     if (body.questions && Array.isArray(body.questions) && body.questions.length > 0) {
-      const questionsToInsert = body.questions.map((q: any) => ({
-        id: nanoid(),
-        quizId: quizId,
-        questionText: q.questionText.trim(),
-        questionType: q.questionType,
-        optionA: q.optionA.trim(),
-        optionB: q.optionB.trim(),
-        optionC: q.optionC?.trim() || null,
-        optionD: q.optionD?.trim() || null,
-        optionE: q.optionE?.trim() || null,
-        correctOption: q.correctOption.trim(),
-        explanation: q.explanation?.trim() || null,
-        createdAt: nowStr,
-        updatedAt: nowStr,
-      }));
+      const questionsToInsert = body.questions.map((q: any) => {
+        let qType = q.questionType || 'sba';
+        if (qType === 'mcq') qType = 'true_false';
+        
+        let correctOpt = (q.correctOption || '').trim().toUpperCase();
+        if (qType === 'true_false' && correctOpt.length !== 5) {
+          correctOpt = correctOpt.padEnd(5, 'F').slice(0, 5);
+        }
+
+        return {
+          id: nanoid(),
+          quizId: quizId,
+          questionText: (q.questionText || '').trim(),
+          questionType: qType,
+          optionA: (q.optionA || '').trim(),
+          optionB: (q.optionB || '').trim(),
+          optionC: q.optionC?.trim() || null,
+          optionD: q.optionD?.trim() || null,
+          optionE: q.optionE?.trim() || null,
+          correctOption: correctOpt,
+          explanation: q.explanation?.trim() || null,
+          createdAt: nowStr,
+          updatedAt: nowStr,
+        };
+      });
 
       const { error: questionsError } = await supabase.from('Question')
-// @ts-ignore
-.insert(questionsToInsert);
+        // @ts-ignore
+        .insert(questionsToInsert);
       if (questionsError) throw questionsError;
     }
 

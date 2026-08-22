@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth';
+import { normalizeQuestionType } from '@/lib/quiz-engine';
 
 export async function GET(
   request: NextRequest,
@@ -26,21 +27,18 @@ export async function GET(
       .limit(1)
       .maybeSingle();
 
-    let attemptQuiz = null;
-    if (attemptRow) {
-      const { data: quizRow } = await supabase
-        .from('Quiz')
-        .select('*')
-        .eq('id', (attemptRow as any).quizId)
-        .limit(1)
-        .maybeSingle();
-      attemptQuiz = quizRow;
-    }
-    const attempt = attemptRow ? { ...(attemptRow as any), quiz: attemptQuiz! } : null;
-    
-    if (!attempt) {
+    if (!attemptRow) {
       return NextResponse.json({ error: 'Attempt not found.' }, { status: 404 });
     }
+
+    const { data: quizRow } = await supabase
+      .from('Quiz')
+      .select('*')
+      .eq('id', quizId)
+      .limit(1)
+      .maybeSingle();
+
+    const attempt = { ...(attemptRow as any), quiz: quizRow || {} };
     
     const { data: mappings = [] } = await supabase
       .from('QuizQuestionMapping')
@@ -48,77 +46,99 @@ export async function GET(
       .eq('attemptId', attemptId)
       .order('displayOrder', { ascending: true });
 
-    const questionIds = (mappings || []).map((m: any) => m.questionId);
-    
-    const { data: mappingQuestions = [] } = questionIds.length > 0
-      ? await supabase.from('Question').select('*').in('id', questionIds)
-      : { data: [] };
+    let questionIds = (mappings || []).map((m: any) => m.questionId);
+    let mappingQuestions: any[] = [];
+
+    if (questionIds.length > 0) {
+      const { data: qData = [] } = await supabase
+        .from('Question')
+        .select('*')
+        .in('id', questionIds);
+      mappingQuestions = qData || [];
+    }
+
+    // Fallback if no mappings exist
+    if (mappingQuestions.length === 0) {
+      const { data: fallbackQuestions = [] } = await supabase
+        .from('Question')
+        .select('*')
+        .eq('quizId', quizId)
+        .order('createdAt', { ascending: true });
+      mappingQuestions = fallbackQuestions || [];
+    }
 
     const questionMap = new Map((mappingQuestions || []).map((q: any) => [q.id, q]));
-    const mappingsWithQuestions = (mappings || []).map((m: any) => ({ ...m, question: questionMap.get(m.questionId)! }));
+    const mappingsWithQuestions = (mappings && mappings.length > 0)
+      ? mappings.map((m: any) => ({ ...m, question: questionMap.get(m.questionId) })).filter((m: any) => m.question)
+      : mappingQuestions.map((q: any, idx: number) => ({ displayOrder: idx + 1, question: q, optionOrder: null }));
     
     const { data: existingAnswers = [] } = await supabase
       .from('AttemptAnswer')
       .select('*')
       .eq('attemptId', attemptId);
+
+    const isInProgress = attempt.status === 'in_progress';
     
-    const mappedQuestions = mappingsWithQuestions.map((m) => {
+    const mappedQuestions = mappingsWithQuestions.map((m: any) => {
       const q = m.question;
-      let originalOptions = [
-        { letter: 'A', text: q.optionA },
-        { letter: 'B', text: q.optionB },
-        { letter: 'C', text: q.optionC },
-        { letter: 'D', text: q.optionD },
-        { letter: 'E', text: q.optionE },
+      const normalizedType = normalizeQuestionType(q.questionType);
+      const originalOptions = [
+        { letter: 'A', text: q.optionA || '' },
+        { letter: 'B', text: q.optionB || '' },
+        { letter: 'C', text: q.optionC || '' },
+        { letter: 'D', text: q.optionD || '' },
+        { letter: 'E', text: q.optionE || '' },
       ];
-      if (q.questionType !== 'mcq') {
-        originalOptions = originalOptions.filter(o => o.text !== null && o.text !== undefined && String(o.text).trim() !== '');
-      }
       
       let orderedOptions = originalOptions;
-      if (Array.isArray(m.optionOrder)) {
-        orderedOptions = m.optionOrder.map((key: any) => {
-          if (typeof key === 'number') {
-            const letters = ['A', 'B', 'C', 'D', 'E'];
-            const letter = letters[key];
-            return originalOptions.find(o => o.letter === letter);
-          } else if (typeof key === 'string') {
-            return originalOptions.find(o => o.letter === key);
-          }
-          return null;
-        }).filter(Boolean) as any[];
-        
-        // Safety fallback: if there are original options missing from the ordered list, append them
-        const orderedLetters = new Set(orderedOptions.map(o => o.letter));
-        originalOptions.forEach(o => {
-          if (!orderedLetters.has(o.letter)) {
-            orderedOptions.push(o);
-          }
-        });
+      if (normalizedType === 'sba' && m.optionOrder) {
+        let orderKeys = m.optionOrder;
+        if (typeof orderKeys === 'string') {
+          try { orderKeys = JSON.parse(orderKeys); } catch {}
+        }
+        if (Array.isArray(orderKeys)) {
+          orderedOptions = orderKeys.map((key: any) => {
+            if (typeof key === 'number') {
+              const letters = ['A', 'B', 'C', 'D', 'E'];
+              return originalOptions.find(o => o.letter === letters[key]);
+            } else if (typeof key === 'string') {
+              return originalOptions.find(o => o.letter === key);
+            }
+            return null;
+          }).filter(Boolean) as any[];
+
+          const orderedLetters = new Set(orderedOptions.map(o => o.letter));
+          originalOptions.forEach(o => {
+            if (!orderedLetters.has(o.letter)) {
+              orderedOptions.push(o);
+            }
+          });
+        }
       }
       
       return {
         id: q.id,
         questionText: q.questionText,
-        questionType: q.questionType,
+        questionType: normalizedType,
         options: orderedOptions,
         displayOrder: m.displayOrder,
-        correctOption: q.correctOption,
-        explanation: q.explanation,
+        correctOption: isInProgress ? undefined : q.correctOption,
+        explanation: isInProgress ? undefined : q.explanation,
       };
     });
     
     const nowServer = new Date();
-    const startedAtStr = attempt.startedAt;
+    const startedAtStr = attempt.startedAt || new Date().toISOString();
     const startedAt = new Date(
       startedAtStr.endsWith('Z') || startedAtStr.includes('+') 
         ? startedAtStr 
         : startedAtStr + 'Z'
     );
-    const elapsedSeconds = Math.floor((nowServer.getTime() - startedAt.getTime()) / 1000);
-    const timeRemaining = attempt.quiz.durationMinutes === 0 
+    const elapsedSeconds = Math.max(0, Math.floor((nowServer.getTime() - startedAt.getTime()) / 1000));
+    const durationMins = Number(attempt.quiz?.durationMinutes || 0);
+    const timeRemaining = durationMins === 0 
       ? null 
-      : Math.max(0, (attempt.quiz.durationMinutes * 60) - elapsedSeconds);
+      : Math.max(0, (durationMins * 60) - elapsedSeconds);
 
     return NextResponse.json({
       attempt: {
@@ -126,7 +146,7 @@ export async function GET(
         quizId: attempt.quizId,
         studentId: attempt.studentId,
         startedAt: attempt.startedAt,
-        durationMinutes: attempt.quiz.durationMinutes,
+        durationMinutes: durationMins,
         status: attempt.status,
         timeRemaining,
       },
@@ -134,7 +154,7 @@ export async function GET(
       existingAnswers: (existingAnswers || []).map((a: any) => ({
         questionId: a.questionId,
         selectedOption: a.selectedOption,
-        isCorrect: a.isCorrect,
+        isCorrect: isInProgress ? undefined : a.isCorrect,
       })),
     });
   } catch (error: any) {
