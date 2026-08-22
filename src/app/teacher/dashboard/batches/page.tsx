@@ -70,52 +70,38 @@ export default function BatchesPage() {
 
   return (
     <div className={styles.container}>
-      {/* Hero Header & KPI Summary */}
-      <section className={styles.heroHeader}>
-        <div className={styles.heroContent}>
+      {/* KPI Metrics */}
+      <div className={styles.kpiGrid}>
+        <div className={styles.kpiCard}>
+          <div className={`${styles.kpiIconBox} ${styles.kpiIconBlue}`}>
+            <BookOpen size={20} />
+          </div>
           <div>
-            <h1 className={styles.pageTitle}>
-              <Layers size={28} className="text-primary" />
-              Course Batches
-            </h1>
-            <p className={styles.pageSubtitle}>
-              Organize student enrollments, schedules, and cohort access across all your courses.
-            </p>
+            <div className={styles.kpiVal}>{courses.length}</div>
+            <div className={styles.kpiLab}>Total Courses</div>
           </div>
         </div>
 
-        <div className={styles.kpiGrid}>
-          <div className={styles.kpiCard}>
-            <div className={`${styles.kpiIconBox} ${styles.kpiIconBlue}`}>
-              <BookOpen size={20} />
-            </div>
-            <div>
-              <div className={styles.kpiVal}>{courses.length}</div>
-              <div className={styles.kpiLab}>Total Courses</div>
-            </div>
+        <div className={styles.kpiCard}>
+          <div className={`${styles.kpiIconBox} ${styles.kpiIconEmerald}`}>
+            <CheckCircle2 size={20} />
           </div>
-
-          <div className={styles.kpiCard}>
-            <div className={`${styles.kpiIconBox} ${styles.kpiIconEmerald}`}>
-              <CheckCircle2 size={20} />
-            </div>
-            <div>
-              <div className={styles.kpiVal}>{activeCoursesCount}</div>
-              <div className={styles.kpiLab}>Published Courses</div>
-            </div>
-          </div>
-
-          <div className={styles.kpiCard}>
-            <div className={`${styles.kpiIconBox} ${styles.kpiIconPurple}`}>
-              <Sparkles size={20} />
-            </div>
-            <div>
-              <div className={styles.kpiVal}>{totalBatchesCount}</div>
-              <div className={styles.kpiLab}>Total Batches</div>
-            </div>
+          <div>
+            <div className={styles.kpiVal}>{activeCoursesCount}</div>
+            <div className={styles.kpiLab}>Published Courses</div>
           </div>
         </div>
-      </section>
+
+        <div className={styles.kpiCard}>
+          <div className={`${styles.kpiIconBox} ${styles.kpiIconPurple}`}>
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <div className={styles.kpiVal}>{totalBatchesCount}</div>
+            <div className={styles.kpiLab}>Total Batches</div>
+          </div>
+        </div>
+      </div>
 
       {/* Controls Bar */}
       <div className={styles.controlsBar}>

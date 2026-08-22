@@ -3,13 +3,14 @@
 import { motion } from "framer-motion";
 import { 
     BookOpen, 
-    Play, 
-    Plus,
-    Video,
-    ArrowUpRight,
-    LayoutDashboard,
-    Users,
-    CheckCircle
+    Plus, 
+    Video, 
+    ArrowUpRight, 
+    Users, 
+    CheckCircle, 
+    Sparkles, 
+    Layers, 
+    FileQuestion 
 } from "lucide-react";
 import styles from "./TeacherOverview.module.css";
 import { useRouter } from "next/navigation";
@@ -44,147 +45,168 @@ export default function TeacherOverview({
 }: TeacherOverviewProps) {
     const router = useRouter();
 
-    const container = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
-    };
-
-    const item = {
-        hidden: { y: 20, opacity: 0 },
-        show: { y: 0, opacity: 1 }
-    };
-
     return (
-        <motion.div 
-            className={styles.bentoGrid}
-            variants={container}
-            initial="hidden"
-            animate="show"
-        >
-            {/* 1. Welcome Hero */}
-            <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={item}>
-                <div className={styles.heroHeader}>
-                    <div>
-                        <span className={styles.label}>Instructor Hub</span>
-                        <h2 className={styles.amount} style={{ fontSize: '2.5rem', marginTop: '8px' }}>
-                            Welcome back, <span className="gradient-text">{teacherName.split(' ')[0]}</span>
-                        </h2>
-                        <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>
-                            Manage your medical programs and monitor student success.
-                        </p>
+        <div className={styles.dashboardOverview}>
+            {/* 1. Hero Welcome Banner */}
+            <div className={styles.welcomeHero}>
+                <div className={styles.welcomeInfo}>
+                    <div className={styles.welcomeKicker}>
+                        <Sparkles size={14} />
+                        <span>Instructor Workspace</span>
                     </div>
+                    <h1 className={styles.welcomeTitle}>
+                        Welcome back, <span className="gradient-text">{teacherName.split(' ')[0]}</span>
+                    </h1>
+                    <p className={styles.welcomeSubtitle}>
+                        Manage your medical courses, organize student cohorts, and track live progress across your academy.
+                    </p>
                 </div>
-                
-                <div className={styles.nextLesson}>
-                    <button onClick={() => router.push('/teacher/dashboard/courses/create')} className={styles.viewAllBtn} style={{ width: 'auto', marginTop: 0 }}>
+                <div className={styles.welcomeActions}>
+                    <button onClick={() => router.push('/teacher/dashboard/courses/create')} className={styles.primaryActionBtn}>
                         <Plus size={18} /> Create New Course
                     </button>
-                </div>
-            </motion.div>
-
-            {/* 2. Key Metrics */}
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                        <BookOpen size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>{totalCourses}</h4>
-                    <p>Total Programs</p>
-                </div>
-            </motion.div>
-
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={item}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-                        <Users size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>{totalStudents}</h4>
-                    <p>Total Students</p>
-                </div>
-            </motion.div>
-
-
-
-            {/* 3. Quick Actions */}
-            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={item}>
-                <div className={styles.cardHeader}>
-                    <h3>Quick Management</h3>
-                </div>
-                <div className={styles.actionGrid} style={{ gridTemplateColumns: '1fr' }}>
-                    <button onClick={() => onTabChange("library")} className={styles.actionBtn}>
-                        <div className={styles.actionIcon}><Video size={18} /></div>
-                        <div className={styles.actionInfo}>
-                            <strong>Media Vault</strong>
-                            <span>Manage video lectures</span>
-                        </div>
-                    </button>
-                    <button onClick={() => onTabChange("courses")} className={styles.actionBtn}>
-                        <div className={styles.actionIcon}><BookOpen size={18} /></div>
-                        <div className={styles.actionInfo}>
-                            <strong>Course Manager</strong>
-                            <span>Curriculum & pricing</span>
-                        </div>
+                    <button onClick={() => router.push('/teacher/dashboard/batches')} className={styles.secondaryActionBtn}>
+                        <Layers size={18} /> Manage Batches
                     </button>
                 </div>
-                <button 
-                    className={styles.viewAllBtn} 
-                    style={{ marginTop: '20px' }}
-                    onClick={() => router.push('/courses')}
-                >
-                    View Student Site <ArrowUpRight size={14} />
-                </button>
-            </motion.div>
+            </div>
 
-            {/* 4. Course Progress / Performance */}
-            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={item}>
-                <div className={styles.cardHeader}>
-                    <h3>Program Performance</h3>
-                    <span className={styles.statusPill}>Avg. {aggregateProgress}% Student Completion</span>
+            {/* 2. 4-Card KPI Metric Strip */}
+            <div className={styles.metricsGrid}>
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.blueIcon}`}>
+                            <BookOpen size={22} />
+                        </div>
+                        <span className={styles.metricBadge}>Programs</span>
+                    </div>
+                    <div className={styles.metricValue}>{totalCourses}</div>
+                    <div className={styles.metricLabel}>Total Published Courses</div>
                 </div>
-                <div className={styles.activities}>
-                    {courseProgress.length > 0 ? (
-                        courseProgress.slice(0, 3).map((cp) => (
-                            <div key={cp.courseId} className={styles.activityItem} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <strong style={{ fontSize: '0.9rem' }}>{cp.courseTitle}</strong>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{cp.enrollmentCount} students</span>
-                                </div>
-                                <div className={styles.progressContainer} style={{ margin: '4px 0 0' }}>
-                                    <div className={styles.progressLabel}>
-                                        <span style={{ fontSize: '0.7rem' }}>Avg. Student Progress</span>
-                                        <span style={{ fontSize: '0.7rem' }}>{cp.avgProgress}%</span>
+
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.purpleIcon}`}>
+                            <Users size={22} />
+                        </div>
+                        <span className={styles.metricBadge}>Learners</span>
+                    </div>
+                    <div className={styles.metricValue}>{totalStudents}</div>
+                    <div className={styles.metricLabel}>Total Enrolled Students</div>
+                </div>
+
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.emeraldIcon}`}>
+                            <CheckCircle size={22} />
+                        </div>
+                        <span className={styles.metricBadge}>Completion</span>
+                    </div>
+                    <div className={styles.metricValue}>{aggregateProgress}%</div>
+                    <div className={styles.metricLabel}>Average Student Progress</div>
+                </div>
+
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.amberIcon}`}>
+                            <Video size={22} />
+                        </div>
+                        <span className={styles.metricBadge}>Content</span>
+                    </div>
+                    <div className={styles.metricValue}>{totalEnrollments}</div>
+                    <div className={styles.metricLabel}>Total Active Enrollments</div>
+                </div>
+            </div>
+
+            {/* 3. 2-Column Split: Analytics & Quick Management */}
+            <div className={styles.contentSplit}>
+                {/* Left: Program Performance */}
+                <div className={styles.panelCard}>
+                    <div className={styles.panelCardHeader}>
+                        <div>
+                            <h3 className={styles.panelCardTitle}>Course Performance & Analytics</h3>
+                            <p className={styles.panelCardSubtitle}>Track learner progression and engagement across active cohorts</p>
+                        </div>
+                        <button className={styles.panelHeaderLink} onClick={() => onTabChange("courses")}>
+                            All Courses <ArrowUpRight size={15} />
+                        </button>
+                    </div>
+                    <div className={styles.courseProgressList}>
+                        {courseProgress.length > 0 ? (
+                            courseProgress.slice(0, 4).map((cp) => (
+                                <div key={cp.courseId} className={styles.courseProgressItem}>
+                                    <div className={styles.courseProgressTop}>
+                                        <strong className={styles.courseName}>{cp.courseTitle}</strong>
+                                        <span className={styles.courseStudents}>{cp.enrollmentCount} students</span>
                                     </div>
-                                    <div className={styles.progressBar}>
-                                        <div className={styles.progressFill} style={{ width: `${cp.avgProgress}%` }} />
+                                    <div className={styles.progressBarWrapper}>
+                                        <div className={styles.progressBarTrack}>
+                                            <div className={styles.progressBarFill} style={{ width: `${cp.avgProgress}%` }} />
+                                        </div>
+                                        <span className={styles.progressPercent}>{cp.avgProgress}%</span>
                                     </div>
                                 </div>
+                            ))
+                        ) : (
+                            <div className={styles.emptyAnalytics}>
+                                <BookOpen size={36} className={styles.emptyIcon} />
+                                <p>No active courses available for performance tracking yet.</p>
                             </div>
-                        ))
-                    ) : (
-                        <div className={styles.infoBox} style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
-                            No courses available for analytics yet.
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-                {courseProgress.length > 3 && (
-                    <button className={styles.viewAllBtn} onClick={() => onTabChange("courses")}>
-                        View All Programs <ArrowUpRight size={14} />
-                    </button>
-                )}
-            </motion.div>
 
+                {/* Right: Quick Management Tools */}
+                <div className={styles.panelCard}>
+                    <div className={styles.panelCardHeader}>
+                        <div>
+                            <h3 className={styles.panelCardTitle}>Quick Management</h3>
+                            <p className={styles.panelCardSubtitle}>Frequent instructor shortcuts and tools</p>
+                        </div>
+                    </div>
+                    <div className={styles.quickToolsGrid}>
+                        <button onClick={() => onTabChange("library")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.blueIcon}`}>
+                                <Video size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Master Module Library</strong>
+                                <span>Manage videos, PDFs, and resources</span>
+                            </div>
+                        </button>
 
+                        <button onClick={() => onTabChange("batches")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.purpleIcon}`}>
+                                <Layers size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Cohort & Batches</strong>
+                                <span>Configure schedules & access rules</span>
+                            </div>
+                        </button>
 
+                        <button onClick={() => onTabChange("quizzes")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.amberIcon}`}>
+                                <FileQuestion size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Quiz Management</strong>
+                                <span>Build assessments & view results</span>
+                            </div>
+                        </button>
 
-        </motion.div>
+                        <button onClick={() => onTabChange("students")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.emeraldIcon}`}>
+                                <Users size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Student Directory</strong>
+                                <span>Search learners & manage enrollments</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }

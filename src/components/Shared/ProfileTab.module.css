@@ -2,6 +2,9 @@
     display: flex;
     flex-direction: column;
     gap: 32px;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
 }
 
 .panel {

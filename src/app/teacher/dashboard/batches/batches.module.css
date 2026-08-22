@@ -1,8 +1,9 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 1300px;
+  gap: 20px;
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
   animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }

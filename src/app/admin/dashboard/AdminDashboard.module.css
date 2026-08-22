@@ -28,7 +28,18 @@
 .pageContent {
     flex: 1;
     overflow-y: auto;
-    padding: 32px;
+    padding: 28px 36px;
+    display: flex;
+    flex-direction: column;
+}
+
+.pageShell {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 .loadingOverlay {
@@ -55,6 +66,12 @@
 
 /* ===== Mobile Bottom Nav ===== */
 
+@media (max-width: 1024px) {
+    .pageContent {
+        padding: 20px 24px;
+    }
+}
+
 @media (max-width: 768px) {
     .mainContent {
         margin-left: 0;
@@ -63,8 +80,12 @@
         margin-left: 0;
     }
     .pageContent {
-        padding: 20px;
-        padding-bottom: 100px;
+        padding: 16px;
+        padding-bottom: 96px; /* Space for mobile nav */
+    }
+
+    .pageShell {
+        gap: 16px;
     }
 
     .mobileBottomNav {
@@ -160,9 +181,10 @@
     color: var(--text-muted);
 }
 
-/* ===== Panel / Card System ===== */
-
 .panel {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
     border-radius: 18px;
     border: 1px solid var(--glass-border);
     background: color-mix(in srgb, var(--card-bg) 88%, transparent);

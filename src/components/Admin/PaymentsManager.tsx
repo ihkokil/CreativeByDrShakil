@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Loader from "@/components/UI/Loader";
 import { formatDateGMT6 } from "@/lib/date-format";
-import styles from "@/app/admin/dashboard/AdminDashboard.module.css";
-import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import styles from "./PaymentsManager.module.css";
+import { CheckCircle2, Clock, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 type PaymentStatus = "pending" | "approved" | "rejected";
 
@@ -101,15 +101,8 @@ export default function PaymentsManager() {
   }, [orders.length, status]);
 
   return (
-    <section className={styles.panel}>
-      <div className={styles.panelHeader}>
-        <div>
-          <h2 className={styles.panelTitle}>Payment Verification</h2>
-          <p className={styles.subtitle}>
-            Approve or reject bKash transactions submitted by students
-          </p>
-        </div>
-
+    <div className={styles.container}>
+      <div className={styles.topBar}>
         <div className={styles.filterTabs}>
           {STATUS_TABS.map((t) => {
             const Icon = t.icon;
@@ -117,13 +110,14 @@ export default function PaymentsManager() {
             return (
               <button
                 key={t.id}
+                type="button"
                 className={`${styles.filterTab} ${active ? styles.activeTab : ""}`}
                 onClick={() => {
                   setStatus(t.id);
                   setExpandedOrderId(null);
                 }}
               >
-                <Icon size={16} />
+                <Icon size={15} />
                 <span>{t.label}</span>
                 {t.id === "pending" && typeof pendingCount === "number" && pendingCount > 0 ? (
                   <span className={styles.tabBadge}>{pendingCount}</span>
@@ -143,156 +137,132 @@ export default function PaymentsManager() {
       ) : orders.length === 0 ? (
         <div className={styles.infoBox}>No payments found for this status.</div>
       ) : (
-        <div className={styles.teacherGrid}>
+        <div className={styles.ordersGrid}>
           {orders.map((o) => {
             const isExpanded = expandedOrderId === o.id;
 
             return (
               <article
                 key={o.id}
-                className={`${styles.teacherCard} ${isExpanded ? styles.paymentCardExpanded : ""}`}
-                style={{ cursor: "pointer" }}
+                className={`${styles.orderCard} ${isExpanded ? styles.orderCardExpanded : ""}`}
                 onClick={() => setExpandedOrderId(isExpanded ? null : o.id)}
               >
                 <div className={styles.cardHeader}>
                   <div className={styles.cardInfo}>
-                    <h3 style={{ marginBottom: 2 }}>{o.course?.title || "Course"}</h3>
-                    <p style={{ marginBottom: 0 }}>{o.user?.fullName} · {o.user?.email}</p>
+                    <h3 className={styles.courseTitle}>{o.course?.title || "Course"}</h3>
+                    <p className={styles.studentMeta}>{o.user?.fullName} · {o.user?.email}</p>
                   </div>
                   <button
                     type="button"
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "var(--text-muted)",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      fontSize: "0.82rem",
-                      fontWeight: 600,
-                    }}
+                    className={styles.inspectBtn}
                     onClick={(e) => {
                       e.stopPropagation();
                       setExpandedOrderId(isExpanded ? null : o.id);
                     }}
                   >
                     <span>{isExpanded ? "Collapse" : "Inspect"}</span>
+                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
                 </div>
 
-                <div className={styles.cardContent}>
-                  <div className={styles.academicInfo}>
-                    <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
-                      <span className={`${styles.statusBadge} ${
-                        o.status === "approved" ? styles.statusSuccess : 
-                        o.status === "rejected" ? styles.statusDanger : 
-                        styles.statusWarning
-                      }`}>
-                        {String(o.status)}
+                <div className={styles.badgeRow}>
+                  <span className={`${styles.statusBadge} ${
+                    o.status === "approved" ? styles.statusApproved : 
+                    o.status === "rejected" ? styles.statusRejected : 
+                    styles.statusPending
+                  }`}>
+                    {String(o.status)}
+                  </span>
+                  <span className={styles.amount}>
+                    ৳{Math.round(Number(o.payment?.amount ?? o.totalAmount))}
+                  </span>
+                </div>
+
+                <div className={styles.timeMeta}>
+                  Updated {formatDateTime(o.updatedAt)}
+                </div>
+
+                {isExpanded && (
+                  <div className={styles.expandedDetails} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Student Name</span>
+                      <span className={styles.detailValue}>{o.user?.fullName || "—"}</span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Student Email</span>
+                      <span className={styles.detailValue}>{o.user?.email || "—"}</span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Course</span>
+                      <span className={styles.detailValue}>{o.course?.title || "—"}</span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>bKash Number</span>
+                      <span className={styles.detailValue}>{o.payment?.phoneNumber || "—"}</span>
+                    </div>
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Transaction ID</span>
+                      <span className={styles.detailValue} style={{ color: "var(--primary)" }}>
+                        {o.payment?.transactionId || "—"}
                       </span>
-                      <strong style={{ fontSize: "1rem" }}>
-                        ৳{Math.round(Number(o.payment?.amount ?? o.totalAmount))}
-                      </strong>
                     </div>
-                    <p style={{ marginBottom: 0, color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                      Updated {formatDateTime(o.updatedAt)}
-                    </p>
-                  </div>
-
-                  {/* Inline Expanded Details (No Popup) */}
-                  {isExpanded && (
-                    <div className={styles.paymentAccordionDetails} onClick={(e) => e.stopPropagation()}>
-                      <div className={styles.paymentDetailItem}>
-                        <span>Student Name</span>
-                        <strong>{o.user?.fullName || "—"}</strong>
-                      </div>
-                      <div className={styles.paymentDetailItem}>
-                        <span>Student Email</span>
-                        <strong>{o.user?.email || "—"}</strong>
-                      </div>
-                      <div className={styles.paymentDetailItem}>
-                        <span>Course</span>
-                        <strong>{o.course?.title || "—"}</strong>
-                      </div>
-                      <div className={styles.paymentDetailItem}>
-                        <span>bKash Phone Number</span>
-                        <strong>{o.payment?.phoneNumber || "—"}</strong>
-                      </div>
-                      <div className={styles.paymentDetailItem}>
-                        <span>Transaction ID (TrxID)</span>
-                        <strong style={{ color: "var(--primary)", fontFamily: "monospace", fontSize: "0.95rem" }}>
-                          {o.payment?.transactionId || "—"}
-                        </strong>
-                      </div>
-                      <div className={styles.paymentDetailItem}>
-                        <span>Amount Submitted</span>
-                        <strong>৳{Math.round(Number(o.payment?.amount ?? o.totalAmount))}</strong>
-                      </div>
-                      <div className={styles.paymentDetailItem}>
-                        <span>Submitted At</span>
-                        <strong>{formatDateTime(o.payment?.submittedAt)}</strong>
-                      </div>
-                      <div className={styles.paymentDetailItem}>
-                        <span>Order Updated</span>
-                        <strong>{formatDateTime(o.updatedAt)}</strong>
-                      </div>
-
-                      {status === "pending" && (
-                        <div className={styles.paymentStickyActions}>
-                          <button
-                            className={`${styles.actionBtn} ${styles.actionBtnWide} ${styles.danger}`}
-                            disabled={actingOn === o.id}
-                            onClick={() => decide(o.id, "reject")}
-                            title="Reject this payment"
-                          >
-                            <XCircle size={16} />
-                            <span>{actingOn === o.id ? "Saving..." : "Reject Payment"}</span>
-                          </button>
-                          <button
-                            className={`${styles.actionBtn} ${styles.actionBtnWide}`}
-                            disabled={actingOn === o.id}
-                            onClick={() => decide(o.id, "approve")}
-                            title="Approve this payment and enroll student"
-                          >
-                            <CheckCircle2 size={16} />
-                            <span>{actingOn === o.id ? "Saving..." : "Approve Payment"}</span>
-                          </button>
-                        </div>
-                      )}
+                    <div className={styles.detailRow}>
+                      <span className={styles.detailLabel}>Submitted At</span>
+                      <span className={styles.detailValue}>{formatDateTime(o.payment?.submittedAt)}</span>
                     </div>
-                  )}
 
-                  {!isExpanded && status === "pending" ? (
-                    <div className={styles.cardFooter} style={{ marginTop: 12 }}>
-                      <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                    {status === "pending" && (
+                      <div className={styles.cardActions} style={{ marginTop: 8 }}>
                         <button
-                          className={`${styles.actionBtn} ${styles.actionBtnWide}`}
-                          disabled={actingOn === o.id}
-                          onClick={() => decide(o.id, "approve")}
-                          title="Approve"
-                        >
-                          <CheckCircle2 size={16} />
-                          <span>Approve</span>
-                        </button>
-                        <button
-                          className={`${styles.actionBtn} ${styles.actionBtnWide} ${styles.danger}`}
+                          type="button"
+                          className={styles.rejectBtn}
                           disabled={actingOn === o.id}
                           onClick={() => decide(o.id, "reject")}
-                          title="Reject"
                         >
-                          <XCircle size={16} />
-                          <span>Reject</span>
+                          <XCircle size={15} />
+                          <span>{actingOn === o.id ? "Saving..." : "Reject"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.approveBtn}
+                          disabled={actingOn === o.id}
+                          onClick={() => decide(o.id, "approve")}
+                        >
+                          <CheckCircle2 size={15} />
+                          <span>{actingOn === o.id ? "Saving..." : "Approve & Enroll"}</span>
                         </button>
                       </div>
-                    </div>
-                  ) : null}
-                </div>
+                    )}
+                  </div>
+                )}
+
+                {!isExpanded && status === "pending" ? (
+                  <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      className={styles.approveBtn}
+                      disabled={actingOn === o.id}
+                      onClick={() => decide(o.id, "approve")}
+                    >
+                      <CheckCircle2 size={15} />
+                      <span>Approve</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.rejectBtn}
+                      disabled={actingOn === o.id}
+                      onClick={() => decide(o.id, "reject")}
+                    >
+                      <XCircle size={15} />
+                      <span>Reject</span>
+                    </button>
+                  </div>
+                ) : null}
               </article>
             );
           })}
         </div>
       )}
-    </section>
+    </div>
   );
 }

@@ -513,11 +513,29 @@ export default function TeacherQuizzesPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Quiz Management</h1>
-          <p className={styles.subtitle}>Create, manage, and analyze your quizzes</p>
-        </div>
+      <div className={styles.topBarRow}>
+        {courses.length > 0 ? (
+          <div className={styles.courseTabs}>
+            <button
+              type="button"
+              onClick={() => handleCourseTabChange('')}
+              className={`${styles.courseTab} ${!courseFilter ? styles.courseTabActive : ''}`}
+            >
+              <BookOpen size={14} /> All Courses
+            </button>
+            {courses.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => handleCourseTabChange(c.id)}
+                className={`${styles.courseTab} ${courseFilter === c.id ? styles.courseTabActive : ''}`}
+              >
+                <BookOpen size={14} /> {c.title}
+              </button>
+            ))}
+          </div>
+        ) : <div />}
+
         <Link href="/teacher/dashboard/quizzes/create" className={styles.createBtn}>
           <Plus className={styles.btnIcon} />
           Create New Quiz
@@ -525,29 +543,6 @@ export default function TeacherQuizzesPage() {
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
-
-      {/* Course Filter Tabs */}
-      {courses.length > 0 && (
-        <div className={styles.courseTabs}>
-          <button
-            type="button"
-            onClick={() => handleCourseTabChange('')}
-            className={`${styles.courseTab} ${!courseFilter ? styles.courseTabActive : ''}`}
-          >
-            <BookOpen size={14} /> All Courses
-          </button>
-          {courses.map(c => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => handleCourseTabChange(c.id)}
-              className={`${styles.courseTab} ${courseFilter === c.id ? styles.courseTabActive : ''}`}
-            >
-              <BookOpen size={14} /> {c.title}
-            </button>
-          ))}
-        </div>
-      )}
 
       <div className={styles.toolbar}>
         <form onSubmit={handleSearch} className={styles.searchForm}>
@@ -637,6 +632,11 @@ export default function TeacherQuizzesPage() {
                     <td>
                       <span className={styles.questionCount}>
                         {quiz._count.questions} / {quiz.numQuestionsToServe} served
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '13px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                        {quiz.durationMinutes} mins
                       </span>
                     </td>
                     <td>

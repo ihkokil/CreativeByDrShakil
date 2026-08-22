@@ -30,32 +30,21 @@
 }
 
 .container {
-
-  max-width: 1400px;
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 24px 16px;
-}
-
-.header {
+  padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.topBarRow {
+  display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 16px;
-  margin-bottom: 24px;
-}
-
-.title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 4px;
-}
-
-.subtitle {
-  font-size: 15px;
-  color: var(--text-secondary);
-  margin: 0;
 }
 
 .createBtn {
@@ -221,7 +210,7 @@
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .table {

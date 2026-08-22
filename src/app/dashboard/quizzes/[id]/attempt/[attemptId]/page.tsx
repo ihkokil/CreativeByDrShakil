@@ -189,20 +189,6 @@ export default function QuizTakePage() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [showResults, autoSubmitted]);
 
-  // Detect tab visibility change
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && !showResults && !autoSubmitted) {
-        setTabWarningShown(true);
-        // Auto-save on tab blur
-        saveAnswers();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [showResults, autoSubmitted]);
-
   // Save answers to server
   const saveAnswers = useCallback(async () => {
     const unsavedAnswers = Object.entries(answers)
@@ -242,6 +228,32 @@ export default function QuizTakePage() {
       console.error('Failed to save answers:', err);
     }
   }, [answers, attemptId]);
+
+  // Detect tab visibility change & auto-dismiss warning after 3s on return
+  useEffect(() => {
+    let dismissTimer: NodeJS.Timeout | null = null;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && !showResults && !autoSubmitted) {
+        setTabWarningShown(true);
+        if (dismissTimer) clearTimeout(dismissTimer);
+        // Auto-save on tab blur
+        saveAnswers();
+      } else if (!document.hidden && !showResults && !autoSubmitted) {
+        // When student returns to tab, auto-dismiss warning in 3s
+        if (dismissTimer) clearTimeout(dismissTimer);
+        dismissTimer = setTimeout(() => {
+          setTabWarningShown(false);
+        }, 3000);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (dismissTimer) clearTimeout(dismissTimer);
+    };
+  }, [showResults, autoSubmitted, saveAnswers]);
 
   // Save a single answer immediately to the server
   const saveAnswerImmediately = useCallback(async (questionId: string, selectedOption: string) => {
@@ -696,6 +708,38 @@ export default function QuizTakePage() {
               </article>
             );
           })}
+
+          {/* Bottom Completion Card & Submit Button */}
+          {!showResults && (
+            <div className={styles.bottomCompletionCard}>
+              <div className={styles.bottomSummaryInfo}>
+                <div className={styles.bottomSummaryStatus}>
+                  <CheckCircle size={22} className={answeredCount === totalQuestions ? styles.statusIconComplete : styles.statusIconPending} />
+                  <div>
+                    <h3 className={styles.bottomSummaryTitle}>
+                      {answeredCount === totalQuestions 
+                        ? 'All questions answered!' 
+                        : `${answeredCount} of ${totalQuestions} questions answered`}
+                    </h3>
+                    <p className={styles.bottomSummarySubtitle}>
+                      {unansweredCount > 0 
+                        ? `You have ${unansweredCount} unanswered question${unansweredCount > 1 ? 's' : ''}. You can review them above or submit your quiz now.` 
+                        : 'You are ready to submit and calculate your results.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(true)}
+                disabled={submitting}
+                className={styles.bottomSubmitBtn}
+              >
+                <Check size={18} />
+                <span>{submitting ? 'Submitting Quiz...' : 'Submit Quiz Now'}</span>
+              </button>
+            </div>
+          )}
 
           <div className={styles.bottomSpacer}></div>
 

@@ -1,18 +1,17 @@
 .managerContainer {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 20px;
     width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
 }
 
-.header {
+.topBar {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    background: var(--glass);
-    padding: 25px 30px;
-    border-radius: 20px;
-    border: 1px solid var(--glass-border);
+    gap: 16px;
 }
 
 .header h2 {

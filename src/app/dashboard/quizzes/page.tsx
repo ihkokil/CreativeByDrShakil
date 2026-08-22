@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Loader from "@/components/UI/Loader";
 import Link from 'next/link';
 import {
@@ -19,8 +19,13 @@ import {
   FileText,
   Lock,
   BookOpen,
-  Folder
+  Folder,
+  Download,
+  Loader2,
+  Check,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { formatDisplayDate } from '@/lib/date-format';
 import styles from './QuizzesPage.module.css';
 
@@ -80,6 +85,10 @@ export default function QuizzesPage() {
   const [error, setError] = useState<string | null>(null);
   const limit = 20;
 
+  const [pdfQuizInfo, setPdfQuizInfo] = useState<{ quiz: Quiz; questions: any[] } | null>(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+
   // Debounce search query by 300ms to avoid excessive API requests
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,6 +101,89 @@ export default function QuizzesPage() {
   useEffect(() => {
     fetchQuizzes();
   }, [debouncedSearch, statusFilter, courseFilter, sortBy, page]);
+
+  // PDF Generation Hook
+  useEffect(() => {
+    if (pdfQuizInfo && pdfContainerRef.current) {
+      setTimeout(async () => {
+        try {
+          const { quiz } = pdfQuizInfo;
+          const container = pdfContainerRef.current!;
+          
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'px',
+            format: 'a4'
+          });
+          
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const paddingX = 20;
+          const usableWidth = pdfWidth - (paddingX * 2);
+          let currentY = 20;
+          
+          const bodyBgStyle = window.getComputedStyle(document.body).backgroundColor;
+          const rgbMatch = bodyBgStyle.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          const bgColor = rgbMatch ? [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])] : [255, 255, 255];
+          
+          pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+          pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+          
+          const cards = container.querySelectorAll('.pdf-question-card');
+          
+          for (let i = 0; i < cards.length; i++) {
+            const el = cards[i] as HTMLElement;
+            const canvas = await html2canvas(el, {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: bodyBgStyle,
+              width: el.scrollWidth,
+              windowWidth: document.documentElement.scrollWidth,
+              scrollX: -window.scrollX,
+              scrollY: -window.scrollY
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            const imgHeight = (canvas.height * usableWidth) / canvas.width;
+            
+            if (currentY + imgHeight > pdfHeight - 20 && currentY > 20) {
+              pdf.addPage();
+              pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+              pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
+              currentY = 20;
+            }
+            
+            pdf.addImage(imgData, 'PNG', paddingX, currentY, usableWidth, imgHeight);
+            currentY += imgHeight + 15;
+          }
+          
+          const safeTitle = quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          pdf.save(`quiz_${safeTitle}_answers.pdf`);
+        } catch (err: any) {
+          console.error('PDF generation failed:', err);
+          alert('Failed to generate PDF. Please try again.');
+        } finally {
+          setPdfQuizInfo(null);
+          setGeneratingPdfId(null);
+        }
+      }, 500);
+    }
+  }, [pdfQuizInfo]);
+
+  const handleDownloadPDF = async (quiz: Quiz) => {
+    try {
+      setGeneratingPdfId(quiz.id);
+      const res = await fetch(`/api/quiz/${quiz.id}/questions`, { cache: 'no-store' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch questions');
+      
+      setPdfQuizInfo({ quiz, questions: data.questions || [] });
+    } catch (err: any) {
+      alert('Error generating PDF: ' + err.message);
+      setGeneratingPdfId(null);
+    }
+  };
 
   const fetchQuizzes = async () => {
     setLoading(true);
@@ -138,22 +230,21 @@ export default function QuizzesPage() {
       return <span className={`${styles.badge} ${styles.inProgress}`}><ClockIcon className={styles.badgeIcon} /> In Progress</span>;
     }
     const hasCompleted = Boolean(
-      quiz.latestCompletedAttempt || 
+      quiz.latestCompletedAttempt ||
       (quiz.completedAttemptsCount && quiz.completedAttemptsCount > 0) ||
-      quiz.topScore !== null || 
       (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted' || quiz.attempt.status === 'completed'))
     );
     if (hasCompleted) {
       return <span className={`${styles.badge} ${styles.completed}`}><CheckCircle className={styles.badgeIcon} /> Completed</span>;
     }
-    return <span className={`${styles.badge} ${styles.notAttempted}`}><AlertCircle className={styles.badgeIcon} /> Available</span>;
+    return <span className={`${styles.badge} ${styles.notAttempted}`}><AlertCircle className={styles.badgeIcon} /> Not Attempted</span>;
   };
 
   const formatDuration = (minutes: number) => {
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins} mins` : `${hours}h`;
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     }
     return `${minutes} mins`;
   };
@@ -161,46 +252,50 @@ export default function QuizzesPage() {
   const formatUnlockDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      const dateFormatted = formatDisplayDate(dateStr);
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
-      if (hours !== 0 || minutes !== 0) {
-        const timeFormatted = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        return `${dateFormatted} • ${timeFormatted}`;
-      }
-      return dateFormatted;
+      return date.toLocaleDateString(undefined, { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+        hour: 'numeric',
+        minute: '2-digit'
+      });
     } catch {
-      return formatDisplayDate(dateStr);
+      return dateStr;
     }
   };
 
-  // Group unique courses for filter dropdown (fallback if availableCourses is empty)
+  // Group quizzes by course
+  const courseGroups = useMemo(() => {
+    const groups: { [key: string]: { name: string; id: string; quizzes: Quiz[] } } = {};
+    
+    quizzes.forEach(quiz => {
+      const courseId = quiz.courseId || 'unassigned';
+      const courseName = quiz.courseName || 'General Practice Quizzes';
+      
+      if (!groups[courseId]) {
+        groups[courseId] = {
+          id: courseId,
+          name: courseName,
+          quizzes: []
+        };
+      }
+      groups[courseId].quizzes.push(quiz);
+    });
+    
+    return Object.values(groups);
+  }, [quizzes]);
+
+  // Extract unique courses from available courses plus current quizzes
   const uniqueCourses = useMemo(() => {
-    if (availableCourses.length > 0) {
-      return availableCourses.map(c => ({ id: c.id, name: c.title }));
-    }
     const map = new Map<string, string>();
+    availableCourses.forEach(c => map.set(c.id, c.title));
     quizzes.forEach(q => {
       if (q.courseId && q.courseName) {
         map.set(q.courseId, q.courseName);
       }
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+    return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
   }, [availableCourses, quizzes]);
-
-  // Group quizzes by course for organized display
-  const courseGroups = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; quizzes: Quiz[] }>();
-    quizzes.forEach(q => {
-      const cId = q.courseId || 'general';
-      const cName = q.courseName || 'Course Quizzes';
-      if (!map.has(cId)) {
-        map.set(cId, { id: cId, name: cName, quizzes: [] });
-      }
-      map.get(cId)!.quizzes.push(q);
-    });
-    return Array.from(map.values());
-  }, [quizzes]);
 
   if (loading && quizzes.length === 0) {
     return (
@@ -215,11 +310,6 @@ export default function QuizzesPage() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Course Quizzes</h1>
-        <p className={styles.subtitle}>Practice and test your knowledge across your enrolled medical courses and modules</p>
-      </div>
-
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={styles.toolbar}>
@@ -244,8 +334,8 @@ export default function QuizzesPage() {
               aria-label="Filter by course"
             >
               <option value="">All Enrolled Courses</option>
-              {uniqueCourses.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+              {uniqueCourses.map(course => (
+                <option key={course.id} value={course.id}>{course.title}</option>
               ))}
             </select>
           )}
@@ -256,22 +346,21 @@ export default function QuizzesPage() {
             className={styles.filterSelect}
             aria-label="Filter by status"
           >
-            <option value="">All Status</option>
-            <option value="available">Available (Unlocked)</option>
-            <option value="locked">Locked (Coming Soon)</option>
+            <option value="">All Statuses</option>
+            <option value="not_attempted">Not Attempted</option>
             <option value="in_progress">In Progress</option>
             <option value="completed">Completed</option>
           </select>
-          
+
           <select
             value={sortBy}
-            onChange={(e) => { setSortBy(e.target.value as any); setPage(1); }}
+            onChange={(e) => setSortBy(e.target.value as any)}
             className={styles.filterSelect}
             aria-label="Sort by"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
-            <option value="duration">Duration (Short to Long)</option>
+            <option value="duration">Duration</option>
             <option value="alphabetical">Alphabetical</option>
           </select>
         </div>
@@ -304,9 +393,9 @@ export default function QuizzesPage() {
                   const hasCompletedAttempt = Boolean(
                     quiz.latestCompletedAttempt ||
                     (quiz.completedAttemptsCount && quiz.completedAttemptsCount > 0) ||
+                    (quiz.attemptsCount && quiz.attemptsCount > 0) ||
                     (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted' || quiz.attempt.status === 'completed'))
                   );
-                  const resultAttemptId = quiz.latestCompletedAttempt?.id || (quiz.attempt?.status !== 'in_progress' ? quiz.attempt?.id : null);
                   
                   const canStart = !isLocked && !isInProgress && (
                     !quiz.attempt || (
@@ -429,19 +518,31 @@ export default function QuizzesPage() {
                           </button>
                         ) : (
                           <>
-                            {/* Row 1, Column 1: Review Answers */}
-                            {hasCompletedAttempt && resultAttemptId && (
-                              <Link
-                                href={`/dashboard/quizzes/${quiz.id}/result?attempt=${resultAttemptId}&tab=answers`}
+                            {/* 1. Download Answer (Available ONLY after at least one completed attempt) */}
+                            {hasCompletedAttempt && (
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadPDF(quiz)}
+                                disabled={generatingPdfId === quiz.id}
                                 className={`${styles.actionBtn} ${styles.resultBtn}`}
-                                title="Review Official Answers and Explanations"
+                                title="Download Questions, Official Answers & Explanations (PDF)"
                               >
-                                <FileText className={styles.btnIcon} /> Review Answers
-                              </Link>
+                                {generatingPdfId === quiz.id ? (
+                                  <>
+                                    <Loader2 className={`${styles.btnIcon} ${styles.spinIcon}`} />
+                                    <span>Downloading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className={styles.btnIcon} />
+                                    <span>Download Answer</span>
+                                  </>
+                                )}
+                              </button>
                             )}
 
-                            {/* Row 1, Column 2: Leaderboard */}
-                            {(quiz.attemptsCount > 0 || (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted'))) && (
+                            {/* 2. Leaderboard (Available ONLY after at least one attempt) */}
+                            {hasCompletedAttempt && (
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}/attempts?tab=leaderboard`}
                                 className={`${styles.actionBtn} ${styles.leaderboardBtn}`}
@@ -451,8 +552,8 @@ export default function QuizzesPage() {
                               </Link>
                             )}
 
-                            {/* Row 2, Column 1: Review Attempts */}
-                            {(quiz.attemptsCount > 0 || (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted'))) && (
+                            {/* 3. Review Attempts (Available ONLY after at least one attempt) */}
+                            {hasCompletedAttempt && (
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}/attempts`}
                                 className={`${styles.actionBtn} ${styles.reviewAttemptsBtn}`}
@@ -462,11 +563,11 @@ export default function QuizzesPage() {
                               </Link>
                             )}
 
-                            {/* Row 2, Column 2: Re-attempt / Continue / Start */}
+                            {/* 4. Re-attempt / Continue / Start Quiz */}
                             {isInProgress && quiz.attempt?.id ? (
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}/attempt/${quiz.attempt.id}`}
-                                className={`${styles.actionBtn} ${styles.continueBtn}`}
+                                className={`${styles.actionBtn} ${styles.continueBtn} ${!hasCompletedAttempt ? styles.fullWidthAction : ''}`}
                                 title="Continue In-Progress Quiz"
                               >
                                 <RotateCcw className={styles.btnIcon} /> Continue
@@ -474,10 +575,10 @@ export default function QuizzesPage() {
                             ) : canStart ? (
                               <Link
                                 href={`/dashboard/quizzes/${quiz.id}`}
-                                className={`${styles.actionBtn} ${styles.startBtn} ${!hasCompletedAttempt && quiz.attemptsCount === 0 ? styles.fullWidthAction : ''}`}
-                                title={quiz.attemptsCount > 0 ? "Re-attempt Quiz" : "Start Quiz"}
+                                className={`${styles.actionBtn} ${styles.startBtn} ${!hasCompletedAttempt ? styles.fullWidthAction : ''}`}
+                                title={hasCompletedAttempt ? "Re-attempt Quiz" : "Start Quiz"}
                               >
-                                <Play className={styles.btnIcon} /> {quiz.attemptsCount > 0 ? 'Re-attempt' : 'Start'}
+                                <Play className={styles.btnIcon} /> {hasCompletedAttempt ? 'Re-attempt' : 'Start Quiz'}
                               </Link>
                             ) : null}
                           </>
@@ -513,6 +614,91 @@ export default function QuizzesPage() {
           )}
         </>
       )}
+
+      {/* Hidden printable container for student PDF answer download */}
+      <div 
+        ref={pdfContainerRef} 
+        style={{ 
+          position: 'fixed', 
+          left: '-9999px', 
+          top: '0', 
+          width: '800px', 
+          zIndex: -1,
+          opacity: 0,
+          pointerEvents: 'none'
+        }}
+      >
+        {pdfQuizInfo && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '20px' }}>
+            <div style={{ background: 'var(--primary)', color: 'white', padding: '20px', borderRadius: '12px' }} className="pdf-question-card">
+              <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Quiz: {pdfQuizInfo.quiz.title}</h2>
+              {pdfQuizInfo.quiz.description && <p style={{ opacity: 0.9 }}>{pdfQuizInfo.quiz.description}</p>}
+            </div>
+            {pdfQuizInfo.questions.map((question, index) => (
+              <article key={question.id} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px' }} className="pdf-question-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Q{index + 1}.</span>
+                  <h3 style={{ fontSize: '18px', fontWeight: '600' }}>{question.questionText}</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginLeft: '32px' }}>
+                  {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
+                    [
+                      { letter: 'A', text: question.optionA },
+                      { letter: 'B', text: question.optionB },
+                      { letter: 'C', text: question.optionC },
+                      { letter: 'D', text: question.optionD },
+                      { letter: 'E', text: question.optionE },
+                    ].map((option: any) => {
+                      const correctStr = question.correctOption || 'F'.repeat(5);
+                      const originalIdx = option.letter.charCodeAt(0) - 65;
+                      const isCorrectT = correctStr[originalIdx] === 'T';
+                      const isCorrectF = correctStr[originalIdx] === 'F';
+                      
+                      return (
+                        <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <span style={{ fontSize: '15px' }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>
+                          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '54px', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: isCorrectT ? 'var(--success, #10b981)' : 'var(--surface-soft, rgba(255,255,255,0.06))', color: isCorrectT ? 'white' : 'var(--text-muted, #888)' }}>
+                              True
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '54px', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, background: isCorrectF ? 'var(--success, #10b981)' : 'var(--surface-soft, rgba(255,255,255,0.06))', color: isCorrectF ? 'white' : 'var(--text-muted, #888)' }}>
+                              False
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    [
+                      { letter: 'A', text: question.optionA },
+                      { letter: 'B', text: question.optionB },
+                      { letter: 'C', text: question.optionC },
+                      { letter: 'D', text: question.optionD },
+                      { letter: 'E', text: question.optionE },
+                    ].filter(o => o.text !== null && o.text !== undefined && String(o.text).trim() !== '').map((option: any) => {
+                      const isCorrect = question.correctOption === option.letter;
+                      return (
+                        <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', borderRadius: '8px', border: isCorrect ? '2px solid var(--success)' : '1px solid var(--border)', background: isCorrect ? 'rgba(16, 185, 129, 0.1)' : 'transparent' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', borderRadius: '50%', background: isCorrect ? 'var(--success)' : 'var(--surface-soft)', color: isCorrect ? 'white' : 'var(--text-muted)' }}>
+                            <Check size={16} />
+                          </div>
+                          <span style={{ fontSize: '16px', fontWeight: isCorrect ? 600 : 400 }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                {question.explanation && (
+                  <div style={{ marginTop: '24px', padding: '16px', background: 'var(--surface-soft)', borderRadius: '8px', borderLeft: '4px solid var(--info)' }}>
+                    <h4 style={{ fontWeight: 600, marginBottom: '8px', color: 'var(--info)' }}>Explanation</h4>
+                    <p style={{ fontSize: '15px', color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{question.explanation}</p>
+                  </div>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+}

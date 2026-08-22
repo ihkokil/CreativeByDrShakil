@@ -714,17 +714,13 @@ export default function ModuleLibraryManager() {
 
     return (
         <div className={styles.managerContainer}>
-            <div className={styles.header}>
-                <div>
-                    <h2>Master <span className="gradient-text">Module Library</span></h2>
-                    <p>Organize your videos and documents (PDF/PPT/DOC). Add via Drive link or upload to the library.</p>
-                </div>
-                {!activeRootId && (
+            {!activeRootId && (
+                <div className={styles.topBar}>
                     <button className={styles.primaryBtn} onClick={() => handleAddFolderClick()}>
                         <Plus size={18} /> New Root Folder
                     </button>
-                )}
-            </div>
+                </div>
+            )}
 
             {!activeRootId ? (
                 <>

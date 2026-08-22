@@ -604,7 +604,7 @@ export default function QuizBuilderPage() {
                 <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>SBA Marks Per Question</label>
                 <input
                   type="number"
-                  step="0.5"
+                  step="0.25"
                   min="0"
                   value={formData.sbaMarks}
                   onChange={e => updateFormData('sbaMarks', parseFloat(e.target.value) || 0)}
@@ -617,7 +617,7 @@ export default function QuizBuilderPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="number"
-                    step="0.05"
+                    step="0.25"
                     min="0"
                     value={formData.sbaNegative}
                     onChange={e => updateFormData('sbaNegative', parseFloat(e.target.value) || 0)}
@@ -640,7 +640,7 @@ export default function QuizBuilderPage() {
                 <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>T/F Marks Per Option</label>
                 <input
                   type="number"
-                  step="0.05"
+                  step="0.25"
                   min="0"
                   value={formData.tfMarks}
                   onChange={e => updateFormData('tfMarks', parseFloat(e.target.value) || 0)}
@@ -653,12 +653,12 @@ export default function QuizBuilderPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.25"
                     min="0"
                     value={formData.tfNegative}
                     onChange={e => updateFormData('tfNegative', parseFloat(e.target.value) || 0)}
                     className={styles.input}
-                    placeholder="e.g. 0.5"
+                    placeholder="e.g. 0.25"
                   />
                   <span style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '13px' }}>marks</span>
                 </div>
@@ -684,8 +684,8 @@ export default function QuizBuilderPage() {
                 <Trophy size={18} style={{ color: '#3b82f6' }} />
                 <span>Calculated Total Marks: </span>
                 <span style={{ color: '#3b82f6', fontSize: '18px' }}>
-                  {((questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length * (formData.sbaMarks || 0)) + 
-                    (questions.filter(q => (q.questionType === 'true_false' || q.questionType === 'mcq') && q.questionText.trim()).length * 5 * (formData.tfMarks || 0))).toFixed(1)} Marks
+                  {Number(((questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length * (formData.sbaMarks || 0)) + 
+                    (questions.filter(q => (q.questionType === 'true_false' || q.questionType === 'mcq') && q.questionText.trim()).length * 5 * (formData.tfMarks || 0))).toFixed(2))} Marks
                 </span>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>

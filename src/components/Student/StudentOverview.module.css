@@ -1,0 +1,281 @@
+/* ─── Student Overview Bento Grid ─── */
+.bentoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+.bentoItem {
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(12px);
+  transition: all 0.25s ease;
+}
+
+.bentoItem:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+/* ─── Hero / Stats Card ─── */
+.statsHero {
+  grid-column: span 2;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.statsHero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12), transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.heroHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 1;
+}
+
+.label {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.amount {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--foreground);
+}
+
+.progressContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  z-index: 1;
+}
+
+.progressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.progressBar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+:global([data-theme='light']) .progressBar {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 999px;
+}
+
+.nextLesson {
+  margin-top: 10px;
+  z-index: 1;
+}
+
+.viewAllBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.viewAllBtn:hover {
+  background: color-mix(in srgb, var(--primary) 90%, black);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+/* ─── Metric Cards ─── */
+.metricCard {
+  grid-column: span 1;
+  justify-content: space-between;
+}
+
+.metricHeader {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.iconBox {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metricBody h4 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--foreground);
+  line-height: 1;
+}
+
+.metricBody p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+  font-weight: 500;
+}
+
+/* ─── Lists & Shortcuts ─── */
+.activityList {
+  grid-column: span 2;
+}
+
+.cardHeader h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--foreground);
+}
+
+.activities {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityItem {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  padding: 16px;
+  border-radius: 16px;
+  transition: background 0.2s;
+}
+
+.activityItem:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+:global([data-theme='light']) .activityItem {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+:global([data-theme='light']) .activityItem:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.actionGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.actionBtn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  padding: 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  color: var(--foreground);
+}
+
+.actionBtn:hover {
+  background: var(--surface-strong);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+
+:global([data-theme='light']) .actionBtn {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+:global([data-theme='light']) .actionBtn:hover {
+  background: #ffffff;
+}
+
+.actionIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actionInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.actionInfo strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.actionInfo span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1024px) {
+  .bentoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .bentoGrid {
+    grid-template-columns: 1fr;
+  }
+  .statsHero, .metricCard, .activityList {
+    grid-column: span 1;
+  }
+}

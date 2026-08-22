@@ -30,11 +30,21 @@ function StudentDashboardLayoutContent({
     const activeTab = (() => {
         if (pathname === "/dashboard") return "overview";
         if (pathname.startsWith("/dashboard/courses")) return "courses";
-        if (pathname.startsWith("/dashboard/purchases")) return "purchases";
+        if (pathname.startsWith("/dashboard/purchases") || pathname.startsWith("/dashboard/orders")) return "purchases";
         if (pathname.startsWith("/dashboard/quizzes")) return "quizzes";
         if (pathname.startsWith("/dashboard/profile")) return "profile";
         if (pathname.startsWith("/dashboard/security")) return "security";
         return "overview";
+    })();
+
+    const pageTitle = (() => {
+        if (pathname === "/dashboard") return "Learning Dashboard";
+        if (pathname.startsWith("/dashboard/courses")) return "Enrolled Courses";
+        if (pathname.startsWith("/dashboard/purchases") || pathname.startsWith("/dashboard/orders")) return "Orders & Receipts";
+        if (pathname.startsWith("/dashboard/quizzes")) return "My Quizzes & Exams";
+        if (pathname.startsWith("/dashboard/profile")) return "Profile Settings";
+        if (pathname.startsWith("/dashboard/security")) return "Security & Sessions";
+        return "Learning Center";
     })();
 
     useEffect(() => {
@@ -82,7 +92,7 @@ function StudentDashboardLayoutContent({
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
                 <StudentHeader 
-                    title="Learning Center"
+                    title={pageTitle}
                     user={user}
                     onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
                 />

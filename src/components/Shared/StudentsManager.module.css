@@ -1,8 +1,10 @@
-/* ===== Wrapper & Header ===== */
 .wrapper {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 .header {

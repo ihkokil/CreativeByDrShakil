@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
-import { requireTeacherPayload } from '@/lib/route-auth';
+import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import { recalculateQuizResults, normalizeQuestionType } from '@/lib/quiz-engine';
 
@@ -10,9 +10,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const payload = await requireTeacherPayload(request);
+    const payload = await getAuthPayload(request);
     if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
     const supabase = getSupabaseAdmin();
@@ -30,6 +30,21 @@ export async function GET(
 
     if (payload.role === 'teacher' && (existingQuiz as any).createdBy !== payload.sub) {
       return NextResponse.json({ error: 'Not authorized to view this quiz.' }, { status: 403 });
+    }
+
+    if (payload.role === 'student') {
+      const { data: attempt } = await supabase
+        .from('QuizAttempt')
+        .select('id')
+        .eq('quizId', id)
+        .eq('studentId', payload.sub)
+        .in('status', ['submitted', 'auto_submitted'])
+        .limit(1)
+        .maybeSingle();
+
+      if (!attempt) {
+        return NextResponse.json({ error: 'You must complete at least one attempt before downloading questions and answers.' }, { status: 403 });
+      }
     }
 
     const { data: questions = [] } = await supabase

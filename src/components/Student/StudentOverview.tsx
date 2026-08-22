@@ -9,7 +9,7 @@ import {
     CheckCircle
 } from "lucide-react";
 import Link from "next/link";
-import styles from "@/components/Teacher/TeacherOverview.module.css";
+import styles from "./StudentOverview.module.css";
 
 interface EnrolledCourse {
     orderId: string;

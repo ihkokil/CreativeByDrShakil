@@ -36,10 +36,36 @@ function TeacherDashboardLayoutContent({
         if (pathname.startsWith("/teacher/dashboard/live")) return "live";
         if (pathname.startsWith("/teacher/dashboard/exams")) return "exams";
         if (pathname.startsWith("/teacher/dashboard/students")) return "students";
+        if (pathname.startsWith("/teacher/dashboard/payments")) return "payments";
+        if (pathname.startsWith("/teacher/dashboard/users")) return "users";
+        if (pathname.startsWith("/teacher/dashboard/enrollments")) return "enrollments";
         if (pathname.startsWith("/teacher/dashboard/profile")) return "profile";
         if (pathname.startsWith("/teacher/dashboard/security")) return "security";
         if (pathname.startsWith("/teacher/dashboard/quizzes")) return "quizzes";
         return "overview";
+    })();
+
+    const pageTitle = (() => {
+        if (pathname === "/teacher/dashboard") return "Dashboard Overview";
+        if (pathname === "/teacher/dashboard/courses/create") return "Create Course";
+        if (pathname.includes("/teacher/dashboard/courses/") && pathname.endsWith("/content")) return "Course Curriculum";
+        if (pathname.includes("/teacher/dashboard/courses/") && pathname.endsWith("/edit")) return "Edit Course";
+        if (pathname.includes("/teacher/dashboard/courses/") && pathname.endsWith("/outline")) return "Course Outline";
+        if (pathname.includes("/teacher/dashboard/courses/") && pathname.endsWith("/review")) return "Course Review";
+        if (pathname.startsWith("/teacher/dashboard/courses")) return "Programs & Courses";
+        if (pathname.startsWith("/teacher/dashboard/batches")) return "Course Batches & Cohorts";
+        if (pathname.startsWith("/teacher/dashboard/library")) return "Master Module Library";
+        if (pathname === "/teacher/dashboard/quizzes/create") return "Create Quiz";
+        if (pathname.includes("/teacher/dashboard/quizzes/") && pathname.endsWith("/results")) return "Quiz Results";
+        if (pathname.includes("/teacher/dashboard/quizzes/") && pathname.endsWith("/edit")) return "Edit Quiz";
+        if (pathname.startsWith("/teacher/dashboard/quizzes")) return "Quiz Management";
+        if (pathname.startsWith("/teacher/dashboard/students")) return "Student Directory";
+        if (pathname.startsWith("/teacher/dashboard/profile")) return "Instructor Profile";
+        if (pathname.startsWith("/teacher/dashboard/security")) return "Security & Sessions";
+        if (pathname.startsWith("/teacher/dashboard/enrollments")) return "Student Enrollments";
+        if (pathname.startsWith("/teacher/dashboard/payments")) return "Payment History";
+        if (pathname.startsWith("/teacher/dashboard/users")) return "User Management";
+        return "Instructor Hub";
     })();
 
     useEffect(() => {
@@ -87,7 +113,7 @@ function TeacherDashboardLayoutContent({
             
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
                 <TeacherHeader 
-                    title="Instructor Hub"
+                    title={pageTitle}
                     user={user}
                     onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}
                 />

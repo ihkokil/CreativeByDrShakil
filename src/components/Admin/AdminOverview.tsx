@@ -1,20 +1,19 @@
 "use client";
 
-import { motion, Variants } from "framer-motion";
 import { 
     Users, 
     BookOpen, 
-    TrendingUp, 
     UserPlus, 
-    ArrowRight,
-    Search,
-    MonitorIcon,
-    SmartphoneIcon,
-    LayoutGrid,
-    Inbox,
-    ShieldCheck,
-    Briefcase,
-    CreditCard
+    ArrowUpRight, 
+    MonitorIcon, 
+    Inbox, 
+    ShieldCheck, 
+    Briefcase, 
+    CreditCard, 
+    Sparkles, 
+    Settings, 
+    GraduationCap, 
+    Layers 
 } from "lucide-react";
 import styles from "@/components/Teacher/TeacherOverview.module.css";
 
@@ -35,140 +34,163 @@ export default function AdminOverview({
     totalLessonsCompleted,
     onTabChange
 }: AdminOverviewProps) {
-    
-    const containerVariants: Variants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
-    };
-
-    const cardVariants: Variants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: {
-            y: 0,
-            opacity: 1,
-            transition: {
-                duration: 0.5,
-                ease: "easeOut"
-            }
-        }
-    };
-
     return (
-        <motion.div 
-            className={styles.bentoGrid}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-        >
-            {/* 1. Platform Summary Hero */}
-            <motion.div className={`${styles.bentoItem} ${styles.statsHero}`} variants={cardVariants}>
-                <div className={styles.heroHeader}>
-                    <div>
-                        <span className={styles.label}>Platform Command Center</span>
-                        <div className={styles.revenueDisplay}>
-                            <span className={styles.amount}>{studentCount + teacherCount}</span>
-                            <span className={styles.currency} style={{marginLeft: '10px', alignSelf: 'flex-end', paddingBottom: '10px'}}>Active Students</span>
+        <div className={styles.dashboardOverview}>
+            {/* 1. Hero Platform Banner */}
+            <div className={styles.welcomeHero}>
+                <div className={styles.welcomeInfo}>
+                    <div className={styles.welcomeKicker}>
+                        <Sparkles size={14} />
+                        <span>System Command Center</span>
+                    </div>
+                    <h1 className={styles.welcomeTitle}>
+                        Platform <span className="gradient-text">Overview & Control</span>
+                    </h1>
+                    <p className={styles.welcomeSubtitle}>
+                        Real-time telemetry, user management, and enrollment governance across the academy.
+                    </p>
+                </div>
+                <div className={styles.welcomeActions}>
+                    <button onClick={() => onTabChange("payments")} className={styles.primaryActionBtn}>
+                        <CreditCard size={18} /> Payment Approvals
+                    </button>
+                    <button onClick={() => onTabChange("teachers")} className={styles.secondaryActionBtn}>
+                        <UserPlus size={18} /> Add Teacher
+                    </button>
+                </div>
+            </div>
+
+            {/* 2. 4-Card KPI Metric Strip */}
+            <div className={styles.metricsGrid}>
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.blueIcon}`}>
+                            <Briefcase size={22} />
                         </div>
-                        <p style={{ color: 'var(--text-muted)', marginTop: '-8px' }}>
-                            Real-time participation and growth metrics across the platform.
-                        </p>
+                        <span className={styles.metricBadge}>Faculty</span>
                     </div>
+                    <div className={styles.metricValue}>{teacherCount}</div>
+                    <div className={styles.metricLabel}>Instructors & Teachers</div>
                 </div>
-                
-                <div className={styles.nextLesson}>
-                    <div className={styles.lessonInfo}>
-                        <span className={styles.tag}>Live Snapshots</span>
-                        <p>{totalEnrollments} Successive Enrollments</p>
-                    </div>
-                </div>
-            </motion.div>
 
-            {/* 2. Primary Metrics */}
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
-                        <Briefcase size={20} />
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.purpleIcon}`}>
+                            <GraduationCap size={22} />
+                        </div>
+                        <span className={styles.metricBadge}>Students</span>
+                    </div>
+                    <div className={styles.metricValue}>{studentCount}</div>
+                    <div className={styles.metricLabel}>Registered Students</div>
+                </div>
+
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.emeraldIcon}`}>
+                            <BookOpen size={22} />
+                        </div>
+                        <span className={styles.metricBadge}>Curriculum</span>
+                    </div>
+                    <div className={styles.metricValue}>{courseCount}</div>
+                    <div className={styles.metricLabel}>Published Programs</div>
+                </div>
+
+                <div className={styles.metricCard}>
+                    <div className={styles.metricTop}>
+                        <div className={`${styles.metricIconBox} ${styles.amberIcon}`}>
+                            <ShieldCheck size={22} />
+                        </div>
+                        <span className={styles.metricBadge}>Enrollments</span>
+                    </div>
+                    <div className={styles.metricValue}>{totalEnrollments}</div>
+                    <div className={styles.metricLabel}>Active Enrollments</div>
+                </div>
+            </div>
+
+            {/* 3. 2-Column Split: System Shortcuts & Governance */}
+            <div className={styles.contentSplit}>
+                {/* Left: Quick Governance Tools */}
+                <div className={styles.panelCard}>
+                    <div className={styles.panelCardHeader}>
+                        <div>
+                            <h3 className={styles.panelCardTitle}>Platform Management</h3>
+                            <p className={styles.panelCardSubtitle}>Direct administrative shortcuts</p>
+                        </div>
+                    </div>
+                    <div className={styles.quickToolsGrid}>
+                        <button onClick={() => onTabChange("students")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.blueIcon}`}>
+                                <GraduationCap size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Student Directory</strong>
+                                <span>Search learners & manage enrollments</span>
+                            </div>
+                        </button>
+
+                        <button onClick={() => onTabChange("teachers")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.purpleIcon}`}>
+                                <Users size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Instructor Directory</strong>
+                                <span>Manage permissions & payment access</span>
+                            </div>
+                        </button>
+
+                        <button onClick={() => onTabChange("users")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.amberIcon}`}>
+                                <MonitorIcon size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Device Sessions</strong>
+                                <span>Active devices & concurrent logins</span>
+                            </div>
+                        </button>
+
+                        <button onClick={() => onTabChange("payments")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.emeraldIcon}`}>
+                                <CreditCard size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>bKash Payments</strong>
+                                <span>Approve or reject transactions</span>
+                            </div>
+                        </button>
                     </div>
                 </div>
-                <div className={styles.metricBody}>
-                    <h4>{teacherCount}</h4>
-                    <p>Instructors</p>
-                </div>
-            </motion.div>
 
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
-                        <Users size={20} />
+                {/* Right: Support & System Settings */}
+                <div className={styles.panelCard}>
+                    <div className={styles.panelCardHeader}>
+                        <div>
+                            <h3 className={styles.panelCardTitle}>Support & System</h3>
+                            <p className={styles.panelCardSubtitle}>Inbound communications and config</p>
+                        </div>
+                    </div>
+                    <div className={styles.quickToolsGrid} style={{ gridTemplateColumns: '1fr' }}>
+                        <button onClick={() => onTabChange("support")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.blueIcon}`}>
+                                <Inbox size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Help & Support Inquiries</strong>
+                                <span>View student contact requests and messages</span>
+                            </div>
+                        </button>
+
+                        <button onClick={() => onTabChange("settings")} className={styles.toolBtn}>
+                            <div className={`${styles.toolIconBox} ${styles.purpleIcon}`}>
+                                <Settings size={20} />
+                            </div>
+                            <div className={styles.toolInfo}>
+                                <strong>Payment & System Settings</strong>
+                                <span>bKash merchant numbers & general settings</span>
+                            </div>
+                        </button>
                     </div>
                 </div>
-                <div className={styles.metricBody}>
-                    <h4>{studentCount}</h4>
-                    <p>Registered Students</p>
-                </div>
-            </motion.div>
-
-            {/* 3. Governance Grid */}
-            <motion.div className={`${styles.bentoItem} ${styles.activityList}`} variants={cardVariants}>
-                <div className={styles.cardHeader}>
-                    <h3>Governance Controls</h3>
-                </div>
-                <div className={styles.actionGrid} style={{ gridTemplateColumns: '1fr 1fr' }}>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('teachers')} style={{ padding: '12px' }}>
-                        <div className={styles.actionIcon}><UserPlus size={18} /></div>
-                        <span style={{ fontSize: '0.85rem' }}>Teachers</span>
-                    </button>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('students')} style={{ padding: '12px' }}>
-                        <div className={styles.actionIcon}><Users size={18} /></div>
-                        <span style={{ fontSize: '0.85rem' }}>Students</span>
-                    </button>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('users')} style={{ padding: '12px' }}>
-                        <div className={styles.actionIcon}><MonitorIcon size={18} /></div>
-                        <span style={{ fontSize: '0.85rem' }}>Sessions</span>
-                    </button>
-                    <button className={styles.actionBtn} onClick={() => onTabChange('payments')} style={{ padding: '12px' }}>
-                        <div className={styles.actionIcon}><CreditCard size={18} /></div>
-                        <span style={{ fontSize: '0.85rem' }}>Payments</span>
-                    </button>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                    <button className={styles.viewAllBtn} onClick={() => onTabChange('categories')} style={{ flex: 1 }}>
-                        <LayoutGrid size={14} /> Global Taxonomy
-                    </button>
-                    <button className={styles.viewAllBtn} onClick={() => onTabChange('support')} style={{ flex: 1 }}>
-                        <Inbox size={14} /> Help Inbound
-                    </button>
-                </div>
-            </motion.div>
-
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
-                        <BookOpen size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>{courseCount}</h4>
-                    <p>Published Courses</p>
-                </div>
-            </motion.div>
-
-            <motion.div className={`${styles.bentoItem} ${styles.metricCard}`} variants={cardVariants}>
-                <div className={styles.metricHeader}>
-                    <div className={styles.iconBox} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
-                        <ShieldCheck size={20} />
-                    </div>
-                </div>
-                <div className={styles.metricBody}>
-                    <h4>{totalLessonsCompleted}</h4>
-                    <p>Lessons Served</p>
-                </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
 }
