@@ -15,12 +15,8 @@
     "preview": "npx opennextjs-cloudflare preview",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "seed:teachers": "node scripts/seed-teachers.mjs",
-    "seed:videos": "node scripts/seed-video-library.mjs",
-    "db:migrate-all": "node scripts/migrate-all-dbs.mjs",
-    "db:types": "npx supabase gen types typescript --project-id phteovnvzuhlrvczmems > src/types/supabase.ts",
-    "check:migration": "grep -r 'drizzle-orm' src/ || true && grep -r '@/db/schema' src/ || true && grep -r 'MIGRATION_STUB' src/ || true",
-    "check:db": "node scripts/check-db-usage.js"
+    "db:sync": "node scripts/sync-databases.js",
+    "db:types": "npx supabase gen types typescript --project-id phteovnvzuhlrvczmems > src/types/supabase.ts"
   },
   "repository": {
     "type": "git",
