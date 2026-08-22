@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
-    // Ensure Custom Batch & Instant Batch exist for this course
+    // Ensure Start Today Batch & All Unlocked Batch exist for this course
     await ensureDefaultBatches(supabase, courseId);
 
     // Fetch batches and their enrollments (Orders)
@@ -39,12 +39,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       
     if (batchError) throw batchError;
 
-    // Format batches
-    const formattedBatches = (batches || []).map((batch: any) => ({
-      ...batch,
-      studentCount: batch.orders ? batch.orders.length : 0,
-      orders: undefined, // remove full orders array from response
-    }));
+    // Helper to get priority: 0 for Start Today, 1 for All Unlocked, 2 for others
+    const getBatchPriority = (name: string) => {
+      const n = (name || '').toLowerCase();
+      if (n.includes('start today') || n.includes('custom')) return 0;
+      if (n.includes('all unlocked') || n.includes('instant')) return 1;
+      return 2;
+    };
+
+    // Format and sort batches: Start Today first, All Unlocked second, then rest by createdAt descending
+    const formattedBatches = (batches || [])
+      .map((batch: any) => ({
+        ...batch,
+        studentCount: batch.orders ? batch.orders.length : 0,
+        orders: undefined, // remove full orders array from response
+      }))
+      .sort((a: any, b: any) => {
+        const pA = getBatchPriority(a.name);
+        const pB = getBatchPriority(b.name);
+        if (pA !== pB) return pA - pB;
+        // For remaining batches, sort by createdAt descending (newest added first)
+        const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tB - tA;
+      });
 
     const isLinear = Boolean(course.releaseMode && course.releaseMode !== 'circular');
 
@@ -88,7 +106,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const isLinear = Boolean(course.releaseMode && course.releaseMode !== 'circular');
     if (isLinear) {
       return NextResponse.json(
-        { error: 'Linear courses only support Custom Batch and Instant Batch. Creating new batches is disabled for linear courses.' },
+        { error: 'Linear courses only support Start Today Batch and All Unlocked Batch. Creating new batches is disabled for linear courses.' },
         { status: 400 }
       );
     }

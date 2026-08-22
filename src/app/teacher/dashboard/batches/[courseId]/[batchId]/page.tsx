@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import styles from "../../../TeacherDashboard.module.css";
+import styles from "../../batches.module.css";
 import Loader from "@/components/UI/Loader";
-import { ArrowLeft, UserPlus, Users, Calendar, Trash2, Search } from "lucide-react";
+import { ArrowLeft, UserPlus, Users, Calendar, Trash2, Search, Rocket, Zap, CalendarDays, Mail, Phone } from "lucide-react";
 import { formatDateGMT6 } from "@/lib/date-format";
 import EnrollStudentModal from "@/components/Teacher/EnrollStudentModal";
 
@@ -25,6 +25,7 @@ export default function BatchStudentsPage() {
   
   const [students, setStudents] = useState<Student[]>([]);
   const [batchInfo, setBatchInfo] = useState<any>(null);
+  const [courseTitle, setCourseTitle] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -45,6 +46,7 @@ export default function BatchStudentsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to fetch batch students");
       
       setBatchInfo(data.batch);
+      setCourseTitle(data.course?.title || "Course");
       setStudents(data.students || []);
     } catch (err: any) {
       setError(err.message);
@@ -68,101 +70,196 @@ export default function BatchStudentsPage() {
         const data = await res.json();
         alert(data.error || 'Failed to remove student.');
       }
-    } catch (err) {
+    } catch {
       alert('Network error while removing student.');
     }
   };
 
-  if (loading) return <Loader text="Loading students..." />;
-  if (error) return <div className={styles.error}>{error}</div>;
+  const batchName = batchInfo?.name || "";
+  const nameLower = batchName.toLowerCase();
+  const isStartToday = nameLower.includes('start today') || nameLower.includes('custom');
+  const isAllUnlocked = nameLower.includes('all unlocked') || nameLower.includes('instant');
 
-  const filteredAndSortedStudents = students
-    .filter(s => s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || s.email.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy === "name") return a.fullName.localeCompare(b.fullName);
-      return new Date(b.enrolledAt).getTime() - new Date(a.enrolledAt).getTime();
-    });
+  const displayBatchTitle = isStartToday 
+    ? 'Start Today Batch' 
+    : isAllUnlocked 
+    ? 'All Unlocked Batch' 
+    : batchName;
+
+  const filteredAndSortedStudents = useMemo(() => {
+    return students
+      .filter(s => 
+        s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.phone && s.phone.includes(searchQuery))
+      )
+      .sort((a, b) => {
+        if (sortBy === "name") return a.fullName.localeCompare(b.fullName);
+        return new Date(b.enrolledAt).getTime() - new Date(a.enrolledAt).getTime();
+      });
+  }, [students, searchQuery, sortBy]);
+
+  if (loading) return <Loader text="Loading batch students..." />;
+  if (error) return <div className={styles.emptyBox}><div className={styles.emptyTitle}>Error: {error}</div></div>;
 
   return (
-    <section className={styles.panel}>
-      <div className={styles.sectionHeader} style={{ flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <Link href={`/teacher/dashboard/batches/${courseId}`} className={styles.backLink}>
-            <ArrowLeft size={16} /> Back to Batches
+    <div className={styles.container}>
+      {/* Hero Header */}
+      <section className={styles.heroHeader}>
+        <div className={styles.breadcrumb}>
+          <Link href="/teacher/dashboard/batches" className={styles.breadcrumbLink}>
+            Course Batches
           </Link>
-          <h2 className={styles.sectionTitle}>{batchInfo?.name} - Students</h2>
-          <p className={styles.subtitle}>Manage enrollments for this specific batch</p>
+          <span>/</span>
+          <Link href={`/teacher/dashboard/batches/${courseId}`} className={styles.breadcrumbLink}>
+            {courseTitle}
+          </Link>
+          <span>/</span>
+          <span className={styles.breadcrumbCurrent}>{displayBatchTitle}</span>
         </div>
-        
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className={styles.searchBox} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
-            <input 
-              type="text" 
-              placeholder="Search students..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', color: 'var(--foreground)' }}
-            />
+
+        <div className={styles.heroContent}>
+          <div>
+            <h1 className={styles.pageTitle}>
+              {isStartToday && <Rocket size={26} className="text-primary" />}
+              {isAllUnlocked && <Zap size={26} className="text-secondary" />}
+              {!isStartToday && !isAllUnlocked && <CalendarDays size={26} className="text-primary" />}
+              {displayBatchTitle}
+            </h1>
+            <p className={styles.pageSubtitle}>
+              {isStartToday && "Students in this batch start their learning schedule from their enrollment date."}
+              {isAllUnlocked && "Students in this batch have instant, unrestricted access to all course modules."}
+              {!isStartToday && !isAllUnlocked && (
+                batchInfo?.startDate 
+                  ? `Scheduled cohort starting on ${formatDateGMT6(batchInfo.startDate)}${batchInfo.endDate ? ` and ending ${formatDateGMT6(batchInfo.endDate)}` : ''}.`
+                  : `Fixed calendar cohort for ${courseTitle}.`
+              )}
+            </p>
           </div>
-          
-          <select 
-            value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value as any)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', color: 'var(--foreground)' }}
-          >
-            <option value="date">Sort by Enrolled Date</option>
-            <option value="name">Sort by Name</option>
-          </select>
 
           <button 
-            className={styles.primaryBtn}
+            type="button"
+            className={styles.primaryActionBtn}
             onClick={() => setIsEnrollModalOpen(true)}
           >
             <UserPlus size={18} /> Add Student
           </button>
         </div>
+
+        <div className={styles.kpiGrid}>
+          <div className={styles.kpiCard}>
+            <div className={`${styles.kpiIconBox} ${styles.kpiIconEmerald}`}>
+              <Users size={20} />
+            </div>
+            <div>
+              <div className={styles.kpiVal}>{students.length}</div>
+              <div className={styles.kpiLab}>Enrolled Students</div>
+            </div>
+          </div>
+
+          <div className={styles.kpiCard}>
+            <div className={`${styles.kpiIconBox} ${styles.kpiIconBlue}`}>
+              <Calendar size={20} />
+            </div>
+            <div>
+              <div className={styles.kpiVal}>
+                {batchInfo?.startDate ? formatDateGMT6(batchInfo.startDate) : (isStartToday ? "Enrollment Date" : "Instant Access")}
+              </div>
+              <div className={styles.kpiLab}>{batchInfo?.startDate ? "Start Date" : "Access Mode"}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Controls Bar */}
+      <div className={styles.controlsBar}>
+        <div className={styles.searchWrapper}>
+          <Search size={16} className={styles.searchIcon} />
+          <input 
+            type="text" 
+            placeholder="Search students by name, email, or phone..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+
+        <div className={styles.actionGroup}>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className={styles.selectBox}
+          >
+            <option value="date">Sort by Enrolled Date</option>
+            <option value="name">Sort by Name (A-Z)</option>
+          </select>
+        </div>
       </div>
 
+      {/* Students Table */}
       <div className={styles.tableContainer}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Student</th>
+              <th>Student Details</th>
+              <th>Contact Info</th>
               <th>Enrolled At</th>
-              <th>Actions</th>
+              <th style={{ textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredAndSortedStudents.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: "center", padding: "2rem" }}>
-                  No students found.
+                <td colSpan={4}>
+                  <div className={styles.emptyBox}>
+                    <Users size={44} style={{ opacity: 0.3 }} />
+                    <div className={styles.emptyTitle}>No students in this batch</div>
+                    <p style={{ margin: 0 }}>Enroll students directly using the button above</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               filteredAndSortedStudents.map((student) => (
                 <tr key={student.orderId}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                        {student.fullName?.charAt(0).toUpperCase()}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <div className={styles.studentAvatar}>
+                        {student.fullName?.charAt(0).toUpperCase() || "S"}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{student.fullName}</div>
-                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{student.email}</div>
-                        {student.phone && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{student.phone}</div>}
+                        <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{student.fullName}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>ID: {student.id.slice(0, 8)}...</div>
                       </div>
                     </div>
                   </td>
-                  <td>{formatDateGMT6(student.enrolledAt)}</td>
                   <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
+                        <Mail size={13} style={{ color: 'var(--text-muted)' }} />
+                        <span>{student.email}</span>
+                      </div>
+                      {student.phone && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                          <Phone size={13} />
+                          <span>{student.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.88rem', color: 'var(--foreground)' }}>
+                      {formatDateGMT6(student.enrolledAt)}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "right" }}>
                     <button 
+                      type="button"
                       onClick={() => handleRemoveStudent(student.orderId, student.fullName)}
-                      style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', padding: '0.5rem', borderRadius: '4px' }}
-                      title="Remove Student"
+                      className={styles.deleteBtn}
+                      title="Remove from batch"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={15} />
+                      Remove
                     </button>
                   </td>
                 </tr>
@@ -184,6 +281,6 @@ export default function BatchStudentsPage() {
           }}
         />
       )}
-    </section>
+    </div>
   );
 }

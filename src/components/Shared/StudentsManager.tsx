@@ -1069,26 +1069,36 @@ export default function StudentsManager() {
                           const bId = e.target.value;
                           setBatchId(bId);
                           const selBatch = courseBatches.find(b => b.id === bId);
-                          if (selBatch && !selBatch.name.toLowerCase().includes('custom') && selBatch.startDate) {
+                          const isStartTodayOrCustom = selBatch && (selBatch.name.toLowerCase().includes('start today') || selBatch.name.toLowerCase().includes('custom'));
+                          if (selBatch && !isStartTodayOrCustom && selBatch.startDate) {
                             setBatchEnrollDate(new Date(selBatch.startDate).toISOString().split('T')[0]);
                           }
                         }}
                         disabled={!batchCourseId}
                       >
-                        {!courseBatches.some(b => b.name.toLowerCase().includes('custom')) && (
-                          <option value="">📦 Custom Batch (Custom Date)</option>
+                        {!courseBatches.some(b => b.name.toLowerCase().includes('start today') || b.name.toLowerCase().includes('custom')) && (
+                          <option value="">🚀 Start Today Batch (Custom Date)</option>
                         )}
-                        {courseBatches.map(b => (
-                          <option key={b.id} value={b.id}>
-                            {b.name.toLowerCase().includes('custom') ? '📦 Custom Batch (Custom Date)' : `${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`}
-                          </option>
-                        ))}
+                        {courseBatches.map(b => {
+                          const nameLower = b.name.toLowerCase();
+                          let label = `${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`;
+                          if (nameLower.includes('start today') || nameLower.includes('custom')) {
+                            label = '🚀 Start Today Batch (Custom Date)';
+                          } else if (nameLower.includes('all unlocked') || nameLower.includes('instant')) {
+                            label = '⚡ All Unlocked Batch (Instant Access)';
+                          }
+                          return (
+                            <option key={b.id} value={b.id}>
+                              {label}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 
                     {(() => {
                       const selBatch = courseBatches.find(b => b.id === batchId);
-                      const isCustom = !batchId || selBatch?.name.toLowerCase().includes('custom');
+                      const isCustom = !batchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
                       const dateVal = isCustom 
                         ? batchEnrollDate 
                         : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : batchEnrollDate);

@@ -256,26 +256,36 @@ export default function EnrollStudentModal({
                                                 const bId = e.target.value;
                                                 setSelectedBatchId(bId);
                                                 const selBatch = batches.find(b => b.id === bId);
-                                                if (selBatch && !selBatch.name.toLowerCase().includes('custom') && selBatch.startDate) {
+                                                const isStartTodayOrCustom = selBatch && (selBatch.name.toLowerCase().includes('start today') || selBatch.name.toLowerCase().includes('custom'));
+                                                if (selBatch && !isStartTodayOrCustom && selBatch.startDate) {
                                                     setCustomDate(new Date(selBatch.startDate).toISOString().split('T')[0]);
                                                 }
                                             }}
                                             style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
                                         >
-                                            {!batches.some(b => b.name.toLowerCase().includes('custom')) && (
-                                                <option value="">📦 Custom Batch (Custom Date)</option>
+                                            {!batches.some(b => b.name.toLowerCase().includes('start today') || b.name.toLowerCase().includes('custom')) && (
+                                                <option value="">🚀 Start Today Batch (Custom Date)</option>
                                             )}
-                                            {batches.map(b => (
-                                                <option key={b.id} value={b.id}>
-                                                    {b.name.toLowerCase().includes('custom') ? '📦 Custom Batch (Custom Date)' : `${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`}
-                                                </option>
-                                            ))}
+                                            {batches.map(b => {
+                                                const nameLower = b.name.toLowerCase();
+                                                let label = `${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`;
+                                                if (nameLower.includes('start today') || nameLower.includes('custom')) {
+                                                    label = '🚀 Start Today Batch (Custom Date)';
+                                                } else if (nameLower.includes('all unlocked') || nameLower.includes('instant')) {
+                                                    label = '⚡ All Unlocked Batch (Instant Access)';
+                                                }
+                                                return (
+                                                    <option key={b.id} value={b.id}>
+                                                        {label}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
 
                                     {(() => {
                                         const selBatch = batches.find(b => b.id === selectedBatchId);
-                                        const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('custom');
+                                        const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
                                         const dateVal = isCustom 
                                             ? customDate 
                                             : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : customDate);

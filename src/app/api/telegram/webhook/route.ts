@@ -283,16 +283,18 @@ export async function POST(request: NextRequest) {
 
       const keyboard: any[] = [];
 
-      // 1. Instant Batch
-      keyboard.push([{ text: `⚡ Instant Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(instantBatch.id)}|ins` }]);
+      // 1. All Unlocked Batch
+      keyboard.push([{ text: `⚡ All Unlocked Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(instantBatch.id)}|ins` }]);
 
-      // 2. Up to 3 last created custom batches (if circular course)
+      // 2. Up to 3 last created batches (if circular course)
       if (isCircular) {
         const { data: createdBatches } = await (supabase.from('Batch') as any)
           .select('id, name, createdAt')
           .eq('courseId', courseId)
-          .not('name', 'ilike', 'Custom Batch')
-          .not('name', 'ilike', 'Instant Batch')
+          .not('name', 'ilike', '%Custom%')
+          .not('name', 'ilike', '%Instant%')
+          .not('name', 'ilike', '%Start Today%')
+          .not('name', 'ilike', '%All Unlocked%')
           .order('createdAt', { ascending: false })
           .limit(3);
 
@@ -303,8 +305,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 3. Custom Batch
-      keyboard.push([{ text: `📦 Custom Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(customBatch.id)}|cur` }]);
+      // 3. Start Today Batch
+      keyboard.push([{ text: `🚀 Start Today Batch`, callback_data: `eo|${compressedId}|b|${compressUuid(customBatch.id)}|cur` }]);
 
       await answerCallbackQuery(callbackQueryId, 'Select a batch');
       await sendTelegramReply(chatId, `Select a batch for this enrollment:`, { inline_keyboard: keyboard });
@@ -319,11 +321,11 @@ export async function POST(request: NextRequest) {
       const id = parts[3];
 
       if (type === 'n') {
-        // Custom batch selected -> ask for custom enrollment date
+        // Start Today batch selected -> ask for custom enrollment date
         await answerCallbackQuery(callbackQueryId);
         await sendTelegramReply(
           chatId,
-          `Adding student to 📦 <b>Custom Batch</b>.\n\nPlease reply to this message with the custom enrollment date in <b>DD-MM-YYYY</b> format.\n\n<code>[Context: ed|${compressedId}|n|${id}]</code>`,
+          `Adding student to 🚀 <b>Start Today Batch</b>.\n\nPlease reply to this message with the enrollment start date in <b>DD-MM-YYYY</b> format.\n\n<code>[Context: ed|${compressedId}|n|${id}]</code>`,
           {
             force_reply: true,
             input_field_placeholder: 'DD-MM-YYYY',
@@ -492,7 +494,7 @@ export async function POST(request: NextRequest) {
         const { data: batchData } = batchId 
           ? await (supabase.from('Batch') as any).select('name').eq('id', batchId).maybeSingle()
           : { data: null };
-        const displayBatchName = batchData?.name || (avail === 'instant' ? 'Instant Batch' : 'Custom Batch');
+        const displayBatchName = batchData?.name || (avail === 'instant' ? 'All Unlocked Batch' : 'Start Today Batch');
 
         let modeLabel = 'Scheduled Release';
         let actionDesc = 'Modules will follow standard batch release timeline.';

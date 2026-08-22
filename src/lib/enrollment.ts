@@ -65,11 +65,12 @@ export async function ensureCourseEnrollment(
 }
 
 export async function ensureCustomBatch(supabase: any, courseId: string) {
+  // Check for 'Start Today Batch' or legacy 'Custom Batch'
   const { data: existing } = await supabase
     .from('Batch')
     .select('id, name, startDate, endDate')
     .eq('courseId', courseId)
-    .ilike('name', 'Custom Batch')
+    .or('name.ilike.Start Today Batch,name.ilike.Custom Batch')
     .limit(1)
     .maybeSingle();
 
@@ -78,7 +79,7 @@ export async function ensureCustomBatch(supabase: any, courseId: string) {
   const nowStr = new Date().toISOString();
   const newBatch = {
     id: crypto.randomUUID(),
-    name: 'Custom Batch',
+    name: 'Start Today Batch',
     courseId,
     startDate: null,
     endDate: null,
@@ -89,13 +90,16 @@ export async function ensureCustomBatch(supabase: any, courseId: string) {
   await supabase.from('Batch').insert(newBatch as any);
   return newBatch;
 }
+
+export const ensureStartTodayBatch = ensureCustomBatch;
 
 export async function ensureInstantBatch(supabase: any, courseId: string) {
+  // Check for 'All Unlocked Batch' or legacy 'Instant Batch'
   const { data: existing } = await supabase
     .from('Batch')
     .select('id, name, startDate, endDate')
     .eq('courseId', courseId)
-    .ilike('name', 'Instant Batch')
+    .or('name.ilike.All Unlocked Batch,name.ilike.Instant Batch')
     .limit(1)
     .maybeSingle();
 
@@ -104,7 +108,7 @@ export async function ensureInstantBatch(supabase: any, courseId: string) {
   const nowStr = new Date().toISOString();
   const newBatch = {
     id: crypto.randomUUID(),
-    name: 'Instant Batch',
+    name: 'All Unlocked Batch',
     courseId,
     startDate: null,
     endDate: null,
@@ -115,10 +119,12 @@ export async function ensureInstantBatch(supabase: any, courseId: string) {
   await supabase.from('Batch').insert(newBatch as any);
   return newBatch;
 }
+
+export const ensureAllUnlockedBatch = ensureInstantBatch;
 
 export async function ensureDefaultBatches(supabase: any, courseId: string) {
   const customBatch = await ensureCustomBatch(supabase, courseId);
   const instantBatch = await ensureInstantBatch(supabase, courseId);
-  return { customBatch, instantBatch };
+  return { customBatch, instantBatch, startTodayBatch: customBatch, allUnlockedBatch: instantBatch };
 }
 

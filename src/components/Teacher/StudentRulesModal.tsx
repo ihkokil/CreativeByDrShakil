@@ -277,14 +277,21 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                                 onChange={(e) => setSelectedBatchId(e.target.value)}
                                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
                                             >
-                                                {!batches.some(b => b.name.toLowerCase().includes('custom')) && (
-                                                    <option value="">📦 Custom Batch (Requires Custom Enrollment Date)</option>
+                                                {!batches.some(b => b.name.toLowerCase().includes('start today') || b.name.toLowerCase().includes('custom')) && (
+                                                    <option value="">🚀 Start Today Batch (Requires Custom Enrollment Date)</option>
                                                 )}
                                                 {batches.map(b => {
-                                                    const isCustom = b.name.toLowerCase().includes('custom');
+                                                    const nameLower = b.name.toLowerCase();
+                                                    const isCustom = nameLower.includes('start today') || nameLower.includes('custom');
+                                                    let label = `🗓 ${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`;
+                                                    if (isCustom) {
+                                                        label = '🚀 Start Today Batch (Requires Custom Enrollment Date)';
+                                                    } else if (nameLower.includes('all unlocked') || nameLower.includes('instant')) {
+                                                        label = '⚡ All Unlocked Batch (Instant Access)';
+                                                    }
                                                     return (
                                                         <option key={b.id} value={b.id}>
-                                                            {isCustom ? '📦 Custom Batch (Requires Custom Enrollment Date)' : `🗓 ${b.name} (Starts: ${new Date(b.startDate).toLocaleDateString()})`}
+                                                            {label}
                                                         </option>
                                                     );
                                                 })}
@@ -292,7 +299,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                         </div>
                                         {(() => {
                                             const selBatch = batches.find(b => b.id === selectedBatchId);
-                                            const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('custom');
+                                            const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
                                             const displayDate = isCustom 
                                                 ? startDate 
                                                 : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : startDate);
@@ -325,7 +332,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                 <span className={styles.optionTitle}>Custom Date</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                Every student is enrolled from a custom date, assigned to the Custom Batch.
+                                Every student is enrolled from a custom date, assigned to the Start Today Batch.
                             </div>
                             {action === "custom_date" && (
                                 <div className={styles.subConfig} onClick={e => e.stopPropagation()}>

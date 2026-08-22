@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import styles from "../../TeacherDashboard.module.css";
+import { useParams } from "next/navigation";
+import styles from "../batches.module.css";
 import Loader from "@/components/UI/Loader";
-import { Layers, Calendar, ArrowLeft, Plus, Users, ArrowRight, Search, List, Grid } from "lucide-react";
+import { Layers, Calendar, ArrowLeft, Plus, Users, ArrowRight, Search, Zap, Rocket, CalendarDays, Lock } from "lucide-react";
 import { formatDateGMT6, formatDateInputGMT6 } from "@/lib/date-format";
 import { motion, AnimatePresence } from "framer-motion";
 import { useModalLock } from "@/hooks/useModalLock";
@@ -13,8 +13,9 @@ import { useModalLock } from "@/hooks/useModalLock";
 interface Batch {
   id: string;
   name: string;
-  startDate: string;
-  endDate: string;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt?: string | null;
   studentCount: number;
 }
 
@@ -29,8 +30,7 @@ export default function CourseBatchesPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "date" | "students">("date");
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [sortBy, setSortBy] = useState<"date" | "students" | "name">("date");
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,7 +64,7 @@ export default function CourseBatchesPage() {
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLinear) {
-      alert("Linear courses only support the Custom Batch. Creating new batches is disabled.");
+      alert("Linear courses only support Start Today Batch and All Unlocked Batch. Creating new batches is disabled.");
       return;
     }
     setIsSubmitting(true);
@@ -92,180 +92,275 @@ export default function CourseBatchesPage() {
     }
   };
 
-  if (loading) return <Loader text="Loading batches..." />;
-  if (error) return <div className={styles.error}>{error}</div>;
+  const totalStudents = useMemo(() => {
+    return batches.reduce((acc, b) => acc + (b.studentCount || 0), 0);
+  }, [batches]);
 
-  const filteredAndSortedBatches = batches
-    .filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy === "students") return b.studentCount - a.studentCount;
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      const timeA = a.startDate ? new Date(a.startDate).getTime() : 0;
-      const timeB = b.startDate ? new Date(b.startDate).getTime() : 0;
-      return timeB - timeA;
-    });
+  const getBatchPriority = (name: string) => {
+    const n = (name || '').toLowerCase();
+    if (n.includes('start today') || n.includes('custom')) return 0;
+    if (n.includes('all unlocked') || n.includes('instant')) return 1;
+    return 2;
+  };
+
+  const filteredAndSortedBatches = useMemo(() => {
+    return batches
+      .filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .sort((a, b) => {
+        const pA = getBatchPriority(a.name);
+        const pB = getBatchPriority(b.name);
+        // Start Today and All Unlocked always stay pinned at the top
+        if (pA !== pB) return pA - pB;
+        
+        if (sortBy === "students") return b.studentCount - a.studentCount;
+        if (sortBy === "name") return a.name.localeCompare(b.name);
+        
+        // Default: date added descending
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.startDate ? new Date(a.startDate).getTime() : 0);
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.startDate ? new Date(b.startDate).getTime() : 0);
+        return timeB - timeA;
+      });
+  }, [batches, searchQuery, sortBy]);
+
+  const getBatchType = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes('start today') || n.includes('custom')) return 'start_today';
+    if (n.includes('all unlocked') || n.includes('instant')) return 'all_unlocked';
+    return 'scheduled';
+  };
+
+  if (loading) return <Loader text="Loading course batches..." />;
+  if (error) return <div className={styles.emptyBox}><div className={styles.emptyTitle}>Error: {error}</div></div>;
 
   return (
-    <section className={styles.panel}>
-      <div className={styles.sectionHeader} style={{ flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <Link href="/teacher/dashboard/batches" className={styles.backLink}>
-            <ArrowLeft size={16} /> Back to Courses
+    <div className={styles.container}>
+      {/* Hero Header */}
+      <section className={styles.heroHeader}>
+        <div className={styles.breadcrumb}>
+          <Link href="/teacher/dashboard/batches" className={styles.breadcrumbLink}>
+            Course Batches
           </Link>
-          <h2 className={styles.sectionTitle}>{courseTitle} - Batches</h2>
-          <p className={styles.subtitle}>
-            Manage batches for this course {isLinear && <span style={{ color: 'var(--accent)', fontWeight: 600 }}>(Linear Course: Custom & Instant Batches Only)</span>}
-          </p>
+          <span>/</span>
+          <span className={styles.breadcrumbCurrent}>{courseTitle}</span>
         </div>
-        
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className={styles.searchBox} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-muted)' }} />
-            <input 
-              type="text" 
-              placeholder="Search batches..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ padding: '8px 12px 8px 36px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', color: 'var(--foreground)' }}
-            />
-          </div>
-          
-          <select 
-            value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value as any)}
-            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.2)', color: 'var(--foreground)' }}
-          >
-            <option value="date">Sort by Start Date</option>
-            <option value="name">Sort by Name</option>
-            <option value="students">Sort by Students</option>
-          </select>
-          
-          <div style={{ display: 'flex', border: '1px solid var(--glass-border)', borderRadius: '8px', overflow: 'hidden' }}>
-             <button onClick={() => setViewMode("list")} style={{ padding: '8px', background: viewMode === "list" ? 'var(--primary)' : 'transparent', border: 'none', color: viewMode === "list" ? '#fff' : 'var(--text-muted)', cursor: 'pointer' }}>
-                <List size={18} />
-             </button>
-             <button onClick={() => setViewMode("grid")} style={{ padding: '8px', background: viewMode === "grid" ? 'var(--primary)' : 'transparent', border: 'none', color: viewMode === "grid" ? '#fff' : 'var(--text-muted)', cursor: 'pointer' }}>
-                <Grid size={18} />
-             </button>
+
+        <div className={styles.heroContent}>
+          <div>
+            <h1 className={styles.pageTitle}>
+              <Layers size={28} className="text-primary" />
+              {courseTitle} — Batches
+            </h1>
+            <p className={styles.pageSubtitle}>
+              {isLinear 
+                ? "Linear Course: Students can be enrolled into Start Today Batch (custom enrollment start date) or All Unlocked Batch."
+                : "Manage scheduled cohorts, Start Today self-paced enrollments, and instant unlock access for this course."}
+            </p>
           </div>
 
           {!isLinear ? (
             <button 
-              className={styles.primaryBtn}
+              type="button"
+              className={styles.primaryActionBtn}
               onClick={() => setIsModalOpen(true)}
             >
               <Plus size={18} /> New Batch
             </button>
           ) : (
-            <div style={{ fontSize: '0.85rem', padding: '8px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid var(--glass-border)', color: 'var(--text-muted)' }}>
-              🔒 Linear Course (Custom & Instant Batches only)
+            <div className={styles.modeBadge} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px' }}>
+              <Lock size={14} /> Linear Course (Start Today & All Unlocked Only)
             </div>
           )}
         </div>
+
+        <div className={styles.kpiGrid}>
+          <div className={styles.kpiCard}>
+            <div className={`${styles.kpiIconBox} ${styles.kpiIconBlue}`}>
+              <Layers size={20} />
+            </div>
+            <div>
+              <div className={styles.kpiVal}>{batches.length}</div>
+              <div className={styles.kpiLab}>Total Batches</div>
+            </div>
+          </div>
+
+          <div className={styles.kpiCard}>
+            <div className={`${styles.kpiIconBox} ${styles.kpiIconEmerald}`}>
+              <Users size={20} />
+            </div>
+            <div>
+              <div className={styles.kpiVal}>{totalStudents}</div>
+              <div className={styles.kpiLab}>Enrolled Students</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Controls Bar */}
+      <div className={styles.controlsBar}>
+        <div className={styles.searchWrapper}>
+          <Search size={16} className={styles.searchIcon} />
+          <input 
+            type="text" 
+            placeholder="Search batches..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+        </div>
+
+        <div className={styles.actionGroup}>
+          <select 
+            value={sortBy} 
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className={styles.selectBox}
+          >
+            <option value="date">Sort by Date Added (Newest First)</option>
+            <option value="students">Sort by Most Students</option>
+            <option value="name">Sort by Name (A-Z)</option>
+          </select>
+        </div>
       </div>
 
-      <div className={viewMode === "grid" ? styles.coursesGrid : styles.coursesList} style={viewMode === "list" ? { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '24px' } : undefined}>
+      {/* Batches Cards Grid */}
+      <div className={styles.cardsGrid}>
         {filteredAndSortedBatches.length === 0 ? (
-          <div className={styles.emptyState}>No batches found for this course.</div>
+          <div className={styles.emptyBox} style={{ gridColumn: '1 / -1' }}>
+            <Layers size={48} style={{ opacity: 0.3 }} />
+            <div className={styles.emptyTitle}>No batches found</div>
+            <p style={{ margin: 0 }}>Try adjusting your search criteria</p>
+          </div>
         ) : (
-          filteredAndSortedBatches.map((batch) => (
-            <div key={batch.id} className={`${styles.courseCard} glass`} style={viewMode === "list" ? { flexDirection: 'row', alignItems: 'center', padding: '16px 20px', gap: '20px', justifyContent: 'space-between' } : undefined}>
-              <div className={styles.courseHeader} style={viewMode === "list" ? { margin: 0, flex: 1.5 } : undefined}>
-                <div className={styles.courseIcon} style={viewMode === "list" ? { width: '40px', height: '40px' } : undefined}>
-                  <Layers size={viewMode === "list" ? 20 : 24} />
-                </div>
-                <div className={styles.courseInfo}>
-                  <div style={viewMode === "list" ? { display: 'flex', alignItems: 'center', gap: '12px' } : undefined}>
-                    <h3 style={viewMode === "list" ? { fontSize: '1.1rem', margin: 0 } : undefined}>{batch.name}</h3>
-                    {viewMode === "list" && (
-                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {batch.endDate ? `Ends: ${formatDateGMT6(batch.endDate)}` : 'Ongoing'}
-                       </span>
-                    )}
-                  </div>
-                  {viewMode === "grid" && (
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {batch.endDate ? `Ends: ${formatDateGMT6(batch.endDate)}` : 'Ongoing'}
+          filteredAndSortedBatches.map((batch) => {
+            const batchType = getBatchType(batch.name);
+            const isStartToday = batchType === 'start_today';
+            const isAllUnlocked = batchType === 'all_unlocked';
+
+            let cardClass = styles.batchCardScheduled;
+            let iconClass = styles.batchIconScheduled;
+            let tagClass = styles.batchTypeScheduled;
+            let tagLabel = 'Scheduled Cohort';
+            let desc = batch.startDate 
+              ? `Starts on ${formatDateGMT6(batch.startDate)}${batch.endDate ? ` • Ends ${formatDateGMT6(batch.endDate)}` : ''}` 
+              : 'Fixed calendar schedule cohort.';
+
+            if (isStartToday) {
+              cardClass = styles.batchCardStartToday;
+              iconClass = styles.batchIconStartToday;
+              tagClass = styles.batchTypeStartToday;
+              tagLabel = 'Start Today';
+              desc = 'Student schedule calculates relative to their exact enrollment start date.';
+            } else if (isAllUnlocked) {
+              cardClass = styles.batchCardAllUnlocked;
+              iconClass = styles.batchIconAllUnlocked;
+              tagClass = styles.batchTypeAllUnlocked;
+              tagLabel = 'All Unlocked';
+              desc = 'All curriculum materials and lessons are unlocked instantly upon enrollment.';
+            }
+
+            return (
+              <div key={batch.id} className={`${styles.batchCard} ${cardClass}`}>
+                <div>
+                  <div className={styles.cardHeader}>
+                    <div className={`${styles.courseIconBox} ${iconClass}`}>
+                      {isStartToday && <Rocket size={22} />}
+                      {isAllUnlocked && <Zap size={22} />}
+                      {!isStartToday && !isAllUnlocked && <CalendarDays size={22} />}
                     </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className={styles.statsGrid} style={viewMode === "list" ? { display: 'flex', justifyContent: 'space-around', flex: 2, margin: 0, padding: 0, border: 'none', background: 'transparent' } : undefined}>
-                <div className={styles.statBox} style={viewMode === "list" ? { border: 'none', background: 'transparent', padding: 0, display: 'flex', alignItems: 'center', gap: '12px' } : undefined}>
-                  <Calendar size={viewMode === "list" ? 16 : 18} className="text-primary" />
-                  <div className={styles.statInfo} style={viewMode === "list" ? { display: 'flex', alignItems: 'baseline', gap: '8px' } : undefined}>
-                    <span className={styles.statValue} style={viewMode === "list" ? { fontSize: '1.1rem', margin: 0 } : undefined}>
-                      {batch.startDate ? formatDateGMT6(batch.startDate) : 'No start date'}
-                    </span>
-                    <span className={styles.statLabel} style={viewMode === "list" ? { fontSize: '0.85rem', margin: 0 } : undefined}>Starts</span>
+                    <div className={styles.cardInfo}>
+                      <h3 className={styles.cardTitle} title={batch.name}>
+                        {isStartToday ? 'Start Today Batch' : isAllUnlocked ? 'All Unlocked Batch' : batch.name}
+                      </h3>
+                      <div className={styles.badgesRow}>
+                        <span className={`${styles.batchTypeTag} ${tagClass}`}>
+                          {tagLabel}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className={styles.statBox} style={viewMode === "list" ? { border: 'none', background: 'transparent', padding: 0, display: 'flex', alignItems: 'center', gap: '12px' } : undefined}>
-                  <Users size={viewMode === "list" ? 16 : 18} className="text-secondary" />
-                  <div className={styles.statInfo} style={viewMode === "list" ? { display: 'flex', alignItems: 'baseline', gap: '8px' } : undefined}>
-                    <span className={styles.statValue} style={viewMode === "list" ? { fontSize: '1.1rem', margin: 0 } : undefined}>{batch.studentCount}</span>
-                    <span className={styles.statLabel} style={viewMode === "list" ? { fontSize: '0.85rem', margin: 0 } : undefined}>Students</span>
-                  </div>
-                </div>
-              </div>
 
-              {viewMode === "grid" && (
-                  <div style={{ padding: '0 1rem 1rem 1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {batch.endDate ? `Ends: ${formatDateGMT6(batch.endDate)}` : 'Ongoing'}
-                  </div>
-              )}
+                  <p className={styles.batchDescText}>
+                    {desc}
+                  </p>
+                </div>
 
-              <div className={styles.courseActions} style={viewMode === "list" ? { flex: 0.5, display: 'flex', justifyContent: 'flex-end', borderTop: 'none', margin: 0, padding: 0 } : undefined}>
-                <Link href={`/teacher/dashboard/batches/${courseId}/${batch.id}`} className={styles.primaryBtn} style={viewMode === "list" ? { padding: '8px 16px', fontSize: '0.9rem' } : undefined}>
-                  View Students
+                <div className={styles.cardStatsGrid}>
+                  <div className={styles.cardStatItem}>
+                    <Users size={16} className="text-secondary" />
+                    <div>
+                      <div className={styles.cardStatVal}>{batch.studentCount}</div>
+                      <div className={styles.cardStatLab}>Students</div>
+                    </div>
+                  </div>
+                  <div className={styles.cardStatItem}>
+                    <Calendar size={16} className="text-primary" />
+                    <div>
+                      <div className={styles.cardStatVal}>
+                        {batch.startDate ? formatDateGMT6(batch.startDate) : (isStartToday ? "Enrollment Date" : "Instant Access")}
+                      </div>
+                      <div className={styles.cardStatLab}>{batch.startDate ? "Starts" : "Mode"}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <Link href={`/teacher/dashboard/batches/${courseId}/${batch.id}`} className={styles.cardActionLink}>
+                  View Students ({batch.studentCount})
                   <ArrowRight size={16} />
                 </Link>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
+      {/* Create Batch Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className={styles.modalOverlay}>
+          <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
             <motion.div 
-              className={`${styles.modal} glass`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
+              className={styles.modalContent}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h3>Create New Batch</h3>
-              <form onSubmit={handleCreateBatch} className={styles.modalForm}>
+              <h3 className={styles.modalTitle}>Create New Batch</h3>
+              <p className={styles.pageSubtitle}>
+                Add a new scheduled cohort for <strong>{courseTitle}</strong>.
+              </p>
+
+              <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div className={styles.formGroup}>
-                  <label>Batch Name</label>
+                  <label className={styles.formLabel}>Batch Name</label>
                   <input 
                     type="text" 
                     value={newBatchName} 
                     onChange={(e) => setNewBatchName(e.target.value)} 
-                    placeholder="e.g. Fall 2026 Batch"
+                    placeholder="e.g. Batch #73 or Fall 2026"
+                    className={styles.formInput}
                     required 
                   />
                 </div>
+
                 <div className={styles.formGroup}>
-                  <label>Start Date</label>
+                  <label className={styles.formLabel}>Start Date</label>
                   <input 
                     type="date" 
                     value={newBatchStartDate} 
                     onChange={(e) => setNewBatchStartDate(e.target.value)} 
+                    className={styles.formInput}
                     required 
                   />
                 </div>
-                <p className={styles.helpText}>
-                  The end date will automatically be set to 1 year from the start date.
+
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                  💡 The end date will automatically be set to 1 year from the start date.
                 </p>
+
                 <div className={styles.modalActions}>
                   <button type="button" onClick={() => setIsModalOpen(false)} className={styles.cancelBtn}>
                     Cancel
                   </button>
-                  <button type="submit" disabled={isSubmitting} className={styles.primaryBtn}>
+                  <button type="submit" disabled={isSubmitting} className={styles.primaryActionBtn}>
                     {isSubmitting ? "Creating..." : "Create Batch"}
                   </button>
                 </div>
@@ -274,6 +369,6 @@ export default function CourseBatchesPage() {
           </div>
         )}
       </AnimatePresence>
-    </section>
+    </div>
   );
 }
