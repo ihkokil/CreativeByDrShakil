@@ -269,9 +269,10 @@
   background: var(--card-bg);
   border: 1px solid var(--glass-border);
   border-radius: 20px;
-  width: 90%;
-  max-width: 680px;
-  max-height: 90vh;
+  width: 100%;
+  max-width: 780px;
+  width: min(94vw, 780px);
+  max-height: min(90vh, 90dvh);
   display: flex;
   flex-direction: column;
   z-index: 1000;

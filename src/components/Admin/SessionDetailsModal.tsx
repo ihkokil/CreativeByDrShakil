@@ -97,9 +97,9 @@ export default function SessionDetailsModal({
           <X size={20} />
         </button>
 
-        <h2 style={{ marginBottom: '20px' }}>Session Details</h2>
+        <h2 style={{ marginBottom: '20px', flexShrink: 0 }}>Session Details</h2>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', flex: 1, minHeight: 0, overscrollBehavior: 'contain' }}>
           {/* Device Info */}
           <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--surface-soft)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

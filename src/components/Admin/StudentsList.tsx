@@ -41,7 +41,7 @@ export default function StudentsList() {
 
     const showMessage = (msg: { type: 'success' | 'error'; text: string }) => {
         setMessage(msg);
-        setTimeout(() => setMessage(null), 4000);
+        setTimeout(() => setMessage(null), 5000);
     };
 
     const fetchStudents = useCallback(async () => {

@@ -429,9 +429,9 @@ body.modal-open {
 }
 
 /* Universal Overlay & Backdrop Container */
-[class*='overlay'],
-[class*='modalBackdrop'],
-[class*='modalOverlay'],
+[class*='overlay']:not([class*='drawer']):not([class*='slideOver']):not([data-drawer='true']),
+[class*='modalBackdrop']:not([class*='drawer']):not([class*='slideOver']):not([data-drawer='true']),
+[class*='modalOverlay']:not([class*='drawer']):not([class*='slideOver']):not([data-drawer='true']),
 [class*='confirmBackdrop'] {
   position: fixed !important;
   top: 0 !important;
@@ -452,12 +452,13 @@ body.modal-open {
   box-sizing: border-box !important;
 }
 
-/* Modal Inner Shell - Fits cleanly inside viewport without being cropped */
-[class*='overlay'] > div,
-[class*='modalBackdrop'] > div,
-[class*='modalOverlay'] > div,
+/* Modal Inner Shell - Fits cleanly inside viewport with responsive fallbacks */
+[class*='overlay']:not([class*='drawer']):not([class*='slideOver']):not([data-drawer='true']) > div,
+[class*='modalBackdrop']:not([class*='drawer']):not([class*='slideOver']):not([data-drawer='true']) > div,
+[class*='modalOverlay']:not([class*='drawer']):not([class*='slideOver']):not([data-drawer='true']) > div,
 [class*='confirmBackdrop'] > div {
   max-height: min(calc(100vh - 48px), calc(100dvh - 48px)) !important;
+  width: min(94vw, 100%);
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
@@ -468,10 +469,56 @@ body.modal-open {
 [class*='overlay'] [class*='modalBody'],
 [class*='modalBackdrop'] [class*='modalBody'],
 [class*='modalOverlay'] [class*='modalBody'],
-[class*='confirmBackdrop'] [class*='modalBody'] {
+[class*='confirmBackdrop'] [class*='modalBody'],
+[class*='overlay'] [class*='modalContent'],
+[class*='modalBackdrop'] [class*='modalContent'],
+[class*='modalOverlay'] [class*='modalContent'],
+[class*='overlay'] [class*='modalForm'],
+[class*='modalOverlay'] [class*='modalForm'],
+[class*='overlay'] [class*='bodyScroll'] {
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Dedicated Slide-Over Drawer Container */
+[class*='drawerOverlay'],
+[class*='slideOverOverlay'],
+[data-drawer='true'] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 1200 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: stretch !important;
+  padding: 0 !important;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-sizing: border-box !important;
+}
+
+[class*='drawerOverlay'] > div,
+[class*='slideOverOverlay'] > div,
+[data-drawer='true'] > div {
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  margin: 0 0 0 auto !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 

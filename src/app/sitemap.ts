@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { fetchPublishedCoursesServer } from '@/lib/server-courses';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://creativebydrshakil.com';
@@ -21,18 +22,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    const res = await fetch(`${baseUrl}/api/courses/dynamic`, { next: { revalidate: 3600 } });
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data.courses)) {
-        const dynamicRoutes = data.courses.map((course: any) => ({
-          url: `${baseUrl}/courses/${course.slug}`,
-          lastModified: new Date(course.updatedAt || new Date()),
-          changeFrequency: 'weekly' as const,
-          priority: 0.9,
-        }));
-        return [...staticRoutes, ...dynamicRoutes];
-      }
+    const courses = await fetchPublishedCoursesServer();
+    if (Array.isArray(courses)) {
+      const dynamicRoutes = courses.map((course: any) => ({
+        url: `${baseUrl}/courses/${course.slug}`,
+        lastModified: new Date(course.publishedAt || new Date()),
+        changeFrequency: 'weekly' as const,
+        priority: 0.9,
+      }));
+      return [...staticRoutes, ...dynamicRoutes];
     }
   } catch (error) {
     console.error('Error fetching courses for sitemap', error);

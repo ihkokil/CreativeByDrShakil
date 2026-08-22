@@ -99,7 +99,7 @@ export default function StudentEnrollmentDetailsModal({
     : 0;
 
   return (
-    <div className={styles.overlay}>
+    <div className={styles.overlay} data-drawer="true">
       <motion.div 
         className={styles.modal} 
         onClick={e => e.stopPropagation()}

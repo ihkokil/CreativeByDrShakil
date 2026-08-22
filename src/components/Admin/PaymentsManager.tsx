@@ -37,7 +37,7 @@ export default function PaymentsManager() {
   const [loading, setLoading] = useState(true);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<OrderRow | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   const fetchOrders = useCallback(async (nextStatus: PaymentStatus) => {
     setLoading(true);
@@ -69,74 +69,68 @@ export default function PaymentsManager() {
       setActingOn(orderId);
       try {
         const token = localStorage.getItem("auth_token");
-        const res = await fetch(`/api/admin/orders/${orderId}/decision`, {
+        const res = await fetch(`/api/admin/orders/${orderId}/${decision}`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ decision }),
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data?.error || "Failed to update payment decision.");
+          throw new Error(data?.error || `Failed to ${decision} payment.`);
         }
         await fetchOrders(status);
-        setSelected(null);
+        if (expandedOrderId === orderId) {
+          setExpandedOrderId(null);
+        }
       } catch (e: any) {
-        alert(e?.message || "Failed to update payment decision.");
+        alert(e?.message || `Failed to ${decision} payment.`);
       } finally {
         setActingOn(null);
       }
     },
-    [fetchOrders, status]
+    [fetchOrders, status, expandedOrderId]
   );
 
-  const formatDateTime = useCallback((dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateStr;
-    }
-  }, []);
+  const formatDateTime = (dateStr?: string | null) => {
+    if (!dateStr) return "—";
+    return formatDateGMT6(dateStr);
+  };
 
-  const totals = useMemo(() => {
-    const count = orders.length;
-    const amount = orders.reduce((sum, o) => sum + (Number(o.payment?.amount ?? 0) || 0), 0);
-    return { count, amount };
-  }, [orders]);
+  const pendingCount = useMemo(() => {
+    if (status === "pending") return orders.length;
+    return null;
+  }, [orders.length, status]);
 
   return (
     <section className={styles.panel}>
       <div className={styles.panelHeader}>
         <div>
-          <h2 className={styles.panelTitle}>Payments</h2>
+          <h2 className={styles.panelTitle}>Payment Verification</h2>
           <p className={styles.subtitle}>
-            Review manual payments and approve or reject them.
+            Approve or reject bKash transactions submitted by students
           </p>
         </div>
-      </div>
 
-      <div className={styles.tabGroup}>
-        {STATUS_TABS.map((t) => (
-          <button
-            key={t.id}
-            className={`${styles.tabItem} ${status === t.id ? styles.tabItemActive : ""}`}
-            onClick={() => setStatus(t.id)}
-            style={{ display: "flex", alignItems: "center", gap: 6 }}
-          >
-            <t.icon size={16} />
-            {t.label}
-          </button>
-        ))}
-        <div className={styles.tabStats}>
-          {loading ? "Syncing..." : `${totals.count} items · ৳${Math.round(totals.amount)}`}
+        <div className={styles.filterTabs}>
+          {STATUS_TABS.map((t) => {
+            const Icon = t.icon;
+            const active = status === t.id;
+            return (
+              <button
+                key={t.id}
+                className={`${styles.filterTab} ${active ? styles.activeTab : ""}`}
+                onClick={() => {
+                  setStatus(t.id);
+                  setExpandedOrderId(null);
+                }}
+              >
+                <Icon size={16} />
+                <span>{t.label}</span>
+                {t.id === "pending" && typeof pendingCount === "number" && pendingCount > 0 ? (
+                  <span className={styles.tabBadge}>{pendingCount}</span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -150,155 +144,155 @@ export default function PaymentsManager() {
         <div className={styles.infoBox}>No payments found for this status.</div>
       ) : (
         <div className={styles.teacherGrid}>
-          {orders.map((o) => (
-            <article
-              key={o.id}
-              className={styles.teacherCard}
-              style={{ cursor: "pointer" }}
-              onClick={() => setSelected(o)}
-            >
-              <div className={styles.cardHeader}>
-                <div className={styles.cardInfo}>
-                  <h3 style={{ marginBottom: 2 }}>{o.course?.title || "Course"}</h3>
-                  <p style={{ marginBottom: 0 }}>{o.user?.fullName} · {o.user?.email}</p>
-                </div>
-              </div>
+          {orders.map((o) => {
+            const isExpanded = expandedOrderId === o.id;
 
-              <div className={styles.cardContent}>
-                <div className={styles.academicInfo}>
-                  <div style={{ marginBottom: 10 }}>
-                    <span className={`${styles.statusBadge} ${
-                      o.status === "approved" ? styles.statusSuccess : 
-                      o.status === "rejected" ? styles.statusDanger : 
-                      styles.statusWarning
-                    }`}>
-                      {String(o.status)}
-                    </span>
+            return (
+              <article
+                key={o.id}
+                className={`${styles.teacherCard} ${isExpanded ? styles.paymentCardExpanded : ""}`}
+                style={{ cursor: "pointer" }}
+                onClick={() => setExpandedOrderId(isExpanded ? null : o.id)}
+              >
+                <div className={styles.cardHeader}>
+                  <div className={styles.cardInfo}>
+                    <h3 style={{ marginBottom: 2 }}>{o.course?.title || "Course"}</h3>
+                    <p style={{ marginBottom: 0 }}>{o.user?.fullName} · {o.user?.email}</p>
                   </div>
-                  <p style={{ marginBottom: 8 }}>
-                    <strong>Amount:</strong> ৳{Math.round(Number(o.payment?.amount ?? o.totalAmount))}
-                  </p>
-                  <p style={{ marginBottom: 0, color: "var(--text-muted)" }}>
-                    Updated {formatDateTime(o.updatedAt)}
-                  </p>
+                  <button
+                    type="button"
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "0.82rem",
+                      fontWeight: 600,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedOrderId(isExpanded ? null : o.id);
+                    }}
+                  >
+                    <span>{isExpanded ? "Collapse" : "Inspect"}</span>
+                  </button>
                 </div>
 
-                {status === "pending" ? (
-                  <div className={styles.cardFooter}>
-                    <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className={`${styles.actionBtn} ${styles.actionBtnWide}`}
-                        disabled={actingOn === o.id}
-                        onClick={() => decide(o.id, "approve")}
-                        title="Approve"
-                      >
-                        <CheckCircle2 size={16} />
-                        <span>Approve</span>
-                      </button>
-                      <button
-                        className={`${styles.actionBtn} ${styles.actionBtnWide} ${styles.danger}`}
-                        disabled={actingOn === o.id}
-                        onClick={() => decide(o.id, "reject")}
-                        title="Reject"
-                      >
-                        <XCircle size={16} />
-                        <span>Reject</span>
-                      </button>
+                <div className={styles.cardContent}>
+                  <div className={styles.academicInfo}>
+                    <div style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className={`${styles.statusBadge} ${
+                        o.status === "approved" ? styles.statusSuccess : 
+                        o.status === "rejected" ? styles.statusDanger : 
+                        styles.statusWarning
+                      }`}>
+                        {String(o.status)}
+                      </span>
+                      <strong style={{ fontSize: "1rem" }}>
+                        ৳{Math.round(Number(o.payment?.amount ?? o.totalAmount))}
+                      </strong>
                     </div>
+                    <p style={{ marginBottom: 0, color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                      Updated {formatDateTime(o.updatedAt)}
+                    </p>
                   </div>
-                ) : null}
-              </div>
-            </article>
-          ))}
+
+                  {/* Inline Expanded Details (No Popup) */}
+                  {isExpanded && (
+                    <div className={styles.paymentAccordionDetails} onClick={(e) => e.stopPropagation()}>
+                      <div className={styles.paymentDetailItem}>
+                        <span>Student Name</span>
+                        <strong>{o.user?.fullName || "—"}</strong>
+                      </div>
+                      <div className={styles.paymentDetailItem}>
+                        <span>Student Email</span>
+                        <strong>{o.user?.email || "—"}</strong>
+                      </div>
+                      <div className={styles.paymentDetailItem}>
+                        <span>Course</span>
+                        <strong>{o.course?.title || "—"}</strong>
+                      </div>
+                      <div className={styles.paymentDetailItem}>
+                        <span>bKash Phone Number</span>
+                        <strong>{o.payment?.phoneNumber || "—"}</strong>
+                      </div>
+                      <div className={styles.paymentDetailItem}>
+                        <span>Transaction ID (TrxID)</span>
+                        <strong style={{ color: "var(--primary)", fontFamily: "monospace", fontSize: "0.95rem" }}>
+                          {o.payment?.transactionId || "—"}
+                        </strong>
+                      </div>
+                      <div className={styles.paymentDetailItem}>
+                        <span>Amount Submitted</span>
+                        <strong>৳{Math.round(Number(o.payment?.amount ?? o.totalAmount))}</strong>
+                      </div>
+                      <div className={styles.paymentDetailItem}>
+                        <span>Submitted At</span>
+                        <strong>{formatDateTime(o.payment?.submittedAt)}</strong>
+                      </div>
+                      <div className={styles.paymentDetailItem}>
+                        <span>Order Updated</span>
+                        <strong>{formatDateTime(o.updatedAt)}</strong>
+                      </div>
+
+                      {status === "pending" && (
+                        <div className={styles.paymentStickyActions}>
+                          <button
+                            className={`${styles.actionBtn} ${styles.actionBtnWide} ${styles.danger}`}
+                            disabled={actingOn === o.id}
+                            onClick={() => decide(o.id, "reject")}
+                            title="Reject this payment"
+                          >
+                            <XCircle size={16} />
+                            <span>{actingOn === o.id ? "Saving..." : "Reject Payment"}</span>
+                          </button>
+                          <button
+                            className={`${styles.actionBtn} ${styles.actionBtnWide}`}
+                            disabled={actingOn === o.id}
+                            onClick={() => decide(o.id, "approve")}
+                            title="Approve this payment and enroll student"
+                          >
+                            <CheckCircle2 size={16} />
+                            <span>{actingOn === o.id ? "Saving..." : "Approve Payment"}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!isExpanded && status === "pending" ? (
+                    <div className={styles.cardFooter} style={{ marginTop: 12 }}>
+                      <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className={`${styles.actionBtn} ${styles.actionBtnWide}`}
+                          disabled={actingOn === o.id}
+                          onClick={() => decide(o.id, "approve")}
+                          title="Approve"
+                        >
+                          <CheckCircle2 size={16} />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          className={`${styles.actionBtn} ${styles.actionBtnWide} ${styles.danger}`}
+                          disabled={actingOn === o.id}
+                          onClick={() => decide(o.id, "reject")}
+                          title="Reject"
+                        >
+                          <XCircle size={16} />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
-
-      {selected ? (
-        <div className={styles.confirmBackdrop} role="dialog" aria-modal="true">
-          <div className={styles.confirmDialog} style={{ maxWidth: 640 }}>
-            <h3>Payment Details</h3>
-            <p style={{ marginBottom: 14 }}>
-              Review the details before taking action.
-            </p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div>
-                <strong>Student</strong>
-                <div>{selected.user?.fullName}</div>
-                <div style={{ color: "var(--text-muted)" }}>{selected.user?.email}</div>
-              </div>
-              <div>
-                <strong>Course</strong>
-                <div>{selected.course?.title}</div>
-                <div style={{ color: "var(--text-muted)" }}>{selected.course?.slug || "—"}</div>
-              </div>
-              <div>
-                <strong>Order Status</strong>
-                <div style={{ marginTop: 4 }}>
-                  <span className={`${styles.statusBadge} ${
-                    selected.status === "approved" ? styles.statusSuccess : 
-                    selected.status === "rejected" ? styles.statusDanger : 
-                    styles.statusWarning
-                  }`}>
-                    {String(selected.status)}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <strong>Amount</strong>
-                <div>৳{Math.round(Number(selected.payment?.amount ?? selected.totalAmount))}</div>
-              </div>
-              <div>
-                <strong>Phone</strong>
-                <div>{selected.payment?.phoneNumber || "—"}</div>
-              </div>
-              <div>
-                <strong>Transaction ID</strong>
-                <div>{selected.payment?.transactionId || "—"}</div>
-              </div>
-              <div>
-                <strong>Submitted</strong>
-                <div>{selected.payment?.submittedAt ? formatDateTime(selected.payment.submittedAt) : "—"}</div>
-              </div>
-              <div>
-                <strong>Last Updated</strong>
-                <div>{formatDateTime(selected.updatedAt)}</div>
-              </div>
-            </div>
-
-            <div className={styles.confirmActions}>
-              <button
-                className={styles.confirmCancelBtn}
-                onClick={() => setSelected(null)}
-                disabled={!!actingOn}
-              >
-                Close
-              </button>
-              {String(selected.status).toLowerCase() === "pending" ? (
-                <>
-                  <button
-                    className={`${styles.confirmCancelBtn} ${styles.confirmCancelBtnWide}`}
-                    onClick={() => decide(selected.id, "reject")}
-                    disabled={actingOn === selected.id}
-                  >
-                    <XCircle size={16} />
-                    Reject
-                  </button>
-                  <button
-                    className={`${styles.confirmPrimaryBtn} ${styles.confirmPrimaryBtnWide}`}
-                    onClick={() => decide(selected.id, "approve")}
-                    disabled={actingOn === selected.id}
-                  >
-                    <CheckCircle2 size={16} />
-                    {actingOn === selected.id ? "Saving..." : "Approve"}
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
-

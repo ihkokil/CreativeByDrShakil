@@ -13,7 +13,8 @@
     background: var(--background);
     width: 100%;
     max-width: 800px;
-    max-height: 90vh;
+    width: min(94vw, 800px);
+    max-height: min(90vh, 90dvh);
     border-radius: 16px;
     display: flex;
     flex-direction: column;
@@ -115,6 +116,8 @@
 .body {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
+    overscroll-behavior: contain;
     padding: 24px;
 }
 .loadingState, .emptyState {
@@ -143,6 +146,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+    flex-shrink: 0;
 }
 .footerBtn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--background); cursor: pointer; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; color: var(--foreground); transition: all 0.2s; }
 .footerBtn:hover { background: var(--surface-strong); border-color: var(--text-muted); }

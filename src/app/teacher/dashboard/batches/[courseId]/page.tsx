@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import styles from "../batches.module.css";
 import Loader from "@/components/UI/Loader";
-import { Layers, Calendar, ArrowLeft, Plus, Users, ArrowRight, Search, Zap, Rocket, CalendarDays, Lock } from "lucide-react";
+import { Layers, Calendar, ArrowLeft, Plus, Users, ArrowRight, Search, Zap, Rocket, CalendarDays, Lock, X } from "lucide-react";
 import { formatDateGMT6, formatDateInputGMT6 } from "@/lib/date-format";
 import { motion, AnimatePresence } from "framer-motion";
 import { useModalLock } from "@/hooks/useModalLock";
@@ -312,23 +312,36 @@ export default function CourseBatchesPage() {
         )}
       </div>
 
-      {/* Create Batch Modal */}
+      {/* Create Batch Slide-Over Drawer */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
+          <div className={styles.drawerOverlay} data-drawer="true" onClick={() => setIsModalOpen(false)}>
             <motion.div 
-              className={styles.modalContent}
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className={styles.drawerContent}
+              initial={{ opacity: 0, x: '100%' }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className={styles.modalTitle}>Create New Batch</h3>
-              <p className={styles.pageSubtitle}>
-                Add a new scheduled cohort for <strong>{courseTitle}</strong>.
-              </p>
+              <div className={styles.drawerHeader}>
+                <div>
+                  <h3 className={styles.modalTitle}>Create New Batch</h3>
+                  <p className={styles.pageSubtitle} style={{ marginTop: 4 }}>
+                    Add a new scheduled cohort for <strong>{courseTitle}</strong>.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.drawerCloseBtn}
+                  onClick={() => setIsModalOpen(false)}
+                  aria-label="Close drawer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-              <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Batch Name</label>
                   <input 
@@ -352,11 +365,11 @@ export default function CourseBatchesPage() {
                   />
                 </div>
 
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-                  💡 The end date will automatically be set to 1 year from the start date.
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  💡 The end date will automatically be set to 1 year from the start date. Students enrolled in this batch will adhere to the batch start schedule.
                 </p>
 
-                <div className={styles.modalActions}>
+                <div className={styles.modalActions} style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                   <button type="button" onClick={() => setIsModalOpen(false)} className={styles.cancelBtn}>
                     Cancel
                   </button>

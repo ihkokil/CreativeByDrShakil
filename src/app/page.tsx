@@ -4,36 +4,26 @@ import Courses from "@/components/Courses/Courses";
 import FAQ from "@/components/FAQ/FAQ";
 import Footer from "@/components/Footer/Footer";
 import styles from "./page.module.css";
-import { fetchPublishedDynamicCourses } from "@/lib/dynamic-course-client";
+import { fetchPublishedCoursesServer, fetchPublishedTeachersServer } from "@/lib/server-courses";
+import { mapDynamicCourseToCourse } from "@/lib/dynamic-course-client";
+import { Course } from "@/constants/courses";
+import { PublicTeacher } from "@/lib/teacher-directory";
 
 export default async function Home() {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://creativebydrshakil.com';
-    let initialCourses = [];
-    let initialTeachers = [];
+    let initialCourses: Course[] = [];
+    let initialTeachers: PublicTeacher[] = [];
 
     try {
-        const [coursesRes, teachersRes] = await Promise.all([
-            fetch(`${baseUrl}/api/courses/dynamic`, { next: { revalidate: 3600 } }),
-            fetch(`${baseUrl}/api/teachers`, { next: { revalidate: 3600 } })
+        const [coursesData, teachersData] = await Promise.all([
+            fetchPublishedCoursesServer(),
+            fetchPublishedTeachersServer()
         ]);
 
-        if (coursesRes.ok) {
-            const data = await coursesRes.json();
-            if (Array.isArray(data.courses)) {
-                // The dynamic-course-client mapping usually happens in the fetchPublishedDynamicCourses helper,
-                // but since we are fetching from the API directly, we need to map it or just pass it to the component.
-                // Wait, dynamic-course-client's fetchPublishedDynamicCourses uses relative URL '/api/courses/dynamic',
-                // so we can't use it directly in Server Components without base URL. Let's just fetch and map manually.
-                const { mapDynamicCourseToCourse } = await import('@/lib/dynamic-course-client');
-                initialCourses = data.courses.map(mapDynamicCourseToCourse);
-            }
+        if (Array.isArray(coursesData)) {
+            initialCourses = coursesData.map(mapDynamicCourseToCourse);
         }
-
-        if (teachersRes.ok) {
-            const data = await teachersRes.json();
-            if (Array.isArray(data.teachers)) {
-                initialTeachers = data.teachers;
-            }
+        if (Array.isArray(teachersData)) {
+            initialTeachers = teachersData;
         }
     } catch (error) {
         console.error("Failed to load initial data for home page", error);

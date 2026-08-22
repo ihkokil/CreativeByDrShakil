@@ -394,7 +394,12 @@
     border: 1px solid var(--glass-border);
     padding: 32px;
     width: 100%;
-    max-width: 500px;
+    max-width: 580px;
+    width: min(94vw, 580px);
+    max-height: min(calc(100vh - 48px), calc(100dvh - 48px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
 }
 
@@ -402,12 +407,17 @@
     margin-top: 0;
     margin-bottom: 24px;
     font-size: 1.5rem;
+    flex-shrink: 0;
 }
 
 .modalForm {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    overscroll-behavior: contain;
 }
 
 .formGroup {

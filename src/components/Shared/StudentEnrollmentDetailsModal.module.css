@@ -4,21 +4,27 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
-    z-index: 1000;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1200;
     display: flex;
-    justify-content: flex-end; /* Align slide-over to the right */
+    justify-content: flex-end;
+    align-items: stretch;
+    padding: 0;
 }
 
 .modal {
     background: var(--background);
     width: 100%;
-    max-width: 500px; /* Slimmer for slide-over */
-    height: 100vh; /* Full height */
+    max-width: 640px;
+    width: min(100vw, 640px);
+    height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     border-left: 1px solid var(--border);
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -31,6 +37,7 @@
     padding: 20px 24px;
     border-bottom: 1px solid var(--border);
     background: var(--card-bg);
+    flex-shrink: 0;
 }
 
 .titleArea h2 {
@@ -69,6 +76,8 @@
     padding: 24px;
     overflow-y: auto;
     flex: 1;
+    min-height: 0;
+    overscroll-behavior: contain;
 }
 
 .profileSummaryCard {

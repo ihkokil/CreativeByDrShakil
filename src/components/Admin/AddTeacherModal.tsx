@@ -140,56 +140,58 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                                 </label>
                             </div>
 
-                            <div className={styles.inputGroup}>
-                                <User className={styles.inputIcon} size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Full Name"
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
-                                    required
-                                />
-                            </div>
+                            <div className={styles.formGrid2Col}>
+                                <div className={styles.inputGroup}>
+                                    <User className={styles.inputIcon} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Full Name"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        required
+                                    />
+                                </div>
 
-                            <div className={styles.inputGroup}>
-                                <Mail className={styles.inputIcon} size={18} />
-                                <input
-                                    type="email"
-                                    placeholder="Email Address"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
+                                <div className={styles.inputGroup}>
+                                    <Mail className={styles.inputIcon} size={18} />
+                                    <input
+                                        type="email"
+                                        placeholder="Email Address"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
 
-                            <div className={styles.inputGroup}>
-                                <Briefcase className={styles.inputIcon} size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Designation (e.g. Assistant Professor)"
-                                    value={designation}
-                                    onChange={(e) => setDesignation(e.target.value)}
-                                />
-                            </div>
+                                <div className={styles.inputGroup}>
+                                    <Briefcase className={styles.inputIcon} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Designation (e.g. Assistant Professor)"
+                                        value={designation}
+                                        onChange={(e) => setDesignation(e.target.value)}
+                                    />
+                                </div>
 
-                            <div className={styles.inputGroup}>
-                                <Building2 className={styles.inputIcon} size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Institution / Workplace"
-                                    value={institution}
-                                    onChange={(e) => setInstitution(e.target.value)}
-                                />
-                            </div>
+                                <div className={styles.inputGroup}>
+                                    <Building2 className={styles.inputIcon} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Institution / Workplace"
+                                        value={institution}
+                                        onChange={(e) => setInstitution(e.target.value)}
+                                    />
+                                </div>
 
-                            <div className={styles.inputGroup}>
-                                <GraduationCap className={styles.inputIcon} size={18} />
-                                <input
-                                    type="text"
-                                    placeholder="Degrees (e.g. MBBS, FCPS)"
-                                    value={degrees}
-                                    onChange={(e) => setDegrees(e.target.value)}
-                                />
+                                <div className={`${styles.inputGroup} ${styles.fullWidthCol}`}>
+                                    <GraduationCap className={styles.inputIcon} size={18} />
+                                    <input
+                                        type="text"
+                                        placeholder="Degrees (e.g. MBBS, FCPS, MD)"
+                                        value={degrees}
+                                        onChange={(e) => setDegrees(e.target.value)}
+                                    />
+                                </div>
                             </div>
 
                             {message && (

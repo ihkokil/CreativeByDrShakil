@@ -314,9 +314,9 @@
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     width: 100%;
-    max-width: 520px;
-    max-height: calc(100vh - 40px);
-    max-height: calc(100dvh - 40px);
+    max-width: 680px;
+    width: min(94vw, 680px);
+    max-height: min(calc(100vh - 40px), calc(100dvh - 40px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -936,9 +936,9 @@
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     width: 100%;
-    max-width: 520px;
-    max-height: calc(100vh - 40px);
-    max-height: calc(100dvh - 40px);
+    max-width: 680px;
+    width: min(94vw, 680px);
+    max-height: min(calc(100vh - 40px), calc(100dvh - 40px));
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1149,10 +1149,10 @@
 }
 
 .quizModal {
-    max-width: 740px !important;
-    width: 95% !important;
-    height: 80vh !important;
-    max-height: 760px !important;
+    max-width: 820px !important;
+    width: min(95vw, 820px) !important;
+    height: min(85vh, 85dvh) !important;
+    max-height: 800px !important;
     min-height: 520px !important;
     display: flex;
     flex-direction: column;

@@ -83,9 +83,9 @@ export default function SessionSettingsModal({
           <X size={20} />
         </button>
 
-        <h2 style={{ marginBottom: '20px' }}>Override Auto-Lock Setting</h2>
+        <h2 style={{ marginBottom: '20px', flexShrink: 0 }}>Override Auto-Lock Setting</h2>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', flex: 1, minHeight: 0, overscrollBehavior: 'contain' }}>
           <p style={{ color: 'var(--text-muted)', margin: '0' }}>
             Customize the auto-lock behavior for this user. This setting overrides the global default.
           </p>

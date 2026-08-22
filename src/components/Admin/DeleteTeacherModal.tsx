@@ -113,7 +113,7 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
             {isOpen && (
                 <div className={styles.overlay} onClick={handleClose}>
                     <motion.div
-                        className={`${styles.modal} glass`}
+                        className={`${styles.modal} ${styles.modalSmall} glass`}
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -136,38 +136,40 @@ export default function DeleteTeacherModal({ isOpen, onClose, onSuccess, teacher
                             </p>
                         </div>
 
-                        {availableTeachers.length > 0 ? (
-                            <div className={styles.reassignSection}>
-                                <p className={styles.warningCard}>
-                                    Existing courses must be reassigned before deletion.
-                                </p>
-                                <label className={styles.fieldLabel}>
-                                    Reassign their courses to:
-                                </label>
-                                <select 
-                                    className={styles.selectInput}
-                                    value={reassignToId}
-                                    onChange={(e) => setReassignToId(e.target.value)}
-                                >
-                                    <option value="" disabled>Select a teacher...</option>
-                                    {availableTeachers.map(t => (
-                                        <option key={t.id} value={t.id}>
-                                            {t.full_name} ({t.email})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        ) : (
-                            <div className={styles.warningCard}>
-                                No other teachers available to reassign courses to. Data might be lost.
-                            </div>
-                        )}
+                        <div className={styles.bodyScroll}>
+                            {availableTeachers.length > 0 ? (
+                                <div className={styles.reassignSection}>
+                                    <p className={styles.warningCard}>
+                                        Existing courses must be reassigned before deletion.
+                                    </p>
+                                    <label className={styles.fieldLabel}>
+                                        Reassign their courses to:
+                                    </label>
+                                    <select 
+                                        className={styles.selectInput}
+                                        value={reassignToId}
+                                        onChange={(e) => setReassignToId(e.target.value)}
+                                    >
+                                        <option value="" disabled>Select a teacher...</option>
+                                        {availableTeachers.map(t => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.full_name} ({t.email})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : (
+                                <div className={styles.warningCard}>
+                                    No other teachers available to reassign courses to. Data might be lost.
+                                </div>
+                            )}
 
-                        {message && (
-                            <div className={`${styles.message} ${styles[message.type]}`}>
-                                {message.text}
-                            </div>
-                        )}
+                            {message && (
+                                <div className={`${styles.message} ${styles[message.type]}`}>
+                                    {message.text}
+                                </div>
+                            )}
+                        </div>
 
                         <div className={styles.actionsRow}>
                             <button 

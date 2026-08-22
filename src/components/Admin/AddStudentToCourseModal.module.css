@@ -1,7 +1,8 @@
 .modal {
-    width: 90%;
-    max-width: 600px;
-    max-height: 90vh;
+    width: 100%;
+    max-width: 720px;
+    width: min(94vw, 720px);
+    max-height: min(90vh, 90dvh);
     overflow: hidden;
 }
 

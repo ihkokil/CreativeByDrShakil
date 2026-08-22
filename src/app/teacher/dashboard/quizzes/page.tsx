@@ -917,7 +917,7 @@ export default function TeacherQuizzesPage() {
 
       {showDeleteConfirm && (
         <div className={styles.modalOverlay} onClick={() => setShowDeleteConfirm(null)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={`${styles.modal} ${styles.deleteModal}`} onClick={e => e.stopPropagation()}>
             <h3>Delete Quiz?</h3>
             <p>This action cannot be undone. All questions, attempts, and results will be permanently deleted.</p>
             <div className={styles.modalActions}>
