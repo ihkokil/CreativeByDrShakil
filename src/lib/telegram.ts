@@ -78,21 +78,18 @@ function getTelegramApiUrl(method: string) {
   return `https://api.telegram.org/bot${token}/${method}`;
 }
 
-async function buildApproveRejectKeyboard(orderId: string) {
-  const appUrl = getAppUrl();
-  const approveToken = await signVerificationToken({ orderId, action: 'approve' });
-  const rejectToken = await signVerificationToken({ orderId, action: 'reject' });
-
+export function buildApproveRejectKeyboard(orderId: string) {
+  const compOrderId = compressUuid(orderId);
   return {
     inline_keyboard: [
       [
         {
-          text: '✅ Approve',
-          url: `${appUrl}/api/payments/verify?token=${approveToken}`,
+          text: '✅ Accept',
+          callback_data: `pa|${compOrderId}`,
         },
         {
           text: '❌ Reject',
-          url: `${appUrl}/api/payments/verify?token=${rejectToken}`,
+          callback_data: `pr|${compOrderId}`,
         },
       ],
     ],
@@ -273,6 +270,45 @@ export async function sendTelegramPurchaseNotification({
 }
 
 /**
+ * Edits an existing message in Telegram.
+ */
+export async function editTelegramMessage({
+  chatId,
+  messageId,
+  text,
+  replyMarkup,
+}: {
+  chatId: string | number;
+  messageId: string | number;
+  text: string;
+  replyMarkup?: Record<string, unknown>;
+}) {
+  const url = getTelegramApiUrl('editMessageText');
+  if (!url) return;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'HTML',
+        reply_markup: replyMarkup,
+        disable_web_page_preview: true,
+      }),
+    });
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('[Telegram editMessageText Error]:', errorData);
+    }
+  } catch (error: any) {
+    console.error('[Telegram editMessageText Network Error]:', error?.message || error);
+  }
+}
+
+/**
  * Updates an existing Telegram message to reflect the decision.
  */
 export async function updateTelegramVerificationMessage({
@@ -286,29 +322,12 @@ export async function updateTelegramVerificationMessage({
   decision: 'approve' | 'reject';
   adminName: string;
 }) {
-  const url = getTelegramApiUrl('editMessageText');
-  if (!url) return;
-
   const status = decision === 'approve' ? '✅ Approved' : '❌ Rejected';
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        message_id: messageId,
-        text: `Decision: ${escapeTelegramHtml(status)} by ${escapeTelegramHtml(adminName)}`,
-        parse_mode: 'HTML',
-      }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Error updating Telegram notification:', errorData);
-    }
-  } catch (error: any) {
-    console.error('Error updating Telegram notification:', error.message);
-  }
+  await editTelegramMessage({
+    chatId,
+    messageId,
+    text: `Decision: ${escapeTelegramHtml(status)} by ${escapeTelegramHtml(adminName)}`,
+  });
 }
 
 /**
@@ -351,7 +370,7 @@ export async function sendTelegramRegistrationNotification({
   const replyMarkup = {
     inline_keyboard: [
       [
-        { text: '📚 Enroll in Course', callback_data: `en|${compressUuid(userId)}` },
+        { text: '📚 Enroll Course', callback_data: `en|${compressUuid(userId)}` },
         { text: '⚙️ Change Module Availability', callback_data: `av|${compressUuid(userId)}` }
       ]
     ]
@@ -367,11 +386,13 @@ export async function sendTelegramEnrollmentNotification({
   studentName,
   studentEmail,
   courseTitle,
+  batchName,
   enrolledByAdmin,
 }: {
   studentName: string;
   studentEmail: string;
   courseTitle: string;
+  batchName?: string;
   enrolledByAdmin?: boolean;
 }) {
   const envChatIds = getTelegramChatIds();
@@ -385,10 +406,14 @@ export async function sendTelegramEnrollmentNotification({
     `📚 <b>Course:</b> ${escapeTelegramHtml(courseTitle)}`,
   ];
 
+  if (batchName) {
+    lines.push(`🗓 <b>Batch:</b> ${escapeTelegramHtml(batchName)}`);
+  }
+
   if (enrolledByAdmin) {
-    lines.push('', '<i>Manually enrolled by Admin.</i>');
+    lines.push('', '<i>Enrolled by Admin/Teacher.</i>');
   } else {
-    lines.push('', '<i>Automatically enrolled.</i>');
+    lines.push('', '<i>Enrolled via system.</i>');
   }
 
   await sendTelegramMessage({ chatIds: envChatIds, text: lines.join('\n') });

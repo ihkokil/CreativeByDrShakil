@@ -141,6 +141,17 @@ export async function GET(request: NextRequest) {
         console.error('[Google OAuth Callback] Create user error:', createError);
       }
       user = newUser;
+
+      if (newUser) {
+        import('@/lib/telegram').then(({ sendTelegramRegistrationNotification }) => {
+          sendTelegramRegistrationNotification({
+            userId: newUser.id,
+            userName: newUser.fullName || 'Google User',
+            userEmail: newUser.email,
+            createdAt: newUser.createdAt || new Date().toISOString(),
+          }).catch(err => console.error('[Google OAuth] Telegram notification failed:', err));
+        }).catch(err => console.error('[Google OAuth] Failed to load telegram lib:', err));
+      }
     } else {
       // Update profile image from Google if not already set
       if (!user.profileImage && googleUser.picture) {

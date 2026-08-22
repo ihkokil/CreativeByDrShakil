@@ -257,6 +257,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No students were enrolled. They might already be enrolled in this course.' }, { status: 409 });
     }
 
+    // Trigger Telegram Notifications
+    import('@/lib/telegram').then(({ sendTelegramRegistrationNotification, sendTelegramEnrollmentNotification }) => {
+      if (isNewRegistration && enrolledStudents[0]) {
+        sendTelegramRegistrationNotification({
+          userId: enrolledStudents[0].id,
+          userName: enrolledStudents[0].fullName,
+          userEmail: enrolledStudents[0].email,
+          phoneNumber: enrolledStudents[0].phone || undefined,
+          createdAt: enrolledStudents[0].createdAt,
+        }).catch(err => console.error('[Teacher Enrollment] Telegram reg notification failed:', err));
+      }
+
+      for (const { student } of successfulEnrollments) {
+        sendTelegramEnrollmentNotification({
+          studentName: student.fullName,
+          studentEmail: student.email,
+          courseTitle: course.title,
+          batchName: batch?.name || undefined,
+          enrolledByAdmin: true,
+        }).catch(err => console.error('[Teacher Enrollment] Telegram enroll notification failed:', err));
+      }
+    }).catch(err => console.error('[Teacher Enrollment] Telegram lib import failed:', err));
+
     let responseMessage = isNewRegistration
         ? `Student enrolled successfully. A password setup email has been sent to ${enrolledStudents[0].email}.`
         : `${successfulEnrollments.length} student(s) enrolled successfully.`;
