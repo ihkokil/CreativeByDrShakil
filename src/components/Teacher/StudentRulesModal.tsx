@@ -164,10 +164,10 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                         >
                             <div className={styles.optionHeader}>
                                 <div className={styles.radio}></div>
-                                <span className={styles.optionTitle}>Instant Unlock</span>
+                                <span className={styles.optionTitle}>Instant Unlock (All Unlocked Batch)</span>
                             </div>
                             <div className={styles.optionDesc}>
-                                All modules are unlocked and available immediately upon enrollment.
+                                Instantly unlocks all modules and assigns the student to the All Unlocked Batch.
                             </div>
                         </div>
 

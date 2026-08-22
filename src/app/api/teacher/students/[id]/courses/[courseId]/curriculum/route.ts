@@ -29,7 +29,7 @@ export async function GET(
     const [studentRes, courseRes, orderRes] = await Promise.all([
       supabase.from('User').select('id, fullName, email, profileImage').eq('id', studentId).limit(1).maybeSingle(),
       supabase.from('Course').select('*').eq('id', courseId).limit(1).maybeSingle(),
-      supabase.from('Order').select('enrolledAt, updatedAt').eq('userId', studentId).eq('courseId', courseId).eq('status', 'approved').limit(1).maybeSingle(),
+      supabase.from('Order').select('batchId, enrolledAt, updatedAt').eq('userId', studentId).eq('courseId', courseId).eq('status', 'approved').limit(1).maybeSingle(),
     ]);
 
     const student = studentRes.data as any;
@@ -40,16 +40,36 @@ export async function GET(
     if (!course) return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     if (!order) return NextResponse.json({ error: 'Student is not enrolled in this course.' }, { status: 404 });
 
+    let studentBatch: any = null;
+    if (order.batchId) {
+      const { data: bData } = await supabase.from('Batch').select('id, name, startDate').eq('id', order.batchId).limit(1).maybeSingle();
+      studentBatch = bData;
+    }
+
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
 
-    const studentReleaseStartAt = order.enrolledAt || course.releaseStartAt || course.courseStartDate || order.updatedAt;
+    let effectiveReleaseMode = course.releaseMode || 'custom_batch';
+    let studentReleaseStartAt = order.enrolledAt || course.releaseStartAt || course.courseStartDate || order.updatedAt;
+
+    if (studentBatch) {
+      const bName = (studentBatch.name || '').toLowerCase();
+      if (bName.includes('instant') || bName.includes('all unlocked')) {
+        effectiveReleaseMode = 'instant';
+      } else if (bName.includes('custom') || bName.includes('start today')) {
+        effectiveReleaseMode = 'custom_batch';
+        studentReleaseStartAt = order.enrolledAt || new Date().toISOString();
+      } else if (studentBatch.startDate) {
+        effectiveReleaseMode = course.releaseMode || 'circular';
+        studentReleaseStartAt = studentBatch.startDate;
+      }
+    }
 
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-      releaseMode: course.releaseMode,
+      releaseMode: effectiveReleaseMode,
       releaseStartAt: studentReleaseStartAt,
       releaseIntervalDays: course.releaseIntervalDays,
       releaseGroupsPerWeek: course.releaseGroupsPerWeek,

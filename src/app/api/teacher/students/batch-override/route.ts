@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { ensureCustomBatch } from '@/lib/enrollment';
+import { ensureCustomBatch, ensureAllUnlockedBatch } from '@/lib/enrollment';
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,59 +71,24 @@ export async function POST(request: NextRequest) {
       }
       
       if (action === 'instant' || action === 'unlock_all') {
-        // Fetch course curriculum to get all node IDs
-        const { data: courseData } = await supabase
-          .from('Course')
-          .select('curriculumJson')
-          .eq('id', courseId)
-          .single();
-          
-        if (courseData && courseData.curriculumJson) {
-          let nodes = [];
-          try {
-             nodes = typeof courseData.curriculumJson === 'string' ? JSON.parse(courseData.curriculumJson) : courseData.curriculumJson;
-          } catch(e) {}
-          
-          const lessonNodeIds: string[] = [];
-          const extractIds = (list: any[]) => {
-            for (const n of list) {
-              if (n.id) lessonNodeIds.push(n.id);
-              if (n.children) extractIds(n.children);
-            }
-          };
-          if (Array.isArray(nodes)) extractIds(nodes);
+        const allUnlockedBatch = await ensureAllUnlockedBatch(supabase, courseId);
 
-          const nowStr = new Date().toISOString();
-          let processed = 0;
-          for (const uid of targets) {
-             // Clear existing overrides
-             await supabase
-               .from('StudentModuleAvailability')
-               .delete()
-               .eq('courseId', courseId)
-               .eq('userId', uid);
-               
-             // Insert 'available' for all nodes
-             const inserts = lessonNodeIds.map(nodeId => ({
-               id: crypto.randomUUID(),
-               courseId,
-               userId: uid,
-               lessonNodeId: nodeId,
-               availabilityMode: 'available',
-               availableAt: null,
-               createdAt: nowStr,
-               updatedAt: nowStr
-             }));
-             
-             if (inserts.length > 0) {
-// @ts-ignore
-               await supabase.from('StudentModuleAvailability').insert(inserts);
-             }
-             processed++;
-          }
-          return NextResponse.json({ success: true, processed });
+        for (const uid of targets) {
+          // Reassign student to All Unlocked Batch
+          await (supabase.from('Order') as any)
+            .update({ batchId: allUnlockedBatch.id } as any)
+            .eq('courseId', courseId)
+            .eq('userId', uid)
+            .eq('status', 'approved');
+
+          // Clear any specific node-level overrides
+          await supabase
+            .from('StudentModuleAvailability')
+            .delete()
+            .eq('courseId', courseId)
+            .eq('userId', uid);
         }
-        return NextResponse.json({ error: 'Failed to process instant unlock' }, { status: 500 });
+        return NextResponse.json({ success: true, processed: targets.length });
       }
       
       if (action === 'batch_change' || action === 'change_batch') {

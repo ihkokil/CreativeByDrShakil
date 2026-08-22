@@ -201,9 +201,9 @@ export async function GET(
 
     if (!isAdmin && studentBatch) {
       const bName = (studentBatch.name || '').toLowerCase();
-      if (bName.includes('instant')) {
+      if (bName.includes('instant') || bName.includes('all unlocked')) {
         effectiveReleaseMode = 'instant';
-      } else if (bName.includes('custom')) {
+      } else if (bName.includes('custom') || bName.includes('start today')) {
         effectiveReleaseMode = 'custom_batch';
         releaseStart = enrolledAt || new Date().toISOString();
       } else if (studentBatch.startDate) {

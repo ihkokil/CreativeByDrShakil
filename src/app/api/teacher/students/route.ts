@@ -190,17 +190,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const { data: batchesData = [] } = await (supabase.from('Batch') as any)
+      .select('id, name, startDate')
+      .eq('courseId', (selectedCourse as any).id);
+    const batchMap = new Map((batchesData || []).map((b: any) => [b.id, b]));
+
     const rawCurriculum = parseCurriculumJson((selectedCourse as any).curriculumJson);
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculum = ensureGroupInheritance(populatedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap((selectedCourse as any).releaseGroupDates);
     const computedReleaseGroupDates = computeReleaseGroupDates(groups, {
-        releaseMode: (selectedCourse as any).releaseMode as any,
-        releaseStartAt: (selectedCourse as any).releaseStartAt,
-        releaseIntervalDays: (selectedCourse as any).releaseIntervalDays,
-        releaseGroupsPerWeek: (selectedCourse as any).releaseGroupsPerWeek,
-        releaseGroupDates,
+      releaseMode: (selectedCourse as any).releaseMode as any,
+      releaseStartAt: (selectedCourse as any).releaseStartAt,
+      releaseIntervalDays: (selectedCourse as any).releaseIntervalDays,
+      releaseGroupsPerWeek: (selectedCourse as any).releaseGroupsPerWeek,
+      releaseGroupDates,
     });
 
     const overridesByUser = buildAvailabilityOverrides(overrideRows);
@@ -214,12 +219,27 @@ export async function GET(request: NextRequest) {
 
     const students: CourseStudent[] = enrollments.map((enrollment) => {
       const studentOverrides = overridesByUser.get(enrollment.user.id) || [];
+      const studentBatch = enrollment.batchId ? batchMap.get(enrollment.batchId) : null;
       
       const courseAnchor = (selectedCourse as any).releaseStartAt || (selectedCourse as any).courseStartDate || null;
-      const studentReleaseStartAt = enrollment.enrolledAt || courseAnchor || enrollment.updatedAt;
+      let effectiveReleaseMode = (selectedCourse as any).releaseMode as any || 'custom_batch';
+      let studentReleaseStartAt = enrollment.enrolledAt || courseAnchor || enrollment.updatedAt;
+
+      if (studentBatch) {
+        const bName = ((studentBatch as any).name || '').toLowerCase();
+        if (bName.includes('instant') || bName.includes('all unlocked')) {
+          effectiveReleaseMode = 'instant';
+        } else if (bName.includes('custom') || bName.includes('start today')) {
+          effectiveReleaseMode = 'custom_batch';
+          studentReleaseStartAt = enrollment.enrolledAt || new Date().toISOString();
+        } else if ((studentBatch as any).startDate) {
+          effectiveReleaseMode = (selectedCourse as any).releaseMode || 'circular';
+          studentReleaseStartAt = (studentBatch as any).startDate;
+        }
+      }
 
       const studentComputedDates = computeReleaseGroupDates(groups, {
-        releaseMode: (selectedCourse as any).releaseMode as any,
+        releaseMode: effectiveReleaseMode,
         releaseStartAt: studentReleaseStartAt,
         releaseIntervalDays: (selectedCourse as any).releaseIntervalDays,
         releaseGroupsPerWeek: (selectedCourse as any).releaseGroupsPerWeek,

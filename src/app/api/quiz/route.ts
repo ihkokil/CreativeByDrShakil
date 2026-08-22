@@ -130,9 +130,9 @@ export async function GET(request: NextRequest) {
 
         if (studentBatch) {
           const bName = ((studentBatch as any).name || '').toLowerCase();
-          if (bName.includes('instant')) {
+          if (bName.includes('instant') || bName.includes('all unlocked')) {
             effectiveReleaseMode = 'instant';
-          } else if (bName.includes('custom')) {
+          } else if (bName.includes('custom') || bName.includes('start today')) {
             effectiveReleaseMode = 'custom_batch';
             releaseStart = enrolledAt || new Date().toISOString();
           } else if ((studentBatch as any).startDate) {
