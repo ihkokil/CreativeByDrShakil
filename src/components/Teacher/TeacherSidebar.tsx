@@ -79,10 +79,7 @@ export default function TeacherSidebar({
             <div className={styles.sidebarHeader}>
                 <Link href="/" className={styles.logoWrapper}>
                     {isExpanded ? (
-                        <>
-                            <Image src="/logo/logo_white.webp" alt="Teacher Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-dark-theme" />
-                            <Image src="/logo/logo_black.webp" alt="Teacher Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority className="logo-light-theme" />
-                        </>
+                        <Image src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Teacher Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority unoptimized />
                     ) : (
                         <Image src="/favicon.webp" alt="Teacher Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
                     )}

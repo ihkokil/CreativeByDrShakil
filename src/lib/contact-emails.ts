@@ -82,7 +82,7 @@ function buildModernEmailShell({
                 <!-- Brand Header -->
                 <tr>
                   <td style="padding:32px 28px 24px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#b91c1c 100%);text-align:center;">
-                    <img src="https://files.creativebydrshakil.com/uploads/logo/logo.webp" alt="Creative by Dr. Shakil" style="height:42px;display:block;margin:0 auto 16px;max-width:200px;" />
+                    <img src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Creative by Dr. Shakil" style="height:42px;display:block;margin:0 auto 16px;max-width:200px;" />
                     ${safeBadge ? `<span style="display:inline-block;padding:4px 12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:999px;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;">${safeBadge}</span>` : ''}
                     <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${safeTitle}</h1>
                   </td>

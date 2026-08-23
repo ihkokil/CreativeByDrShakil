@@ -77,10 +77,7 @@ export default function DashboardShell({
             <aside className={styles.sidebar}>
                 <div className={styles.sidebarHeader}>
                     <Link href="/" className={styles.brandLink} aria-label="Go to homepage">
-                        <>
-                            <Image src="/logo/logo_white.webp" alt="Creative Learning" width={152} height={40} priority className="logo-dark-theme" />
-                            <Image src="/logo/logo_black.webp" alt="Creative Learning" width={152} height={40} priority className="logo-light-theme" />
-                        </>
+                        <Image src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Creative Learning" width={152} height={40} priority unoptimized />
                     </Link>
                 </div>
 

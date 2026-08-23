@@ -114,10 +114,7 @@ export default function Navbar() {
                                     >
                                         <div className={styles.navPanelHeader}>
                                             <Link href="/" className={styles.navPanelLogo} onClick={() => setIsNavMenuOpen(false)}>
-                                                <>
-                                                    <Image src="/logo/logo_white.webp" alt="Creative By Dr. Shakil" width={120} height={34} priority className={`${styles.logoImg} logo-dark-theme`} />
-                                                    <Image src="/logo/logo_black.webp" alt="Creative By Dr. Shakil" width={120} height={34} priority className={`${styles.logoImg} logo-light-theme`} />
-                                                </>
+                                                <Image src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Creative By Dr. Shakil" width={120} height={34} priority className={styles.logoImg} unoptimized />
                                             </Link>
                                             <button
                                                 type="button"
@@ -171,10 +168,7 @@ export default function Navbar() {
                     </div>
 
                     <Link href="/" className={styles.logo}>
-                        <>
-                            <Image src="/logo/logo_white.webp" alt="Creative By Dr. Shakil" width={140} height={40} priority className={`${styles.logoImg} logo-dark-theme`} />
-                            <Image src="/logo/logo_black.webp" alt="Creative By Dr. Shakil" width={140} height={40} priority className={`${styles.logoImg} logo-light-theme`} />
-                        </>
+                        <Image src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Creative By Dr. Shakil" width={140} height={40} priority className={styles.logoImg} unoptimized />
                     </Link>
 
                     <div className={styles.centerLinks}>

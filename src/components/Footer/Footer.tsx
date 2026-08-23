@@ -11,10 +11,7 @@ export default function Footer() {
             <div className={styles.mainFooter}>
                 <div className={styles.brandSide}>
                     <div className={styles.logo}>
-                        <>
-                            <Image src="/logo/logo_white.webp" alt="Creative By Dr. Shakil" width={180} height={50} className={`${styles.logoImg} logo-dark-theme`} />
-                            <Image src="/logo/logo_black.webp" alt="Creative By Dr. Shakil" width={180} height={50} className={`${styles.logoImg} logo-light-theme`} />
-                        </>
+                        <Image src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Creative By Dr. Shakil" width={180} height={50} className={styles.logoImg} unoptimized />
                     </div>
                     <p className={styles.description}>
                         Empowering the next generation of medical specialists through evidence-based training and clinical excellence since 2018.
