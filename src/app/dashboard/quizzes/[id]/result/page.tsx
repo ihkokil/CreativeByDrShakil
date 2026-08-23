@@ -380,114 +380,7 @@ export default function QuizResultPage() {
           </Link>
         </header>
 
-        {/* Contextual Header Banner (Smooth Transitions) */}
-        {activeTab === 'summary' ? (
-          <section id="score-section" className={styles.scoreSection}>
-            <div className={styles.scoreCard}>
-              <div className={styles.scoreCardTop}>
-                <div className={styles.scoreCardLeft}>
-                  <div className={styles.quizHeader}>
-                    <h1 className={styles.quizTitle}>{quiz.title}</h1>
-                    <div className={styles.quizMeta}>
-                      <span className={styles.metaItem}>
-                        <Target className={styles.metaIcon} /> Attempt #{attempt.attemptNumber}
-                      </span>
-                      <span className={styles.metaItem}>
-                        <Clock className={styles.metaIcon} /> {formatTime(attempt.timeTakenSeconds)}
-                      </span>
-                      {attempt.rank && (
-                        <span className={styles.metaItem}>
-                          <Trophy className={styles.metaIcon} /> Rank #{attempt.rank} / {leaderboard.length}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {isAutoSubmitted && (
-                      <div className={styles.autoSubmitBadge}>
-                        <Clock className={styles.badgeIcon} />
-                        Auto-submitted (time expired)
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className={styles.scoreCardRight}>
-                  <div 
-                    className={styles.scoreCircle}
-                    style={{
-                      background: `conic-gradient(var(--success-color) 0% ${actualCorrectCount / totalQs * 100}%, var(--info-color) ${actualCorrectCount / totalQs * 100}% ${(actualCorrectCount + actualPartialCount) / totalQs * 100}%, var(--error-color) ${(actualCorrectCount + actualPartialCount) / totalQs * 100}% ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}%, var(--border-color) ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}% 100%)`
-                    }}
-                    role="img"
-                    aria-label={`Score: ${Number(attempt.netScore || 0).toFixed(1)} out of ${totalMarks.toFixed(1)} marks (${percentageScore.toFixed(1)}%)`}
-                  >
-                    <div className={styles.scoreInner}>
-                      <span className={`${styles.scoreValue} ${getScoreColorClass(percentageScore)}`}>
-                        {Number(attempt.netScore || 0).toFixed(1)}
-                      </span>
-                      <span className={styles.scoreTotalDenominator}>/ {totalMarks.toFixed(1)} Marks</span>
-                      <span className={styles.scorePercentLabel}>{percentageScore.toFixed(1)}% Accuracy</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className={styles.scoreDetails}>
-                <div className={styles.detailRow}>
-                  <div className={styles.detailItem}>
-                    <div className={`${styles.detailValue} ${styles.colorSuccess}`}>{actualCorrectCount}</div>
-                    <div className={styles.detailLabel}>Correct</div>
-                  </div>
-                  {actualPartialCount > 0 && (
-                    <>
-                      <div className={styles.detailDivider} />
-                      <div className={styles.detailItem}>
-                        <div className={`${styles.detailValue} ${styles.colorWarning}`}>{actualPartialCount}</div>
-                        <div className={styles.detailLabel}>Partial</div>
-                      </div>
-                    </>
-                  )}
-                  <div className={styles.detailDivider} />
-                  <div className={styles.detailItem}>
-                    <div className={`${styles.detailValue} ${styles.colorError}`}>{actualWrongCount}</div>
-                    <div className={styles.detailLabel}>Wrong</div>
-                  </div>
-                  <div className={styles.detailDivider} />
-                  <div className={styles.detailItem}>
-                    <div className={`${styles.detailValue} ${styles.colorMuted}`}>{actualSkippedCount}</div>
-                    <div className={styles.detailLabel}>Skipped</div>
-                  </div>
-                </div>
-                
-                {Number(attempt.negativeMarks || 0) > 0 && (
-                  <div className={styles.negativeMarks}>
-                    <XCircle className={styles.negativeIcon} />
-                    <span>Negative marks deducted: <strong>{Number(attempt.negativeMarks).toFixed(2)}</strong></span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-        ) : activeTab === 'answers' ? (
-          <section className={styles.scoreSection} style={{ marginBottom: '20px' }}>
-            <div className={styles.scoreCard} style={{ padding: '24px 28px' }}>
-              <h1 className={styles.quizTitle} style={{ fontSize: '24px', marginBottom: '8px' }}>{quiz.title}</h1>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
-                Official Question Bank Answer Keys & Detailed Explanations
-              </p>
-            </div>
-          </section>
-        ) : (
-          <section className={styles.scoreSection} style={{ marginBottom: '20px' }}>
-            <div className={styles.scoreCard} style={{ padding: '24px 28px' }}>
-              <h1 className={styles.quizTitle} style={{ fontSize: '24px', marginBottom: '8px' }}>{quiz.title}</h1>
-              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
-                Real-Time Peer Leaderboard & Cohort Performance Rankings ({leaderboard.length} Participants)
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* Tab Navigation */}
+        {/* Tab Navigation AT THE VERY TOP — Stationary & Zero Layout Shift */}
         <nav className={styles.tabNav} role="tablist">
           <button
             role="tab"
@@ -526,9 +419,96 @@ export default function QuizResultPage() {
 
         {/* Tab Panels */}
         <div className={styles.tabContent}>
-          {/* Summary Tab */}
+          {/* Summary Tab (Attempt Analysis) */}
           {activeTab === 'summary' && (
             <div id="panel-summary" className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-summary">
+              {/* Score Section Banner */}
+              <section id="score-section" className={styles.scoreSection}>
+                <div className={styles.scoreCard}>
+                  <div className={styles.scoreCardTop}>
+                    <div className={styles.scoreCardLeft}>
+                      <div className={styles.quizHeader}>
+                        <h1 className={styles.quizTitle}>{quiz.title}</h1>
+                        <div className={styles.quizMeta}>
+                          <span className={styles.metaItem}>
+                            <Target className={styles.metaIcon} /> Attempt #{attempt.attemptNumber}
+                          </span>
+                          <span className={styles.metaItem}>
+                            <Clock className={styles.metaIcon} /> {formatTime(attempt.timeTakenSeconds)}
+                          </span>
+                          {attempt.rank && (
+                            <span className={styles.metaItem}>
+                              <Trophy className={styles.metaIcon} /> Rank #{attempt.rank} / {leaderboard.length}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {isAutoSubmitted && (
+                          <div className={styles.autoSubmitBadge}>
+                            <Clock className={styles.badgeIcon} />
+                            Auto-submitted (time expired)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className={styles.scoreCardRight}>
+                      <div 
+                        className={styles.scoreCircle}
+                        style={{
+                          background: `conic-gradient(var(--success-color) 0% ${actualCorrectCount / totalQs * 100}%, var(--info-color) ${actualCorrectCount / totalQs * 100}% ${(actualCorrectCount + actualPartialCount) / totalQs * 100}%, var(--error-color) ${(actualCorrectCount + actualPartialCount) / totalQs * 100}% ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}%, var(--border-color) ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}% 100%)`
+                        }}
+                        role="img"
+                        aria-label={`Score: ${Number(attempt.netScore || 0).toFixed(1)} out of ${totalMarks.toFixed(1)} marks (${percentageScore.toFixed(1)}%)`}
+                      >
+                        <div className={styles.scoreInner}>
+                          <span className={`${styles.scoreValue} ${getScoreColorClass(percentageScore)}`}>
+                            {Number(attempt.netScore || 0).toFixed(1)}
+                          </span>
+                          <span className={styles.scoreTotalDenominator}>/ {totalMarks.toFixed(1)} Marks</span>
+                          <span className={styles.scorePercentLabel}>{percentageScore.toFixed(1)}% Accuracy</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.scoreDetails}>
+                    <div className={styles.detailRow}>
+                      <div className={styles.detailItem}>
+                        <div className={`${styles.detailValue} ${styles.colorSuccess}`}>{actualCorrectCount}</div>
+                        <div className={styles.detailLabel}>Correct</div>
+                      </div>
+                      {actualPartialCount > 0 && (
+                        <>
+                          <div className={styles.detailDivider} />
+                          <div className={styles.detailItem}>
+                            <div className={`${styles.detailValue} ${styles.colorWarning}`}>{actualPartialCount}</div>
+                            <div className={styles.detailLabel}>Partial</div>
+                          </div>
+                        </>
+                      )}
+                      <div className={styles.detailDivider} />
+                      <div className={styles.detailItem}>
+                        <div className={`${styles.detailValue} ${styles.colorError}`}>{actualWrongCount}</div>
+                        <div className={styles.detailLabel}>Wrong</div>
+                      </div>
+                      <div className={styles.detailDivider} />
+                      <div className={styles.detailItem}>
+                        <div className={`${styles.detailValue} ${styles.colorMuted}`}>{actualSkippedCount}</div>
+                        <div className={styles.detailLabel}>Skipped</div>
+                      </div>
+                    </div>
+                    
+                    {Number(attempt.negativeMarks || 0) > 0 && (
+                      <div className={styles.negativeMarks}>
+                        <XCircle className={styles.negativeIcon} />
+                        <span>Negative marks deducted: <strong>{Number(attempt.negativeMarks).toFixed(2)}</strong></span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+
               <div id="summary-grid-section" className={styles.summaryGrid}>
                 {/* Card 1: Score Breakdown (Top-Left) */}
                 <div className={styles.summaryCard}>

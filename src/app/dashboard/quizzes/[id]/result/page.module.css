@@ -149,6 +149,58 @@
   height: 18px;
 }
 
+/* ─── Top Tabs Switcher Navigation (Stationary at top, Zero layout shift) ─── */
+.tabNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.tabBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.tabBtn:hover:not(.tabActive) {
+  background: var(--bg-secondary);
+  color: var(--text-color);
+}
+
+.tabActive {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+  font-weight: 700;
+}
+
+.tabIcon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
 .quizHeader {
   display: flex;
   flex-direction: column;
@@ -1649,6 +1701,27 @@
 }
 
 @media (max-width: 640px) {
+  .container {
+    padding: 16px 10px 48px;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .reviewCard {
+    padding: 14px 10px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .reviewOptions {
+    gap: 8px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .tableWrapper {
     display: none;
   }
@@ -1675,48 +1748,149 @@
     justify-content: center;
   }
 
+  .tabNav {
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+
+  .tabBtn {
+    padding: 8px 6px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .tabIcon {
+    width: 15px;
+    height: 15px;
+  }
+
   .tfCompactRow {
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 10px 10px;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .tfCompactLeft {
     align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .tfCompactLeft .optionLetter {
     margin-top: 2px;
+    width: 24px;
+    height: 24px;
+    font-size: 11.5px;
+    border-radius: 5px;
+  }
+
+  .tfCompactText {
+    font-size: 13.5px;
+    line-height: 1.45;
   }
 
   .tfCompactRight {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding-top: 8px;
     border-top: 1px solid var(--border-color);
-    justify-content: space-between;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .userPillCorrect,
+  .userPillWrong,
+  .userPillSkipped {
+    font-size: 11px;
+    padding: 3px 7px;
+    gap: 4px;
+    border-radius: 5px;
+  }
+
+  .keyPill,
+  .keyPillTrue,
+  .keyPillFalse {
+    font-size: 11px;
+    padding: 3px 7px;
+    gap: 4px;
+    border-radius: 5px;
+  }
+
+  .outcomeBadgeWrapper {
+    margin-left: auto;
+  }
+
+  .tfOutcomeSuccess,
+  .tfOutcomeDanger,
+  .tfOutcomeMuted {
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 5px;
   }
 
   .sbaReviewRow {
     flex-direction: column;
     align-items: stretch;
-    gap: 10px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 10px 10px;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
   }
 
   .sbaRowLeft {
     align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .sbaRowLeft .optionLetter {
     margin-top: 2px;
+    width: 24px;
+    height: 24px;
+    font-size: 11.5px;
+    border-radius: 5px;
+  }
+
+  .sbaRowLeft .optionText {
+    font-size: 13.5px;
+    line-height: 1.45;
   }
 
   .sbaRowRight {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding-top: 8px;
     border-top: 1px solid var(--border-color);
-    justify-content: space-between;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  .sbaBadgeSuccess,
+  .sbaBadgeDanger,
+  .sbaBadgeKey {
+    font-size: 11px;
+    padding: 3px 7px;
+    gap: 4px;
+    border-radius: 5px;
   }
 }
 

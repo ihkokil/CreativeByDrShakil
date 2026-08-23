@@ -1222,40 +1222,78 @@
     font-size: 13px;
   }
 
+  .container {
+    padding: 60px 10px 48px;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
   .questionCard {
-    padding: 18px 14px;
+    padding: 14px 10px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
   }
   
   .questionTitle {
-    font-size: 15.5px;
+    font-size: 15px;
   }
   
   .optionCard {
-    padding: 12px 14px;
+    padding: 10px 12px;
     min-height: auto;
+    box-sizing: border-box;
+    max-width: 100%;
   }
   
+  .optionLetter {
+    width: 24px;
+    height: 24px;
+    font-size: 11.5px;
+    border-radius: 5px;
+  }
+
   .optionText {
-    font-size: 14px;
+    font-size: 13.5px;
   }
 
   .mcqMatrixRow {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    padding: 14px 14px;
+    gap: 8px;
+    padding: 10px 10px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .mcqMatrixLabel {
     align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .mcqMatrixLabel .optionLetter {
     margin-top: 2px;
+    width: 24px;
+    height: 24px;
+    font-size: 11.5px;
+    border-radius: 5px;
+  }
+
+  .mcqMatrixLabel .optionText {
+    font-size: 13.5px;
+    line-height: 1.45;
   }
 
   .mcqMatrixBottomRow {
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     border-top: 1px solid var(--border-color);
     padding-top: 8px;
     justify-content: space-between;
@@ -1267,12 +1305,14 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+    box-sizing: border-box;
   }
 
   .mcqBtn {
-    min-height: 44px;
+    min-height: 40px;
     width: 100%;
     min-width: 0;
+    font-size: 13px;
   }
 }
 
