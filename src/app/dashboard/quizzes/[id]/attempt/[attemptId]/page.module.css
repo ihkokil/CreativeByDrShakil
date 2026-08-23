@@ -39,6 +39,7 @@
   min-height: 100vh;
   background: transparent;
   position: relative;
+  overflow-x: hidden;
 }
 
 .loading {
@@ -400,12 +401,16 @@
   justify-content: center;
   padding: 76px 16px 60px;
   min-height: calc(100vh - 100px);
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Question Content */
 .questionContent {
   width: 100%;
   max-width: 1150px;
+  box-sizing: border-box;
 }
 
 .questionCard {
@@ -416,6 +421,16 @@
   margin-bottom: 28px;
   animation: fadeIn 0.3s ease;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .questionCard {
+    padding: 20px 16px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
 }
 
 .questionCard.questionUnanswered {
@@ -638,20 +653,21 @@
   height: 22px;
 }
 
-/* MCQ Matrix (True / False) Styles */
+/* MCQ Matrix (True / False) Vertical Styles */
 .mcqMatrixRow {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 14px 18px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px 20px;
   border: 1.5px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--bg-secondary);
   transition: all 0.15s ease;
   text-align: left;
   position: relative;
-  min-height: 54px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mcqMatrixRow:hover {
@@ -671,34 +687,69 @@
 
 .mcqMatrixLabel {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
   min-width: 0;
 }
 
-.mcqMatrixButtons {
+.mcqMatrixLabel .optionLetter {
+  margin-top: 2px;
+}
+
+.mcqMatrixLabel .optionText {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-color);
+  word-break: break-word;
+}
+
+.mcqMatrixBottomRow {
   display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-  margin-left: auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color);
+}
+
+.mcqMatrixButtons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+}
+
+@media (max-width: 600px) {
+  .mcqMatrixButtons {
+    max-width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .mcqBtn {
-  min-width: 64px;
-  padding: 7px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   letter-spacing: 0.2px;
   transition: all 0.15s ease;
   user-select: none;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mcqBtn:hover:not(:disabled) {
@@ -711,7 +762,7 @@
   background: var(--select-border) !important;
   color: #ffffff !important;
   border-color: var(--select-border) !important;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
 
 .mcqBtnCorrect {
@@ -731,11 +782,62 @@
   opacity: 0.85;
 }
 
+.btnChoiceIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  font-weight: 800;
+  color: inherit;
+}
+
+:global([data-theme='light']) .btnChoiceIcon {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 .mcqMatrixResult {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-left: 8px;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resultBadgeCorrect {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success-color);
+  background: var(--success-light);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.resultBadgeWrong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--error-color);
+  background: var(--error-light);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.resultBadgeSkipped {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .explanation {

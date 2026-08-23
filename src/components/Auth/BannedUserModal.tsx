@@ -3,6 +3,7 @@
 import React from 'react';
 import { ShieldAlert, Mail, X, ArrowLeft } from 'lucide-react';
 import styles from '@/components/Admin/AdminModal.module.css';
+import { renderTextWithEmailLinks } from '@/utils/renderWithLinks';
 
 interface BannedUserModalProps {
   isOpen: boolean;
@@ -78,7 +79,7 @@ export default function BannedUserModal({
             lineHeight: 1.6,
           }}
         >
-          {message || defaultMessage}
+          {renderTextWithEmailLinks(message || defaultMessage)}
         </p>
 
         <div

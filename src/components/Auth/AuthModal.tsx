@@ -8,6 +8,7 @@ import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home, Lock, ArrowRight, 
 import { useAuth } from "@/context/AuthContext";
 import { useModalLock } from "@/hooks/useModalLock";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
+import { renderTextWithEmailLinks } from "@/utils/renderWithLinks";
 
 
 interface Props {
@@ -72,7 +73,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 } else if (err === "DeviceAlreadyLoggedIn") {
                     setMessage({
                         type: 'error',
-                        text: 'You are already logged in on another browser on this device. Please log out from the previous session or ask admin to log you out.'
+                        text: 'You are already logged in on another browser on this device. Please log out from the previous session or contact support@creativebydrshakil.com for assistance.'
+                    });
+                } else if (err === "device_category_locked") {
+                    setMessage({
+                        type: 'error',
+                        text: customMsg || 'This account is already linked to a different device. You can only access your account from your registered device, or contact support@creativebydrshakil.com for assistance.'
                     });
                 } else if (err === "OAuthDenied") {
                     setMessage({
@@ -649,7 +655,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                                     {message && (
                                         <div className={`${styles.message} ${styles[message.type]}`}>
-                                            {message.text}
+                                            {renderTextWithEmailLinks(message.text)}
                                         </div>
                                     )}
 
@@ -737,7 +743,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                                 {message && (
                                     <div className={`${styles.message} ${styles[message.type]}`}>
-                                        {message.text}
+                                        {renderTextWithEmailLinks(message.text)}
                                     </div>
                                 )}
                                 <button className={styles.submitBtn} disabled={loading}>
@@ -843,7 +849,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                                 {message && (
                                     <div className={`${styles.message} ${styles[message.type]}`}>
-                                        {message.text}
+                                        {renderTextWithEmailLinks(message.text)}
                                     </div>
                                 )}
                                 <button className={styles.submitBtn} disabled={loading}>
@@ -870,7 +876,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                                 {message && (
                                     <div className={`${styles.message} ${styles[message.type]}`}>
-                                        {message.text}
+                                        {renderTextWithEmailLinks(message.text)}
                                     </div>
                                 )}
                                 <button className={styles.submitBtn} disabled={loading}>
@@ -923,7 +929,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                                 {message && (
                                     <div className={`${styles.message} ${styles[message.type]}`}>
-                                        {message.text}
+                                        {renderTextWithEmailLinks(message.text)}
                                     </div>
                                 )}
                                 <button className={styles.submitBtn} disabled={loading}>
@@ -996,7 +1002,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
                                 {message && (
                                     <div className={`${styles.message} ${styles[message.type]}`}>
-                                        {message.text}
+                                        {renderTextWithEmailLinks(message.text)}
                                     </div>
                                 )}
                                 <button className={styles.submitBtn} disabled={loading}>
