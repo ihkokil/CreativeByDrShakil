@@ -174,8 +174,8 @@
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: max-content;
-  max-width: 92%;
+  width: calc(100% - 24px);
+  max-width: 640px;
   height: 46px;
   background: var(--card-bg);
   backdrop-filter: blur(20px);
@@ -185,11 +185,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 0 6px 0 16px;
+  gap: 8px;
+  padding: 0 6px 0 14px;
   z-index: 1000;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 :global([data-theme='light']) .topBar {
@@ -200,11 +201,21 @@
 .topBarProgress {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 8px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
-.topBarProgress > span {
+.progressTextDesktop {
+  display: inline;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.progressTextMobile {
+  display: none;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-color);
@@ -217,6 +228,7 @@
   background: var(--bg-tertiary);
   border-radius: 999px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .progressBarFill {
@@ -241,7 +253,7 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   font-family: var(--font-mono, monospace);
   color: var(--text-color);
@@ -253,6 +265,7 @@
   width: 15px;
   height: 15px;
   color: var(--primary-color);
+  flex-shrink: 0;
 }
 
 .timerWarning {
@@ -276,14 +289,14 @@
 .topBarSubmitBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 16px;
-  height: 38px;
+  gap: 5px;
+  padding: 0 14px;
+  height: 36px;
   background: #059669;
   color: #ffffff;
   border: none;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -301,6 +314,60 @@
 .topBarSubmitBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .topBar {
+    top: 8px;
+    height: 42px;
+    padding: 0 4px 0 10px;
+    gap: 6px;
+    width: calc(100% - 16px);
+  }
+
+  .progressTextDesktop {
+    display: none;
+  }
+
+  .progressTextMobile {
+    display: inline;
+    font-size: 0.8rem;
+  }
+
+  .progressBarTrack {
+    width: 45px;
+    height: 5px;
+  }
+
+  .topBarTimer {
+    padding: 3px 8px;
+    font-size: 0.8rem;
+    gap: 4px;
+  }
+
+  .topBarTimerIcon {
+    width: 13px;
+    height: 13px;
+  }
+
+  .topBarSubmitBtn {
+    padding: 0 10px;
+    font-size: 0.78rem;
+    height: 32px;
+    gap: 3px;
+  }
+}
+
+@media (max-width: 360px) {
+  .topBar {
+    gap: 4px;
+    padding: 0 3px 0 8px;
+  }
+
+  .progressBarTrack,
+  .topBarDivider {
+    display: none;
+  }
 }
 
 /* ─── Bottom Completion Card ─── */

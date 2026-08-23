@@ -529,7 +529,8 @@ export default function QuizTakePage() {
       {!showResults && (
         <header className={styles.topBar}>
           <div className={styles.topBarProgress} title={`${answeredCount} of ${totalQuestions} answered`}>
-            <span>{answeredCount}/{totalQuestions} Answered</span>
+            <span className={styles.progressTextDesktop}>{answeredCount}/{totalQuestions} Answered</span>
+            <span className={styles.progressTextMobile}>{answeredCount}/{totalQuestions}</span>
             <div className={styles.progressBarTrack} role="progressbar" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={totalQuestions}>
               <div className={styles.progressBarFill} style={{ width: `${progressPercent}%` }} />
             </div>
