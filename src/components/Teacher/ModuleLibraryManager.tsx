@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Loader from "@/components/UI/Loader";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud, ClipboardList, Search, CheckSquare, PlusCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud, ClipboardList, Search, CheckSquare, PlusCircle, ArrowLeft, ExternalLink, AlertCircle, Check } from "lucide-react";
 
+import { motion, AnimatePresence } from "framer-motion";
+import AlertModal from "@/components/UI/AlertModal";
+import ConfirmModal from "@/components/UI/ConfirmModal";
 import { useModal } from "@/hooks/useModal";
+
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document' | 'quiz';
 
@@ -154,7 +157,12 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                     <div
                         className={styles.dragHandle}
                         draggable
-                        onDragStart={(e) => { e.stopPropagation(); onDragStart(node.id); }}
+                        onDragStart={(e) => { 
+                            e.stopPropagation(); 
+                            e.dataTransfer.effectAllowed = 'move';
+                            e.dataTransfer.setData('text/plain', node.id);
+                            onDragStart(node.id); 
+                        }}
                         onDragEnd={(e) => { e.stopPropagation(); onDragEnd(); }}
                         title="Drag to reorder"
                         onClick={(e) => e.stopPropagation()}
@@ -166,6 +174,7 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                             {isOpen ? <FolderOpen size={18} className={styles.folderIcon} /> : <Folder size={18} className={styles.folderIcon} />}
                             <span className={styles.folderTitle}>{node.title}</span>
                             <span className={styles.itemCount}>({node.children?.length || 0} items)</span>
+                            {isThisDragging && <span className={styles.draggingBadge}>Moving</span>}
                         </>
                     ) : (
                         <>
@@ -180,8 +189,10 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                             {node.type === 'quiz' && (
                                 <span className={styles.quizBadge}>Quiz{node.duration ? ` • ${node.duration}` : ''}</span>
                             )}
+                            {isThisDragging && <span className={styles.draggingBadge}>Moving</span>}
                         </>
                     )}
+
                 </div>
 
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
@@ -275,6 +286,54 @@ export default function ModuleLibraryManager() {
     const [isDragging, setIsDragging] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Quiz Edit & Replace Modal States
+    const [quizEditNode, setQuizEditNode] = useState<CurriculumNode | null>(null);
+    const [isEditQuizModalOpen, setIsEditQuizModalOpen] = useState(false);
+    const [selectedReplacementQuizId, setSelectedReplacementQuizId] = useState<string>('');
+    const [replacementSearch, setReplacementSearch] = useState<string>('');
+    const [isSavingQuizReplacement, setIsSavingQuizReplacement] = useState<boolean>(false);
+
+    // Alert & Confirm Modal States
+
+    const [alertConfig, setAlertConfig] = useState<{
+        isOpen: boolean;
+        title?: string;
+        message: string;
+        type: 'success' | 'error' | 'warning' | 'info';
+    }>({ isOpen: false, message: '', type: 'info' });
+
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title?: string;
+        message: React.ReactNode | string;
+        confirmText?: string;
+        variant?: 'danger' | 'warning' | 'info' | 'primary';
+        isSubmitting?: boolean;
+        onConfirm: () => void | Promise<void>;
+    }>({ isOpen: false, message: '', onConfirm: () => {} });
+
+    const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+        setAlertConfig({ isOpen: true, message, type, title });
+    };
+
+    const showConfirm = (options: {
+        title?: string;
+        message: React.ReactNode | string;
+        confirmText?: string;
+        variant?: 'danger' | 'warning' | 'info' | 'primary';
+        onConfirm: () => void | Promise<void>;
+    }) => {
+        setConfirmConfig({
+            isOpen: true,
+            title: options.title,
+            message: options.message,
+            confirmText: options.confirmText || 'Confirm',
+            variant: options.variant || 'danger',
+            isSubmitting: false,
+            onConfirm: options.onConfirm,
+        });
+    };
+
     const [dragNodeId, setDragNodeId] = useState<string | null>(null);
     const [dragOverNodeId, setDragOverNodeId] = useState<string | null>(null);
     const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
@@ -321,12 +380,16 @@ export default function ModuleLibraryManager() {
                 headers: getAuthHeaders(),
                 body: JSON.stringify({ id: draggedId, targetIndex: newIndex }),
             });
-            if (!res.ok) throw new Error("Failed to reorder.");
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Failed to reorder.");
+            }
             await fetchLibrary();
         } catch (err: any) {
-            alert(err.message || 'Failed to move item.');
+            showAlert(err.message || 'Failed to move item.', 'error');
         }
     };
+
 
     const getAuthHeaders = useCallback((): HeadersInit => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
@@ -415,9 +478,10 @@ export default function ModuleLibraryManager() {
 
             setIsQuizModalOpen(false);
             setSelectedQuizIds([]);
+            showAlert(`Successfully added ${selectedQuizIds.length} quiz(zes) to folder!`, 'success');
             await fetchLibrary();
         } catch (err: any) {
-            alert(err.message || 'Failed to add quizzes.');
+            showAlert(err.message || 'Failed to add quizzes.', 'error');
         } finally {
             setSavingQuizzes(false);
         }
@@ -430,6 +494,42 @@ export default function ModuleLibraryManager() {
             String(quiz.title || '').toLowerCase().includes(q)
         );
     }, [availableQuizzes, quizSearch]);
+
+    const filteredReplacementQuizzes = useMemo(() => {
+        if (!replacementSearch.trim()) return availableQuizzes;
+        const q = replacementSearch.toLowerCase();
+        return availableQuizzes.filter((quiz: any) =>
+            String(quiz.title || '').toLowerCase().includes(q)
+        );
+    }, [availableQuizzes, replacementSearch]);
+
+    const handleSaveQuizReplacement = async () => {
+        if (!quizEditNode || !selectedReplacementQuizId || isSavingQuizReplacement) return;
+        setIsSavingQuizReplacement(true);
+        try {
+            const res = await fetch(`/api/teacher/video-library/${quizEditNode.id}`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    type: 'quiz',
+                    quizId: selectedReplacementQuizId,
+                }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Failed to replace quiz.');
+
+            setIsEditQuizModalOpen(false);
+            setQuizEditNode(null);
+            showAlert('Quiz assignment updated successfully!', 'success');
+            await fetchLibrary();
+        } catch (err: any) {
+            showAlert(err.message || 'Failed to update quiz assignment.', 'error');
+        } finally {
+            setIsSavingQuizReplacement(false);
+        }
+    };
+
 
     const formatDuration = (seconds: number) => {
         if (!seconds || isNaN(seconds)) return "";
@@ -513,38 +613,74 @@ export default function ModuleLibraryManager() {
         });
     };
 
-    const handleDeleteClick = async (id: string, e?: React.MouseEvent) => {
+    const handleDeleteClick = (id: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
-        if (!confirm("Are you sure you want to delete this item? This will also delete all nested content inside it.")) return;
-        try {
-            if (id === activeRootId) setActiveRootId(null);
-            const res = await fetch(`/api/teacher/video-library/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Failed to delete.');
+        showConfirm({
+            title: 'Delete Item?',
+            message: 'Are you sure you want to delete this item? This will also permanently remove all nested content inside it.',
+            confirmText: 'Delete Item',
+            variant: 'danger',
+            onConfirm: async () => {
+                try {
+                    if (id === activeRootId) setActiveRootId(null);
+                    const res = await fetch(`/api/teacher/video-library/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        throw new Error(data.error || 'Failed to delete.');
+                    }
+                    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                    showAlert('Item deleted successfully.', 'success');
+                    await fetchLibrary();
+                } catch (err: any) {
+                    showAlert(err.message || 'Failed to delete item.', 'error');
+                }
             }
-            await fetchLibrary();
-        } catch (err: any) { alert(err.message || 'Failed to delete item.'); }
+        });
     };
 
     const handleMoveItem = async (id: string, direction: 'up' | 'down') => {
         try {
-            const res = await fetch('/api/teacher/video-library/reorder', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ id, direction }) });
-            if (!res.ok) throw new Error("Failed to reorder.");
+            const res = await fetch('/api/teacher/video-library/reorder', { 
+                method: 'POST', 
+                headers: getAuthHeaders(), 
+                body: JSON.stringify({ id, direction }) 
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Failed to reorder.");
+            }
             await fetchLibrary();
-        } catch (err: any) { alert(err.message || 'Failed to move item.'); }
+        } catch (err: any) { 
+            showAlert(err.message || 'Failed to move item.', 'error'); 
+        }
     };
 
-    const handleEditClick = (node: CurriculumNode, e?: React.MouseEvent) => {
+    const handleEditClick = async (node: CurriculumNode, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
         if (node.type === 'quiz') {
-            const qId = node.url || node.quizId;
-            if (qId) {
-                window.open(`/teacher/dashboard/quizzes/${qId}/edit`, '_blank');
-                return;
+            const qId = node.url || node.quizId || '';
+            setQuizEditNode(node);
+            setSelectedReplacementQuizId(qId);
+            setReplacementSearch('');
+            setIsEditQuizModalOpen(true);
+
+            // Fetch latest quizzes list
+            setLoadingQuizzes(true);
+            try {
+                const res = await fetch('/api/quiz', { headers: getAuthHeaders() });
+                if (res.ok) {
+                    const data = await res.json();
+                    setAvailableQuizzes(data.quizzes || []);
+                }
+            } catch (err) {
+                console.error("Failed to load quizzes", err);
+            } finally {
+                setLoadingQuizzes(false);
             }
+            return;
         }
         setEditingNode(node);
+
         setFolderTitle(node.title);
         setVideoTitle(node.title);
         setVideoUrl(node.url || "");
@@ -572,18 +708,34 @@ export default function ModuleLibraryManager() {
         setIsSubmitting(true);
         try {
             const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: folderTitle.trim(), type: 'folder', parentId: activeParentId || null }) });
-            if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to create folder.'); }
-            setFolderTitle(""); setIsFolderModalOpen(false); await fetchLibrary();
-        } catch (err: any) { alert(err.message || 'Failed to create folder.'); } finally { setIsSubmitting(false); }
+            if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to create folder.'); }
+            setFolderTitle(""); 
+            setIsFolderModalOpen(false); 
+            showAlert('Folder created successfully.', 'success');
+            await fetchLibrary();
+        } catch (err: any) { 
+            showAlert(err.message || 'Failed to create folder.', 'error'); 
+        } finally { 
+            setIsSubmitting(false); 
+        }
     };
 
     const submitVideo = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!videoTitle.trim() || !activeParentId || isSubmitting) return;
 
-        if (videoType === 'youtube' && !videoUrl.trim()) { alert('YouTube URL is required.'); return; }
-        if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) { alert('Please upload a video file or provide a direct URL.'); return; }
-        if (videoType === 'document' && docAttachments.length === 0) { alert('Please add at least one document attachment.'); return; }
+        if (videoType === 'youtube' && !videoUrl.trim()) { 
+            showAlert('YouTube URL is required.', 'warning'); 
+            return; 
+        }
+        if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) { 
+            showAlert('Please upload a video file or provide a direct URL.', 'warning'); 
+            return; 
+        }
+        if (videoType === 'document' && docAttachments.length === 0) { 
+            showAlert('Please add at least one document attachment.', 'warning'); 
+            return; 
+        }
 
         setIsSubmitting(true);
         try {
@@ -615,10 +767,17 @@ export default function ModuleLibraryManager() {
             }
 
             const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: videoTitle.trim(), type: videoType, url: resolvedVideoUrl, attachments: finalAttachments, duration: videoDuration.trim() || null, parentId: activeParentId }) });
-            if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to add module.'); }
+            if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to add module.'); }
 
-            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setDocAttachments([]); setIsVideoModalOpen(false); setIsDocModalOpen(false); await fetchLibrary();
-        } catch (err: any) { alert(err.message || 'Failed to add module.'); } finally { setUploadingVideo(false); setIsSubmitting(false); }
+            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setDocAttachments([]); setIsVideoModalOpen(false); setIsDocModalOpen(false); 
+            showAlert('Module added successfully.', 'success');
+            await fetchLibrary();
+        } catch (err: any) { 
+            showAlert(err.message || 'Failed to add module.', 'error'); 
+        } finally { 
+            setUploadingVideo(false); 
+            setIsSubmitting(false); 
+        }
     };
 
     const submitEdit = async (e: React.FormEvent) => {
@@ -664,11 +823,19 @@ export default function ModuleLibraryManager() {
             if (videoType === 'document') { body.attachments = finalAttachments; }
 
             const res = await fetch(`/api/teacher/video-library/${editingNode.id}`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body) });
-            if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to update.'); }
+            if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to update.'); }
 
-            setIsEditModalOpen(false); setEditingNode(null); await fetchLibrary();
-        } catch (err: any) { alert(err.message || 'Failed to update item.'); } finally { setUploadingVideo(false); setIsSubmitting(false); }
+            setIsEditModalOpen(false); setEditingNode(null); 
+            showAlert('Item updated successfully.', 'success');
+            await fetchLibrary();
+        } catch (err: any) { 
+            showAlert(err.message || 'Failed to update item.', 'error'); 
+        } finally { 
+            setUploadingVideo(false); 
+            setIsSubmitting(false); 
+        }
     };
+
 
     const handleFileSelect = (file: File | null) => {
         setVideoFile(file);
@@ -927,61 +1094,68 @@ export default function ModuleLibraryManager() {
                     <div className={styles.breadcrumbBar}>
                         <button className={styles.breadcrumbLink} onClick={() => handleBreadcrumbClick(-1)}>Library</button>
                         {path.map((node, i) => (
-                            <span key={node.id}>
-                                <ChevronRight size={14} className={styles.breadcrumbSep} />
-                                <button className={`${styles.breadcrumbLink} ${i === path.length - 1 ? styles.active : ''}`} onClick={() => handleBreadcrumbClick(i)}>{node.title}</button>
+                            <span key={node.id} className={styles.breadcrumbSegment}>
+                                <ChevronRight size={13} className={styles.breadcrumbSep} />
+                                <button 
+                                    className={`${styles.breadcrumbLink} ${i === path.length - 1 ? styles.active : ''}`} 
+                                    onClick={() => handleBreadcrumbClick(i)}
+                                    title={node.title}
+                                >
+                                    {node.title}
+                                </button>
                             </span>
                         ))}
                     </div>
 
                     <div className={styles.activeViewHeader}>
-                        <button className={styles.backBtn} onClick={() => handleBreadcrumbClick(path.length - 2)}>
-                            <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back
-                        </button>
-                        <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
+                        <div className={styles.headerLeft}>
+                            <button 
+                                type="button"
+                                className={styles.backBtn} 
+                                onClick={() => handleBreadcrumbClick(path.length - 2)}
+                                title="Go back to parent folder"
+                            >
+                                <ArrowLeft size={16} />
+                                <span>Back</span>
+                            </button>
+                            <div className={styles.headerTitleGroup}>
+                                <h3 className={styles.activeRootTitle} title={activeRootNode?.title}>
+                                    {activeRootNode?.title}
+                                </h3>
+                                <span className={styles.headerCountBadge}>
+                                    {activeRootNode?.children?.length || 0} {activeRootNode?.children?.length === 1 ? 'item' : 'items'}
+                                </span>
+                            </div>
+                        </div>
                         
                         <div className={styles.toolbar}>
                             {String(activeRootNode?.title || '').trim().toLowerCase() === 'all resources' ? (
-                                <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
-                                    <FileText size={16} /> Document
+                                <button type="button" className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                    <FileText size={15} /> <span>Document</span>
                                 </button>
                             ) : (String(activeRootNode?.title || '').trim().toLowerCase() === 'all quizes' || String(activeRootNode?.title || '').trim().toLowerCase() === 'all quizzes') ? (
-                                <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
-                                    <PlusCircle size={16} /> Add Quiz
+                                <button type="button" className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                    <PlusCircle size={15} /> <span>Add Quiz</span>
                                 </button>
-                            ) : path.length === 1 && activeRootNode?.parentId === null ? (
-                                <>
-                                    <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
-                                        <Folder size={16} /> Folder
-                                    </button>
-                                    <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
-                                        <Video size={16} /> Video
-                                    </button>
-                                    <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
-                                        <FileText size={16} /> Document
-                                    </button>
-                                    <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
-                                        <ClipboardList size={16} /> Quiz
-                                    </button>
-                                </>
                             ) : (
                                 <>
-                                    <button className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
-                                        <Folder size={16} /> Folder
+                                    <button type="button" className={styles.toolbarBtn} onClick={() => handleAddFolderClick(activeRootId!)} title="Create Folder">
+                                        <Folder size={15} /> <span>Folder</span>
                                     </button>
-                                    <button className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
-                                        <Video size={16} /> Video
+                                    <button type="button" className={styles.toolbarBtn} onClick={() => handleAddVideoClick(activeRootId!)} title="Add Video">
+                                        <Video size={15} /> <span>Video</span>
                                     </button>
-                                    <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
-                                        <FileText size={16} /> Document
+                                    <button type="button" className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
+                                        <FileText size={15} /> <span>Document</span>
                                     </button>
-                                    <button className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
-                                        <ClipboardList size={16} /> Quiz
+                                    <button type="button" className={styles.toolbarBtn} onClick={() => handleOpenQuizModal(activeRootId!, activeRootNode?.title || '')} title="Add Quiz">
+                                        <ClipboardList size={15} /> <span>Quiz</span>
                                     </button>
                                 </>
                             )}
                         </div>
                     </div>
+
 
                     {activeRootNode?.children?.length === 0 ? (
                         <div className={styles.emptyState}>
@@ -1402,7 +1576,219 @@ export default function ModuleLibraryManager() {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Edit Quiz / Replace Modal */}
+            <AnimatePresence>
+                {isEditQuizModalOpen && quizEditNode && (() => {
+                    const currentQuizId = quizEditNode.url || quizEditNode.quizId || '';
+                    const foundQuiz = availableQuizzes.find(q => q.id === currentQuizId);
+                    const isMissing = !loadingQuizzes && !foundQuiz;
+                    const hasSelectedNew = selectedReplacementQuizId && selectedReplacementQuizId !== currentQuizId;
+
+                    return (
+                        <div className={styles.modalOverlay} onClick={() => setIsEditQuizModalOpen(false)}>
+                            <motion.div 
+                                className={`${styles.modal} ${styles.editQuizModal}`} 
+                                initial={{ opacity: 0, y: 20 }} 
+                                animate={{ opacity: 1, y: 0 }} 
+                                exit={{ opacity: 0, y: 20 }} 
+                                onClick={e => e.stopPropagation()}
+                            >
+                                <div className={styles.modalHeader}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <ClipboardList size={20} style={{ color: '#8b5cf6' }} /> Manage Quiz Item
+                                        </h3>
+                                        <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+                                            Review details, edit quiz content in the builder, or swap with another quiz.
+                                        </p>
+                                    </div>
+                                    <button className={styles.closeBtn} onClick={() => setIsEditQuizModalOpen(false)}><X size={20} /></button>
+                                </div>
+
+                                <div className={styles.editQuizModalBody}>
+                                    {/* Current Quiz Card */}
+                                    <div className={styles.currentQuizCard}>
+                                        <div className={styles.currentQuizTop}>
+                                            <div className={styles.currentQuizIcon}>
+                                                <ClipboardList size={22} />
+                                            </div>
+                                            <div className={styles.currentQuizInfo}>
+                                                <div className={styles.currentQuizTitleRow}>
+                                                    <h4 className={styles.currentQuizTitle}>{foundQuiz?.title || quizEditNode.title}</h4>
+                                                    {isMissing ? (
+                                                        <span className={styles.missingBadge}>
+                                                            <AlertCircle size={13} /> Quiz Not Found in DB
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`${styles.statusBadge} ${foundQuiz?.status === 'published' ? styles.statusPublished : styles.statusDraft}`}>
+                                                            {foundQuiz?.status === 'published' ? 'Published' : 'Draft'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className={styles.currentQuizMeta}>
+                                                    <span>Duration: {foundQuiz?.durationMinutes ? `${foundQuiz.durationMinutes} min` : quizEditNode.duration || 'Standard'}</span>
+                                                    {foundQuiz?.questions?.length !== undefined && (
+                                                        <span>• {foundQuiz.questions.length} questions</span>
+                                                    )}
+                                                    {currentQuizId && (
+                                                        <span className={styles.quizIdTag}>ID: {currentQuizId.slice(0, 12)}...</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {isMissing ? (
+                                            <div className={styles.quizMissingAlert}>
+                                                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                                                <span>
+                                                    This quiz record was deleted or does not exist in the database. Choose an active quiz below to replace it, or remove this node from the folder.
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className={styles.currentQuizActions}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.extEditBtn}
+                                                    onClick={() => window.open(`/teacher/dashboard/quizzes/${currentQuizId}/edit`, '_blank')}
+                                                >
+                                                    <ExternalLink size={15} />
+                                                    <span>Open in Quiz Builder & Edit Questions</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Replace Quiz Section */}
+                                    <div className={styles.replaceSection}>
+                                        <div className={styles.replaceHeader}>
+                                            <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>
+                                                {isMissing ? 'Select Replacement Quiz' : 'Replace with Another Quiz'}
+                                            </h4>
+                                            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                                {filteredReplacementQuizzes.length} available
+                                            </span>
+                                        </div>
+
+                                        <div className={styles.quizModalSearch}>
+                                            <Search size={16} className={styles.searchIcon} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search quizzes to assign..."
+                                                value={replacementSearch}
+                                                onChange={e => setReplacementSearch(e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className={styles.quizOptionsList} style={{ maxHeight: '220px' }}>
+                                            {loadingQuizzes ? (
+                                                <div className={styles.loadingContainer}>
+                                                    <Loader />
+                                                    <span>Loading available quizzes...</span>
+                                                </div>
+                                            ) : filteredReplacementQuizzes.length === 0 ? (
+                                                <div className={styles.emptyQuizSearch}>
+                                                    <span>No matching quizzes found.</span>
+                                                </div>
+                                            ) : (
+                                                filteredReplacementQuizzes.map((quiz: any) => {
+                                                    const isCurrent = quiz.id === currentQuizId;
+                                                    const isSelected = selectedReplacementQuizId === quiz.id;
+
+                                                    return (
+                                                        <div
+                                                            key={quiz.id}
+                                                            className={`${styles.quizRadioOption} ${isSelected ? styles.quizOptionSelected : ''} ${isCurrent ? styles.quizOptionCurrent : ''}`}
+                                                            onClick={() => setSelectedReplacementQuizId(quiz.id)}
+                                                        >
+                                                            <div className={styles.radioCircle}>
+                                                                {isSelected && <div className={styles.radioInner} />}
+                                                            </div>
+                                                            <div className={styles.quizOptionInfo}>
+                                                                <div className={styles.quizOptionTitle}>
+                                                                    <span>{quiz.title}</span>
+                                                                    {isCurrent && (
+                                                                        <span className={styles.currentBadge}>Current</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className={styles.quizOptionMeta}>
+                                                                    {quiz.numQuestionsToServe || quiz.questionsCount || 0} Questions • {quiz.durationMinutes ? `${quiz.durationMinutes} min` : 'Standard'} • {quiz.status === 'published' ? 'Published' : 'Draft'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className={styles.editQuizModalFooter}>
+                                    <button
+                                        type="button"
+                                        className={styles.deleteNodeBtn}
+                                        onClick={() => {
+                                            const idToDelete = quizEditNode.id;
+                                            setIsEditQuizModalOpen(false);
+                                            setQuizEditNode(null);
+                                            handleDeleteClick(idToDelete);
+                                        }}
+                                    >
+                                        <Trash2 size={15} />
+                                        <span>Remove Item</span>
+                                    </button>
+
+                                    <div className={styles.quizModalActions}>
+                                        <button 
+                                            type="button"
+                                            className={styles.cancelBtn} 
+                                            onClick={() => {
+                                                setIsEditQuizModalOpen(false);
+                                                setQuizEditNode(null);
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={styles.primaryBtn}
+                                            disabled={!selectedReplacementQuizId || (!hasSelectedNew && !isMissing) || isSavingQuizReplacement}
+                                            onClick={handleSaveQuizReplacement}
+                                            style={{ padding: '10px 20px', fontSize: '0.9rem' }}
+                                        >
+                                            {isSavingQuizReplacement ? 'Saving...' : hasSelectedNew || isMissing ? 'Save & Replace' : 'No Changes'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    );
+                })()}
+            </AnimatePresence>
+
+            {/* Reusable Confirmation Modal */}
+
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                variant={confirmConfig.variant}
+                isSubmitting={confirmConfig.isSubmitting}
+                onConfirm={confirmConfig.onConfirm}
+                onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+            />
+
+            {/* Reusable Alert Modal */}
+            <AlertModal
+                isOpen={alertConfig.isOpen}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 }
+
 

@@ -9,6 +9,7 @@ import {
   ensureGroupInheritance,
   parseCurriculumJson,
   parseReleaseGroupDateMap,
+  pruneInvalidQuizzesFromCurriculum,
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 
@@ -121,6 +122,9 @@ export async function GET(
       }
     }
 
+    // Populate media vault children first so all vault nodes and folders are present
+    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
+
     // Fetch course quizzes
     const { data: courseQuizzes = [] } = await supabase
       .from('CourseQuiz')
@@ -128,7 +132,28 @@ export async function GET(
       .eq('courseId', course.id)
       .order('sortOrder', { ascending: true });
 
-    const quizIds = (courseQuizzes || []).map((cq: any) => cq.quizId);
+    // Collect all quiz IDs referenced across courseQuizzes and populatedCurriculum
+    const allReferencedQuizIds = new Set<string>((courseQuizzes || []).map((cq: any) => cq.quizId));
+
+    const extractQuizIds = (items: any[]) => {
+      for (const item of items) {
+        if (item.type === 'quiz') {
+          const qId =
+            item.quizId ||
+            item.url ||
+            (typeof item.id === 'string' && item.id.startsWith('quiz_')
+              ? item.id.replace('quiz_', '')
+              : item.id);
+          if (qId) allReferencedQuizIds.add(String(qId));
+        }
+        if (item.children && Array.isArray(item.children)) {
+          extractQuizIds(item.children);
+        }
+      }
+    };
+    extractQuizIds(populatedCurriculum);
+
+    const quizIds = Array.from(allReferencedQuizIds);
     let quizMap = new Map<string, any>();
     let completedQuizIds = new Set<string>();
 
@@ -187,9 +212,10 @@ export async function GET(
       });
     };
 
-    const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
     const curriculumWithModuleQuizzes = attachModuleQuizzes(populatedCurriculum);
-    const curriculum = ensureGroupInheritance(curriculumWithModuleQuizzes);
+    // Self-healing prune: eliminate any orphaned/deleted quizzes from reaching the student
+    const sanitizedCurriculum = pruneInvalidQuizzesFromCurriculum(curriculumWithModuleQuizzes, new Set(quizMap.keys()));
+    const curriculum = ensureGroupInheritance(sanitizedCurriculum);
     const groups = collectSecondChildGroups(curriculum);
     const releaseGroupDates = parseReleaseGroupDateMap(course.releaseGroupDates);
 

@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import styles from "./SessionWarning.module.css";
 import { AlertCircle, X } from "lucide-react";
+import { renderTextWithEmailLinks } from "@/utils/renderWithLinks";
 
 const SESSION_TOAST_KEY = "session_terminated_toast_shown";
 
@@ -52,7 +53,7 @@ export default function SessionWarningToast() {
         <div className={styles.content}>
           <p className={styles.title}>Session Ended</p>
           <p className={styles.message}>
-            {sessionTerminatedReason || "Your session was logged out from another device. Please log in again."}
+            {renderTextWithEmailLinks(sessionTerminatedReason || "Your session was logged out from another device. Please log in again.")}
           </p>
         </div>
         <button

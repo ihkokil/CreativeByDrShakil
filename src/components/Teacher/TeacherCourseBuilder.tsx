@@ -9,6 +9,7 @@ import {
 import styles from "./TeacherCourseBuilder.module.css";
 import { FolderPlus, Plus, Save, Trash2, UploadCloud, BookOpen, Calendar, Layers, FolderOpen, Video } from "lucide-react";
 import { formatDisplayDate } from "@/lib/date-format";
+import ConfirmModal from "@/components/UI/ConfirmModal";
 
 interface TeacherCourseSummary {
     id: string;
@@ -410,18 +411,59 @@ export default function TeacherCourseBuilder() {
         finally { setLoading(false); }
     };
 
-    const handleDeleteNode = async (nodeId: string) => {
-        if (!selectedCourseId || !confirm("Delete this item and all nested content?")) return;
-        setLoading(true);
-        try {
-            const response = await fetch(`/api/teacher/courses/${selectedCourseId}/curriculum/${nodeId}`, { method: "DELETE", headers: authHeaders() });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Failed to delete.");
-            applyCurriculumPayload(data);
-            setMessage({ type: "success", text: "Item deleted." });
-        } catch (error: any) { setMessage({ type: "error", text: error.message || "Failed to delete." }); }
-        finally { setLoading(false); }
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title?: string;
+        message: React.ReactNode | string;
+        confirmText?: string;
+        variant?: 'danger' | 'warning' | 'info' | 'primary';
+        isSubmitting?: boolean;
+        onConfirm: () => void | Promise<void>;
+    }>({ isOpen: false, message: '', onConfirm: () => {} });
+
+    const showConfirm = (options: {
+        title?: string;
+        message: React.ReactNode | string;
+        confirmText?: string;
+        variant?: 'danger' | 'warning' | 'info' | 'primary';
+        onConfirm: () => void | Promise<void>;
+    }) => {
+        setConfirmConfig({
+            isOpen: true,
+            title: options.title,
+            message: options.message,
+            confirmText: options.confirmText || 'Confirm',
+            variant: options.variant || 'danger',
+            isSubmitting: false,
+            onConfirm: options.onConfirm,
+        });
     };
+
+    const handleDeleteNode = (nodeId: string) => {
+        if (!selectedCourseId) return;
+        showConfirm({
+            title: 'Delete Item?',
+            message: 'Are you sure you want to delete this curriculum item and all nested content inside it?',
+            confirmText: 'Delete Item',
+            variant: 'danger',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    const response = await fetch(`/api/teacher/courses/${selectedCourseId}/curriculum/${nodeId}`, { method: "DELETE", headers: authHeaders() });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "Failed to delete.");
+                    applyCurriculumPayload(data);
+                    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                    setMessage({ type: "success", text: "Item deleted." });
+                } catch (error: any) { 
+                    setMessage({ type: "error", text: error.message || "Failed to delete." }); 
+                } finally { 
+                    setLoading(false); 
+                }
+            }
+        });
+    };
+
 
     const handleSaveNodeOverride = async (nodeId: string) => {
         if (!selectedCourseId) return;
@@ -715,6 +757,19 @@ export default function TeacherCourseBuilder() {
                     </div>
                 )}
             </div>
+
+            {/* Reusable Confirm Modal */}
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                variant={confirmConfig.variant}
+                isSubmitting={confirmConfig.isSubmitting}
+                onConfirm={confirmConfig.onConfirm}
+                onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 }
+

@@ -39,6 +39,7 @@
   min-height: 100vh;
   background: transparent;
   position: relative;
+  overflow-x: hidden;
 }
 
 .loading {
@@ -173,8 +174,8 @@
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  width: max-content;
-  max-width: 92%;
+  width: calc(100% - 24px);
+  max-width: 640px;
   height: 46px;
   background: var(--card-bg);
   backdrop-filter: blur(20px);
@@ -184,11 +185,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 0 6px 0 16px;
+  gap: 8px;
+  padding: 0 6px 0 14px;
   z-index: 1000;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 :global([data-theme='light']) .topBar {
@@ -199,11 +201,21 @@
 .topBarProgress {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  gap: 8px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
-.topBarProgress > span {
+.progressTextDesktop {
+  display: inline;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.progressTextMobile {
+  display: none;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-color);
@@ -216,6 +228,7 @@
   background: var(--bg-tertiary);
   border-radius: 999px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .progressBarFill {
@@ -240,7 +253,7 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 999px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   font-family: var(--font-mono, monospace);
   color: var(--text-color);
@@ -252,6 +265,7 @@
   width: 15px;
   height: 15px;
   color: var(--primary-color);
+  flex-shrink: 0;
 }
 
 .timerWarning {
@@ -275,14 +289,14 @@
 .topBarSubmitBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 16px;
-  height: 38px;
+  gap: 5px;
+  padding: 0 14px;
+  height: 36px;
   background: #059669;
   color: #ffffff;
   border: none;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -300,6 +314,60 @@
 .topBarSubmitBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .topBar {
+    top: 8px;
+    height: 42px;
+    padding: 0 4px 0 10px;
+    gap: 6px;
+    width: calc(100% - 16px);
+  }
+
+  .progressTextDesktop {
+    display: none;
+  }
+
+  .progressTextMobile {
+    display: inline;
+    font-size: 0.8rem;
+  }
+
+  .progressBarTrack {
+    width: 45px;
+    height: 5px;
+  }
+
+  .topBarTimer {
+    padding: 3px 8px;
+    font-size: 0.8rem;
+    gap: 4px;
+  }
+
+  .topBarTimerIcon {
+    width: 13px;
+    height: 13px;
+  }
+
+  .topBarSubmitBtn {
+    padding: 0 10px;
+    font-size: 0.78rem;
+    height: 32px;
+    gap: 3px;
+  }
+}
+
+@media (max-width: 360px) {
+  .topBar {
+    gap: 4px;
+    padding: 0 3px 0 8px;
+  }
+
+  .progressBarTrack,
+  .topBarDivider {
+    display: none;
+  }
 }
 
 /* ─── Bottom Completion Card ─── */
@@ -400,12 +468,16 @@
   justify-content: center;
   padding: 76px 16px 60px;
   min-height: calc(100vh - 100px);
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Question Content */
 .questionContent {
   width: 100%;
   max-width: 1150px;
+  box-sizing: border-box;
 }
 
 .questionCard {
@@ -416,6 +488,16 @@
   margin-bottom: 28px;
   animation: fadeIn 0.3s ease;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .questionCard {
+    padding: 20px 16px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
 }
 
 .questionCard.questionUnanswered {
@@ -638,20 +720,23 @@
   height: 22px;
 }
 
-/* MCQ Matrix (True / False) Styles */
+/* MCQ Matrix (True / False) Vertical Styles */
+/* MCQ Matrix (True / False) Responsive Styles */
 .mcqMatrixRow {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 16px;
+  padding: 12px 18px;
   border: 1.5px solid var(--border-color);
   border-radius: 10px;
   background: var(--bg-secondary);
   transition: all 0.15s ease;
   text-align: left;
   position: relative;
-  min-height: 54px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mcqMatrixRow:hover {
@@ -677,28 +762,58 @@
   min-width: 0;
 }
 
+.mcqMatrixLabel .optionLetter {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.mcqMatrixLabel .optionText {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text-color);
+  word-break: break-word;
+  flex: 1;
+}
+
+.mcqMatrixBottomRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  border-top: none;
+  padding-top: 0;
+  width: auto;
+}
+
 .mcqMatrixButtons {
   display: flex;
+  align-items: center;
   gap: 8px;
-  flex-shrink: 0;
-  margin-left: auto;
+  width: auto;
+  max-width: none;
 }
 
 .mcqBtn {
-  min-width: 64px;
-  padding: 7px 14px;
+  min-height: 38px;
+  padding: 6px 18px;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   letter-spacing: 0.2px;
   transition: all 0.15s ease;
   user-select: none;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   font-family: inherit;
+  min-width: 85px;
+  width: auto;
+  box-sizing: border-box;
 }
 
 .mcqBtn:hover:not(:disabled) {
@@ -711,7 +826,7 @@
   background: var(--select-border) !important;
   color: #ffffff !important;
   border-color: var(--select-border) !important;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
 
 .mcqBtnCorrect {
@@ -731,11 +846,62 @@
   opacity: 0.85;
 }
 
+.btnChoiceIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  font-weight: 800;
+  color: inherit;
+}
+
+:global([data-theme='light']) .btnChoiceIcon {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 .mcqMatrixResult {
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-left: 8px;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resultBadgeCorrect {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success-color);
+  background: var(--success-light);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.resultBadgeWrong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--error-color);
+  background: var(--error-light);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.resultBadgeSkipped {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .explanation {
@@ -1056,43 +1222,101 @@
     font-size: 13px;
   }
 
+  .container {
+    padding: 60px 10px 48px;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
   .questionCard {
-    padding: 18px 14px;
+    padding: 14px 10px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
   }
   
   .questionTitle {
-    font-size: 15.5px;
+    font-size: 15px;
   }
   
   .optionCard {
-    padding: 12px 14px;
+    padding: 10px 12px;
     min-height: auto;
+    box-sizing: border-box;
+    max-width: 100%;
   }
   
+  .optionLetter {
+    width: 24px;
+    height: 24px;
+    font-size: 11.5px;
+    border-radius: 5px;
+  }
+
   .optionText {
-    font-size: 14px;
+    font-size: 13.5px;
   }
 
-  .mcqMatrixRow {
-    padding: 12px 14px;
-  }
-}
-
-@media (max-width: 520px) {
   .mcqMatrixRow {
     flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 10px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .mcqMatrixLabel {
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mcqMatrixLabel .optionLetter {
+    margin-top: 2px;
+    width: 24px;
+    height: 24px;
+    font-size: 11.5px;
+    border-radius: 5px;
+  }
+
+  .mcqMatrixLabel .optionText {
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+
+  .mcqMatrixBottomRow {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    border-top: 1px solid var(--border-color);
+    padding-top: 8px;
+    justify-content: space-between;
   }
 
   .mcqMatrixButtons {
     width: 100%;
-    margin-left: 0;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    box-sizing: border-box;
   }
 
   .mcqBtn {
-    flex: 1;
+    min-height: 40px;
+    width: 100%;
+    min-width: 0;
+    font-size: 13px;
   }
+}
+
+@media (max-width: 520px) {
 
   .modal {
     margin: 16px;

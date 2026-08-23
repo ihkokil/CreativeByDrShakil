@@ -359,6 +359,166 @@ export function removeNodeFromCurriculum(
   return { nodes: visit(nodes), removed };
 }
 
+/**
+ * Recursively remove any node or attachment referencing a specific quizId from a curriculum tree.
+ */
+export function removeQuizFromCurriculumTree(
+  nodes: BuilderCurriculumNode[],
+  quizId: string
+): { nodes: BuilderCurriculumNode[]; removed: boolean } {
+  let removed = false;
+  const targetId = String(quizId).trim();
+
+  const visit = (list: BuilderCurriculumNode[]): BuilderCurriculumNode[] => {
+    const next: BuilderCurriculumNode[] = [];
+
+    for (const node of list) {
+      const isMatchingQuiz =
+        node.type === 'quiz' &&
+        (node.quizId === targetId ||
+          node.url === targetId ||
+          node.id === targetId ||
+          node.id === `quiz_${targetId}` ||
+          (typeof node.id === 'string' && (node.id.endsWith(`_${targetId}`) || node.id.endsWith(targetId))));
+
+      if (isMatchingQuiz) {
+        removed = true;
+        continue;
+      }
+
+      let cleanedAttachments = node.attachments;
+      if (Array.isArray(node.attachments)) {
+        const filtered = node.attachments.filter((att: any) => {
+          const isAttMatching =
+            att?.quizId === targetId ||
+            att?.url === targetId ||
+            att?.id === targetId ||
+            att?.id === `quiz_${targetId}`;
+          return !isAttMatching;
+        });
+        if (filtered.length !== node.attachments.length) {
+          cleanedAttachments = filtered;
+          removed = true;
+        }
+      }
+
+      if (node.children?.length) {
+        next.push({
+          ...node,
+          attachments: cleanedAttachments,
+          children: visit(node.children),
+        });
+      } else {
+        next.push({
+          ...node,
+          attachments: cleanedAttachments,
+        });
+      }
+    }
+
+    return next;
+  };
+
+  return { nodes: visit(nodes), removed };
+}
+
+/**
+ * Recursively remove any node or attachment referencing deleted Media Vault node IDs or URLs.
+ */
+export function removeDeletedMediaNodesFromCurriculumTree(
+  nodes: BuilderCurriculumNode[],
+  deletedNodeIds: Set<string>,
+  deletedUrls?: Set<string>
+): { nodes: BuilderCurriculumNode[]; removed: boolean } {
+  let removed = false;
+
+  const visit = (list: BuilderCurriculumNode[]): BuilderCurriculumNode[] => {
+    const next: BuilderCurriculumNode[] = [];
+
+    for (const node of list) {
+      const isMatchingId =
+        deletedNodeIds.has(node.id) ||
+        (Boolean(node.mediaVaultFolderId) && deletedNodeIds.has(node.mediaVaultFolderId!));
+      const isMatchingUrl =
+        Boolean(deletedUrls) && Boolean(node.url) && deletedUrls!.has(node.url!);
+
+      if (isMatchingId || isMatchingUrl) {
+        removed = true;
+        continue;
+      }
+
+      let cleanedAttachments = node.attachments;
+      if (Array.isArray(node.attachments)) {
+        const filtered = node.attachments.filter((att: any) => {
+          if (att?.id && deletedNodeIds.has(att.id)) return false;
+          if (deletedUrls && att?.url && deletedUrls.has(att.url)) return false;
+          return true;
+        });
+        if (filtered.length !== node.attachments.length) {
+          cleanedAttachments = filtered;
+          removed = true;
+        }
+      }
+
+      if (node.children?.length) {
+        next.push({
+          ...node,
+          attachments: cleanedAttachments,
+          children: visit(node.children),
+        });
+      } else {
+        next.push({
+          ...node,
+          attachments: cleanedAttachments,
+        });
+      }
+    }
+
+    return next;
+  };
+
+  return { nodes: visit(nodes), removed };
+}
+
+/**
+ * Self-healing sanitizer: Recursively remove quiz nodes whose quizId is not present in validQuizIds.
+ */
+export function pruneInvalidQuizzesFromCurriculum(
+  nodes: any[],
+  validQuizIds: Set<string>
+): any[] {
+  const visit = (list: any[]): any[] => {
+    const next: any[] = [];
+    for (const node of list) {
+      if (node.type === 'quiz') {
+        const qId =
+          node.quizId ||
+          node.url ||
+          (typeof node.id === 'string' && node.id.startsWith('quiz_')
+            ? node.id.replace('quiz_', '')
+            : node.id);
+
+        if (!qId || !validQuizIds.has(String(qId))) {
+          // Orphaned/deleted quiz: prune it out!
+          continue;
+        }
+      }
+
+      if (node.children && Array.isArray(node.children)) {
+        next.push({
+          ...node,
+          children: visit(node.children),
+        });
+      } else {
+        next.push(node);
+      }
+    }
+    return next;
+  };
+
+  return visit(nodes);
+}
+
 const normalizeDate = (value: string | Date | null | undefined): Date | null => {
   if (!value) return null;
   const parsed = value instanceof Date ? value : new Date(value);

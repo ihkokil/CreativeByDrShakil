@@ -23,11 +23,15 @@ if (fs.existsSync(handlerPath)) {
   console.error('handler.mjs not found at:', handlerPath);
 }
 
-// Aggressively clean up heavy Next.js internal files that we don't need in Cloudflare Workers
+// Aggressively clean up heavy Next.js internal and client-only files that we don't need in Cloudflare Workers
 const pathsToRemove = [
   'node_modules/next/dist/server/capsize-font-metrics.json',
   'node_modules/next/dist/compiled/@next/font/dist/fontkit',
-  'node_modules/next/dist/compiled/next-devtools'
+  'node_modules/next/dist/compiled/next-devtools',
+  'node_modules/jspdf',
+  'node_modules/html2canvas',
+  'node_modules/canvg',
+  'node_modules/fflate'
 ];
 
 pathsToRemove.forEach(relPath => {

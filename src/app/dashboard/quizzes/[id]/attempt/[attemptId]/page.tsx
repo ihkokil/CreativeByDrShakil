@@ -529,7 +529,8 @@ export default function QuizTakePage() {
       {!showResults && (
         <header className={styles.topBar}>
           <div className={styles.topBarProgress} title={`${answeredCount} of ${totalQuestions} answered`}>
-            <span>{answeredCount}/{totalQuestions} Answered</span>
+            <span className={styles.progressTextDesktop}>{answeredCount}/{totalQuestions} Answered</span>
+            <span className={styles.progressTextMobile}>{answeredCount}/{totalQuestions}</span>
             <div className={styles.progressBarTrack} role="progressbar" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={totalQuestions}>
               <div className={styles.progressBarFill} style={{ width: `${progressPercent}%` }} />
             </div>
@@ -612,34 +613,52 @@ export default function QuizTakePage() {
                             <span className={styles.optionText}>{option.text}</span>
                           </div>
 
-                          <div className={styles.mcqMatrixButtons}>
-                            <button
-                              type="button"
-                              onClick={() => handleAnswerSelect(q.id, option.letter, 'T')}
-                              disabled={showResults}
-                              className={`${styles.mcqBtn} ${styles.trueBtn} ${isT ? styles.mcqBtnSelected : ''} ${showResults && isCorrectT ? styles.mcqBtnCorrect : ''} ${showResults && isT && !isCorrectT ? styles.mcqBtnWrong : ''}`}
-                              aria-pressed={isT}
-                              aria-label={`Mark option ${option.letter} as True`}
-                            >
-                              True
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleAnswerSelect(q.id, option.letter, 'F')}
-                              disabled={showResults}
-                              className={`${styles.mcqBtn} ${styles.falseBtn} ${isF ? styles.mcqBtnSelected : ''} ${showResults && isCorrectF ? styles.mcqBtnCorrect : ''} ${showResults && isF && !isCorrectF ? styles.mcqBtnWrong : ''}`}
-                              aria-pressed={isF}
-                              aria-label={`Mark option ${option.letter} as False`}
-                            >
-                              False
-                            </button>
+                          <div className={styles.mcqMatrixBottomRow}>
+                            <div className={styles.mcqMatrixButtons}>
+                              <button
+                                type="button"
+                                onClick={() => handleAnswerSelect(q.id, option.letter, 'T')}
+                                disabled={showResults}
+                                className={`${styles.mcqBtn} ${styles.trueBtn} ${isT ? styles.mcqBtnSelected : ''} ${showResults && isCorrectT ? styles.mcqBtnCorrect : ''} ${showResults && isT && !isCorrectT ? styles.mcqBtnWrong : ''}`}
+                                aria-pressed={isT}
+                                aria-label={`Mark option ${option.letter} as True`}
+                              >
+                                <span className={styles.btnChoiceIcon}>T</span>
+                                <span>True</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAnswerSelect(q.id, option.letter, 'F')}
+                                disabled={showResults}
+                                className={`${styles.mcqBtn} ${styles.falseBtn} ${isF ? styles.mcqBtnSelected : ''} ${showResults && isCorrectF ? styles.mcqBtnCorrect : ''} ${showResults && isF && !isCorrectF ? styles.mcqBtnWrong : ''}`}
+                                aria-pressed={isF}
+                                aria-label={`Mark option ${option.letter} as False`}
+                              >
+                                <span className={styles.btnChoiceIcon}>F</span>
+                                <span>False</span>
+                              </button>
+                            </div>
+                            
+                            {showResults && (
+                              <div className={styles.mcqMatrixResult}>
+                                {((isT && isCorrectT) || (isF && isCorrectF)) ? (
+                                  <span className={styles.resultBadgeCorrect}>
+                                    <CheckCircle className={styles.resultIcon} size={16} />
+                                    <span>Correct</span>
+                                  </span>
+                                ) : (isT || isF) ? (
+                                  <span className={styles.resultBadgeWrong}>
+                                    <XCircle className={styles.resultIcon} size={16} />
+                                    <span>Incorrect (Key: {isCorrectT ? 'True' : 'False'})</span>
+                                  </span>
+                                ) : (
+                                  <span className={styles.resultBadgeSkipped}>
+                                    <span>Skipped (Key: {isCorrectT ? 'True' : 'False'})</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          
-                          {showResults && (
-                             <span className={styles.mcqMatrixResult}>
-                               {((isT && isCorrectT) || (isF && isCorrectF)) ? <CheckCircle className={styles.resultIcon} /> : ((isT || isF) ? <XCircle className={styles.resultIcon} /> : null)}
-                             </span>
-                          )}
                         </div>
                       );
                     })

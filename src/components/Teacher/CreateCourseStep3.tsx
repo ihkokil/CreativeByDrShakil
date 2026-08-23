@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X, Settings2, Repeat, LayoutList, ClipboardList, PlusCircle, Check } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
 import { getPreviousTargetDay, generateModuleSchedule, generatePreviewSchedule } from "@/lib/module-scheduling";
+import ConfirmModal from "@/components/UI/ConfirmModal";
+import AlertModal from "@/components/UI/AlertModal";
 
 export interface StarterItem {
   id: string;
@@ -92,6 +94,46 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
   // Generated schedule: mapping topic ID to scheduled ISO Date string
   const [scheduleMap, setScheduleMap] = useState<Record<string, string>>({});
 
+  // Alert & Confirm Modal States
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({ isOpen: false, message: '', type: 'info' });
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    isSubmitting?: boolean;
+    onConfirm: () => void | Promise<void>;
+  }>({ isOpen: false, message: '', onConfirm: () => {} });
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+    setAlertConfig({ isOpen: true, message, type, title });
+  };
+
+  const showConfirm = (options: {
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    onConfirm: () => void | Promise<void>;
+  }) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: options.title,
+      message: options.message,
+      confirmText: options.confirmText || 'Confirm',
+      variant: options.variant || 'danger',
+      isSubmitting: false,
+      onConfirm: options.onConfirm,
+    });
+  };
+
   const getAuthHeaders = () => {
     const token = localStorage.getItem("auth_token");
     return {
@@ -117,14 +159,13 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     setQuizModal({ open: true, targetNodeId, targetTitle });
     setModalLoading(true);
     try {
-      const [allQuizzesRes, courseQuizzesRes] = await Promise.all([
-        fetch('/api/quiz?limit=100', { headers: getAuthHeaders() }),
+      const [quizzesRes, courseQuizzesRes] = await Promise.all([
+        fetch("/api/teacher/quizzes", { headers: getAuthHeaders() }),
         fetch(`/api/teacher/courses/${courseId}/quizzes`, { headers: getAuthHeaders() }),
       ]);
-      const allQuizzesData = allQuizzesRes.ok ? await allQuizzesRes.json() : { quizzes: [] };
-      const courseQuizzesData = courseQuizzesRes.ok ? await courseQuizzesRes.json() : { quizzes: [] };
-
-      setAvailableQuizzes(allQuizzesData.quizzes || []);
+      const quizzesData = await quizzesRes.json();
+      const courseQuizzesData = await courseQuizzesRes.json();
+      setAvailableQuizzes(quizzesData.quizzes || []);
       const currentLinked = (courseQuizzesData.quizzes || []).filter(
         (cq: any) => cq.curriculumNodeId === targetNodeId
       );
@@ -149,32 +190,45 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         }),
       });
       if (!res.ok) {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         throw new Error(d.error || "Failed to link quizzes");
       }
       await fetchLinkedQuizzes();
       setQuizModal(null);
+      showAlert("Quizzes linked successfully!", "success");
     } catch (err: any) {
-      alert(err.message || "Failed to link quizzes");
+      showAlert(err.message || "Failed to link quizzes", "error");
     } finally {
       setModalSaving(false);
     }
   };
 
-  const handleUnlinkQuiz = async (quizId: string) => {
+  const handleUnlinkQuiz = (quizId: string) => {
     if (!courseId) return;
-    if (!confirm("Are you sure you want to remove this quiz from this course?")) return;
-    try {
-      const res = await fetch(`/api/teacher/courses/${courseId}/quizzes?quizId=${quizId}`, {
-        method: "DELETE",
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        setLinkedQuizzes(prev => prev.filter(q => q.quizId !== quizId));
+    showConfirm({
+      title: "Remove Quiz from Course?",
+      message: "Are you sure you want to remove this quiz from this course? The quiz itself will remain in your question bank.",
+      confirmText: "Remove Quiz",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/teacher/courses/${courseId}/quizzes?quizId=${quizId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+          });
+          if (res.ok) {
+            setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+            setLinkedQuizzes(prev => prev.filter(q => q.quizId !== quizId));
+            showAlert("Quiz removed from course.", "success");
+          } else {
+            const d = await res.json().catch(() => ({}));
+            showAlert(d.error || "Failed to unlink quiz", "error");
+          }
+        } catch (e) {
+          showAlert("Network error while unlinking quiz.", "error");
+        }
       }
-    } catch (e) {
-      console.error("Failed to unlink quiz", e);
-    }
+    });
   };
 
   const collectItemsRecursively = (nodes: LibraryNode[], parentId: string): StarterItem[] => {
@@ -1080,9 +1134,31 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
           </button>
         </div>
       </div>
+
+      {/* Reusable Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        isSubmitting={confirmConfig.isSubmitting}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Reusable Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
+
 
 export default function CreateCourseStep3({ courseId }: { courseId?: string }) {
   return (

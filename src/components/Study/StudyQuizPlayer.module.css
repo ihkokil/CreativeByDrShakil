@@ -13,6 +13,8 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 16px 8px;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 :global([data-theme='light']) .container {

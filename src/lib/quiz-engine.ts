@@ -384,34 +384,24 @@ export async function gradeAndPersistAttempt(
   supabase: SupabaseClient<any>,
   overrideTimeTakenSeconds?: number
 ): Promise<AttemptGradeSummary> {
-  // 1. Fetch Quiz
-  const { data: quiz, error: quizError } = await supabase
-    .from('Quiz')
-    .select('*')
-    .eq('id', quizId)
-    .limit(1)
-    .maybeSingle();
+  // 1. Fetch Quiz, Attempt, Mappings, and Answers in parallel
+  const [quizRes, attemptRes, mappingsRes, answersRes] = await Promise.all([
+    supabase.from('Quiz').select('*').eq('id', quizId).limit(1).maybeSingle(),
+    supabase.from('QuizAttempt').select('*').eq('id', attemptId).limit(1).maybeSingle(),
+    supabase.from('QuizQuestionMapping').select('*').eq('attemptId', attemptId).order('displayOrder', { ascending: true }),
+    supabase.from('AttemptAnswer').select('questionId, selectedOption').eq('attemptId', attemptId),
+  ]);
 
-  if (quizError || !quiz) throw new Error(quizError?.message || 'Quiz not found');
+  const quiz = quizRes.data;
+  if (quizRes.error || !quiz) throw new Error(quizRes.error?.message || 'Quiz not found');
 
-  // 2. Fetch Attempt
-  const { data: attempt, error: attemptError } = await supabase
-    .from('QuizAttempt')
-    .select('*')
-    .eq('id', attemptId)
-    .limit(1)
-    .maybeSingle();
+  const attempt = attemptRes.data;
+  if (attemptRes.error || !attempt) throw new Error(attemptRes.error?.message || 'Attempt not found');
 
-  if (attemptError || !attempt) throw new Error(attemptError?.message || 'Attempt not found');
+  const mappings = mappingsRes.data || [];
+  const answers = answersRes.data || [];
 
-  // 3. Fetch mapped questions for this attempt
-  const { data: mappings = [] } = await supabase
-    .from('QuizQuestionMapping')
-    .select('*')
-    .eq('attemptId', attemptId)
-    .order('displayOrder', { ascending: true });
-
-  let questionIds = (mappings || []).map((m: any) => m.questionId);
+  let questionIds = mappings.map((m: any) => m.questionId);
   let mappedQuestions: QuestionData[] = [];
 
   if (questionIds.length > 0) {
@@ -433,12 +423,6 @@ export async function gradeAndPersistAttempt(
       .order('createdAt', { ascending: true });
     mappedQuestions = fallbackQuestions as QuestionData[];
   }
-
-  // 4. Fetch answers
-  const { data: answers = [] } = await supabase
-    .from('AttemptAnswer')
-    .select('questionId, selectedOption')
-    .eq('attemptId', attemptId);
 
   // 5. Calculate time taken
   let timeTaken = 0;
@@ -464,8 +448,9 @@ export async function gradeAndPersistAttempt(
 
   const nowStr = new Date().toISOString();
 
-    // 7. Update QuizAttempt in DB
-    const { error: updateAttemptError } = await supabase
+  // 7. Update QuizAttempt in DB and parallelize AttemptAnswer updates
+  const attemptUpdatePromise = Promise.resolve(
+    supabase
       .from('QuizAttempt')
       .update({
         status: submissionStatus,
@@ -479,21 +464,31 @@ export async function gradeAndPersistAttempt(
         timeTakenSeconds: timeTaken,
         updatedAt: nowStr,
       } as any)
-      .eq('id', attemptId);
+      .eq('id', attemptId)
+  );
 
-  if (updateAttemptError) throw updateAttemptError;
-
-  // 8. Update AttemptAnswer isCorrect values in DB
+  const answerUpdatePromises: Promise<any>[] = [];
   for (const q of mappedQuestions) {
     const res = gradeSummary.questionResults[q.id];
     if (res) {
-      await supabase
-        .from('AttemptAnswer')
-        .update({ isCorrect: res.isCorrect })
-        .eq('attemptId', attemptId)
-        .eq('questionId', q.id);
+      answerUpdatePromises.push(
+        Promise.resolve(
+          supabase
+            .from('AttemptAnswer')
+            .update({ isCorrect: res.isCorrect })
+            .eq('attemptId', attemptId)
+            .eq('questionId', q.id)
+        )
+      );
     }
   }
+
+  const [updateAttemptRes] = await Promise.all([
+    attemptUpdatePromise,
+    ...answerUpdatePromises,
+  ]);
+
+  if (updateAttemptRes.error) throw updateAttemptRes.error;
 
   return gradeSummary;
 }

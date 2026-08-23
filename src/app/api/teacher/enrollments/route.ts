@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
       const { hash } = await import('bcryptjs');
       const newStudentId = crypto.randomUUID();
-      const hashedPassword = await hash(tempPassword, 12);
+      const hashedPassword = await hash(tempPassword, 8);
       const nowStr = new Date().toISOString();
 
       const insertValues = {

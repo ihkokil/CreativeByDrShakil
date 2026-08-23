@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     const { hash } = await import('bcryptjs');
     const generatedId = crypto.randomUUID();
-    const hashedPassword = await hash(password, 12);
+    const hashedPassword = await hash(password, 8);
 
     const insertValues = {
       id: generatedId,

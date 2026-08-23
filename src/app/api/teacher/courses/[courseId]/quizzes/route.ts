@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
+import { unlinkCourseQuiz } from '@/lib/curriculum-cleanup';
 
 export async function GET(
   request: NextRequest,
@@ -180,13 +181,8 @@ export async function DELETE(
 
     const supabase = getSupabaseAdmin();
 
-    const { error: deleteError } = await supabase
-      .from('CourseQuiz')
-      .delete()
-      .eq('courseId', courseId)
-      .eq('quizId', quizId);
-
-    if (deleteError) throw deleteError;
+    // Cascade unlink quiz: deletes CourseQuiz, removes from Course.curriculumJson, removes from VideoLibraryNode, and cleans progress
+    await unlinkCourseQuiz(supabase, courseId, quizId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

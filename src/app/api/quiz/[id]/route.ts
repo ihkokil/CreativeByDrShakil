@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import { recalculateQuizResults, computeMaxMarksForQuestions, getScoringRules, calculateDynamicLeaderboard } from '@/lib/quiz-engine';
+import { cleanupDeletedQuiz } from '@/lib/curriculum-cleanup';
 
 export async function GET(
   request: NextRequest,
@@ -434,6 +435,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Not authorized to delete this quiz.' }, { status: 403 });
     }
     
+    // Cascade delete related records across CourseQuiz, VideoLibraryNode, Course curriculumJson, and progress
+    await cleanupDeletedQuiz(supabase, id);
+
     const { error: deleteError } = await supabase
       .from('Quiz')
       .delete()
