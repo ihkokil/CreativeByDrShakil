@@ -22,6 +22,9 @@ import {
   Check,
   X,
   FileText,
+  Search,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -104,6 +107,11 @@ export default function QuizResultPage() {
   );
   const [downloading, setDownloading] = useState(false);
   const [retaking, setRetaking] = useState(false);
+
+  // Leaderboard Windowing, Search, and Filtering
+  const [leaderboardSearch, setLeaderboardSearch] = useState('');
+  const [leaderboardViewMode, setLeaderboardViewMode] = useState<'top' | 'around_me' | 'all'>('top');
+  const [visibleCount, setVisibleCount] = useState(10);
 
   const handleRetakeQuiz = async () => {
     if (!data) return;
@@ -333,7 +341,34 @@ export default function QuizResultPage() {
     ? attempt.percentageScore 
     : Math.min(100, Math.max(0, ((netScore || 0) / totalMarks) * 100));
 
-  const topLeaderboard = leaderboard.slice(0, 20);
+  // Leaderboard Windowing Calculations
+  const userRankIndex = leaderboard.findIndex(e => e.isCurrentUser);
+  const currentUserEntry = userRankIndex >= 0 ? leaderboard[userRankIndex] : null;
+
+  const isSearching = leaderboardSearch.trim() !== '';
+  const searchFilteredList = isSearching
+    ? leaderboard.filter(e => e.studentName.toLowerCase().includes(leaderboardSearch.toLowerCase().trim()))
+    : leaderboard;
+
+  let displayedLeaderboard: LeaderboardEntry[] = [];
+  let viewTitleNote = '';
+
+  if (isSearching) {
+    displayedLeaderboard = searchFilteredList;
+    viewTitleNote = `Showing ${displayedLeaderboard.length} of ${leaderboard.length} participants matching "${leaderboardSearch.trim()}"`;
+  } else if (leaderboardViewMode === 'all') {
+    displayedLeaderboard = leaderboard;
+    viewTitleNote = `Showing all ${leaderboard.length} participants`;
+  } else if (leaderboardViewMode === 'around_me' && userRankIndex >= 0) {
+    const start = Math.max(0, userRankIndex - 5);
+    const end = Math.min(leaderboard.length, userRankIndex + 6);
+    displayedLeaderboard = leaderboard.slice(start, end);
+    viewTitleNote = `Showing entries around your rank (Rank #${currentUserEntry?.rank})`;
+  } else {
+    // 'top' mode
+    displayedLeaderboard = leaderboard.slice(0, visibleCount);
+    viewTitleNote = `Showing top ${Math.min(visibleCount, leaderboard.length)} of ${leaderboard.length} participants`;
+  }
 
   return (
     <div className={styles.container}>
@@ -345,8 +380,8 @@ export default function QuizResultPage() {
           </Link>
         </header>
 
-        {/* Score Summary Banner */}
-        {activeTab !== 'answers' ? (
+        {/* Contextual Header Banner (Smooth Transitions) */}
+        {activeTab === 'summary' ? (
           <section id="score-section" className={styles.scoreSection}>
             <div className={styles.scoreCard}>
               <div className={styles.scoreCardTop}>
@@ -432,12 +467,21 @@ export default function QuizResultPage() {
               </div>
             </div>
           </section>
-        ) : (
+        ) : activeTab === 'answers' ? (
           <section className={styles.scoreSection} style={{ marginBottom: '20px' }}>
             <div className={styles.scoreCard} style={{ padding: '24px 28px' }}>
               <h1 className={styles.quizTitle} style={{ fontSize: '24px', marginBottom: '8px' }}>{quiz.title}</h1>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
                 Official Question Bank Answer Keys & Detailed Explanations
+              </p>
+            </div>
+          </section>
+        ) : (
+          <section className={styles.scoreSection} style={{ marginBottom: '20px' }}>
+            <div className={styles.scoreCard} style={{ padding: '24px 28px' }}>
+              <h1 className={styles.quizTitle} style={{ fontSize: '24px', marginBottom: '8px' }}>{quiz.title}</h1>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
+                Real-Time Peer Leaderboard & Cohort Performance Rankings ({leaderboard.length} Participants)
               </p>
             </div>
           </section>
@@ -913,66 +957,235 @@ export default function QuizResultPage() {
           {activeTab === 'leaderboard' && (
             <div id="panel-leaderboard" className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-leaderboard">
               <div className={styles.leaderboardContainer}>
-                <h2 className={styles.leaderboardTitle}>
-                  <Trophy className={styles.leaderboardIcon} />
-                  Leaderboard — Top {topLeaderboard.length} Participants
-                </h2>
+                {/* 1. Current User Standing Banner */}
+                {currentUserEntry && (
+                  <div className={styles.standingCard}>
+                    <div className={styles.standingLeft}>
+                      <div className={styles.standingRankBadge}>
+                        {currentUserEntry.rank === 1 ? '🥇 1st Place' : currentUserEntry.rank === 2 ? '🥈 2nd Place' : currentUserEntry.rank === 3 ? '🥉 3rd Place' : `Rank #${currentUserEntry.rank}`}
+                      </div>
+                      <div className={styles.standingInfo}>
+                        <span className={styles.standingName}>{currentUserEntry.studentName} (You)</span>
+                        <span className={styles.standingMeta}>
+                          Score: <strong>{currentUserEntry.netScore.toFixed(1)} Marks</strong> • Time: <strong>{currentUserEntry.timeTakenSeconds ? formatTime(currentUserEntry.timeTakenSeconds) : '—'}</strong> • Attempt: <strong>#{currentUserEntry.attemptNumber || 1}</strong>
+                        </span>
+                      </div>
+                    </div>
+                    <div className={styles.standingRight}>
+                      <button
+                        type="button"
+                        className={styles.jumpToMeBtn}
+                        onClick={() => {
+                          setLeaderboardSearch('');
+                          setLeaderboardViewMode('around_me');
+                        }}
+                      >
+                        <Target size={15} />
+                        <span>View Around My Rank</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Controls & Search Toolbar */}
+                <div className={styles.leaderboardToolbar}>
+                  <div className={styles.searchBox}>
+                    <Search className={styles.searchIcon} size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search participant name..."
+                      value={leaderboardSearch}
+                      onChange={(e) => setLeaderboardSearch(e.target.value)}
+                      className={styles.searchInput}
+                    />
+                    {leaderboardSearch && (
+                      <button
+                        type="button"
+                        className={styles.searchClearBtn}
+                        onClick={() => setLeaderboardSearch('')}
+                        aria-label="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {!isSearching && leaderboard.length > 10 && (
+                    <div className={styles.filterPillsGroup}>
+                      <button
+                        type="button"
+                        className={`${styles.filterPill} ${leaderboardViewMode === 'top' ? styles.filterPillActive : ''}`}
+                        onClick={() => {
+                          setLeaderboardViewMode('top');
+                          setVisibleCount(10);
+                        }}
+                      >
+                        Top 10
+                      </button>
+                      {userRankIndex >= 0 && (
+                        <button
+                          type="button"
+                          className={`${styles.filterPill} ${leaderboardViewMode === 'around_me' ? styles.filterPillActive : ''}`}
+                          onClick={() => setLeaderboardViewMode('around_me')}
+                        >
+                          Around Me (#{currentUserEntry?.rank})
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className={`${styles.filterPill} ${leaderboardViewMode === 'all' ? styles.filterPillActive : ''}`}
+                        onClick={() => setLeaderboardViewMode('all')}
+                      >
+                        Show All ({leaderboard.length})
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.leaderboardSubHeader}>
+                  <h2 className={styles.leaderboardTitle}>
+                    <Trophy className={styles.leaderboardIcon} />
+                    {viewTitleNote}
+                  </h2>
+                </div>
                 
-                {leaderboard.length === 0 ? (
+                {displayedLeaderboard.length === 0 ? (
                   <div className={styles.emptyLeaderboard}>
                     <Trophy className={styles.emptyIcon} />
-                    <p>No participant results submitted yet. Be the first to rank!</p>
+                    <p>{isSearching ? `No participants found matching "${leaderboardSearch}".` : 'No participant results submitted yet.'}</p>
                   </div>
                 ) : (
-                  <table className={styles.leaderboardTable} role="table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Rank</th>
-                        <th scope="col">Participant</th>
-                        <th scope="col">Net Score</th>
-                        <th scope="col">Time Taken</th>
-                        <th scope="col">Attempt</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {topLeaderboard.map((entry) => {
+                  <>
+                    {/* Desktop View Table */}
+                    <div className={styles.tableWrapper}>
+                      <table className={styles.leaderboardTable} role="table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Rank</th>
+                            <th scope="col">Participant</th>
+                            <th scope="col">Net Score</th>
+                            <th scope="col">Time Taken</th>
+                            <th scope="col">Attempt</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {displayedLeaderboard.map((entry) => {
+                            const entryPercentage = totalMarks > 0 ? (entry.netScore / totalMarks) * 100 : 0;
+                            return (
+                              <tr key={`${entry.rank}-${entry.studentName}`} className={entry.isCurrentUser ? styles.currentUser : ''}>
+                                <td className={styles.rankCell}>
+                                  {entry.rank <= 3 ? (
+                                    <span className={styles.medal} aria-label={`Rank ${entry.rank}`}>
+                                      {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉'}
+                                    </span>
+                                  ) : (
+                                    <span className={styles.rankNumber}>#{entry.rank}</span>
+                                  )}
+                                </td>
+                                <td className={styles.nameCell}>
+                                  <span className={entry.isCurrentUser ? styles.currentUserName : ''}>
+                                    {entry.studentName}{entry.isCurrentUser ? ' (You)' : ''}
+                                  </span>
+                                </td>
+                                <td className={styles.scoreCell}>
+                                  <span className={getScoreColorClass(entryPercentage)}>
+                                    {entry.netScore.toFixed(1)} Marks
+                                  </span>
+                                </td>
+                                <td className={styles.timeCell}>
+                                  {entry.timeTakenSeconds ? formatTime(entry.timeTakenSeconds) : '—'}
+                                </td>
+                                <td className={styles.attemptCell}>
+                                  #{entry.attemptNumber || 1}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile View Card List (Zero Horizontal Scroll) */}
+                    <div className={styles.leaderboardMobileList}>
+                      {displayedLeaderboard.map((entry) => {
                         const entryPercentage = totalMarks > 0 ? (entry.netScore / totalMarks) * 100 : 0;
                         return (
-                          <tr key={`${entry.rank}-${entry.studentName}`} className={entry.isCurrentUser ? styles.currentUser : ''}>
-                            <td className={styles.rankCell}>
-                              {entry.rank <= 3 ? (
-                                <span className={styles.medal} aria-label={`Rank ${entry.rank}`}>
-                                  {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉'}
+                          <div
+                            key={`mob-${entry.rank}-${entry.studentName}`}
+                            className={`${styles.mobileEntryCard} ${entry.isCurrentUser ? styles.mobileEntryCurrentUser : ''}`}
+                          >
+                            <div className={styles.mobileCardTop}>
+                              <div className={styles.mobileRankAndName}>
+                                <div className={styles.mobileRankBadge}>
+                                  {entry.rank <= 3 ? (
+                                    entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉'
+                                  ) : (
+                                    `#${entry.rank}`
+                                  )}
+                                </div>
+                                <span className={styles.mobileStudentName}>{entry.studentName}</span>
+                                {entry.isCurrentUser && <span className={styles.mobileYouTag}>You</span>}
+                              </div>
+                              <div className={styles.mobileScoreBadge}>
+                                <span className={getScoreColorClass(entryPercentage)}>
+                                  {entry.netScore.toFixed(1)} Marks
                                 </span>
-                              ) : (
-                                <span className={styles.rankNumber}>#{entry.rank}</span>
-                              )}
-                            </td>
-                            <td className={styles.nameCell}>
-                              <span className={entry.isCurrentUser ? styles.currentUserName : ''}>
-                                {entry.studentName}{entry.isCurrentUser ? ' (You)' : ''}
-                              </span>
-                            </td>
-                            <td className={styles.scoreCell}>
-                              <span className={getScoreColorClass(entryPercentage)}>
-                                {entry.netScore.toFixed(1)} Marks
-                              </span>
-                            </td>
-                            <td className={styles.timeCell}>
-                              {entry.timeTakenSeconds ? formatTime(entry.timeTakenSeconds) : '—'}
-                            </td>
-                            <td className={styles.attemptCell}>
-                              #{entry.attemptNumber || 1}
-                            </td>
-                          </tr>
+                              </div>
+                            </div>
+                            <div className={styles.mobileCardBottom}>
+                              <span>⏱ {entry.timeTakenSeconds ? formatTime(entry.timeTakenSeconds) : '—'}</span>
+                              <span>•</span>
+                              <span>Attempt #{entry.attemptNumber || 1}</span>
+                              <span>•</span>
+                              <span>{entryPercentage.toFixed(0)}% Accuracy</span>
+                            </div>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </div>
+
+                    {/* Load More Controls for 'top' mode */}
+                    {!isSearching && leaderboardViewMode === 'top' && visibleCount < leaderboard.length && (
+                      <div className={styles.loadMoreContainer}>
+                        <button
+                          type="button"
+                          className={styles.loadMoreBtn}
+                          onClick={() => setVisibleCount(prev => Math.min(leaderboard.length, prev + 10))}
+                        >
+                          <span>Load Next 10 Participants</span>
+                          <span className={styles.loadMoreCount}>({visibleCount} of {leaderboard.length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.showAllLinkBtn}
+                          onClick={() => setLeaderboardViewMode('all')}
+                        >
+                          Show All {leaderboard.length}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Return to Top 10 link when in around_me or all mode */}
+                    {!isSearching && leaderboardViewMode !== 'top' && leaderboard.length > 10 && (
+                      <div className={styles.loadMoreContainer}>
+                        <button
+                          type="button"
+                          className={styles.loadMoreBtn}
+                          onClick={() => {
+                            setLeaderboardViewMode('top');
+                            setVisibleCount(10);
+                          }}
+                        >
+                          <ChevronLeft size={16} />
+                          <span>Back to Top 10</span>
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
                 
                 <p className={styles.leaderboardNote}>
-                  Rankings update dynamically as peers submit attempts. {leaderboard.length > 20 ? `Showing top 20 of ${leaderboard.length} total participants.` : ''}
+                  Rankings update in real-time as peers complete attempts. {leaderboard.length > 0 ? `Total participants: ${leaderboard.length}` : ''}
                 </p>
               </div>
             </div>

@@ -74,6 +74,13 @@ function StudentDashboardLayoutContent({
         return <Loader text="Entering Learning Hub..." />;
     }
 
+    const isStandaloneQuizPage = 
+        pathname.startsWith('/dashboard/quizzes/') && pathname !== '/dashboard/quizzes';
+
+    if (isStandaloneQuizPage) {
+        return <>{children}</>;
+    }
+
     return (
         <div className={styles.dashboardContainer}>
             <StudentSidebar
