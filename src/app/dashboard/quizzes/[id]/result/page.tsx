@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -176,6 +174,9 @@ export default function QuizResultPage() {
     setDownloading(true);
     
     try {
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'px',

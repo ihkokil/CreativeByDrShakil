@@ -24,8 +24,6 @@ import {
   Loader2,
   Check,
 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { formatDisplayDate } from '@/lib/date-format';
 import styles from './QuizzesPage.module.css';
 
@@ -110,6 +108,9 @@ export default function QuizzesPage() {
           const { quiz } = pdfQuizInfo;
           const container = pdfContainerRef.current!;
           
+          const { jsPDF } = await import('jspdf');
+          const html2canvas = (await import('html2canvas')).default;
+
           const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'px',

@@ -30,8 +30,6 @@ import {
   ChevronsRight,
   BookOpen,
 } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import styles from './TeacherQuizzesPage.module.css';
 
 interface Quiz {
@@ -401,6 +399,9 @@ export default function TeacherQuizzesPage() {
           const { quiz } = pdfQuizInfo;
           const container = pdfContainerRef.current!;
           
+          const { jsPDF } = await import('jspdf');
+          const html2canvas = (await import('html2canvas')).default;
+
           const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'px',

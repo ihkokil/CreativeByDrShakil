@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     // Handle newly migrated users who don't have a password yet
     if (userRecord.passwordHash === 'MIGRATED_USER_NO_PASSWORD') {
       const { hash } = await import('bcryptjs');
-      const newHash = await hash(password, 12);
+      const newHash = await hash(password, 8);
       
       const { error: updateError } = await supabase
         .from('User')

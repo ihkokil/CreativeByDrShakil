@@ -44,42 +44,60 @@ export async function POST(
     }
 
     const nowStr = new Date().toISOString();
-    const results = [];
+    const questionIds = answersToSave.map((a: any) => a.questionId);
+
+    // 1 single query to fetch all existing answers for these question IDs
+    const { data: existingAnswers, error: fetchExistingError } = await supabase
+      .from('AttemptAnswer')
+      .select('id, questionId')
+      .eq('attemptId', attemptId)
+      .in('questionId', questionIds);
+
+    if (fetchExistingError) throw fetchExistingError;
+
+    const existingMap = new Map((existingAnswers || []).map((ea: any) => [ea.questionId, ea.id]));
+
+    const toUpdate: { id: string; selectedOption: string | null }[] = [];
+    const toInsert: { id: string; attemptId: string; questionId: string; selectedOption: string | null; createdAt: string }[] = [];
 
     for (const ans of answersToSave) {
       const qId = ans.questionId;
       const opt = ans.selectedOption;
-      
-      const { data: existingAnswer }: { data: any } = await supabase
-        .from('AttemptAnswer')
-        .select('id')
-        .eq('attemptId', attemptId)
-        .eq('questionId', qId)
-        .limit(1)
-        .maybeSingle();
+      const existingId = existingMap.get(qId);
 
-      if (existingAnswer) {
-        const { error: updateError } = await supabase
-          .from('AttemptAnswer')
-          .update({ selectedOption: opt || null })
-          .eq('id', existingAnswer.id);
-        
-        if (updateError) throw updateError;
+      if (existingId) {
+        toUpdate.push({ id: existingId, selectedOption: opt || null });
       } else if (opt) {
-        const { error: insertError } = await supabase.from('AttemptAnswer')
-          .insert({
-            id: nanoid(),
-            attemptId,
-            questionId: qId,
-            selectedOption: opt,
-            createdAt: nowStr,
-          } as any);
-        
-        if (insertError) throw insertError;
+        toInsert.push({
+          id: nanoid(),
+          attemptId,
+          questionId: qId,
+          selectedOption: opt,
+          createdAt: nowStr,
+        });
       }
-      
-      results.push({ questionId: qId, saved: true });
     }
+
+    const operations: Promise<any>[] = [];
+    if (toInsert.length > 0) {
+      operations.push(Promise.resolve(supabase.from('AttemptAnswer').insert(toInsert as any)));
+    }
+    for (const item of toUpdate) {
+      operations.push(
+        Promise.resolve(
+          supabase.from('AttemptAnswer').update({ selectedOption: item.selectedOption }).eq('id', item.id)
+        )
+      );
+    }
+
+    if (operations.length > 0) {
+      const opResults = await Promise.all(operations);
+      for (const res of opResults) {
+        if (res.error) throw res.error;
+      }
+    }
+
+    const results = answersToSave.map((ans: any) => ({ questionId: ans.questionId, saved: true }));
 
     return NextResponse.json({ success: true, results });
   } catch (error: any) {

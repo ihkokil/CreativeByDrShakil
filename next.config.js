@@ -15,7 +15,7 @@ const nextConfig = {
         'jose',
         'zod',
     ],
-    serverExternalPackages: ['@prisma/client', '.prisma/client'],
+    serverExternalPackages: ['jspdf', 'html2canvas', 'canvg', 'fflate', 'dompurify'],
     experimental: {
         optimizePackageImports: ['lucide-react', 'framer-motion', 'zod', 'bcryptjs'],
         proxyClientMaxBodySize: '1gb',

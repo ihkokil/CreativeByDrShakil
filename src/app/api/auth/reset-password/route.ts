@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     // Update password
     const { hash } = await import('bcryptjs');
-    const hashedPassword = await hash(String(password), 12);
+    const hashedPassword = await hash(String(password), 8);
     
     const { error: updateError } = await supabase
       .from('User')
