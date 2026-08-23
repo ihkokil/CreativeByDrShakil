@@ -44,7 +44,10 @@ export async function POST(request: NextRequest) {
 
     if (userRecord.isBanned) {
       return NextResponse.json(
-        { error: 'You have been banned from this site. Please contact the administrator.' },
+        {
+          error: 'You have been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com.',
+          code: 'user_banned',
+        },
         { status: 403 }
       );
     }
@@ -95,11 +98,11 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || '';
     const ipAddress = extractClientIp(request.headers);
 
-    // Retrieve custom device headers (with fallbacks for backward compatibility)
-    const headerHash = request.headers.get('x-device-hash');
-    const headerLabel = request.headers.get('x-device-label');
-    const headerOS = request.headers.get('x-device-os');
-    const headerCategory = request.headers.get('x-device-category') as 'mobile' | 'tablet' | 'desktop' | null;
+    // Retrieve custom device info from body or headers
+    const headerHash = body.deviceHash || request.headers.get('x-device-hash');
+    const headerLabel = body.deviceLabel || request.headers.get('x-device-label');
+    const headerOS = body.osInfo || request.headers.get('x-device-os');
+    const headerCategory = (body.deviceType || request.headers.get('x-device-category')) as 'mobile' | 'tablet' | 'desktop' | null;
 
     const { getDeviceCategory, getDeviceLabel, detectOS } = await import('@/lib/client-fingerprint');
     
@@ -162,8 +165,14 @@ export async function POST(request: NextRequest) {
         const categoryName = deviceType === 'desktop' ? 'Desktop/Laptop' :
                              deviceType === 'tablet' ? 'Tablet' : 'Mobile';
         return NextResponse.json({
-          error: `This account is already linked to a different ${categoryName.toLowerCase()} device. Only the original device in this category can log in.`,
+          error: `This account is already linked to a different ${categoryName.toLowerCase()} device. You can only access your account from your registered ${categoryName.toLowerCase()} device, or contact Dr. Nahid Akhter Shakil / support@creativebydrshakil.com for assistance.`,
           code: 'device_category_locked',
+        }, { status: 403 });
+      }
+      if (error.message === 'user_banned') {
+        return NextResponse.json({
+          error: 'You have been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com.',
+          code: 'user_banned',
         }, { status: 403 });
       }
       throw error;

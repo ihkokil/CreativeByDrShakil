@@ -50,7 +50,10 @@ export async function middleware(request: NextRequest) {
     // CRITICAL SECURITY FIX: Block banned users at the edge
     if (payload.isBanned === true) {
       return NextResponse.json(
-        { error: 'You have been banned from this site. Please contact the administrator.' },
+        {
+          error: 'You have been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com.',
+          code: 'user_banned',
+        },
         { status: 403 }
       );
     }

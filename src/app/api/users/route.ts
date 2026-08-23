@@ -150,6 +150,27 @@ export async function GET(request: NextRequest) {
         hasUserOverride = resolved.hasUserOverride;
         userAutoLockSetting = resolved.userAutoLockFirstBrowser;
 
+        const nowMs = Date.now();
+        const isOnline = !u.isBanned && activeSessions.some((s: any) => {
+          const activityTime = new Date(s.lastActivityAt || s.createdAt).getTime();
+          return (nowMs - activityTime) <= 3 * 60 * 1000;
+        });
+
+        // Find the bound (registered) device for each category
+        const boundDesktop = userDeviceSessions
+          .filter((s: any) => s.deviceType === 'desktop' && s.deviceHash)
+          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0] || null;
+
+        const boundTablet = userDeviceSessions
+          .filter((s: any) => s.deviceType === 'tablet' && s.deviceHash)
+          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0] || null;
+
+        const boundMobile = userDeviceSessions
+          .filter((s: any) => s.deviceType === 'mobile' && s.deviceHash)
+          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0] || null;
+
+        const currentActiveSession = activeSessions[0] || latestSession || null;
+
         const userOrders = ordersMap.get(u.id) || [];
         return {
           id: u.id,
@@ -157,11 +178,18 @@ export async function GET(request: NextRequest) {
           email: u.email,
           role: u.role,
           isBanned: u.isBanned,
+          isOnline,
           isSessionLockedExempt: u.isSessionLockedExempt,
           createdAt: u.createdAt,
           profileImage: u.profileImage || u.image || null,
           activeSessions,
           sessions: userDeviceSessions,
+          currentSession: currentActiveSession,
+          boundDevices: {
+            desktop: boundDesktop,
+            tablet: boundTablet,
+            mobile: boundMobile,
+          },
           lastActiveAt,
           autoLockSetting,
           hasUserOverride,

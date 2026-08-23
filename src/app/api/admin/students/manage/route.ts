@@ -286,6 +286,30 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    // 1. Delete Device Sessions & NextAuth Sessions & Accounts
+    await supabase.from('DeviceSession').delete().eq('userId', targetUserId);
+    await supabase.from('Session').delete().eq('userId', targetUserId);
+    await supabase.from('Account').delete().eq('userId', targetUserId);
+
+    // 2. Fetch and Delete Orders & Payments
+    const { data: userOrders } = await supabase
+      .from('Order')
+      .select('id')
+      .eq('userId', targetUserId);
+
+    if (userOrders && userOrders.length > 0) {
+      const orderIds = userOrders.map((o: any) => o.id);
+      await supabase.from('Payment').delete().in('orderId', orderIds);
+      await supabase.from('Order').delete().eq('userId', targetUserId);
+    }
+
+    // 3. Delete Progress & Overrides & Settings
+    await supabase.from('LessonProgress').delete().eq('userId', targetUserId);
+    await supabase.from('StudentModuleAvailability').delete().eq('userId', targetUserId);
+    await supabase.from('SessionLockSettings').delete().eq('userId', targetUserId);
+
+    // 4. Delete from User table
     const { error: deleteError } = await supabase
       .from('User')
       .delete()
@@ -293,9 +317,16 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteError) throw deleteError;
 
+    // 6. Delete from Supabase Auth if applicable
+    try {
+      await supabase.auth.admin.deleteUser(targetUserId);
+    } catch {
+      // Ignore if auth user doesn't exist
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Student deleted successfully.',
+      message: 'Student and all associated records deleted successfully.',
     });
   } catch (error: any) {
     console.error('[admin/students/manage] DELETE error:', error);

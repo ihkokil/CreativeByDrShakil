@@ -41,29 +41,120 @@ function mapDate(d: string | null): Date | null {
 
 export async function createDeviceSession(options: CreateSessionOptions): Promise<SessionInfo> {
   const supabase = getSupabaseAdmin();
-  const { data: newSession, error } = await supabase.rpc('fn_create_device_session', {
-    p_user_id: options.userId,
-    p_device_type: options.deviceType,
-    p_browser_name: options.browserName,
-    p_user_agent: options.userAgent,
-    p_ip_address: options.ipAddress,
-    p_device_hash: options.deviceHash || '',
-    p_device_label: options.deviceLabel || '',
-    p_os_info: options.osInfo || '',
-  });
 
-  if (error) {
-    if (error.message.includes('device_category_locked')) {
-      throw new Error('device_category_locked');
-    }
-    throw error;
+  // 1. Fetch user to check role and exemption status
+  const { data: userRecord } = await supabase
+    .from('User')
+    .select('id, role, isSessionLockedExempt, isBanned')
+    .eq('id', options.userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (userRecord?.isBanned) {
+    throw new Error('user_banned');
   }
-  if (!newSession) {
-    throw new Error('Failed to create device session: No data returned from database');
+
+  const isStudent = userRecord?.role === 'student';
+  const isExempt = !!userRecord?.isSessionLockedExempt;
+
+  // 2. Strict 1-Device per Category Lock for Non-Exempt Students
+  if (isStudent && !isExempt && options.deviceHash) {
+    // Find registered devices for this category (desktop, tablet, mobile)
+    const { data: boundSessions } = await supabase
+      .from('DeviceSession')
+      .select('id, deviceHash, deviceLabel')
+      .eq('userId', options.userId)
+      .eq('deviceType', options.deviceType)
+      .not('deviceHash', 'is', null)
+      .order('createdAt', { ascending: true });
+
+    if (boundSessions && boundSessions.length > 0) {
+      // Find the first non-fallback bound hash
+      const validBound = boundSessions.find((s: any) => s.deviceHash && !s.deviceHash.startsWith('fallback-'));
+      if (validBound && validBound.deviceHash) {
+        const matchesAnyKnown = boundSessions.some((s: any) => s.deviceHash === options.deviceHash);
+        if (!matchesAnyKnown && !options.deviceHash.startsWith('fallback-')) {
+          throw new Error('device_category_locked');
+        }
+      }
+    }
+
+    // 3. Single Active Login Session Concurrency:
+    // Log out all existing active sessions for this student across all browsers & devices
+    await supabase
+      .from('DeviceSession')
+      // @ts-ignore
+      .update({ loggedOutAt: new Date().toISOString() })
+      .eq('userId', options.userId)
+      .is('loggedOutAt', null);
+  }
+
+  // 4. Create new device session
+  const sessionId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const { data: newSession, error: insertError } = await supabase
+    .from('DeviceSession')
+    // @ts-ignore
+    .insert({
+      id: sessionId,
+      userId: options.userId,
+      deviceType: options.deviceType,
+      browserName: options.browserName,
+      userAgent: options.userAgent,
+      ipAddress: options.ipAddress,
+      deviceHash: options.deviceHash || null,
+      deviceLabel: options.deviceLabel || null,
+      osInfo: options.osInfo || null,
+      isLocked: false,
+      createdAt: now,
+      lastActivityAt: now,
+      loggedOutAt: null,
+    } as any)
+    .select()
+    .single();
+
+  if (insertError) {
+    // Fallback to RPC if direct insert fails
+    const { data: rpcSession, error: rpcError } = await supabase.rpc('fn_create_device_session', {
+      p_user_id: options.userId,
+      p_device_type: options.deviceType,
+      p_browser_name: options.browserName,
+      p_user_agent: options.userAgent,
+      p_ip_address: options.ipAddress,
+      p_device_hash: options.deviceHash || '',
+      p_device_label: options.deviceLabel || '',
+      p_os_info: options.osInfo || '',
+    });
+
+    if (rpcError) {
+      if (rpcError.message.includes('device_category_locked')) {
+        throw new Error('device_category_locked');
+      }
+      throw rpcError;
+    }
+    if (!rpcSession) {
+      throw new Error('Failed to create device session');
+    }
+    const sessionData = rpcSession as any;
+    return {
+      id: sessionData.id,
+      userId: sessionData.userId,
+      deviceType: sessionData.deviceType as DeviceType,
+      browserName: sessionData.browserName,
+      ipAddress: sessionData.ipAddress,
+      isLocked: sessionData.isLocked,
+      loggedOutAt: null,
+      createdAt: new Date(sessionData.createdAt),
+      lastActivityAt: new Date(sessionData.lastActivityAt),
+      deviceHash: sessionData.deviceHash,
+      deviceLabel: sessionData.deviceLabel,
+      osInfo: sessionData.osInfo,
+      lockedByDeviceLabel: sessionData.lockedByDeviceLabel,
+    };
   }
 
   const sessionData = newSession as any;
-
   return {
     id: sessionData.id,
     userId: sessionData.userId,
@@ -339,12 +430,7 @@ export async function isSessionValid(sessionId: string, jwtSub?: string, xDevice
 
   const isExempt = user?.isSessionLockedExempt || false;
   if (xDeviceHash && !isExempt && session.deviceHash && session.deviceHash !== xDeviceHash) {
-    if (session.deviceHash.startsWith('fallback-')) {
-      // Auto-upgrade fallback hash to actual client fingerprint on first request
-      updateSessionDeviceHash(sessionId, xDeviceHash).catch(() => {});
-    } else {
-      return false;
-    }
+    updateSessionDeviceHash(sessionId, xDeviceHash).catch(() => {});
   }
 
   return true;

@@ -12,7 +12,7 @@ import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
 type PageStep = "email" | "password";
 
 function LoginContent() {
-    const { refreshSession } = useAuth();
+    const { refreshSession, showBannedModal } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -23,8 +23,14 @@ function LoginContent() {
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const [showPassword, setShowPassword] = useState(false);
 
-    // Prefill email if it comes from search params
+    // Prefill email or check for banned status from search params
     useEffect(() => {
+        const errParam = searchParams.get("error");
+        const customMsg = searchParams.get("message");
+        if (errParam === "user_banned" || errParam === "Banned") {
+            showBannedModal(customMsg || undefined);
+        }
+
         const emailParam = searchParams.get("email");
         if (emailParam) {
             setEmail(emailParam);
@@ -33,7 +39,7 @@ function LoginContent() {
                 text: "An account with this email already exists. Please log in.",
             });
         }
-    }, [searchParams]);
+    }, [searchParams, showBannedModal]);
 
     const handleEmailSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
@@ -100,14 +106,38 @@ function LoginContent() {
         setMessage(null);
 
         try {
+            let hash = '';
+            let os = '';
+            let category: "mobile" | "tablet" | "desktop" | "" = '';
+            let label = '';
+            try {
+                const { getDeviceHash, detectOS, getDeviceCategory, getDeviceLabel } = await import('@/lib/client-fingerprint');
+                hash = await getDeviceHash();
+                const ua = navigator.userAgent;
+                os = detectOS(ua);
+                category = getDeviceCategory(ua, navigator.maxTouchPoints || 0, window.screen?.width || 1024, window.screen?.height || 768);
+                label = getDeviceLabel(ua, category);
+            } catch {}
+
             const response = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ identifier: email.trim(), password }),
+                body: JSON.stringify({
+                    identifier: email.trim(),
+                    password,
+                    deviceHash: hash,
+                    deviceType: category,
+                    deviceLabel: label,
+                    osInfo: os,
+                }),
             });
             const data = await response.json();
 
             if (!response.ok) {
+                if (data?.code === 'user_banned') {
+                    showBannedModal(data.error);
+                    return;
+                }
                 setMessage({ type: "error", text: data.error || "Invalid credentials." });
             } else {
                 if (data.token) {

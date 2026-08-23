@@ -21,7 +21,7 @@ type AuthStep = "email" | "password" | "otp" | "register" | "forgot" | "forgot-o
 
 export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: Props) {
     useModalLock(isOpen, onClose);
-    const { refreshSession } = useAuth();
+    const { refreshSession, showBannedModal } = useAuth();
     const [step, setStep] = useState<AuthStep>("email");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -65,11 +65,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
             if (typeof window !== "undefined") {
                 const params = new URLSearchParams(window.location.search);
                 const err = params.get("error");
-                if (err === "Banned") {
-                    setMessage({
-                        type: 'error',
-                        text: 'You have been banned from this site. Please contact the administrator.'
-                    });
+                const customMsg = params.get("message");
+                if (err === "Banned" || err === "user_banned") {
+                    showBannedModal(customMsg || undefined);
+                    onClose();
                 } else if (err === "DeviceAlreadyLoggedIn") {
                     setMessage({
                         type: 'error',
@@ -182,14 +181,39 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
         setMessage(null);
 
         try {
+            let hash = '';
+            let os = '';
+            let category: "mobile" | "tablet" | "desktop" | "" = '';
+            let label = '';
+            try {
+                const { getDeviceHash, detectOS, getDeviceCategory, getDeviceLabel } = await import('@/lib/client-fingerprint');
+                hash = await getDeviceHash();
+                const ua = navigator.userAgent;
+                os = detectOS(ua);
+                category = getDeviceCategory(ua, navigator.maxTouchPoints || 0, window.screen?.width || 1024, window.screen?.height || 768);
+                label = getDeviceLabel(ua, category);
+            } catch {}
+
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ identifier: email.trim(), password }),
+                body: JSON.stringify({
+                    identifier: email.trim(),
+                    password,
+                    deviceHash: hash,
+                    deviceType: category,
+                    deviceLabel: label,
+                    osInfo: os,
+                }),
             });
             const data = await response.json();
 
             if (!response.ok) {
+                if (data?.code === 'user_banned') {
+                    showBannedModal(data.error);
+                    onClose();
+                    return;
+                }
                 setMessage({ type: 'error', text: data.error || 'Invalid credentials.' });
             } else {
                 if (data.token) {

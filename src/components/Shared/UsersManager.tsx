@@ -3,13 +3,36 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import styles from '@/components/Admin/SessionsManager.module.css';
-import { Smartphone, Monitor, Tablet, Lock, Unlock, AlertCircle, Search, UserCheck, ShieldAlert, Trash2, Settings2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { LogOut } from 'lucide-react';
+import {
+  Smartphone,
+  Monitor,
+  Tablet,
+  Lock,
+  Unlock,
+  AlertCircle,
+  Search,
+  UserCheck,
+  ShieldAlert,
+  Trash2,
+  Settings2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  LogOut,
+  Globe,
+  Activity,
+  Radio,
+  Wifi,
+  RefreshCw,
+  RotateCcw,
+} from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
+import ConfirmModal from '@/components/Admin/ConfirmModal';
 import { formatDateGMT6, formatDateTimeGMT6 } from '@/lib/date-format';
 
 interface SessionData {
   id: string;
+  userId?: string;
   deviceType: 'desktop' | 'mobile' | 'tablet';
   browserName: string;
   ipAddress: string;
@@ -23,12 +46,19 @@ interface SessionData {
   lockedByDeviceLabel: string | null;
 }
 
+interface BoundDevices {
+  desktop: SessionData | null;
+  tablet: SessionData | null;
+  mobile: SessionData | null;
+}
+
 interface UserData {
   id: string;
   fullName: string;
   email: string;
   role: string;
   isBanned: boolean;
+  isOnline: boolean;
   isSessionLockedExempt: boolean;
   createdAt: string;
   lastActiveAt: string;
@@ -38,6 +68,8 @@ interface UserData {
   userAutoLockSetting: boolean | null;
   activeSessions: SessionData[];
   sessions: SessionData[];
+  currentSession: SessionData | null;
+  boundDevices?: BoundDevices;
   enrolledCourses: Array<{
     orderId: string;
     courseId: string;
@@ -56,9 +88,26 @@ export default function UsersManager() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState('lastActive');
   const [selectedSession, setSelectedSession] = useState<SessionData | null>(null);
+  const [confirmModalState, setConfirmModalState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    iconType?: 'reset' | 'delete' | 'lock' | 'ban' | 'warning';
+    onConfirm: () => void | Promise<void>;
+    loading?: boolean;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const pageSize = 20;
   const [globalSettings, setGlobalSettings] = useState({
     autoLockFirstBrowser: true,
@@ -83,8 +132,12 @@ export default function UsersManager() {
     return null;
   }, []);
 
-  const fetchUsers = useCallback(async (page = currentPage, search = debouncedSearch, sort = sortBy) => {
-    setLoading(true);
+  const fetchUsers = useCallback(async (page = currentPage, search = debouncedSearch, sort = sortBy, isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     setError('');
     try {
       const params = new URLSearchParams({
@@ -111,15 +164,27 @@ export default function UsersManager() {
         setTotalCount(data.pagination.totalCount);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load users');
+      if (!isSilent) {
+        setError(err.message || 'Failed to load users');
+      }
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, [token, currentPage, debouncedSearch, sortBy]);
 
   useEffect(() => {
     fetchUsers(1, '', 'lastActive');
   }, [token]);
+
+  // Real-time live presence polling every 12 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUsers(currentPage, debouncedSearch, sortBy, true);
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [fetchUsers, currentPage, debouncedSearch, sortBy]);
 
   // Debounce search: wait 400ms after typing stops before fetching
   useEffect(() => {
@@ -211,35 +276,46 @@ export default function UsersManager() {
     }
   };
 
-  const handleToggleBan = async (userId: string, currentlyBanned: boolean) => {
+  const handleToggleBan = (userId: string, currentlyBanned: boolean, userName?: string) => {
     const action = currentlyBanned ? 'unban' : 'ban';
-    const confirmMessage = currentlyBanned
-      ? 'Are you sure you want to unban this user? They will be allowed to log in again.'
-      : 'Are you sure you want to ban this user? They will be locked out immediately.';
+    const nameText = userName ? ` for ${userName}` : '';
 
-    if (!window.confirm(confirmMessage)) return;
+    setConfirmModalState({
+      isOpen: true,
+      title: currentlyBanned ? 'Unban Student?' : 'Ban Student Account?',
+      message: currentlyBanned
+        ? `Are you sure you want to unban${nameText}? They will be immediately allowed to log in to their dashboard and courses.`
+        : `Are you sure you want to ban${nameText}? Their active sessions will be terminated and they will be blocked from logging in.`,
+      confirmLabel: currentlyBanned ? 'Unban Account' : 'Ban Account',
+      variant: currentlyBanned ? 'info' : 'danger',
+      iconType: 'ban',
+      onConfirm: async () => {
+        try {
+          setConfirmModalState((prev) => ({ ...prev, loading: true }));
+          const response = await fetch('/api/teacher/users/ban', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ userId, action }),
+          });
 
-    try {
-      const response = await fetch('/api/teacher/users/ban', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ userId, action }),
-      });
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || `Failed to ${action} user`);
+          }
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || `Failed to ${action} user`);
-      }
-
-      setUsers((prevUsers) =>
-        prevUsers.map((u) => (u.id === userId ? { ...u, isBanned: !currentlyBanned } : u))
-      );
-    } catch (err: any) {
-      setError(err.message || `Failed to ${action} user`);
-    }
+          setUsers((prevUsers) =>
+            prevUsers.map((u) => (u.id === userId ? { ...u, isBanned: !currentlyBanned } : u))
+          );
+          setConfirmModalState((prev) => ({ ...prev, isOpen: false, loading: false }));
+        } catch (err: any) {
+          setConfirmModalState((prev) => ({ ...prev, loading: false }));
+          setError(err.message || `Failed to ${action} user`);
+        }
+      },
+    });
   };
 
   const handleToggleExempt = async (userId: string, currentlyExempt: boolean) => {
@@ -266,29 +342,81 @@ export default function UsersManager() {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userName: string) => {
-    const confirmMessage = `Are you sure you want to permanently delete user "${userName}"? This will delete the user, their enrolled programs, and sessions entirely from the database and application. This action cannot be undone.`;
-    if (!window.confirm(confirmMessage)) return;
+  const handleDeleteUser = (userId: string, userName: string) => {
+    setConfirmModalState({
+      isOpen: true,
+      title: 'Permanently Delete User?',
+      message: `Are you sure you want to permanently delete "${userName}"? This will delete the student profile, all enrollments, quiz progress, and session records entirely. This action cannot be undone.`,
+      confirmLabel: 'Permanently Delete',
+      variant: 'danger',
+      iconType: 'delete',
+      onConfirm: async () => {
+        try {
+          setConfirmModalState((prev) => ({ ...prev, loading: true }));
+          const response = await fetch('/api/admin/students/manage', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ id: userId }),
+          });
 
-    try {
-      const response = await fetch('/api/admin/students/manage', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ id: userId }),
-      });
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to delete user');
+          }
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete user');
-      }
+          setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
+          setConfirmModalState((prev) => ({ ...prev, isOpen: false, loading: false }));
+        } catch (err: any) {
+          setConfirmModalState((prev) => ({ ...prev, loading: false }));
+          setError(err.message || 'Failed to delete user');
+        }
+      },
+    });
+  };
 
-      setUsers((prevUsers) => prevUsers.filter((u) => u.id !== userId));
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete user');
-    }
+  const handleResetDeviceSlot = (
+    userId: string,
+    deviceType?: 'desktop' | 'tablet' | 'mobile',
+    userName?: string
+  ) => {
+    const slotTitle = deviceType ? `${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)} Slot` : 'All Device Slots';
+    const nameText = userName ? ` for ${userName}` : '';
+
+    setConfirmModalState({
+      isOpen: true,
+      title: `Reset ${slotTitle}?`,
+      message: `Are you sure you want to unbind and reset the ${slotTitle.toLowerCase()}${nameText}? This will immediately free this slot so the student can register their current device on next login.`,
+      confirmLabel: 'Reset & Unbind Slot',
+      variant: 'danger',
+      iconType: 'reset',
+      onConfirm: async () => {
+        try {
+          setConfirmModalState((prev) => ({ ...prev, loading: true }));
+          const response = await fetch('/api/admin/sessions/reset-category', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ userId, deviceType }),
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to reset device slot');
+          }
+
+          setConfirmModalState((prev) => ({ ...prev, isOpen: false, loading: false }));
+          fetchUsers(currentPage, debouncedSearch, sortBy, true);
+        } catch (err: any) {
+          setConfirmModalState((prev) => ({ ...prev, loading: false }));
+          setError(err.message || 'Failed to reset device slot');
+        }
+      },
+    });
   };
 
   const getSessionStatus = (session: SessionData) => {
@@ -304,100 +432,178 @@ export default function UsersManager() {
     return <div className={styles.loading}>Loading directory...</div>;
   }
 
-  const renderSessionBadges = (sessions: SessionData[], IconComponent: any) => {
-    if (!sessions || sessions.length === 0) {
-      return <span className={styles.empty}>—</span>;
+  const renderDeviceSlot = (
+    session: SessionData | null | undefined,
+    fallbackLabel: string,
+    IconComponent: any,
+    userId: string,
+    deviceType: 'desktop' | 'tablet' | 'mobile',
+    userName?: string
+  ) => {
+    if (!session) {
+      return (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 12px',
+            borderRadius: '10px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px dashed var(--glass-border)',
+            color: 'var(--text-muted)',
+            fontSize: '0.75rem',
+            minWidth: '145px',
+            minHeight: '70px',
+            justifyContent: 'center',
+          }}
+        >
+          <IconComponent size={15} style={{ opacity: 0.4 }} />
+          <span>No {fallbackLabel}</span>
+        </div>
+      );
     }
 
-    return (
-      <div className={styles.sessionList}>
-        {sessions.map((session) => {
-          const isLocked = session.isLocked;
-          const label = session.deviceLabel || session.browserName || 'Device';
-          
-          const dateVal = isLocked 
-            ? (session.loggedOutAt || session.lastActivityAt) 
-            : session.createdAt;
-          const formattedDate = new Date(dateVal).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-          });
+    const isLocked = session.isLocked;
+    const isLoggedOut = !!session.loggedOutAt;
+    const label = session.deviceLabel || session.browserName || `${fallbackLabel} Device`;
 
-          return (
-            <div
-              key={session.id}
-              className={`${styles.sessionBadge} ${isLocked ? styles.locked : styles.active}`}
-              onClick={() => setSelectedSession(session)}
+    return (
+      <div
+        className={`${styles.sessionBadge} ${isLocked ? styles.locked : styles.active}`}
+        onClick={() => setSelectedSession({ ...session, userId })}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+          padding: '8px 12px',
+          borderRadius: '10px',
+          fontSize: '0.75rem',
+          border: isLocked
+            ? '1px dashed rgba(239, 68, 68, 0.4)'
+            : isLoggedOut
+            ? '1px solid var(--glass-border)'
+            : '1px solid rgba(34, 197, 94, 0.35)',
+          background: isLocked
+            ? 'rgba(239, 68, 68, 0.06)'
+            : isLoggedOut
+            ? 'var(--surface-soft)'
+            : 'rgba(34, 197, 94, 0.06)',
+          cursor: 'pointer',
+          minWidth: '145px',
+          transition: 'all 0.15s ease',
+        }}
+      >
+        {/* Row 1: Device Icon & Label */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+          <IconComponent
+            size={14}
+            style={{
+              color: isLocked ? '#ef4444' : isLoggedOut ? 'var(--text-muted)' : '#22c55e',
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              color: 'var(--foreground)',
+              fontSize: '0.78rem',
+            }}
+            title={label}
+          >
+            {label}
+          </span>
+        </div>
+
+        {/* Row 2: IP Address */}
+        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+            {session.ipAddress || '127.0.0.1'}
+          </span>
+        </div>
+
+        {/* Row 3: Status Badge (Active/Idle/Locked) on Left & Reset Button on Right */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            marginTop: '2px',
+            paddingTop: '4px',
+            borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          }}
+        >
+          {isLocked ? (
+            <span
               style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '2px',
-                padding: '4px 8px',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
-                opacity: isLocked ? 0.65 : 1,
-                border: isLocked ? '1px dashed rgba(239, 68, 68, 0.4)' : '1px solid rgba(34, 197, 94, 0.3)',
-                cursor: 'pointer',
-                width: '140px',
-                marginBottom: '4px',
-                alignItems: 'stretch'
+                color: '#ef4444',
+                fontWeight: 600,
+                fontSize: '0.68rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
               }}
             >
-              {/* Row 1: Icon + Device Label */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
-                <IconComponent size={14} style={{ flexShrink: 0 }} />
-                <span 
-                  style={{ 
-                    fontWeight: 600, 
-                    overflow: 'hidden', 
-                    textOverflow: 'ellipsis', 
-                    whiteSpace: 'nowrap' 
-                  }}
-                  title={label}
-                >
-                  {label}
-                </span>
-              </div>
-              
-              {/* Row 2: Date + Lock Status/Action */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '4px', minHeight: '18px' }}>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                  {formattedDate}
-                  {isLocked && (
-                    <>
-                      {' - '}
-                      <span style={{ color: '#ef4444', fontWeight: 600 }}>Locked</span>
-                    </>
-                  )}
-                </span>
-                
-                {!isLocked && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (window.confirm('Are you sure you want to force-lock this active session?')) {
-                        handleLockSession(session.id);
-                      }
-                    }}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.12)',
-                      border: 'none',
-                      color: '#ef4444',
-                      borderRadius: '4px',
-                      padding: '1px 4px',
-                      fontSize: '0.62rem',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                    }}
-                    title="Lock"
-                  >
-                    Lock
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ef4444' }} />
+              Locked
+            </span>
+          ) : isLoggedOut ? (
+            <span
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '0.68rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#64748b' }} />
+              Idle
+            </span>
+          ) : (
+            <span
+              style={{
+                color: '#22c55e',
+                fontWeight: 600,
+                fontSize: '0.68rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#22c55e' }} />
+              Active
+            </span>
+          )}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleResetDeviceSlot(userId, deviceType, userName);
+            }}
+            style={{
+              background: 'rgba(239, 68, 68, 0.12)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: '#ef4444',
+              borderRadius: '4px',
+              padding: '2px 5px',
+              fontSize: '0.64rem',
+              cursor: 'pointer',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+            }}
+            title={`Reset & Unbind ${fallbackLabel}`}
+          >
+            <RotateCcw size={9} />
+            Reset
+          </button>
+        </div>
       </div>
     );
   };
@@ -633,36 +839,62 @@ export default function UsersManager() {
           />
         </div>
         
-        <div style={{ position: 'relative', minWidth: '180px' }}>
-          <select
-            value={sortBy}
-            onChange={(e) => {
-              setSortBy(e.target.value);
-              setCurrentPage(1); // Reset to page 1 on sort change
-            }}
-            style={{
-              appearance: 'none',
-              width: '100%',
-              padding: '10px 40px 10px 16px',
-              borderRadius: '12px',
-              border: '1px solid var(--glass-border)',
-              background: 'var(--glass)',
-              color: 'var(--foreground)',
-              fontSize: '0.9rem',
-              outline: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <option value="lastActive" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Last Active</option>
-            <option value="newest" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Newest First</option>
-            <option value="oldest" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Oldest First</option>
-            <option value="name_asc" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Name (A-Z)</option>
-            <option value="name_desc" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Name (Z-A)</option>
-          </select>
-          <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
-            <ChevronDown size={16} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 12px',
+            borderRadius: '10px',
+            background: 'rgba(34, 197, 94, 0.08)',
+            border: '1px solid rgba(34, 197, 94, 0.2)',
+            fontSize: '0.8rem',
+            color: '#22c55e',
+            fontWeight: 500,
+          }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#22c55e',
+              boxShadow: '0 0 8px #22c55e',
+              display: 'inline-block',
+            }} />
+            <span>Live Sync Active (12s)</span>
+            {isRefreshing && <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />}
+          </div>
+
+          <div style={{ position: 'relative', minWidth: '180px' }}>
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1); // Reset to page 1 on sort change
+              }}
+              style={{
+                appearance: 'none',
+                width: '100%',
+                padding: '10px 40px 10px 16px',
+                borderRadius: '12px',
+                border: '1px solid var(--glass-border)',
+                background: 'var(--glass)',
+                color: 'var(--foreground)',
+                fontSize: '0.9rem',
+                outline: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <option value="lastActive" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Last Active</option>
+              <option value="newest" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Newest First</option>
+              <option value="oldest" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Oldest First</option>
+              <option value="name_asc" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Name (A-Z)</option>
+              <option value="name_desc" style={{ background: 'var(--surface)', color: 'var(--foreground)' }}>Sort: Name (Z-A)</option>
+            </select>
+            <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+              <ChevronDown size={16} />
+            </div>
           </div>
         </div>
       </div>
@@ -671,22 +903,22 @@ export default function UsersManager() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th style={{ width: '24%' }}>User Information</th>
-              <th style={{ width: '14%' }}>Desktop Sessions</th>
-              <th style={{ width: '14%' }}>Tablet Sessions</th>
-              <th style={{ width: '14%' }}>Mobile Sessions</th>
-              <th style={{ width: '12%' }}>Last Active</th>
-              <th style={{ width: '10%' }}>Account Actions</th>
-              <th style={{ width: '12%', textAlign: 'right' }}>Session Actions</th>
+              <th style={{ width: '22%' }}>Student & Presence</th>
+              <th style={{ width: '16%' }}>Live Network & Activity</th>
+              <th style={{ width: '14%' }}>Desktop (1 Slot)</th>
+              <th style={{ width: '14%' }}>Tablet (1 Slot)</th>
+              <th style={{ width: '14%' }}>Mobile (1 Slot)</th>
+              <th style={{ width: '10%' }}>Account Controls</th>
+              <th style={{ width: '10%', textAlign: 'right' }}>Session Controls</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.map((userObj) => {
-              const desktopSessions = (userObj.sessions || []).filter((s) => s.deviceType === 'desktop' && !s.loggedOutAt).slice(0, 1);
-              const tabletSessions = (userObj.sessions || []).filter((s) => s.deviceType === 'tablet' && !s.loggedOutAt).slice(0, 1);
-              const mobileSessions = (userObj.sessions || []).filter((s) => s.deviceType === 'mobile' && !s.loggedOutAt).slice(0, 1);
+              const boundDesktop = userObj.boundDevices?.desktop || (userObj.sessions || []).find((s) => s.deviceType === 'desktop');
+              const boundTablet = userObj.boundDevices?.tablet || (userObj.sessions || []).find((s) => s.deviceType === 'tablet');
+              const boundMobile = userObj.boundDevices?.mobile || (userObj.sessions || []).find((s) => s.deviceType === 'mobile');
 
-              const latestSession = [...(userObj.sessions || [])].sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0];
+              const latestSession = userObj.currentSession || [...(userObj.sessions || [])].sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0];
               const lastActiveText = latestSession ? formatDateTimeGMT6(latestSession.lastActivityAt) : 'Never';
 
               return (
@@ -716,61 +948,99 @@ export default function UsersManager() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <span className={styles.nameCell}>{userObj.fullName}</span>
-                          {userObj.isBanned ? (
+                          
+                          {/* Live Online / Offline Presence Badge */}
+                          {userObj.isOnline ? (
                             <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              color: '#ef4444',
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              border: '1px solid rgba(239, 68, 68, 0.2)',
-                              padding: '2px 8px',
-                              borderRadius: '12px'
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              color: '#22c55e',
+                              background: 'rgba(34, 197, 94, 0.12)',
+                              border: '1px solid rgba(34, 197, 94, 0.3)',
+                              padding: '2px 6px',
+                              borderRadius: '10px',
                             }}>
-                              Banned
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
+                              Online
                             </span>
                           ) : (
                             <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              color: '#22c55e',
-                              background: 'rgba(34, 197, 94, 0.1)',
-                              border: '1px solid rgba(34, 197, 94, 0.2)',
-                              padding: '2px 8px',
-                              borderRadius: '12px'
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '0.68rem',
+                              fontWeight: 500,
+                              color: 'var(--text-muted)',
+                              background: 'rgba(255, 255, 255, 0.04)',
+                              border: '1px solid var(--glass-border)',
+                              padding: '2px 6px',
+                              borderRadius: '10px',
                             }}>
-                              Active
+                              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#64748b' }} />
+                              Offline
+                            </span>
+                          )}
+
+                          {userObj.isBanned && (
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              color: '#ef4444',
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              padding: '2px 6px',
+                              borderRadius: '10px'
+                            }}>
+                              Banned
                             </span>
                           )}
                         </div>
                         <span className={styles.emailCell}>{userObj.email}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                           Joined {formatDateGMT6(userObj.createdAt)}
                         </span>
                       </div>
                     </div>
                   </td>
+
+                  {/* Live Network & Activity Column */}
                   <td>
-                    {renderSessionBadges(desktopSessions, Monitor)}
-                  </td>
-                  <td>
-                    {renderSessionBadges(tabletSessions, Tablet)}
-                  </td>
-                  <td>
-                    {renderSessionBadges(mobileSessions, Smartphone)}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--foreground)', fontWeight: 500 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Wifi size={13} style={{ color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)' }} />
+                        <code style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                          {latestSession?.ipAddress || '127.0.0.1'}
+                        </code>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {latestSession?.browserName || 'Browser'} • {latestSession?.osInfo || 'OS'}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                         {lastActiveText}
                       </span>
                     </div>
                   </td>
 
+                  {/* 3 Bound Device Category Slots */}
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '135px' }}>
+                    {renderDeviceSlot(boundDesktop, 'Desktop', Monitor, userObj.id, 'desktop', userObj.fullName || userObj.email)}
+                  </td>
+                  <td>
+                    {renderDeviceSlot(boundTablet, 'Tablet', Tablet, userObj.id, 'tablet', userObj.fullName || userObj.email)}
+                  </td>
+                  <td>
+                    {renderDeviceSlot(boundMobile, 'Mobile', Smartphone, userObj.id, 'mobile', userObj.fullName || userObj.email)}
+                  </td>
+
+                  {/* Account Actions */}
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px' }}>
                       <button
                         className={styles.actionBtn}
-                        onClick={() => handleToggleBan(userObj.id, userObj.isBanned)}
+                        onClick={() => handleToggleBan(userObj.id, userObj.isBanned, userObj.fullName || userObj.email)}
                         title={userObj.isBanned ? "Unban user and allow login" : "Ban user and prevent login"}
                         style={{
                           color: userObj.isBanned ? '#22c55e' : '#f97316',
@@ -780,14 +1050,14 @@ export default function UsersManager() {
                           justifyContent: 'flex-start',
                         }}
                       >
-                        {userObj.isBanned ? <UserCheck size={16} /> : <ShieldAlert size={16} />}
+                        {userObj.isBanned ? <UserCheck size={15} /> : <ShieldAlert size={15} />}
                         <span>{userObj.isBanned ? 'Unban' : 'Ban'}</span>
                       </button>
 
                       <button
                         className={styles.actionBtn}
-                        onClick={() => handleDeleteUser(userObj.id, userObj.fullName)}
-                        title="Delete user entirely from database and application"
+                        onClick={() => handleDeleteUser(userObj.id, userObj.fullName || userObj.email)}
+                        title="Permanently delete user and cascade purge all records"
                         style={{
                           color: '#ef4444',
                           borderColor: 'rgba(239, 68, 68, 0.3)',
@@ -796,27 +1066,29 @@ export default function UsersManager() {
                           justifyContent: 'flex-start',
                         }}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                         <span>Delete</span>
                       </button>
                     </div>
                   </td>
+
+                  {/* Session Actions */}
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '135px', marginLeft: 'auto' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px', marginLeft: 'auto' }}>
                       <button
                         className={styles.actionBtn}
                         onClick={() => handleToggleExempt(userObj.id, userObj.isSessionLockedExempt)}
-                        title={userObj.isSessionLockedExempt ? "Enforce session lock constraints for this user" : "Exempt this user from session lock constraints"}
+                        title={userObj.isSessionLockedExempt ? "Enforce device constraints for this student" : "Exempt student from all device & session limits"}
                         style={{
-                          color: userObj.isSessionLockedExempt ? '#22c55e' : 'var(--text-muted)',
-                          borderColor: userObj.isSessionLockedExempt ? 'rgba(34, 197, 94, 0.3)' : 'var(--glass-border)',
-                          background: userObj.isSessionLockedExempt ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
+                          color: userObj.isSessionLockedExempt ? '#38bdf8' : 'var(--text-muted)',
+                          borderColor: userObj.isSessionLockedExempt ? 'rgba(56, 189, 248, 0.3)' : 'var(--glass-border)',
+                          background: userObj.isSessionLockedExempt ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
                           width: '100%',
                           justifyContent: 'flex-start',
                         }}
                       >
-                        {userObj.isSessionLockedExempt ? <Unlock size={16} /> : <Lock size={16} />}
-                        <span>Exempt</span>
+                        {userObj.isSessionLockedExempt ? <Unlock size={15} /> : <Lock size={15} />}
+                        <span>{userObj.isSessionLockedExempt ? 'Exempted' : 'Exempt'}</span>
                       </button>
 
                       {userObj.activeSessions.length > 0 && (
@@ -825,10 +1097,10 @@ export default function UsersManager() {
                           onClick={() =>
                             userObj.activeSessions.forEach((s) => handleLogoutSession(s.id))
                           }
-                          title="Logout all sessions"
+                          title="Force logout active session"
                           style={{ width: '100%', justifyContent: 'flex-start' }}
                         >
-                          <LogOut size={16} />
+                          <LogOut size={15} />
                           <span>Logout</span>
                         </button>
                       )}
@@ -923,10 +1195,26 @@ export default function UsersManager() {
           onRename={() => {
             fetchUsers();
           }}
+          onResetSlot={selectedSession.userId ? () => {
+            handleResetDeviceSlot(selectedSession.userId!, selectedSession.deviceType);
+            setSelectedSession(null);
+          } : undefined}
         />
       )}
 
-
+      {/* Styled Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModalState.isOpen}
+        onClose={() => setConfirmModalState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModalState.onConfirm}
+        title={confirmModalState.title}
+        message={confirmModalState.message}
+        confirmLabel={confirmModalState.confirmLabel}
+        cancelLabel={confirmModalState.cancelLabel}
+        variant={confirmModalState.variant}
+        iconType={confirmModalState.iconType}
+        loading={confirmModalState.loading}
+      />
     </div>
   );
 }
