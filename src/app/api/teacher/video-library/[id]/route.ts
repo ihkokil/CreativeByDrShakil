@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { cleanupDeletedVideoLibraryNode } from '@/lib/curriculum-cleanup';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
     const bearerToken = extractBearerToken(request);
@@ -110,29 +111,8 @@ export async function DELETE(
             return NextResponse.json({ error: 'Node not found.' }, { status: 404 });
         }
 
-        // If it's a quiz node, clean up CourseQuiz record
-        if (existing.type === 'quiz' && existing.url) {
-            await supabase.from('CourseQuiz').delete().eq('quizId', existing.url);
-        } else if (existing.type === 'folder') {
-            // If deleting a folder, also delete CourseQuiz links attached to this folder
-            await supabase.from('CourseQuiz').delete().eq('curriculumNodeId', id);
-            
-            // Also check for any direct child quiz nodes
-            const { data: childQuizzes = [] } = await supabase
-                .from('VideoLibraryNode')
-                .select('url')
-                .eq('parentId', id)
-                .eq('type', 'quiz');
-                
-            const childQuizIds = (childQuizzes || []).map((q: any) => q.url).filter(Boolean);
-            if (childQuizIds.length > 0) {
-                await supabase.from('CourseQuiz').delete().in('quizId', childQuizIds);
-            }
-        }
-
-        // Supabase DB cascade will handle children deletion via the schema relation ON DELETE CASCADE
-        const { error: deleteError } = await supabase.from('VideoLibraryNode').delete().eq('id', id);
-        if (deleteError) throw deleteError;
+        // Cascade delete descendant nodes, CourseQuiz records, Course curriculumJson, and progress
+        await cleanupDeletedVideoLibraryNode(supabase, id);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

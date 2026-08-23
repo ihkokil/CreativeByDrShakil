@@ -176,8 +176,28 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
       <div className={styles.container}>
         <div className={styles.errorState}>
           <AlertCircle className={styles.errorIcon} />
-          <h2>Unable to Load Quiz</h2>
-          <p>{error || "Quiz not found or access denied"}</p>
+          <h2>Quiz Unavailable</h2>
+          <p>{error || "This quiz is no longer available in this course module."}</p>
+          {slug && (
+            <Link
+              href={`/study/${slug}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginTop: '16px',
+                padding: '10px 20px',
+                background: 'var(--primary-color, #0284c7)',
+                color: '#fff',
+                borderRadius: '8px',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '14px',
+              }}
+            >
+              Back to Course Study
+            </Link>
+          )}
         </div>
       </div>
     );
