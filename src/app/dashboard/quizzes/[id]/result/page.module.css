@@ -771,13 +771,14 @@
   gap: 8px;
 }
 
-/* Vertical True/False Review Row */
+/* Responsive True/False Review Row */
 .tfCompactRow {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  padding: 14px 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
   background: var(--bg-secondary);
   border: 1.5px solid var(--border-color);
   border-radius: 10px;
@@ -803,14 +804,14 @@
 
 .tfCompactLeft {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  width: 100%;
+  flex: 1;
   min-width: 0;
 }
 
 .tfCompactLeft .optionLetter {
-  margin-top: 2px;
+  margin-top: 0;
   flex-shrink: 0;
 }
 
@@ -818,19 +819,18 @@
   font-size: 14.5px;
   font-weight: 500;
   color: var(--text-color);
-  line-height: 1.55;
+  line-height: 1.5;
   word-break: break-word;
   flex: 1;
 }
 
 .tfCompactRight {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+  border-top: none;
+  padding-top: 0;
 }
 
 .userPillCorrect {
@@ -960,10 +960,11 @@
 /* SBA Review Rows */
 .sbaReviewRow {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 10px;
-  padding: 14px 16px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
   border: 1.5px solid var(--border-color);
   border-radius: 10px;
   background: var(--bg-secondary);
@@ -974,20 +975,20 @@
 
 .sbaRowLeft {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  width: 100%;
+  flex: 1;
   min-width: 0;
 }
 
 .sbaRowLeft .optionLetter {
-  margin-top: 2px;
+  margin-top: 0;
   flex-shrink: 0;
 }
 
 .sbaRowLeft .optionText {
   font-size: 14.5px;
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--text-color);
   word-break: break-word;
   flex: 1;
@@ -995,11 +996,11 @@
 
 .sbaRowRight {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+  border-top: none;
+  padding-top: 0;
 }
 
 .sbaCorrect {
@@ -1672,6 +1673,50 @@
   .jumpToMeBtn {
     width: 100%;
     justify-content: center;
+  }
+
+  .tfCompactRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .tfCompactLeft {
+    align-items: flex-start;
+  }
+
+  .tfCompactLeft .optionLetter {
+    margin-top: 2px;
+  }
+
+  .tfCompactRight {
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    justify-content: space-between;
+  }
+
+  .sbaReviewRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .sbaRowLeft {
+    align-items: flex-start;
+  }
+
+  .sbaRowLeft .optionLetter {
+    margin-top: 2px;
+  }
+
+  .sbaRowRight {
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    justify-content: space-between;
   }
 }
 

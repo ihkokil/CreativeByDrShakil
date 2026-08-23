@@ -721,14 +721,16 @@
 }
 
 /* MCQ Matrix (True / False) Vertical Styles */
+/* MCQ Matrix (True / False) Responsive Styles */
 .mcqMatrixRow {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-  padding: 16px 20px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
   border: 1.5px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--bg-secondary);
   transition: all 0.15s ease;
   text-align: left;
@@ -754,58 +756,52 @@
 
 .mcqMatrixLabel {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  width: 100%;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
   min-width: 0;
 }
 
 .mcqMatrixLabel .optionLetter {
-  margin-top: 2px;
+  margin-top: 0;
+  flex-shrink: 0;
 }
 
 .mcqMatrixLabel .optionText {
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: 14.5px;
+  line-height: 1.5;
   color: var(--text-color);
   word-break: break-word;
+  flex: 1;
 }
 
 .mcqMatrixBottomRow {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-color);
+  gap: 10px;
+  flex-shrink: 0;
+  border-top: none;
+  padding-top: 0;
+  width: auto;
 }
 
 .mcqMatrixButtons {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(110px, 1fr));
-  gap: 10px;
-  width: 100%;
-  max-width: 320px;
-}
-
-@media (max-width: 600px) {
-  .mcqMatrixButtons {
-    max-width: 100%;
-    grid-template-columns: 1fr 1fr;
-  }
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  max-width: none;
 }
 
 .mcqBtn {
-  min-height: 44px;
-  padding: 8px 16px;
-  border-radius: 10px;
+  min-height: 38px;
+  padding: 6px 18px;
+  border-radius: 8px;
   border: 1.5px solid var(--border-color);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   letter-spacing: 0.2px;
   transition: all 0.15s ease;
@@ -813,9 +809,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   font-family: inherit;
-  width: 100%;
+  min-width: 85px;
+  width: auto;
   box-sizing: border-box;
 }
 
@@ -1243,25 +1240,43 @@
   }
 
   .mcqMatrixRow {
-    padding: 12px 14px;
-  }
-}
-
-@media (max-width: 520px) {
-  .mcqMatrixRow {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 12px;
+    padding: 14px 14px;
+  }
+
+  .mcqMatrixLabel {
+    align-items: flex-start;
+  }
+
+  .mcqMatrixLabel .optionLetter {
+    margin-top: 2px;
+  }
+
+  .mcqMatrixBottomRow {
+    width: 100%;
+    border-top: 1px solid var(--border-color);
+    padding-top: 8px;
+    justify-content: space-between;
   }
 
   .mcqMatrixButtons {
     width: 100%;
-    margin-left: 0;
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
 
   .mcqBtn {
-    flex: 1;
+    min-height: 44px;
+    width: 100%;
+    min-width: 0;
   }
+}
+
+@media (max-width: 520px) {
 
   .modal {
     margin: 16px;
