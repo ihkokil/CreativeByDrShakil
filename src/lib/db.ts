@@ -2,6 +2,9 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
 import { fetchWithTimeout } from './fetch-with-timeout';
 
+// In-memory client cache per worker isolate to avoid re-instantiating clients on every request
+const clientCache = new Map<string, SupabaseClient<Database>>();
+
 // Helper to get active database index based on current GMT+6 time (offset by 4 hours)
 // This is used for content read replica rotation.
 export function getActiveDbIndex(): number {
@@ -38,15 +41,21 @@ export function getSupabaseContentRead(env?: any): SupabaseClient<Database> {
     throw new Error(`Missing Supabase credentials for replica instance ${activeIndex}`);
   }
 
-  return createClient<Database>(url, anonKey, {
-    global: {
-      fetch: fetchWithTimeout(8000),
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  const cacheKey = `read_${activeIndex}_${url}`;
+  let client = clientCache.get(cacheKey);
+  if (!client) {
+    client = createClient<Database>(url, anonKey, {
+      global: {
+        fetch: fetchWithTimeout(8000),
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+    clientCache.set(cacheKey, client);
+  }
+  return client;
 }
 
 /**
@@ -67,15 +76,21 @@ export function getSupabaseAdmin(env?: any): SupabaseClient<Database> {
     throw new Error(`Missing Supabase admin credentials for BACKUP database`);
   }
 
-  return createClient<Database>(url, serviceKey, {
-    global: {
-      fetch: fetchWithTimeout(8000),
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  const cacheKey = `admin_${url}`;
+  let client = clientCache.get(cacheKey);
+  if (!client) {
+    client = createClient<Database>(url, serviceKey, {
+      global: {
+        fetch: fetchWithTimeout(8000),
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+    clientCache.set(cacheKey, client);
+  }
+  return client;
 }
 
 /**

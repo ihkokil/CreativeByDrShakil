@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash and update to the new password in DB
-    const newHash = await hash(newPassword, 12);
+    const newHash = await hash(newPassword, 8);
     
     const { error: updateError } = await supabase
       .from('User')

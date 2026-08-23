@@ -4,7 +4,7 @@ import CourseDetailClient from './CourseDetailClient';
 import { Course } from '@/constants/courses';
 import { PublicTeacher } from '@/lib/teacher-directory';
 
-import { getSupabaseAdmin } from '@/lib/db';
+import { getSupabaseContentRead } from '@/lib/db';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { formatLastUpdated } from '@/lib/date-format';
@@ -14,7 +14,7 @@ interface Props {
 }
 
 async function getCourseData(slug: string) {
-  const supabase = getSupabaseAdmin();
+  const supabase = getSupabaseContentRead();
   
   const { data: course, error: courseError } = await supabase
     .from('Course')
@@ -108,7 +108,7 @@ export default async function CourseDetailPage({ params }: Props) {
   let initialTeachers: PublicTeacher[] = [];
 
   try {
-    const supabase = getSupabaseAdmin();
+    const supabase = getSupabaseContentRead();
     // Fetch teachers
     const { data: teachersData } = await supabase
       .from('User')
