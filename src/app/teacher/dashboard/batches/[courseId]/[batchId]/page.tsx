@@ -8,6 +8,8 @@ import Loader from "@/components/UI/Loader";
 import { ArrowLeft, UserPlus, Users, Calendar, Trash2, Search, Rocket, Zap, CalendarDays, Mail, Phone } from "lucide-react";
 import { formatDateGMT6 } from "@/lib/date-format";
 import EnrollStudentModal from "@/components/Teacher/EnrollStudentModal";
+import ConfirmModal from "@/components/UI/ConfirmModal";
+import AlertModal from "@/components/UI/AlertModal";
 
 interface Student {
   id: string;
@@ -34,6 +36,46 @@ export default function BatchStudentsPage() {
 
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
 
+  // Alert & Confirm Modal States
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({ isOpen: false, message: '', type: 'info' });
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    isSubmitting?: boolean;
+    onConfirm: () => void | Promise<void>;
+  }>({ isOpen: false, message: '', onConfirm: () => {} });
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+    setAlertConfig({ isOpen: true, message, type, title });
+  };
+
+  const showConfirm = (options: {
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    onConfirm: () => void | Promise<void>;
+  }) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: options.title,
+      message: options.message,
+      confirmText: options.confirmText || 'Confirm',
+      variant: options.variant || 'danger',
+      isSubmitting: false,
+      onConfirm: options.onConfirm,
+    });
+  };
+
   useEffect(() => {
     fetchBatchStudents();
   }, [courseId, batchId]);
@@ -55,25 +97,34 @@ export default function BatchStudentsPage() {
     }
   };
 
-  const handleRemoveStudent = async (orderId: string, studentName: string) => {
-    if (!confirm(`Are you sure you want to remove ${studentName} from this batch?`)) return;
-
-    try {
-      const res = await fetch('/api/teacher/enrollments', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId }),
-      });
-      if (res.ok) {
-        fetchBatchStudents();
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Failed to remove student.');
+  const handleRemoveStudent = (orderId: string, studentName: string) => {
+    showConfirm({
+      title: "Remove Student from Batch?",
+      message: `Are you sure you want to remove ${studentName} from this batch?`,
+      confirmText: "Remove Student",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetch('/api/teacher/enrollments', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId }),
+          });
+          if (res.ok) {
+            setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+            showAlert(`Removed ${studentName} from batch.`, 'success');
+            fetchBatchStudents();
+          } else {
+            const data = await res.json().catch(() => ({}));
+            showAlert(data.error || 'Failed to remove student.', 'error');
+          }
+        } catch {
+          showAlert('Network error while removing student.', 'error');
+        }
       }
-    } catch {
-      alert('Network error while removing student.');
-    }
+    });
   };
+
 
   const batchName = batchInfo?.name || "";
   const nameLower = batchName.toLowerCase();
@@ -281,6 +332,28 @@ export default function BatchStudentsPage() {
           }}
         />
       )}
+
+      {/* Reusable Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        isSubmitting={confirmConfig.isSubmitting}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
+

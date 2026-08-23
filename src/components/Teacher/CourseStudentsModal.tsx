@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import StudentRulesModal from "./StudentRulesModal";
 import StudentIndividualOverridesModal from "./StudentIndividualOverridesModal";
 import EnrollStudentModal from "./EnrollStudentModal";
+import AlertModal from "@/components/UI/AlertModal";
 import { useModal } from "@/hooks/useModal";
 
 interface CourseStudentsModalProps {
@@ -43,6 +44,14 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
     const [selectedStudent, setSelectedStudent] = useState<StudentSummary | null>(null);
     const [advancedStudent, setAdvancedStudent] = useState<StudentSummary | null>(null);
     const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+
+    const [alertConfig, setAlertConfig] = useState<{
+        isOpen: boolean;
+        title?: string;
+        message: string;
+        type: 'success' | 'error' | 'warning' | 'info';
+    }>({ isOpen: false, message: '', type: 'info' });
+
 
     // Advanced contexts
     const [selectedCourseObj, setSelectedCourseObj] = useState<any>(null);
@@ -212,7 +221,7 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                         onClose={() => setSelectedStudent(null)}
                         onSuccess={() => {
                             setSelectedStudent(null);
-                            alert("Rules updated successfully!");
+                            setAlertConfig({ isOpen: true, message: "Rules updated successfully!", type: "success" });
                             fetchStudents(); // refresh overrides
                         }}
                         onOpenAdvanced={() => {
@@ -250,6 +259,15 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                     fetchStudents();
                 }}
             />
+
+            <AlertModal
+                isOpen={alertConfig.isOpen}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+            />
         </motion.div>
     );
 }
+

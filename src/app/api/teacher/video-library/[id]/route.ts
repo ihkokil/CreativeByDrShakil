@@ -40,7 +40,7 @@ export async function PATCH(
 
         const { data: existing } = await supabase
             .from('VideoLibraryNode')
-            .select('id')
+            .select('id, type, url, parentId')
             .eq('id', id)
             .limit(1)
             .maybeSingle();
@@ -52,12 +52,91 @@ export async function PATCH(
         const body = await request.json();
         const data: Record<string, any> = {};
 
-        if (body.title !== undefined) data.title = String(body.title).trim();
-        if (body.url !== undefined) data.url = body.url ? String(body.url).trim() : null;
-        if (body.duration !== undefined) data.duration = body.duration ? String(body.duration).trim() : null;
-        if (body.type !== undefined) {
+        const targetQuizId = body.quizId || (body.type === 'quiz' && body.url ? body.url : null);
+        if (targetQuizId || body.type === 'quiz') {
+            const quizIdToLookup = targetQuizId || existing.url;
+            if (quizIdToLookup) {
+                const { data: targetQuiz } = await supabase
+                    .from('Quiz')
+                    .select('id, title, durationMinutes, status')
+                    .eq('id', quizIdToLookup)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (!targetQuiz) {
+                    return NextResponse.json({ error: 'Selected quiz not found in records.' }, { status: 404 });
+                }
+
+                data.type = 'quiz';
+                data.url = targetQuiz.id;
+                data.title = body.title !== undefined ? String(body.title).trim() : targetQuiz.title;
+                data.duration = targetQuiz.durationMinutes ? `${targetQuiz.durationMinutes} min` : null;
+
+                // Sync CourseQuiz if this node resides in a course structure
+                try {
+                    let currParentId = existing.parentId;
+                    let rootCourseFolder: any = null;
+                    while (currParentId) {
+                        const { data: pNode } = await supabase
+                            .from('VideoLibraryNode')
+                            .select('id, title, parentId')
+                            .eq('id', currParentId)
+                            .maybeSingle();
+                        if (!pNode) break;
+                        if (!pNode.parentId) {
+                            rootCourseFolder = pNode;
+                            break;
+                        }
+                        currParentId = pNode.parentId;
+                    }
+
+                    if (rootCourseFolder) {
+                        const { data: course } = await supabase
+                            .from('Course')
+                            .select('id')
+                            .ilike('title', rootCourseFolder.title)
+                            .maybeSingle();
+
+                        if (course) {
+                            // If old quiz was linked, update or insert new CourseQuiz
+                            const oldQuizId = existing.url;
+                            if (oldQuizId && oldQuizId !== targetQuiz.id) {
+                                await supabase
+                                    .from('CourseQuiz')
+                                    .delete()
+                                    .eq('courseId', course.id)
+                                    .eq('quizId', oldQuizId);
+                            }
+
+                            const { data: existingCq } = await supabase
+                                .from('CourseQuiz')
+                                .select('id')
+                                .eq('courseId', course.id)
+                                .eq('quizId', targetQuiz.id)
+                                .maybeSingle();
+
+                            if (!existingCq) {
+                                await supabase.from('CourseQuiz').insert({
+                                    id: crypto.randomUUID(),
+                                    courseId: course.id,
+                                    quizId: targetQuiz.id,
+                                    curriculumNodeId: existing.parentId,
+                                } as any);
+                            }
+                        }
+                    }
+                } catch (linkErr) {
+                    console.warn('CourseQuiz sync warning during quiz node update:', linkErr);
+                }
+            }
+        }
+
+        if (body.title !== undefined && data.title === undefined) data.title = String(body.title).trim();
+        if (body.url !== undefined && data.url === undefined) data.url = body.url ? String(body.url).trim() : null;
+        if (body.duration !== undefined && data.duration === undefined) data.duration = body.duration ? String(body.duration).trim() : null;
+        if (body.type !== undefined && data.type === undefined) {
             const type = String(body.type).trim();
-            if (!['folder', 'youtube', 'self-hosted', 'document'].includes(type)) {
+            if (!['folder', 'youtube', 'self-hosted', 'document', 'quiz'].includes(type)) {
                 return NextResponse.json({ error: 'Invalid type.' }, { status: 400 });
             }
             data.type = type;
@@ -83,6 +162,7 @@ export async function PATCH(
             .maybeSingle();
 
         return NextResponse.json({ node });
+
     } catch (error: any) {
         return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });
     }
