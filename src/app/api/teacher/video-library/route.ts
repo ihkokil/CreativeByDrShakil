@@ -118,6 +118,46 @@ export async function GET(request: NextRequest) {
             }
         }
 
+        // 4. Verify Quiz nodes against Quiz table (auto-remove orphaned quizzes & sync titles/durations)
+        const quizNodes = (allNodes || []).filter((n: any) => n.type === 'quiz');
+        if (quizNodes.length > 0) {
+            const quizIds = quizNodes.map((n: any) => n.url).filter(Boolean);
+            const { data: existingQuizzes } = await supabase
+                .from('Quiz')
+                .select('id, title, durationMinutes, status')
+                .in('id', quizIds);
+
+            const existingQuizMap = new Map((existingQuizzes || []).map((q: any) => [q.id, q]));
+            const orphanedQuizNodeIds: string[] = [];
+
+            for (const qNode of quizNodes) {
+                const targetQuizId = qNode.url;
+                if (!targetQuizId || !existingQuizMap.has(targetQuizId)) {
+                    orphanedQuizNodeIds.push(qNode.id);
+                } else {
+
+                    const actualQuiz = existingQuizMap.get(targetQuizId)!;
+                    const expectedDuration = actualQuiz.durationMinutes ? `${actualQuiz.durationMinutes} min` : null;
+                    if (qNode.title !== actualQuiz.title || (qNode.duration || null) !== expectedDuration) {
+                        await supabase
+                            .from('VideoLibraryNode')
+                            .update({
+                                title: actualQuiz.title,
+                                duration: expectedDuration,
+                                updatedAt: new Date().toISOString(),
+                            } as any)
+                            .eq('id', qNode.id);
+                        databaseModified = true;
+                    }
+                }
+            }
+
+            if (orphanedQuizNodeIds.length > 0) {
+                await supabase.from('VideoLibraryNode').delete().in('id', orphanedQuizNodeIds);
+                databaseModified = true;
+            }
+        }
+
         if (databaseModified) {
             const { data: updatedNodes } = await supabase
                 .from('VideoLibraryNode')
@@ -126,6 +166,7 @@ export async function GET(request: NextRequest) {
                 .order('createdAt', { ascending: true });
             nodes = updatedNodes || [];
         }
+
 
         return NextResponse.json({ nodes: nodes || [] });
     } catch (error: any) {

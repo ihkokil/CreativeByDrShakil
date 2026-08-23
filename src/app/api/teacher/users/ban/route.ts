@@ -40,11 +40,31 @@ export async function POST(request: NextRequest) {
     const isBanned = action === 'ban';
 
     if (isBanned) {
-      const { error: banError } = await supabase.rpc('fn_ban_user', {
-        p_user_id: userId,
-        p_banned_by_label: `Teacher (${payload.email})`
-      });
-      if (banError) throw banError;
+      await supabase
+        .from('User')
+        // @ts-ignore
+        .update({ isBanned: true, updatedAt: new Date().toISOString() })
+        .eq('id', userId);
+
+      await supabase
+        .from('DeviceSession')
+        // @ts-ignore
+        .update({
+          isLocked: true,
+          loggedOutAt: new Date().toISOString(),
+          lockedByDeviceLabel: `Banned by Teacher (${payload.email})`
+        })
+        .eq('userId', userId)
+        .is('loggedOutAt', null);
+
+      try {
+        await supabase.rpc('fn_ban_user', {
+          p_user_id: userId,
+          p_banned_by_label: `Teacher (${payload.email})`
+        });
+      } catch (rpcErr) {
+        // Fallback handled by direct updates above
+      }
     } else {
       const { error: updateError } = await supabase
         .from('User')

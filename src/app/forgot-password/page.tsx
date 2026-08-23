@@ -7,7 +7,7 @@ import styles from "@/components/Auth/Auth.module.css";
 import pageStyles from "../auth/AuthPages.module.css";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
 import { useAuth } from "@/context/AuthContext";
-import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff, X } from "lucide-react";
 
 type PageStep = "email" | "otp" | "reset";
 
@@ -265,6 +265,13 @@ export default function ForgotPasswordPage() {
 
     return (
         <main className={pageStyles.page}>
+            <div className={pageStyles.topNav}>
+                <Link href="/" className={pageStyles.homeBtn}>
+                    <ArrowLeft size={16} />
+                    <span>Back to Website</span>
+                </Link>
+            </div>
+
             <section className={`${styles.modal} glass`} style={{ position: "relative" }}>
                 {step !== "email" && (
                     <button
@@ -276,6 +283,15 @@ export default function ForgotPasswordPage() {
                         <ArrowLeft size={20} />
                     </button>
                 )}
+
+                <Link
+                    href="/"
+                    className={styles.closeBtn}
+                    aria-label="Return to homepage"
+                    title="Return to website"
+                >
+                    <X size={20} />
+                </Link>
 
                 <div className={styles.header}>
                     <h2 className={styles.title}>
@@ -431,11 +447,12 @@ export default function ForgotPasswordPage() {
                     </form>
                 )}
 
-                <div className={styles.linkRow} style={{ marginTop: "15px" }}>
-                    <Link href="/login" style={{ color: "var(--primary)", fontWeight: 700, textDecoration: "none" }}>
-                        Back to sign in
+                <p className={styles.toggleText}>
+                    Remember your password?
+                    <Link href="/login" style={{ color: "var(--primary)", fontWeight: 700, marginLeft: "5px" }}>
+                        Sign in
                     </Link>
-                </div>
+                </p>
             </section>
         </main>
     );

@@ -138,7 +138,7 @@ export default function AlertModal({
             </button>
 
             <div className={styles.header}>
-              <div className={styles.iconContainer}>
+              <div className={`${styles.iconContainer} ${styles[`iconContainer_${type}`] || styles.iconContainer_info}`}>
                 {getIcon()}
               </div>
               <h2 className={styles.title}>{getTitle()}</h2>
@@ -149,7 +149,12 @@ export default function AlertModal({
             </div>
 
             <div className={styles.footer}>
-              <button className={styles.actionBtn} onClick={onClose} autoFocus>
+              <button 
+                type="button"
+                className={`${styles.actionBtn} ${styles[`btn_${type}`] || styles.btn_info}`} 
+                onClick={onClose} 
+                autoFocus
+              >
                 OK
               </button>
             </div>
@@ -159,3 +164,4 @@ export default function AlertModal({
     </AnimatePresence>
   );
 }
+

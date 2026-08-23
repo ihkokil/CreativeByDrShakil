@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import styles from './AdminModal.module.css';
 import { useModal } from '@/hooks/useModal';
-import { X, Monitor, Smartphone, Tablet, Lock, LogOut, Edit2, Check } from 'lucide-react';
+import { X, Monitor, Smartphone, Tablet, Lock, LogOut, Edit2, Check, RotateCcw } from 'lucide-react';
 
 interface SessionData {
   id: string;
@@ -25,6 +25,7 @@ interface SessionDetailsModalProps {
   onLock: () => void;
   onLogout: () => void;
   onRename?: () => void;
+  onResetSlot?: () => void;
 }
 
 export default function SessionDetailsModal({
@@ -33,6 +34,7 @@ export default function SessionDetailsModal({
   onLock,
   onLogout,
   onRename,
+  onResetSlot,
 }: SessionDetailsModalProps) {
   useModal(true, onClose);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
@@ -232,27 +234,34 @@ export default function SessionDetailsModal({
             </div>
           </div>
 
-          {/* IP Address */}
-          <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--surface-soft)' }}>
-            <p style={{ margin: '0 0 6px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              IP Address
+          {/* Network & IP Address */}
+          <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--surface-soft)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <p style={{ margin: '0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              Network & IP Address
             </p>
-            <code style={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>{session.ipAddress}</code>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <code style={{ fontFamily: 'monospace', fontSize: '0.95rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                {session.ipAddress || '127.0.0.1'}
+              </code>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'var(--glass)', padding: '2px 8px', borderRadius: '6px', border: '1px solid var(--glass-border)' }}>
+                {session.browserName} • {session.osInfo || 'Unknown OS'}
+              </span>
+            </div>
           </div>
 
-          {/* Dates */}
+          {/* Dates (GMT+6) */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--surface-soft)' }}>
               <p style={{ margin: '0 0 6px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                Created
+                First Connected
               </p>
-              <p style={{ margin: '0', fontSize: '0.9rem' }}>{formatDate(session.createdAt)}</p>
+              <p style={{ margin: '0', fontSize: '0.9rem', fontWeight: 500 }}>{formatDate(session.createdAt)}</p>
             </div>
             <div style={{ padding: '14px', borderRadius: '12px', background: 'var(--surface-soft)' }}>
               <p style={{ margin: '0 0 6px 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 Last Activity
               </p>
-              <p style={{ margin: '0', fontSize: '0.9rem' }}>
+              <p style={{ margin: '0', fontSize: '0.9rem', fontWeight: 500 }}>
                 {formatDate(session.lastActivityAt)}
               </p>
             </div>
@@ -269,48 +278,74 @@ export default function SessionDetailsModal({
           )}
 
           {/* Actions */}
-          {!session.loggedOutAt && !session.isLocked && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+            {!session.loggedOutAt && !session.isLocked && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <button
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}
+                  onClick={onLock}
+                >
+                  <Lock size={16} />
+                  Lock Device
+                </button>
+                <button
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: 'white',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}
+                  onClick={onLogout}
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </div>
+            )}
+
+            {onResetSlot && (
               <button
                 style={{
-                  padding: '12px 16px',
+                  padding: '11px 16px',
                   borderRadius: '12px',
-                  border: 'none',
-                  background: '#ef4444',
-                  color: 'white',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  color: '#ef4444',
                   fontWeight: 600,
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
+                  width: '100%',
                 }}
-                onClick={onLock}
+                onClick={onResetSlot}
               >
-                <Lock size={16} />
-                Lock Device
+                <RotateCcw size={16} />
+                Reset & Unbind Device Slot
               </button>
-              <button
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  background: 'var(--accent)',
-                  color: 'white',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                }}
-                onClick={onLogout}
-              >
-                <LogOut size={16} />
-                Logout
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

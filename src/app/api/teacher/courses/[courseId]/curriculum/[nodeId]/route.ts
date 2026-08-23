@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { parseCurriculumJson, BuilderCurriculumNode, createNodeId } from '@/lib/teacher-course-builder';
+import { cleanupCourseCurriculumNode } from '@/lib/curriculum-cleanup';
 
 function findNodeById(nodes: BuilderCurriculumNode[], nodeId: string): BuilderCurriculumNode | null {
   for (const node of nodes) {
@@ -158,19 +159,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    let curriculum = parseCurriculumJson(course.curriculumJson);
-    curriculum = removeNodeById(curriculum, nodeId);
-
-    const { error: updateError } = await supabase
-      .from('Course')
-      // @ts-ignore
-      .update({
-        curriculumJson: JSON.stringify(curriculum),
-        updatedAt: new Date().toISOString(),
-      })
-      .eq('id', courseId);
-
-    if (updateError) throw updateError;
+    // Cascade remove node from curriculumJson, remove linked CourseQuiz records, and clean progress
+    await cleanupCourseCurriculumNode(supabase, courseId, nodeId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

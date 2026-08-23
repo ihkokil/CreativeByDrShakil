@@ -24,6 +24,8 @@ import styles from "./CoursesTab.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import Loader from "@/components/UI/Loader";
 import CourseStudentsModal from "./CourseStudentsModal";
+import ConfirmModal from "@/components/UI/ConfirmModal";
+import AlertModal from "@/components/UI/AlertModal";
 
 interface Course {
     id: string;
@@ -50,6 +52,46 @@ export default function CoursesTab() {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [selectedCourseForStudents, setSelectedCourseForStudents] = useState<{id: string, title: string} | null>(null);
 
+    // Alert & Confirm Modal States
+    const [alertConfig, setAlertConfig] = useState<{
+        isOpen: boolean;
+        title?: string;
+        message: string;
+        type: 'success' | 'error' | 'warning' | 'info';
+    }>({ isOpen: false, message: '', type: 'info' });
+
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title?: string;
+        message: React.ReactNode | string;
+        confirmText?: string;
+        variant?: 'danger' | 'warning' | 'info' | 'primary';
+        isSubmitting?: boolean;
+        onConfirm: () => void | Promise<void>;
+    }>({ isOpen: false, message: '', onConfirm: () => {} });
+
+    const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+        setAlertConfig({ isOpen: true, message, type, title });
+    };
+
+    const showConfirm = (options: {
+        title?: string;
+        message: React.ReactNode | string;
+        confirmText?: string;
+        variant?: 'danger' | 'warning' | 'info' | 'primary';
+        onConfirm: () => void | Promise<void>;
+    }) => {
+        setConfirmConfig({
+            isOpen: true,
+            title: options.title,
+            message: options.message,
+            confirmText: options.confirmText || 'Confirm',
+            variant: options.variant || 'danger',
+            isSubmitting: false,
+            onConfirm: options.onConfirm,
+        });
+    };
+
     useEffect(() => {
         fetchCourses();
     }, []);
@@ -75,29 +117,34 @@ export default function CoursesTab() {
         }
     };
 
-    const handleDelete = async (courseId: string, title: string) => {
-        if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
-            return;
-        }
+    const handleDelete = (courseId: string, title: string) => {
+        showConfirm({
+            title: 'Delete Course?',
+            message: `Are you sure you want to permanently delete "${title}"? All associated lessons, quizzes, and curriculum structure will be removed.`,
+            confirmText: 'Delete Course',
+            variant: 'danger',
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("auth_token");
+                    const response = await fetch(`/api/teacher/courses/${courseId}`, {
+                        method: "DELETE",
+                        headers: token ? { Authorization: `Bearer ${token}` } : {},
+                    });
 
-        try {
-            const token = localStorage.getItem("auth_token");
-            const response = await fetch(`/api/teacher/courses/${courseId}`, {
-                method: "DELETE",
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        showAlert(data.error || "Failed to delete course.", "error");
+                        return;
+                    }
 
-            const data = await response.json();
-            if (!response.ok) {
-                alert(data.error || "Failed to delete course.");
-                return;
+                    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                    setCourses(prev => prev.filter(c => c.id !== courseId));
+                    showAlert(`"${title}" deleted successfully.`, "success");
+                } catch (err) {
+                    showAlert("An error occurred while deleting the course.", "error");
+                }
             }
-
-            setCourses(prev => prev.filter(c => c.id !== courseId));
-        } catch (err) {
-            console.error(err);
-            alert("An error occurred while deleting the course.");
-        }
+        });
     };
 
     const handleDuplicate = async (courseId: string) => {
@@ -110,48 +157,52 @@ export default function CoursesTab() {
 
             const data = await response.json();
             if (!response.ok) {
-                alert(data.error || "Failed to duplicate course.");
+                showAlert(data.error || "Failed to duplicate course.", "error");
                 return;
             }
 
             // Refresh list
             fetchCourses();
-            alert("Course duplicated successfully as draft.");
+            showAlert("Course duplicated successfully as draft.", "success");
         } catch (err) {
-            console.error(err);
-            alert("An error occurred while duplicating the course.");
+            showAlert("An error occurred while duplicating the course.", "error");
         }
     };
 
-    const handleArchive = async (courseId: string, title: string) => {
-        if (!confirm(`Are you sure you want to archive "${title}"? This will hide it from the student site.`)) {
-            return;
-        }
+    const handleArchive = (courseId: string, title: string) => {
+        showConfirm({
+            title: 'Archive Course?',
+            message: `Are you sure you want to archive "${title}"? This will hide it from the public catalog for students.`,
+            confirmText: 'Archive Course',
+            variant: 'warning',
+            onConfirm: async () => {
+                try {
+                    const token = localStorage.getItem("auth_token");
+                    const response = await fetch(`/api/teacher/courses/${courseId}`, {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify({ status: "archived" }),
+                    });
 
-        try {
-            const token = localStorage.getItem("auth_token");
-            const response = await fetch(`/api/teacher/courses/${courseId}`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-                body: JSON.stringify({ status: "archived" }),
-            });
+                    const data = await response.json();
+                    if (!response.ok) {
+                        showAlert(data.error || "Failed to archive course.", "error");
+                        return;
+                    }
 
-            const data = await response.json();
-            if (!response.ok) {
-                alert(data.error || "Failed to archive course.");
-                return;
+                    setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                    setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: "archived" } : c));
+                    showAlert("Course archived successfully.", "success");
+                } catch (err) {
+                    showAlert("An error occurred while archiving the course.", "error");
+                }
             }
-
-            setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: "archived" } : c));
-            alert("Course archived successfully.");
-        } catch (err) {
-            console.error(err);
-            alert("An error occurred while archiving the course.");
-        }
+        });
     };
+
 
     const filteredCourses = courses.filter(c => {
         const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -356,6 +407,28 @@ export default function CoursesTab() {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Reusable Confirmation Modal */}
+            <ConfirmModal
+                isOpen={confirmConfig.isOpen}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmText={confirmConfig.confirmText}
+                variant={confirmConfig.variant}
+                isSubmitting={confirmConfig.isSubmitting}
+                onConfirm={confirmConfig.onConfirm}
+                onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+            />
+
+            {/* Reusable Alert Modal */}
+            <AlertModal
+                isOpen={alertConfig.isOpen}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+                onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+            />
         </div>
     );
 }
+

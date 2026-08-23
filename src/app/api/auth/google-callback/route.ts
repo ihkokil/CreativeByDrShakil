@@ -173,7 +173,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (user.isBanned) {
-      return NextResponse.redirect(`${appUrl}/?auth=login&error=Banned`);
+      return NextResponse.redirect(`${appUrl}/?auth=login&error=user_banned&message=${encodeURIComponent('You have been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com.')}`);
     }
 
     // Step 4: Device session management
@@ -245,7 +245,10 @@ export async function GET(request: NextRequest) {
       if (error.message === 'device_category_locked') {
         const categoryName = deviceType === 'desktop' ? 'Desktop/Laptop' :
                              deviceType === 'tablet' ? 'Tablet' : 'Mobile';
-        return NextResponse.redirect(`${appUrl}/?auth=login&error=${encodeURIComponent(`This account is already linked to a different ${categoryName.toLowerCase()} device. Only the original device in this category can log in.`)}`);
+        return NextResponse.redirect(`${appUrl}/?auth=login&error=device_category_locked&message=${encodeURIComponent(`This account is already linked to a different ${categoryName.toLowerCase()} device. You can only access your account from your registered ${categoryName.toLowerCase()} device, or contact Dr. Nahid Akhter Shakil / support@creativebydrshakil.com for assistance.`)}`);
+      }
+      if (error.message === 'user_banned') {
+        return NextResponse.redirect(`${appUrl}/?auth=login&error=user_banned&message=${encodeURIComponent('You have been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com.')}`);
       }
       throw error;
     }

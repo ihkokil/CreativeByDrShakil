@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { getDeviceHash, detectOS, getDeviceCategory, getDeviceLabel } from '@/lib/client-fingerprint';
+import BannedUserModal from '@/components/Auth/BannedUserModal';
 
 interface AppUser {
     id: string;
@@ -29,6 +30,10 @@ interface AuthContextType {
     role: string | null;
     hasSessionTerminated: boolean;
     sessionTerminatedReason: string | null;
+    isBannedModalOpen: boolean;
+    bannedMessage: string | null;
+    showBannedModal: (message?: string) => void;
+    hideBannedModal: () => void;
     signOut: () => Promise<void>;
     refreshSession: () => Promise<void>;
 }
@@ -41,6 +46,10 @@ const AuthContext = createContext<AuthContextType>({
     role: null,
     hasSessionTerminated: false,
     sessionTerminatedReason: null,
+    isBannedModalOpen: false,
+    bannedMessage: null,
+    showBannedModal: () => { },
+    hideBannedModal: () => { },
     signOut: async () => { },
     refreshSession: async () => { },
 });
@@ -53,6 +62,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [role, setRole] = useState<string | null>(null);
     const [hasSessionTerminated, setHasSessionTerminated] = useState(false);
     const [sessionTerminatedReason, setSessionTerminatedReason] = useState<string | null>(null);
+    const [isBannedModalOpen, setIsBannedModalOpen] = useState(false);
+    const [bannedMessage, setBannedMessage] = useState<string | null>(null);
+
+    const showBannedModal = useCallback((msg?: string) => {
+        setBannedMessage(msg || 'Your account has been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com for assistance.');
+        setIsBannedModalOpen(true);
+    }, []);
+
+    const hideBannedModal = useCallback(() => {
+        setIsBannedModalOpen(false);
+        setBannedMessage(null);
+    }, []);
 
     const sameUser = (a: AppUser | null, b: AppUser | null) => {
         if (!a && !b) return true;
@@ -145,11 +166,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             }
 
+            if (response.status === 403) {
+                try {
+                    const cloned = response.clone();
+                    const data = await cloned.json();
+                    if (data?.code === 'user_banned') {
+                        showBannedModal(data.error);
+                    }
+                } catch {
+                    // Ignore JSON parse failures
+                }
+            }
+
             if (response.status === 401) {
                 const isLoginOrAuth = url.includes('/api/auth/login') ||
                                       url.includes('/api/auth/register') ||
                                       url.includes('/api/auth/reset-password') ||
-                                      url.includes('/api/auth/session');
+                                      url.includes('/api/auth/session') ||
+                                      url.includes('/api/auth/heartbeat');
 
                 if (!isLoginOrAuth && localStorage.getItem('auth_token')) {
                     setUser(null);
@@ -167,7 +201,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => {
             window.fetch = originalFetch;
         };
-    }, []);
+    }, [showBannedModal]);
 
     const refreshSession = useCallback(async (silent = false) => {
         if (!silent) {
@@ -194,6 +228,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         setHasSessionTerminated(true);
                         setSessionTerminatedReason(data.message || null);
                         localStorage.removeItem('auth_token');
+                    }
+                    return;
+                }
+
+                if (response.status === 403) {
+                    const data = await response.json();
+                    if (data?.code === 'user_banned') {
+                        showBannedModal(data.error);
                     }
                     return;
                 }
@@ -233,13 +275,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setLoading(false);
             }
         }
-    }, []);
+    }, [showBannedModal]);
 
     useEffect(() => {
         refreshSession();
     }, [refreshSession]);
 
-    // Poll session validity every 30 seconds
+    // Background Presence Heartbeat: Ping activity every 45s while tab is visible
+    useEffect(() => {
+        if (!user || !sessionId) return;
+
+        const sendHeartbeat = async () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+            const token = localStorage.getItem('auth_token');
+            try {
+                const res = await fetch('/api/auth/heartbeat', {
+                    method: 'POST',
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                if (res.status === 403) {
+                    const data = await res.json();
+                    if (data?.code === 'user_banned') {
+                        showBannedModal(data.error);
+                    }
+                } else if (res.status === 401) {
+                    const data = await res.json();
+                    if (data?.code === 'session_revoked') {
+                        setUser(null);
+                        setSession(null);
+                        setSessionId(null);
+                        setHasSessionTerminated(true);
+                        setSessionTerminatedReason('Your session has been terminated from another device/browser.');
+                        localStorage.removeItem('auth_token');
+                    }
+                }
+            } catch {
+                // Ignore transient heartbeat failures
+            }
+        };
+
+        const interval = setInterval(sendHeartbeat, 45000);
+        return () => clearInterval(interval);
+    }, [user, sessionId, showBannedModal]);
+
+    // Poll full session validity every 30 seconds
     useEffect(() => {
         if (!user || !sessionId) return;
 
@@ -283,13 +362,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 role,
                 hasSessionTerminated,
                 sessionTerminatedReason,
+                isBannedModalOpen,
+                bannedMessage,
+                showBannedModal,
+                hideBannedModal,
                 signOut,
                 refreshSession,
             }}
         >
             {children}
+            <BannedUserModal
+                isOpen={isBannedModalOpen}
+                onClose={hideBannedModal}
+                message={bannedMessage}
+            />
         </AuthContext.Provider>
     );
 };
 
 export const useAuth = () => useContext(AuthContext);
+

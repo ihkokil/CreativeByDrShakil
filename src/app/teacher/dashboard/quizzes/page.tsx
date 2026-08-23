@@ -1,5 +1,6 @@
 'use client';
 
+
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -30,7 +31,11 @@ import {
   ChevronsRight,
   BookOpen,
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import styles from './TeacherQuizzesPage.module.css';
+import ConfirmModal from '@/components/UI/ConfirmModal';
+import AlertModal from '@/components/UI/AlertModal';
 
 interface Quiz {
   id: string;
@@ -99,6 +104,47 @@ export default function TeacherQuizzesPage() {
 
   const pdfContainerRef = useRef<HTMLDivElement>(null);
   const limit = 20;
+
+  // Alert & Confirm Modal States
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({ isOpen: false, message: '', type: 'info' });
+
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    isSubmitting?: boolean;
+    onConfirm: () => void | Promise<void>;
+  }>({ isOpen: false, message: '', onConfirm: () => {} });
+
+  const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
+    setAlertConfig({ isOpen: true, message, type, title });
+  };
+
+  const showConfirm = (options: {
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    onConfirm: () => void | Promise<void>;
+  }) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: options.title,
+      message: options.message,
+      confirmText: options.confirmText || 'Confirm',
+      variant: options.variant || 'danger',
+      isSubmitting: false,
+      onConfirm: options.onConfirm,
+    });
+  };
+
 
   useEffect(() => {
     fetchCourses();
@@ -295,37 +341,47 @@ export default function TeacherQuizzesPage() {
         }),
       });
       if (!res.ok) {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         throw new Error(d.error || 'Failed to link quiz to course');
       }
       setLinkModalQuiz(null);
+      showAlert('Quiz placement saved successfully!', 'success');
       await fetchQuizzes();
     } catch (err: any) {
-      alert(err.message || 'Failed to link quiz');
+      showAlert(err.message || 'Failed to link quiz', 'error');
     } finally {
       setLinkingLoading(false);
     }
   };
 
-  const handleUnlinkFromCourse = async () => {
+  const handleUnlinkFromCourse = () => {
     if (!linkModalQuiz || !linkModalQuiz.courseId) return;
-    if (!confirm('Are you sure you want to unlink this quiz from the course?')) return;
-    setLinkingLoading(true);
-    try {
-      const res = await fetch(`/api/teacher/courses/${linkModalQuiz.courseId}/quizzes?quizId=${linkModalQuiz.id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.error || 'Failed to unlink quiz');
+    showConfirm({
+      title: 'Unlink Quiz from Course?',
+      message: 'Are you sure you want to unlink this quiz from the course? The quiz will become unassigned.',
+      confirmText: 'Unlink Quiz',
+      variant: 'danger',
+      onConfirm: async () => {
+        setLinkingLoading(true);
+        try {
+          const res = await fetch(`/api/teacher/courses/${linkModalQuiz.courseId}/quizzes?quizId=${linkModalQuiz.id}`, {
+            method: 'DELETE',
+          });
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}));
+            throw new Error(d.error || 'Failed to unlink quiz');
+          }
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+          setLinkModalQuiz(null);
+          showAlert('Quiz unlinked from course.', 'success');
+          await fetchQuizzes();
+        } catch (err: any) {
+          showAlert(err.message || 'Failed to unlink quiz', 'error');
+        } finally {
+          setLinkingLoading(false);
+        }
       }
-      setLinkModalQuiz(null);
-      await fetchQuizzes();
-    } catch (err: any) {
-      alert(err.message || 'Failed to unlink quiz');
-    } finally {
-      setLinkingLoading(false);
-    }
+    });
   };
 
   const handleStatusChange = (status: string) => {
@@ -338,30 +394,40 @@ export default function TeacherQuizzesPage() {
     router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
   };
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
-    try {
-      const res = await fetch(`/api/quiz/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete');
-      setQuizzes(prev => prev.filter(q => q.id !== id));
-      setTotalCount(prev => prev - 1);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setDeletingId(null);
-      setShowDeleteConfirm(null);
-    }
+  const handleDelete = (id: string, title?: string) => {
+    showConfirm({
+      title: 'Delete Quiz?',
+      message: `Are you sure you want to delete "${title || 'this quiz'}"? This action cannot be undone.`,
+      confirmText: 'Delete Quiz',
+      variant: 'danger',
+      onConfirm: async () => {
+        setDeletingId(id);
+        try {
+          const res = await fetch(`/api/quiz/${id}`, { method: 'DELETE' });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'Failed to delete');
+          setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+          setQuizzes(prev => prev.filter(q => q.id !== id));
+          setTotalCount(prev => prev - 1);
+          showAlert('Quiz deleted successfully.', 'success');
+        } catch (err: any) {
+          showAlert(err.message || 'Failed to delete quiz.', 'error');
+        } finally {
+          setDeletingId(null);
+        }
+      }
+    });
   };
 
   const handleDuplicate = async (id: string) => {
     try {
       const res = await fetch(`/api/quiz/${id}/duplicate`, { method: 'POST' });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to duplicate');
+      showAlert('Quiz duplicated successfully!', 'success');
       router.push(`/teacher/dashboard/quizzes/${data.quizId}/edit`);
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message || 'Failed to duplicate quiz.', 'error');
     }
   };
 
@@ -369,10 +435,10 @@ export default function TeacherQuizzesPage() {
     const url = `${window.location.origin}/dashboard/quizzes/${id}`;
     navigator.clipboard.writeText(url)
       .then(() => {
-        alert('Share link copied to clipboard!');
+        showAlert('Share link copied to clipboard!', 'success');
       })
       .catch(err => {
-        console.error('Failed to copy link:', err);
+        showAlert('Failed to copy share link.', 'error');
       });
   };
 
@@ -384,13 +450,15 @@ export default function TeacherQuizzesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to update status');
       setQuizzes(prev => prev.map(q => q.id === id ? { ...q, status: newStatus, publishedAt: newStatus === 'published' ? new Date().toISOString() : null } : q));
+      showAlert(`Quiz ${newStatus === 'published' ? 'published' : 'moved to draft'}.`, 'success');
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message || 'Failed to update status.', 'error');
     }
   };
+
 
   useEffect(() => {
     if (pdfQuizInfo && pdfContainerRef.current) {
@@ -399,9 +467,6 @@ export default function TeacherQuizzesPage() {
           const { quiz } = pdfQuizInfo;
           const container = pdfContainerRef.current!;
           
-          const { jsPDF } = await import('jspdf');
-          const html2canvas = (await import('html2canvas')).default;
-
           const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'px',
@@ -452,9 +517,10 @@ export default function TeacherQuizzesPage() {
           
           const safeTitle = quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
           pdf.save(`quiz_${safeTitle}_questions.pdf`);
+          showAlert('Quiz PDF downloaded successfully!', 'success');
         } catch (err: any) {
           console.error('PDF generation failed:', err);
-          alert('Failed to generate PDF. Please try again.');
+          showAlert('Failed to generate PDF. Please try again.', 'error');
         } finally {
           setPdfQuizInfo(null);
           setGeneratingPdfId(null);
@@ -472,10 +538,11 @@ export default function TeacherQuizzesPage() {
       
       setPdfQuizInfo({ quiz, questions: data.questions });
     } catch (err: any) {
-      alert('Error generating PDF: ' + err.message);
+      showAlert('Error generating PDF: ' + err.message, 'error');
       setGeneratingPdfId(null);
     }
   };
+
 
   const formatDuration = (minutes: number) => {
     if (minutes >= 60) {
@@ -1020,6 +1087,27 @@ export default function TeacherQuizzesPage() {
           </div>
         )}
       </div>
+
+      {/* Reusable Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        isSubmitting={confirmConfig.isSubmitting}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
-}
+}

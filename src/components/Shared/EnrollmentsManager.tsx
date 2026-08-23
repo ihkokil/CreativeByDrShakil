@@ -7,6 +7,7 @@ import StudentRulesModal from '@/components/Teacher/StudentRulesModal';
 import StudentEnrollmentDetailsModal from './StudentEnrollmentDetailsModal';
 import Loader from "@/components/UI/Loader";
 import AlertModal from "@/components/UI/AlertModal";
+import ConfirmModal from "@/components/UI/ConfirmModal";
 import { useModal } from '@/hooks/useModal';
 import { formatDisplayDate, formatDateInputGMT6 } from '@/lib/date-format';
 
@@ -66,7 +67,7 @@ export default function EnrollmentsManager() {
   const [ruleStartDate, setRuleStartDate] = useState<string>(() => formatDateInputGMT6(new Date()));
   const [ruleEndDate, setRuleEndDate] = useState<string>("");
 
-  // Alert Modal state
+  // Alert & Confirm Modal states
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
     title?: string;
@@ -74,9 +75,38 @@ export default function EnrollmentsManager() {
     type: 'success' | 'error' | 'warning' | 'info';
   }>({ isOpen: false, message: '', type: 'info' });
 
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    isSubmitting?: boolean;
+    onConfirm: () => void | Promise<void>;
+  }>({ isOpen: false, message: '', onConfirm: () => {} });
+
   const showAlert = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', title?: string) => {
     setAlertConfig({ isOpen: true, message, type, title });
   };
+
+  const showConfirm = (options: {
+    title?: string;
+    message: React.ReactNode | string;
+    confirmText?: string;
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
+    onConfirm: () => void | Promise<void>;
+  }) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: options.title,
+      message: options.message,
+      confirmText: options.confirmText || 'Confirm',
+      variant: options.variant || 'danger',
+      isSubmitting: false,
+      onConfirm: options.onConfirm,
+    });
+  };
+
 
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
@@ -288,29 +318,38 @@ export default function EnrollmentsManager() {
     }
   };
 
-  const handleRevokeEnrollment = async (orderId: string, studentName: string, courseTitle: string) => {
-    if (!confirm(`Are you sure you want to revoke ${studentName}'s access to "${courseTitle}"?`)) return;
+  const handleRevokeEnrollment = (orderId: string, studentName: string, courseTitle: string) => {
+    showConfirm({
+      title: 'Revoke Course Access?',
+      message: `Are you sure you want to revoke ${studentName}'s access to "${courseTitle}"?`,
+      confirmText: 'Revoke Access',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch('/api/teacher/enrollments', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ orderId }),
+          });
 
-    try {
-      const res = await fetch('/api/teacher/enrollments', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ orderId }),
-      });
-
-      if (res.ok) {
-        fetchStudents();
-      } else {
-        const data = await res.json();
-        showAlert(data.error || 'Failed to revoke enrollment.', 'error');
+          if (res.ok) {
+            setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+            showAlert(`Revoked access to "${courseTitle}" for ${studentName}.`, 'success');
+            fetchStudents();
+          } else {
+            const data = await res.json();
+            showAlert(data.error || 'Failed to revoke enrollment.', 'error');
+          }
+        } catch (err) {
+          showAlert('Network error while revoking enrollment.', 'error');
+        }
       }
-    } catch (err) {
-      showAlert('Network error while revoking enrollment.', 'error');
-    }
+    });
   };
+
 
   return (
     <div className={styles.container}>
@@ -727,6 +766,18 @@ export default function EnrollmentsManager() {
         </div>
       )}
 
+      {/* Reusable Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        variant={confirmConfig.variant}
+        isSubmitting={confirmConfig.isSubmitting}
+        onConfirm={confirmConfig.onConfirm}
+        onCancel={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+      />
+
       {/* Alert Modal */}
       <AlertModal
         isOpen={alertConfig.isOpen}
@@ -738,3 +789,4 @@ export default function EnrollmentsManager() {
     </div>
   );
 }
+

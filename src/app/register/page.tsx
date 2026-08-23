@@ -7,7 +7,7 @@ import styles from "@/components/Auth/Auth.module.css";
 import pageStyles from "../auth/AuthPages.module.css";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
 import { useAuth } from "@/context/AuthContext";
-import { Mail, Lock, User, Phone, FileText, ArrowRight, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Phone, FileText, ArrowRight, ArrowLeft, Eye, EyeOff, X } from "lucide-react";
 
 type PageStep = "email" | "otp" | "register";
 
@@ -328,6 +328,13 @@ function RegisterContent() {
 
     return (
         <main className={pageStyles.page}>
+            <div className={pageStyles.topNav}>
+                <Link href="/" className={pageStyles.homeBtn}>
+                    <ArrowLeft size={16} />
+                    <span>Back to Website</span>
+                </Link>
+            </div>
+
             <section className={`${styles.modal} glass`} style={{ position: "relative" }}>
                 {step !== "email" && (
                     <button
@@ -339,6 +346,15 @@ function RegisterContent() {
                         <ArrowLeft size={20} />
                     </button>
                 )}
+
+                <Link
+                    href="/"
+                    className={styles.closeBtn}
+                    aria-label="Return to homepage"
+                    title="Return to website"
+                >
+                    <X size={20} />
+                </Link>
 
                 <div className={styles.header}>
                     {stepsInfo && (
