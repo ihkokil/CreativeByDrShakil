@@ -29,8 +29,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
     // Auto-close modal if user is already authenticated
     useEffect(() => {
-        if (isOpen && user) {
-            onClose();
+        if (isOpen) {
+            const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("auth_token"));
+            if (user || hasToken) {
+                onClose();
+            }
         }
     }, [isOpen, user, onClose]);
 
@@ -545,7 +548,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
     return (
         <AnimatePresence>
-            {isOpen && (
+            {isOpen && !user && !(typeof window !== "undefined" && localStorage.getItem("auth_token")) && (
                 <div className={styles.overlay}>
                     <motion.div
                         className={`${styles.modal} glass`}

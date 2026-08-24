@@ -92,6 +92,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         );
     };
 
+    // Instant synchronous hydration from local cache to prevent flashing guest buttons
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const token = localStorage.getItem('auth_token');
+            const cached = localStorage.getItem('auth_user_cache');
+            if (token && cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed?.user) {
+                    setUser((curr) => curr || parsed.user);
+                    setRole((curr) => curr || parsed.role || parsed.user.role || 'student');
+                    setSessionId((curr) => curr || parsed.sessionId || null);
+                    setSession((curr) => curr || { access_token: token });
+                    setLoading(false);
+                }
+            } else if (!token) {
+                setLoading(false);
+            }
+        } catch {
+            // Ignore parse errors
+        }
+    }, []);
+
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
@@ -255,6 +278,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setRole((current) => (current === nextRole ? current : nextRole));
             setSessionId((current) => (current === nextSessionId ? current : nextSessionId));
 
+            if (nextUser && (nextToken || localStorage.getItem('auth_token'))) {
+                try {
+                    localStorage.setItem('auth_user_cache', JSON.stringify({
+                        user: nextUser,
+                        role: nextRole,
+                        sessionId: nextSessionId,
+                    }));
+                } catch {}
+            }
+
             if (nextToken) {
                 if (localStorage.getItem('auth_token') !== nextToken) {
                     localStorage.setItem('auth_token', nextToken);
@@ -262,11 +295,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setSession((current) =>
                     current?.access_token === nextToken ? current : { access_token: nextToken }
                 );
-            } else {
+            } else if (!nextUser) {
                 setSession((current) => (current ? null : current));
                 if (localStorage.getItem('auth_token')) {
                     localStorage.removeItem('auth_token');
                 }
+                localStorage.removeItem('auth_user_cache');
             }
         } catch {
             // Keep current auth state on transient client-side fetch failures.
@@ -307,6 +341,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         setHasSessionTerminated(true);
                         setSessionTerminatedReason('Your session has been terminated from another device/browser.');
                         localStorage.removeItem('auth_token');
+                        localStorage.removeItem('auth_user_cache');
                     }
                 }
             } catch {
@@ -334,6 +369,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Clear local auth state first so logout feels instant on UI.
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user_cache');
         setUser(null);
         setSession(null);
         setSessionId(null);
