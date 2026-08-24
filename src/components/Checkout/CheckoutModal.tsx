@@ -61,9 +61,13 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
     setLoading(true)
     setError('')
     try {
+      const token = localStorage.getItem('auth_token')
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const res = await fetch('/api/payments/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(paymentData),
       })
       const data = await res.json()
