@@ -325,7 +325,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [showBannedModal]);
 
     useEffect(() => {
-        refreshSession();
+        const hasCache = typeof window !== 'undefined' && Boolean(localStorage.getItem('auth_user_cache'));
+        refreshSession(hasCache);
     }, [refreshSession]);
 
     // Background Presence Heartbeat: Ping activity every 45s while tab is visible
