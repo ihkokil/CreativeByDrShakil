@@ -62,14 +62,23 @@ export default function Navbar() {
     }, []);
 
     useEffect(() => {
-        const authParam = typeof window !== "undefined"
-            ? new URLSearchParams(window.location.search).get("auth")
-            : null;
+        if (typeof window === "undefined") return;
+        const params = new URLSearchParams(window.location.search);
+        const authParam = params.get("auth");
 
         if (authParam === "login" || authParam === "register") {
-            if (!user && !localStorage.getItem("auth_token")) {
+            const token = localStorage.getItem("auth_token");
+            if (!user && !token) {
                 setAuthMode(authParam);
                 setIsAuthOpen(true);
+            } else if (user || token) {
+                // User is authenticated, clean up query parameter without re-rendering or router replace
+                const url = new URL(window.location.href);
+                url.searchParams.delete("auth");
+                url.searchParams.delete("error");
+                url.searchParams.delete("message");
+                window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+                setIsAuthOpen(false);
             }
         }
     }, [pathname, user]);
@@ -89,16 +98,15 @@ export default function Navbar() {
         setIsAuthOpen(true);
     };
 
-
     const handleCloseAuth = () => {
         setIsAuthOpen(false);
 
-        const hasAuthParam = typeof window !== "undefined"
-            ? new URLSearchParams(window.location.search).has("auth")
-            : false;
-
-        if (hasAuthParam) {
-            router.replace(pathname);
+        if (typeof window !== "undefined" && window.location.search.includes("auth=")) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete("auth");
+            url.searchParams.delete("error");
+            url.searchParams.delete("message");
+            window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
         }
     };
 
