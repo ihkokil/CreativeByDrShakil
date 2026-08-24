@@ -22,10 +22,17 @@ type AuthStep = "email" | "password" | "otp" | "register" | "forgot" | "forgot-o
 
 export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: Props) {
     useModalLock(isOpen, onClose);
-    const { refreshSession, showBannedModal } = useAuth();
+    const { user, refreshSession, showBannedModal } = useAuth();
     const [step, setStep] = useState<AuthStep>("email");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
+    // Auto-close modal if user is already authenticated
+    useEffect(() => {
+        if (isOpen && user) {
+            onClose();
+        }
+    }, [isOpen, user, onClose]);
 
     // Registration only fields
     const [fullName, setFullName] = useState("");
