@@ -1,12 +1,14 @@
 .page {
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 32px 16px;
+    padding: clamp(16px, 4vw, 40px) clamp(12px, 3vw, 24px);
     background: var(--background);
     position: relative;
+    box-sizing: border-box;
 }
 
 .topNav {
@@ -24,6 +26,7 @@
     align-items: center;
     gap: 8px;
     padding: 9px 18px;
+    min-height: 44px;
     border-radius: 999px;
     background: var(--surface-soft, rgba(255, 255, 255, 0.05));
     border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
@@ -33,6 +36,8 @@
     text-decoration: none;
     transition: all 0.2s ease;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-sizing: border-box;
 }
 
 .homeBtn:hover {
@@ -44,14 +49,14 @@
 
 @media (max-width: 640px) {
     .page {
-        padding: 20px 14px 40px;
+        padding: 16px 12px 32px;
         justify-content: flex-start;
     }
 
     .topNav {
         position: static;
         width: 100%;
-        max-width: 560px;
+        max-width: 480px;
         margin-bottom: 16px;
         justify-content: flex-start;
     }
@@ -62,11 +67,14 @@
     border-radius: var(--radius-xl);
     border: 1px solid var(--glass-border);
     background: var(--glass);
-    padding: 40px;
+    padding: clamp(20px, 5.5vw, 40px);
     box-shadow: var(--shadow-premium);
-    display: grid;
-    gap: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(16px, 3.5vw, 24px);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-sizing: border-box;
 }
 
 .title {
@@ -74,52 +82,68 @@
     font-weight: var(--weight-extrabold);
     color: var(--foreground);
     letter-spacing: -0.5px;
+    line-height: 1.2;
 }
 
 .subtitle {
     color: var(--text-muted);
     font-size: var(--text-small);
     font-weight: var(--weight-medium);
+    line-height: 1.45;
 }
 
 .form {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 16px;
+    width: 100%;
 }
 
 .input {
+    width: 100%;
+    min-width: 0;
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
     background: var(--surface-soft);
     color: var(--foreground);
-    padding: 14px 16px;
+    padding: 12px 16px;
     font: inherit;
-    font-size: var(--text-small);
+    font-size: 16px; /* 16px prevents iOS auto-zoom */
+    min-height: 46px;
     transition: all var(--duration-fast);
+    box-sizing: border-box;
 }
 
 .input:focus {
     outline: none;
     border-color: var(--primary);
     background: var(--surface-strong);
+    box-shadow: 0 0 0 3px rgba(237, 28, 40, 0.15);
 }
 
 .button {
+    width: 100%;
+    min-height: 48px;
     border: none;
     border-radius: var(--radius-md);
     background: var(--primary);
     color: white;
     font-weight: var(--weight-bold);
-    padding: 14px;
+    padding: 12px 18px;
     cursor: pointer;
     font-size: var(--text-base);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     transition: all var(--duration-fast);
+    box-sizing: border-box;
 }
 
 .button:hover:not(:disabled) {
+    background: #dc2626;
     background: color-mix(in srgb, var(--primary) 90%, white);
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px color-mix(in srgb, var(--primary) 25%, transparent);
+    box-shadow: 0 8px 16px rgba(237, 28, 40, 0.25);
 }
 
 .button:disabled {
@@ -136,13 +160,17 @@
 
 .success {
     color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
     border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+    background: rgba(16, 185, 129, 0.1);
     background: color-mix(in srgb, var(--success) 10%, transparent);
 }
 
 .error {
     color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
     border: 1px solid color-mix(in srgb, var(--error) 30%, transparent);
+    background: rgba(239, 68, 68, 0.1);
     background: color-mix(in srgb, var(--error) 10%, transparent);
 }
 
@@ -152,6 +180,8 @@
     font-size: var(--text-small);
     color: var(--text-muted);
     gap: 8px;
+    flex-wrap: wrap;
+    text-align: center;
 }
 
 .link {
@@ -162,7 +192,7 @@
 }
 
 .link:hover {
-    color: color-mix(in srgb, var(--primary) 80%, white);
+    color: var(--secondary);
     text-decoration: underline;
 }
 
@@ -193,15 +223,20 @@
 
 .otpContainer {
     display: flex;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(6px, 2vw, 12px);
+    width: 100%;
     margin: 15px 0;
+    box-sizing: border-box;
 }
 
 .otpInput {
-    width: 50px;
-    height: 54px;
-    font-size: 1.5rem;
+    flex: 1 1 0;
+    max-width: 50px;
+    min-width: 36px;
+    height: clamp(44px, 12vw, 54px);
+    font-size: clamp(1.2rem, 4vw, 1.5rem);
     font-weight: 800;
     text-align: center;
     background: var(--surface-soft);
@@ -209,13 +244,15 @@
     border-radius: 12px;
     color: var(--foreground);
     transition: border-color 0.2s, background 0.2s;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 .otpInput:focus {
     outline: none;
     border-color: var(--primary);
     background: var(--surface-strong);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 10px rgba(237, 28, 40, 0.25);
 }
 
 .resendContainer {
@@ -231,8 +268,12 @@
     color: var(--primary);
     font-weight: 700;
     cursor: pointer;
-    padding: 0;
+    padding: 6px 10px;
+    min-height: 44px;
     font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .resendBtn:hover {

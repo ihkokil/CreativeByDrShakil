@@ -231,15 +231,31 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                     return;
                 }
                 setMessage({ type: 'error', text: data.error || 'Invalid credentials.' });
-            } else {
                 if (data.token) {
                     localStorage.setItem('auth_token', data.token);
                 }
-                await refreshSession();
+                if (data.user) {
+                    try {
+                        localStorage.setItem('auth_user_cache', JSON.stringify({
+                            user: data.user,
+                            role: data.user.role || 'student',
+                            sessionId: data.sessionId || null,
+                        }));
+                    } catch {}
+                }
+                await refreshSession(true);
                 setMessage({ type: 'success', text: 'Successfully logged in!' });
+
+                if (typeof window !== "undefined" && window.location.search.includes("auth=")) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("auth");
+                    url.searchParams.delete("error");
+                    url.searchParams.delete("message");
+                    window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+                }
                 
+                onClose();
                 if (onSuccess) onSuccess(data.user?.role || 'student');
-                setTimeout(onClose, 1000);
             }
         } catch (err) {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
@@ -354,11 +370,28 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 if (data.token) {
                     localStorage.setItem('auth_token', data.token);
                 }
-                await refreshSession();
+                if (data.user) {
+                    try {
+                        localStorage.setItem('auth_user_cache', JSON.stringify({
+                            user: data.user,
+                            role: data.user.role || 'student',
+                            sessionId: data.sessionId || null,
+                        }));
+                    } catch {}
+                }
+                await refreshSession(true);
                 setMessage({ type: 'success', text: 'Account created and logged in!' });
 
+                if (typeof window !== "undefined" && window.location.search.includes("auth=")) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("auth");
+                    url.searchParams.delete("error");
+                    url.searchParams.delete("message");
+                    window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+                }
+
+                onClose();
                 if (onSuccess) onSuccess(data.user?.role || 'student');
-                setTimeout(onClose, 1000);
             }
         } catch (err) {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
@@ -468,11 +501,28 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 if (data.token) {
                     localStorage.setItem('auth_token', data.token);
                 }
-                await refreshSession();
+                if (data.user) {
+                    try {
+                        localStorage.setItem('auth_user_cache', JSON.stringify({
+                            user: data.user,
+                            role: data.user.role || 'student',
+                            sessionId: data.sessionId || null,
+                        }));
+                    } catch {}
+                }
+                await refreshSession(true);
                 setMessage({ type: 'success', text: 'Password reset and logged in!' });
 
+                if (typeof window !== "undefined" && window.location.search.includes("auth=")) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("auth");
+                    url.searchParams.delete("error");
+                    url.searchParams.delete("message");
+                    window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+                }
+
+                onClose();
                 if (onSuccess) onSuccess(data.user?.role || 'student');
-                setTimeout(onClose, 1000);
             }
         } catch (err) {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });

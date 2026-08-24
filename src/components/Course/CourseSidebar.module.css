@@ -18,14 +18,14 @@
 }
 
 .content {
-    padding: 32px;
+    padding: clamp(18px, 4vw, 32px);
 }
 
 .priceRow {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .originalPrice {
@@ -36,7 +36,7 @@
 }
 
 .price {
-    font-size: 2.2rem;
+    font-size: clamp(1.8rem, 4vw, 2.2rem);
     font-weight: 800;
     color: var(--foreground);
 }
@@ -45,14 +45,16 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 .btn {
     width: 100%;
-    height: 56px;
+    min-height: 50px;
+    height: auto;
+    padding: 14px 20px;
     border-radius: 14px;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -61,6 +63,7 @@
     cursor: pointer;
     border: none;
     transition: var(--transition);
+    box-sizing: border-box;
 }
 
 .primaryBtn {
@@ -69,9 +72,10 @@
 }
 
 .primaryBtn:hover:not(:disabled) {
+    background: #dc2626;
     background: color-mix(in srgb, var(--primary) 85%, white);
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px color-mix(in srgb, var(--primary) 30%, transparent);
+    box-shadow: 0 8px 16px rgba(237, 28, 40, 0.3);
 }
 
 .secondaryBtn {
@@ -93,7 +97,7 @@
 .includes {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
 }
 
 .includesTitle {
@@ -108,14 +112,14 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .includesItem {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     color: var(--text-muted);
 }
 
@@ -126,7 +130,7 @@
 
 @media (max-width: 1100px) {
     .sidebar {
-        margin-top: 40px;
+        margin-top: 20px;
         position: static;
     }
 }
