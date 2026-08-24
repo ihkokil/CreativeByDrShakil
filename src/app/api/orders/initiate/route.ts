@@ -79,17 +79,16 @@ export async function POST(request: NextRequest) {
     const orderId = nanoid();
 
     const { error: insertError } = await supabase.from('Order')
-// @ts-ignore
-.insert({
-      id: orderId,
-      userId: payload.sub,
-      courseId: course.id,
-      totalAmount,
-      amount: totalAmount,
-      status: 'pending',
-      createdAt: nowStr,
-      updatedAt: nowStr,
-    } as any);
+      // @ts-ignore
+      .insert({
+        id: orderId,
+        userId: payload.sub,
+        courseId: course.id,
+        totalAmount,
+        status: 'pending',
+        createdAt: nowStr,
+        updatedAt: nowStr,
+      } as any);
 
     if (insertError) throw insertError;
 
