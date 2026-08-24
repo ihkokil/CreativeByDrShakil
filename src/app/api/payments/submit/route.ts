@@ -72,49 +72,55 @@ export async function POST(request: NextRequest) {
 
     if (updateError) throw updateError;
 
-    // Get course and user info for verification email
+    // Get course and user info for verification email & Telegram
     const [courseRes, userRes] = await Promise.all([
       order.courseId
         ? supabase.from('Course').select('id, title').eq('id', order.courseId).limit(1).maybeSingle()
         : Promise.resolve({ data: null }),
-      supabase.from('User').select('id, fullName, email').eq('id', payload.sub).limit(1).maybeSingle(),
+      supabase.from('User').select('id, fullName, email, phone').eq('id', payload.sub).limit(1).maybeSingle(),
     ]);
 
     const course = courseRes.data as any;
     const user = userRes.data as any;
 
-    // Send verification email & Telegram notification to admin
-    if (course && user) {
-      try {
-        const adminEmail = process.env.ADMIN_EMAIL || process.env.PAYMENT_NOTIFICATION_EMAIL;
-        if (adminEmail) {
-          await sendPaymentVerificationEmail({
-            to: adminEmail,
-            studentName: user.fullName || 'Unknown',
-            courseTitle: course.title || 'Unknown',
-            amount: order.totalAmount || order.amount || 0,
-            transactionId: transactionId.trim(),
-            phoneNumber: phoneNumber.trim(),
-            orderId,
-          });
-        }
-      } catch (emailErr) {
-        console.error('[payments/submit] Email notification failed:', emailErr);
-      }
+    const studentName = user?.fullName || payload.name || payload.email || 'Student';
+    const studentEmail = user?.email || payload.email || '';
+    const courseTitle = course?.title || 'Course';
+    const finalAmount = order.totalAmount || order.amount || 0;
+    const finalPhone = phoneNumber.trim() || user?.phone || 'N/A';
+    const finalTxId = transactionId.trim();
 
-      try {
-        const { sendTelegramVerification } = await import('@/lib/telegram');
-        await sendTelegramVerification({
+    // Send verification email to admin
+    try {
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.PAYMENT_NOTIFICATION_EMAIL;
+      if (adminEmail) {
+        await sendPaymentVerificationEmail({
+          to: adminEmail,
+          studentName,
+          courseTitle,
+          amount: finalAmount,
+          transactionId: finalTxId,
+          phoneNumber: finalPhone,
           orderId,
-          studentName: user.fullName || 'Unknown',
-          courseTitle: course.title || 'Unknown',
-          amount: order.totalAmount || order.amount || 0,
-          transactionId: transactionId.trim(),
-          phoneNumber: phoneNumber.trim(),
         });
-      } catch (tgErr) {
-        console.error('[payments/submit] Telegram notification failed:', tgErr);
       }
+    } catch (emailErr) {
+      console.error('[payments/submit] Email notification failed:', emailErr);
+    }
+
+    // Send Telegram verification notification to admin with interactive buttons
+    try {
+      const { sendTelegramVerification } = await import('@/lib/telegram');
+      await sendTelegramVerification({
+        orderId,
+        studentName,
+        courseTitle,
+        amount: finalAmount,
+        transactionId: finalTxId,
+        phoneNumber: finalPhone,
+      });
+    } catch (tgErr) {
+      console.error('[payments/submit] Telegram notification failed:', tgErr);
     }
 
     return NextResponse.json({

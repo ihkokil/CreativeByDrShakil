@@ -10,6 +10,7 @@ import {
 } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { parseDisplayDateToIso } from '@/lib/date-format';
+import { findRootMediaVaultFolderForCourse } from '@/lib/course-media-vault-sync';
 
 const buildUniqueSlug = async (title: string, currentCourseId: string, supabase: any) => {
   const base = slugify(title) || `course-${Date.now()}`;
@@ -78,12 +79,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       releaseGroupDates,
     });
 
+    // Fetch Media Vault folders for this course
+    let mediaVaultFolders: any[] = [];
+    try {
+      const rootFolder = await findRootMediaVaultFolderForCourse(supabase, courseRow);
+      if (rootFolder) {
+        const { data: mvFolders = [] } = await supabase
+          .from('VideoLibraryNode')
+          .select('id, title, parentId, type')
+          .eq('type', 'folder')
+          .eq('parentId', rootFolder.id)
+          .order('sortOrder', { ascending: true });
+        mediaVaultFolders = mvFolders || [];
+      }
+    } catch (e) {
+      console.warn('Could not load mediaVaultFolders for course', e);
+    }
+
     return NextResponse.json({
       course,
       curriculum,
       groups,
       releaseGroupDates,
       computedReleaseGroupDates,
+      mediaVaultFolders,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error.' }, { status: 500 });

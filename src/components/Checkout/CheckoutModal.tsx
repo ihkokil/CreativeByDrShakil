@@ -31,19 +31,24 @@ export function CheckoutModal({ course, isOpen, onClose }: CheckoutModalProps) {
     setLoading(true)
     setError('')
     try {
+      const token = localStorage.getItem('auth_token')
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
       const res = await fetch('/api/orders/initiate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           courseId: course.id,
         }),
       })
       const data = await res.json()
-      if (!res.ok || !data?.order) {
+      const orderData = data?.order || (data?.orderId ? { id: data.orderId, totalAmount: data.totalAmount } : null)
+      if (!res.ok || !orderData) {
         setError(data?.error || 'Could not start checkout. Please try again.')
         return
       }
-      setOrder(data.order)
+      setOrder(orderData)
       setStep(2)
     } catch {
       setError('Could not start checkout. Please try again.')

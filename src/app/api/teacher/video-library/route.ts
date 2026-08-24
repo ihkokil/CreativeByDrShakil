@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
+import { findCourseForMediaVaultFolder } from '@/lib/course-media-vault-sync';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
     const bearerToken = extractBearerToken(request);
@@ -242,16 +243,10 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Selected quiz(zes) not found.' }, { status: 404 });
             }
 
-            // Match root course folder to Course table
+            // Match root course folder to Course table using robust two-way resolver
             let course: any = null;
             if (rootCourseFolder) {
-                const { data: courseData } = await supabase
-                    .from('Course')
-                    .select('id, title')
-                    .ilike('title', rootCourseFolder.title)
-                    .limit(1)
-                    .maybeSingle();
-                course = courseData;
+                course = await findCourseForMediaVaultFolder(supabase, rootCourseFolder);
             }
 
             const isAllQuizzesFolder = parentNode && (
