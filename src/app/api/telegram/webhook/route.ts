@@ -289,7 +289,7 @@ export async function POST(request: NextRequest) {
       const orderId = decompressUuid(compOrderId);
 
       const { data: order } = await (supabase.from('Order') as any)
-        .select('id, userId, courseId, totalAmount, amount, status')
+        .select('id, userId, courseId, totalAmount, status')
         .eq('id', orderId)
         .limit(1)
         .maybeSingle();
@@ -398,7 +398,7 @@ export async function POST(request: NextRequest) {
       const batchId = decompressUuid(parts[2]);
 
       const { data: order } = await (supabase.from('Order') as any)
-        .select('id, userId, courseId, totalAmount, amount, status')
+        .select('id, userId, courseId, totalAmount, status')
         .eq('id', orderId)
         .limit(1)
         .maybeSingle();
@@ -469,6 +469,7 @@ export async function POST(request: NextRequest) {
           chatId,
           messageId,
           text: successText,
+          replyMarkup: { inline_keyboard: [] }
         });
       } else {
         await sendTelegramReply(chatId, successText);
@@ -482,7 +483,7 @@ export async function POST(request: NextRequest) {
       const orderId = decompressUuid(callbackData.split('|')[1]);
 
       const { data: order } = await (supabase.from('Order') as any)
-        .select('id, userId, courseId, totalAmount, amount, status')
+        .select('id, userId, courseId, totalAmount, status')
         .eq('id', orderId)
         .limit(1)
         .maybeSingle();
