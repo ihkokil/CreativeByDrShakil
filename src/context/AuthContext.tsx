@@ -35,7 +35,7 @@ interface AuthContextType {
     showBannedModal: (message?: string) => void;
     hideBannedModal: () => void;
     signOut: () => Promise<void>;
-    refreshSession: () => Promise<void>;
+    refreshSession: (silent?: boolean) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -51,7 +51,7 @@ const AuthContext = createContext<AuthContextType>({
     showBannedModal: () => { },
     hideBannedModal: () => { },
     signOut: async () => { },
-    refreshSession: async () => { },
+    refreshSession: async (silent?: boolean) => { },
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -154,6 +154,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     if (label) headers.set('X-Device-Label', label);
                     if (os) headers.set('X-Device-OS', os);
                     if (category) headers.set('X-Device-Category', category);
+                    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                    if (token && !headers.has('Authorization')) {
+                        headers.set('Authorization', `Bearer ${token}`);
+                    }
                     
                     const clonedRequest = new Request(input, { headers });
                     response = await originalFetch(clonedRequest, init);
@@ -175,6 +179,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     if (label) headers.set('X-Device-Label', label);
                     if (os) headers.set('X-Device-OS', os);
                     if (category) headers.set('X-Device-Category', category);
+                    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+                    if (token && !headers.has('Authorization')) {
+                        headers.set('Authorization', `Bearer ${token}`);
+                    }
                     
                     response = await originalFetch(input, {
                         ...init,
@@ -202,19 +210,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             if (response.status === 401) {
-                const isLoginOrAuth = url.includes('/api/auth/login') ||
-                                      url.includes('/api/auth/register') ||
-                                      url.includes('/api/auth/reset-password') ||
-                                      url.includes('/api/auth/session') ||
-                                      url.includes('/api/auth/heartbeat');
-
-                if (!isLoginOrAuth && localStorage.getItem('auth_token')) {
-                    setUser(null);
-                    setRole(null);
-                    setSession(null);
-                    setSessionId(null);
-                    localStorage.removeItem('auth_token');
-                    window.location.href = '/?auth=login';
+                const isAuthCheck = url.includes('/api/auth/session') || url.includes('/api/auth/heartbeat');
+                if (isAuthCheck) {
+                    try {
+                        const cloned = response.clone();
+                        const data = await cloned.json();
+                        if (data?.code === 'session_revoked') {
+                            setUser(null);
+                            setRole(null);
+                            setSession(null);
+                            setSessionId(null);
+                            setHasSessionTerminated(true);
+                            setSessionTerminatedReason(data.message || 'Your session has been terminated.');
+                            localStorage.removeItem('auth_token');
+                            localStorage.removeItem('auth_user_cache');
+                        }
+                    } catch {
+                        // Ignore JSON parse failures
+                    }
                 }
             }
 
@@ -312,7 +325,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [showBannedModal]);
 
     useEffect(() => {
-        refreshSession();
+        const hasCache = typeof window !== 'undefined' && Boolean(localStorage.getItem('auth_user_cache'));
+        refreshSession(hasCache);
     }, [refreshSession]);
 
     // Background Presence Heartbeat: Ping activity every 45s while tab is visible

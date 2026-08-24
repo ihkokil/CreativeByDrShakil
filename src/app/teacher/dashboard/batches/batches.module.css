@@ -722,9 +722,11 @@
   border: 1px solid var(--glass-border);
   background: var(--surface-soft);
   color: var(--foreground);
-  font-size: 0.95rem;
+  font-size: 16px; /* 16px prevents iOS auto-zoom */
   outline: none;
   transition: border-color 0.2s;
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
 .formInput:focus {
@@ -743,11 +745,15 @@
   border: 1px solid var(--glass-border);
   color: var(--foreground);
   padding: 9px 18px;
+  min-height: 44px;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cancelBtn:hover {
@@ -755,23 +761,91 @@
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding-bottom: calc(var(--mobile-nav-height, 74px) + 20px);
+  }
+
   .heroHeader {
     padding: 20px 18px;
   }
+
   .controlsBar {
     flex-direction: column;
     align-items: stretch;
   }
+
   .searchWrapper {
     max-width: 100%;
   }
-  .actionGroup {
-    justify-content: space-between;
+
+  .searchInput {
+    font-size: 16px;
+    min-height: 44px;
   }
+
+  .actionGroup {
+    justify-content: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .actionBtn,
+  .createBtn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+
   .cardsGrid {
     grid-template-columns: 1fr;
   }
-  .table th, .table td {
-    padding: 12px 14px;
+
+  /* Table Card Transformation */
+  .tableContainer {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .table tbody tr {
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .table td {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .drawerCloseBtn {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

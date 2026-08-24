@@ -517,10 +517,72 @@
   }
 }
 
+@media (max-width: 768px) {
+  .container {
+    padding-bottom: calc(var(--mobile-nav-height, 74px) + 20px);
+  }
+
+  /* Table Card Transformation */
+  .tableContainer {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .table tr {
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 14px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .table td {
+    padding: 2px 0;
+    border-bottom: none;
+  }
+
+  .searchBar input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .enrollBtn,
+  .actionBtn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 640px) {
   .header {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
   }
 
   .searchBar {

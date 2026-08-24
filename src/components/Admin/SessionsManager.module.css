@@ -600,3 +600,73 @@
   border-color: rgba(255, 255, 255, 0.2);
   background: var(--surface-strong);
 }
+
+@media (max-width: 768px) {
+  .container {
+    padding-bottom: calc(var(--mobile-nav-height, 74px) + 24px);
+  }
+
+  .tableContainer {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .table tbody tr {
+    background: var(--surface-soft);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .table td {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .searchBox input {
+    font-size: 16px; /* Prevents iOS auto-zoom */
+    min-height: 38px;
+  }
+
+  .filterPill {
+    min-height: 38px;
+    padding: 8px 14px;
+  }
+
+  .customSelect {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .actionBtn,
+  .revokeBtn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+}
