@@ -12,9 +12,23 @@ import { Mail, Lock, User, Phone, FileText, ArrowRight, ArrowLeft, Eye, EyeOff, 
 type PageStep = "email" | "otp" | "register";
 
 function RegisterContent() {
-    const { refreshSession } = useAuth();
+    const { user, loading: authLoading, role, refreshSession } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    // Auto-redirect logged-in users away from register page
+    useEffect(() => {
+        if (!authLoading && user) {
+            const userRole = role || user.role || "student";
+            if (userRole === "admin") {
+                router.replace("/admin/dashboard");
+            } else if (userRole === "teacher") {
+                router.replace("/teacher/dashboard");
+            } else {
+                router.replace("/dashboard/courses");
+            }
+        }
+    }, [user, authLoading, role, router]);
 
     const [step, setStep] = useState<PageStep>("email");
     const [email, setEmail] = useState("");
@@ -325,6 +339,17 @@ function RegisterContent() {
         return null;
     };
     const stepsInfo = getStepsInfo();
+
+    if (!authLoading && user) {
+        return (
+            <main className={pageStyles.page}>
+                <section className={`${styles.modal} glass`} style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minHeight: "200px", gap: "10px" }}>
+                    <p style={{ textAlign: "center", color: "var(--text)", fontWeight: 600 }}>Already logged in</p>
+                    <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "14px" }}>Redirecting to your dashboard...</p>
+                </section>
+            </main>
+        );
+    }
 
     return (
         <main className={pageStyles.page}>

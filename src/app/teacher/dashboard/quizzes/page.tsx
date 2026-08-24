@@ -319,6 +319,20 @@ export default function TeacherQuizzesPage() {
           }
         }
 
+        // 4. Merge direct Media Vault module folders if available
+        if (Array.isArray(data.mediaVaultFolders) && data.mediaVaultFolders.length > 0) {
+          for (const mvf of data.mediaVaultFolders) {
+            const mvTitle = String(mvf.title || '').trim();
+            const lower = mvTitle.toLowerCase();
+            if (lower !== 'all quizes' && lower !== 'all quizzes' && lower !== 'all resources') {
+              if (!seenIds.has(mvf.id)) {
+                seenIds.add(mvf.id);
+                modules.push({ id: mvf.id, title: mvTitle });
+              }
+            }
+          }
+        }
+
         setCourseModules(modules);
         return;
       }

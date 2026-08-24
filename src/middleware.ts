@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose/jwt/verify';
+import { jwtVerify } from 'jose';
 
-// Define the public paths that do not require authentication
+// Define the public API paths that do not require authentication
 const publicPaths = [
   '/api/auth',
   '/api/public',
@@ -12,46 +12,83 @@ const publicPaths = [
   '/api/teachers',
 ];
 
+// Guest-only auth pages that logged-in users should not access
+const authPagePaths = [
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/auth/forgot-password',
+];
+
+function getDestinationForRole(role?: string | null): string {
+  if (role === 'admin') return '/admin/dashboard';
+  if (role === 'teacher') return '/teacher/dashboard';
+  return '/dashboard/courses';
+}
+
+function getJwtSecret(): Uint8Array {
+  let secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('Missing JWT_SECRET');
+  }
+  if (secret.length < 32) {
+    secret = secret.padEnd(32, '_');
+  }
+  return new TextEncoder().encode(secret);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // We only intercept /api routes (as defined in matcher)
-  
-  // Skip authentication for public routes
-  if (publicPaths.some(path => pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
-
-  // Extract the token
+  // Extract the token (header or cookie)
   const authHeader = request.headers.get('authorization');
-  let token = null;
+  let token: string | null = null;
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.slice(7);
   } else {
-    token = request.cookies.get('session_token')?.value;
+    token = request.cookies.get('session_token')?.value || null;
   }
 
+  // Handle Guest-Only Auth Pages (/login, /register, /forgot-password, /auth/forgot-password)
+  const isAuthPage = authPagePaths.some(
+    (path) => pathname === path || pathname.startsWith(path + '/')
+  );
+
+  if (isAuthPage) {
+    if (token) {
+      try {
+        const { payload } = await jwtVerify(token, getJwtSecret());
+        if (payload && payload.isBanned !== true) {
+          const destination = getDestinationForRole(payload.role as string);
+          return NextResponse.redirect(new URL(destination, request.url));
+        }
+      } catch {
+        // Invalid or expired token; proceed to auth page
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // Skip authentication for public API routes
+  if (publicPaths.some((path) => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
+  // Handle Protected API Routes
   if (!token) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 
   try {
-    let secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error('Missing JWT_SECRET');
-    }
-    if (secret.length < 32) {
-      secret = secret.padEnd(32, '_');
-    }
-
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    const { payload } = await jwtVerify(token, getJwtSecret());
 
     // CRITICAL SECURITY FIX: Block banned users at the edge
     if (payload.isBanned === true) {
       return NextResponse.json(
         {
-          error: 'You have been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com.',
+          error:
+            'You have been banned from accessing the platform. Please contact Dr. Nahid Akhter Shakil or email support@creativebydrshakil.com.',
           code: 'user_banned',
         },
         { status: 403 }
@@ -64,13 +101,10 @@ export async function middleware(request: NextRequest) {
 
     if (!isExempt) {
       const clientDeviceHash = request.headers.get('x-device-hash');
-      
-      // If the client sent a hash and it doesn't match the one in the token, block it.
-      // This strictly enforces mismatch checks for hijacking attempts where the client
-      // provides a device fingerprint that doesn't match the token's original fingerprint.
+
       if (clientDeviceHash && payload.deviceHash && clientDeviceHash !== payload.deviceHash) {
         return NextResponse.json(
-          { error: 'Session hijacking detected. Invalid device hash.', code: 'invalid_device_hash' }, 
+          { error: 'Session hijacking detected. Invalid device hash.', code: 'invalid_device_hash' },
           { status: 401 }
         );
       }
@@ -83,7 +117,13 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-// Only match API routes, exclude next static assets, images, webhooks, etc.
+// Intercept API routes and Guest-only Auth Pages
 export const config = {
-  matcher: ['/api/:path*'],
+  matcher: [
+    '/api/:path*',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/auth/forgot-password',
+  ],
 };

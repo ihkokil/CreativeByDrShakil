@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 import { unlinkCourseQuiz } from '@/lib/curriculum-cleanup';
+import { syncQuizPlacementToMediaVault } from '@/lib/course-media-vault-sync';
 
 export async function GET(
   request: NextRequest,
@@ -152,6 +153,13 @@ export async function POST(
           updatedAt: nowStr,
         } as any);
       }
+    }
+
+    // Two-way sync: Synchronize quiz nodes with Media Vault
+    try {
+      await syncQuizPlacementToMediaVault(supabase, courseId, quizIds, targetNodeId);
+    } catch (syncErr) {
+      console.error('[quizzes/route] Error syncing to Media Vault:', syncErr);
     }
 
     return NextResponse.json({ success: true, count: quizIds.length });

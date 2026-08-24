@@ -15,7 +15,8 @@ export default function Navbar() {
     const [scrolled, setScrolled] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [authMode, setAuthMode] = useState<"login" | "register">("login");
-    const { user, role, signOut } = useAuth();
+    const { user, role, loading: authLoading, signOut } = useAuth();
+    const [hasStoredToken, setHasStoredToken] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
     const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
@@ -35,6 +36,12 @@ export default function Navbar() {
     };
 
     const initials = getInitials(user?.user_metadata?.full_name, "US");
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setHasStoredToken(Boolean(localStorage.getItem("auth_token")));
+        }
+    }, [user]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -60,10 +67,27 @@ export default function Navbar() {
             : null;
 
         if (authParam === "login" || authParam === "register") {
-            setAuthMode(authParam);
-            setIsAuthOpen(true);
+            if (!user && !localStorage.getItem("auth_token")) {
+                setAuthMode(authParam);
+                setIsAuthOpen(true);
+            }
         }
-    }, [pathname]);
+    }, [pathname, user]);
+
+    useEffect(() => {
+        if (isAuthOpen && (user || (typeof window !== "undefined" && localStorage.getItem("auth_token")))) {
+            setIsAuthOpen(false);
+        }
+    }, [isAuthOpen, user]);
+
+    const handleAccountClick = () => {
+        if (user || (typeof window !== "undefined" && localStorage.getItem("auth_token"))) {
+            router.push(dashboardHref);
+            return;
+        }
+        setAuthMode("login");
+        setIsAuthOpen(true);
+    };
 
 
     const handleCloseAuth = () => {
@@ -187,7 +211,7 @@ export default function Navbar() {
                         <ThemeToggle />
 
                         <div className={styles.userWrapper}>
-                            {user ? (
+                            {user || (authLoading && hasStoredToken) ? (
                                 <Link
                                     href={dashboardHref}
                                     className={styles.userMenuBtn}
@@ -209,7 +233,7 @@ export default function Navbar() {
                                         flexShrink: 0,
                                         border: '1px solid var(--glass-border)'
                                     }}>
-                                        {user.user_metadata?.profile_image ? (
+                                        {user?.user_metadata?.profile_image ? (
                                             <Image 
                                                 src={user.user_metadata.profile_image} 
                                                 alt={user.user_metadata.full_name || "Profile"} 
@@ -226,10 +250,7 @@ export default function Navbar() {
                             ) : (
                                 <button
                                     className={styles.accountBtn}
-                                    onClick={() => {
-                                        setAuthMode("login");
-                                        setIsAuthOpen(true);
-                                    }}
+                                    onClick={handleAccountClick}
                                 >
                                     <User size={18} />
                                     <span className={styles.navText}>Login / Register</span>

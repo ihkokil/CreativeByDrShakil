@@ -5,6 +5,7 @@ import {
   removeNodeFromCurriculum,
   BuilderCurriculumNode,
 } from './teacher-course-builder';
+import { findRootMediaVaultFolderForCourse } from './course-media-vault-sync';
 
 /**
  * Cascade cleans all references when a Quiz is deleted:
@@ -311,14 +312,8 @@ export async function unlinkCourseQuiz(
     }
 
     // 3. Delete any VideoLibraryNode of type 'quiz' under this course's root folder
-    if (course?.title) {
-      const { data: rootFolder } = await supabase
-        .from('VideoLibraryNode')
-        .select('id')
-        .is('parentId', null)
-        .ilike('title', course.title)
-        .limit(1)
-        .maybeSingle();
+    if (course) {
+      const rootFolder = await findRootMediaVaultFolderForCourse(supabase, course);
 
       if (rootFolder) {
         // Collect subfolder IDs

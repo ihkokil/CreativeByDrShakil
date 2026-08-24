@@ -107,6 +107,8 @@ export async function POST(request: NextRequest) {
       subject = message.length > 50 ? `${message.slice(0, 47)}...` : message;
     }
 
+    const nowStr = new Date().toISOString();
+
     const insertValues = {
       id: submissionId,
       fullName,
@@ -117,6 +119,8 @@ export async function POST(request: NextRequest) {
       message,
       imageUrls: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
       status: 'open',
+      createdAt: nowStr,
+      updatedAt: nowStr,
     };
 
     const supabase = getSupabaseAdmin();

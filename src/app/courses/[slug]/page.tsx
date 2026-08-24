@@ -4,7 +4,7 @@ import CourseDetailClient from './CourseDetailClient';
 import { Course } from '@/constants/courses';
 import { PublicTeacher } from '@/lib/teacher-directory';
 
-import { getSupabaseContentRead } from '@/lib/db';
+import { getSupabaseAdmin } from '@/lib/db';
 import { parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
 import { formatLastUpdated } from '@/lib/date-format';
@@ -13,15 +13,38 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-async function getCourseData(slug: string) {
-  const supabase = getSupabaseContentRead();
-  
-  const { data: course, error: courseError } = await supabase
+async function getCourseData(rawSlug: string) {
+  const supabase = getSupabaseAdmin();
+  const slug = decodeURIComponent(rawSlug).trim();
+
+  // Try matching slug first
+  let { data: course, error: courseError } = await supabase
     .from('Course')
     .select('*')
     .eq('slug', slug)
     .limit(1)
     .maybeSingle();
+
+  // If not found by slug, try matching case-insensitively or by ID
+  if (!course) {
+    const { data: courseByIlike } = await supabase
+      .from('Course')
+      .select('*')
+      .ilike('slug', slug)
+      .limit(1)
+      .maybeSingle();
+    course = courseByIlike;
+  }
+
+  if (!course) {
+    const { data: courseById } = await supabase
+      .from('Course')
+      .select('*')
+      .eq('id', slug)
+      .limit(1)
+      .maybeSingle();
+    course = courseById;
+  }
 
   if (courseError || !course) return null;
 
@@ -43,7 +66,7 @@ async function getCourseData(slug: string) {
   return {
     course: {
       id: course.id,
-      slug: course.slug,
+      slug: course.slug || course.id,
       title: course.title,
       price: course.price <= 0 ? 'Free' : `৳${Math.round(course.price).toLocaleString('en-BD')}`,
       salePrice: course.salePrice ? (course.salePrice <= 0 ? 'Free' : `৳${Math.round(course.salePrice).toLocaleString('en-BD')}`) : null,
@@ -75,7 +98,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   
   try {
     const data = await getCourseData(slug);
-    if (!data) return { title: 'Course Not Found' };
+    if (!data) return { title: 'Course Not Found | Creative By Dr. Shakil' };
     const course = data.course;
     
     return {
@@ -101,14 +124,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CourseDetailPage({ params }: Props) {
   const { slug } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://creativebydrshakil.com';
   
   let initialCourse: Course | null = null;
   let initialCurriculum: any[] = [];
   let initialTeachers: PublicTeacher[] = [];
 
   try {
-    const supabase = getSupabaseContentRead();
+    const supabase = getSupabaseAdmin();
     // Fetch teachers
     const { data: teachersData } = await supabase
       .from('User')
