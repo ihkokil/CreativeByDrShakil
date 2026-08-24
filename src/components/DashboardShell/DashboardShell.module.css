@@ -356,8 +356,10 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
         border: 1px solid var(--glass-border);
         border-radius: var(--radius-md);
         background: var(--glass);
@@ -371,7 +373,7 @@
     }
 
     .content {
-        padding: 24px 16px 96px;
+        padding: 20px clamp(12px, 3.5vw, 24px) calc(74px + env(safe-area-inset-bottom, 0px) + 24px);
     }
 
     .mobileBottomNav {
@@ -379,16 +381,18 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 74px;
+        height: calc(64px + env(safe-area-inset-bottom, 0px));
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         border-top: 1px solid var(--glass-border);
+        background: rgba(13, 13, 16, 0.95);
         background: color-mix(in srgb, var(--background) 90%, transparent);
         backdrop-filter: blur(48px);
         -webkit-backdrop-filter: blur(48px);
         z-index: 1100;
-        padding-bottom: env(safe-area-inset-bottom);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
         box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box;
     }
 
     .mobileTab {
@@ -402,7 +406,9 @@
         gap: 4px;
         font-size: var(--text-tiny);
         font-weight: var(--weight-bold);
+        min-height: 48px;
         cursor: pointer;
+        touch-action: manipulation;
         transition: color var(--duration-fast);
     }
 
@@ -417,6 +423,7 @@
         background: rgba(0, 0, 0, 0.5);
         z-index: 1190;
         backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
     }
 
     .mobileDrawer {
@@ -432,9 +439,11 @@
         transform: translateY(100%);
         transition: transform var(--duration-base) var(--ease-premium);
         z-index: 1200;
-        max-height: 75vh;
+        max-height: calc(100vh - 80px);
+        max-height: min(75vh, calc(100dvh - 80px));
         overflow: auto;
         box-shadow: 0 -20px 40px rgba(0, 0, 0, 0.2);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     .mobileDrawerOpen {
@@ -455,8 +464,10 @@
     }
 
     .drawerCloseBtn {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
         display: inline-flex;
         align-items: center;
         justify-content: center;

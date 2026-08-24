@@ -97,6 +97,7 @@ export default function ConfirmModal({
             padding: '16px',
             backgroundColor: 'rgba(0, 0, 0, 0.65)',
             backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
           }}
           onClick={onClose}
         >
@@ -118,45 +119,62 @@ export default function ConfirmModal({
               overflow: 'hidden',
             }}
           >
+            {/* Ambient Background Glow */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '140px',
+                height: '140px',
+                background: stylesConfig.iconColor,
+                opacity: 0.08,
+                borderRadius: '50%',
+                filter: 'blur(40px)',
+                pointerEvents: 'none',
+              }}
+            />
+
             {/* Close Button */}
             <button
+              type="button"
               onClick={onClose}
               disabled={loading}
               style={{
                 position: 'absolute',
                 top: '16px',
                 right: '16px',
-                background: 'rgba(255, 255, 255, 0.06)',
+                background: 'transparent',
                 border: 'none',
+                color: '#94a3b8',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                padding: '8px',
                 borderRadius: '8px',
-                width: '32px',
-                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#94a3b8',
-                cursor: 'pointer',
+                minWidth: '44px',
+                minHeight: '44px',
                 transition: 'all 0.15s ease',
+                touchAction: 'manipulation',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
-                e.currentTarget.style.color = '#fff';
+                if (!loading) e.currentTarget.style.color = '#fff';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
-                e.currentTarget.style.color = '#94a3b8';
+                if (!loading) e.currentTarget.style.color = '#94a3b8';
               }}
             >
-              <X size={16} />
+              <X size={18} />
             </button>
 
-            {/* Header Icon + Title */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
+            {/* Modal Body */}
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
               <div
                 style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '14px',
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
                   background: stylesConfig.iconBg,
                   border: stylesConfig.iconBorder,
                   color: stylesConfig.iconColor,
@@ -168,11 +186,12 @@ export default function ConfirmModal({
               >
                 {renderIcon()}
               </div>
+
               <div style={{ flex: 1, paddingRight: '20px' }}>
                 <h3
                   style={{
                     margin: '0 0 6px 0',
-                    fontSize: '1.2rem',
+                    fontSize: '1.15rem',
                     fontWeight: 700,
                     color: '#f8fafc',
                     letterSpacing: '-0.01em',
@@ -203,6 +222,7 @@ export default function ConfirmModal({
                 marginTop: '24px',
                 paddingTop: '16px',
                 borderTop: '1px solid rgba(255, 255, 255, 0.07)',
+                flexWrap: 'wrap',
               }}
             >
               <button
@@ -211,6 +231,7 @@ export default function ConfirmModal({
                 disabled={loading}
                 style={{
                   padding: '10px 18px',
+                  minHeight: '44px',
                   borderRadius: '10px',
                   background: 'rgba(255, 255, 255, 0.06)',
                   border: '1px solid rgba(255, 255, 255, 0.1)',
@@ -219,6 +240,10 @@ export default function ConfirmModal({
                   fontSize: '0.88rem',
                   cursor: loading ? 'not-allowed' : 'pointer',
                   transition: 'background 0.15s ease',
+                  touchAction: 'manipulation',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 onMouseEnter={(e) => {
                   if (!loading) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
@@ -236,6 +261,7 @@ export default function ConfirmModal({
                 disabled={loading}
                 style={{
                   padding: '10px 20px',
+                  minHeight: '44px',
                   borderRadius: '10px',
                   background: stylesConfig.btnBg,
                   border: 'none',
@@ -243,12 +269,14 @@ export default function ConfirmModal({
                   fontWeight: 600,
                   fontSize: '0.88rem',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '8px',
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
                   opacity: loading ? 0.7 : 1,
                   transition: 'opacity 0.15s ease, transform 0.15s ease',
+                  touchAction: 'manipulation',
                 }}
               >
                 {loading ? (

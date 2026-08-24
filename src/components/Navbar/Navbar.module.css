@@ -470,17 +470,19 @@
 @media (max-width: 480px) {
   .accountBtn,
   .userMenuBtn {
-    padding: 8px 10px !important;
-    font-size: 0.8rem !important;
-    gap: 4px !important;
-    min-height: 38px !important;
+    padding: 8px 12px !important;
+    font-size: 0.82rem !important;
+    gap: 6px !important;
+    min-height: 44px !important;
   }
   .logoImg {
     max-width: 110px !important;
     height: auto !important;
   }
   .navMenuBtn {
-    width: 38px !important;
-    height: 38px !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
   }
 }

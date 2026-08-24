@@ -1,6 +1,7 @@
 .layout {
     display: flex;
     height: 100vh;
+    height: 100dvh;
     background: var(--background);
     color: var(--foreground);
     overflow: hidden;
@@ -334,6 +335,8 @@
     align-items: center;
     justify-content: center;
     transition: background 0.2s;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .menuToggleBtn:hover {
@@ -351,6 +354,8 @@
     align-items: center;
     justify-content: center;
     transition: background 0.2s;
+    min-width: 44px;
+    min-height: 44px;
 }
 
 .sidebarCloseBtn:hover {
@@ -366,6 +371,7 @@
     background: rgba(0, 0, 0, 0.5);
     z-index: 99;
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     animation: fadeIn 0.2s ease-out;
 }
 
@@ -409,6 +415,11 @@
     .navBar {
         padding-inline: var(--layout-gutter-mobile);
     }
+
+    .navBtn {
+        min-height: 44px;
+        padding: 10px 16px;
+    }
 }
 
 .unauthorizedLayout {
@@ -416,6 +427,7 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    min-height: 100dvh;
     width: 100%;
     background: radial-gradient(circle at center, #111827 0%, #030712 100%);
     padding: 20px;
@@ -425,8 +437,9 @@
     background: rgba(17, 24, 39, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border-radius: 20px;
-    padding: 40px;
+    padding: clamp(20px, 5vw, 40px);
     max-width: 480px;
     width: 100%;
     text-align: center;

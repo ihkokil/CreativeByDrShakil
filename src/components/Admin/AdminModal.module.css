@@ -6,6 +6,7 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     z-index: 2000;
     display: flex;
     align-items: center;
@@ -42,11 +43,20 @@
     border: none;
     color: var(--text-muted);
     cursor: pointer;
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
     transition: color 0.2s;
+    touch-action: manipulation;
 }
 
 .closeBtn:hover {
     color: var(--foreground);
+    background: var(--surface-soft);
 }
 
 .header {
@@ -88,12 +98,6 @@
 
 .fullWidthCol {
     grid-column: 1 / -1;
-}
-
-@media (max-width: 640px) {
-    .formGrid2Col {
-        grid-template-columns: 1fr;
-    }
 }
 
 .imageUploadWrapper {
@@ -149,14 +153,16 @@
 
 .inputGroup input {
     width: 100%;
-    padding: 16px 20px 16px 50px;
+    padding: 14px 20px 14px 50px;
     background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     border-radius: 14px;
     color: var(--foreground);
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 16px; /* Prevents iOS auto-zoom */
+    min-height: 48px;
     transition: border-color 0.2s, background 0.2s;
+    box-sizing: border-box;
 }
 
 .inputGroup input:focus {
@@ -187,7 +193,8 @@
 
 .submitBtn {
     margin-top: 8px;
-    padding: 16px;
+    padding: 14px;
+    min-height: 48px;
     background: #8b5cf6;
     color: white;
     border: none;
@@ -200,6 +207,7 @@
     justify-content: center;
     gap: 10px;
     transition: transform 0.2s, box-shadow 0.2s;
+    touch-action: manipulation;
 }
 
 .submitBtn:hover {
@@ -263,13 +271,15 @@
 .selectInput {
     width: 100%;
     padding: 12px 14px;
+    min-height: 48px;
     border-radius: 14px;
     border: 1px solid var(--glass-border);
     background: var(--surface-soft);
     color: var(--foreground);
-    font-size: 0.95rem;
+    font-size: 16px; /* Prevents iOS auto-zoom */
     font-family: inherit;
     transition: border-color 0.2s, background 0.2s;
+    box-sizing: border-box;
 }
 
 .selectInput:focus {
@@ -287,9 +297,17 @@
 
 .secondaryBtn {
     margin-top: 0;
+    min-height: 48px;
     background: transparent;
     color: var(--foreground);
     border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
 }
 
 .secondaryBtn:hover {
@@ -300,7 +318,17 @@
 
 .dangerBtn {
     margin-top: 0;
+    min-height: 48px;
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
 }
 
 .dangerBtn:hover {
@@ -308,7 +336,25 @@
     box-shadow: 0 10px 24px rgba(220, 38, 38, 0.34);
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
+    .overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal,
+    .modalSmall {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 24px 24px 0 0;
+        padding: 24px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+        max-height: min(calc(100vh - 24px), calc(100dvh - 24px));
+    }
+
+    .formGrid2Col {
+        grid-template-columns: 1fr;
+    }
+
     .actionsRow {
         grid-template-columns: 1fr;
     }

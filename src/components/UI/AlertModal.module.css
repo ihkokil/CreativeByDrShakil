@@ -3,6 +3,7 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,12 +70,15 @@
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 8px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
 }
 
 .closeBtn:hover {
@@ -150,13 +154,15 @@
 .actionBtn {
   color: white;
   border: none;
-  padding: 11px 36px;
+  padding: 12px 36px;
+  min-height: 48px;
   border-radius: 10px;
   font-weight: 700;
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   letter-spacing: 0.02em;
+  touch-action: manipulation;
 }
 
 .btn_success {
@@ -218,5 +224,25 @@
 
 .infoIcon {
   color: #3b82f6;
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    max-height: min(calc(100vh - 24px), calc(100dvh - 24px));
+  }
+
+  .actionBtn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 

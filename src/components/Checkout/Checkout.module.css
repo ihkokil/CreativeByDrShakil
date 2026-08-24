@@ -583,15 +583,16 @@
 
 @media (max-width: 640px) {
   .modal {
-    padding: 12px;
-    align-items: end;
+    padding: 0;
+    align-items: flex-end;
   }
 
   .modalContent {
     width: 100%;
-    max-height: 92vh;
-    padding: 18px;
-    border-radius: 22px 22px 0 0;
+    max-height: calc(100vh - 24px);
+    max-height: min(92vh, calc(100dvh - 24px));
+    padding: 22px 18px calc(22px + env(safe-area-inset-bottom, 0px));
+    border-radius: 24px 24px 0 0;
   }
 
   .header {
@@ -599,9 +600,8 @@
   }
 
   .title {
-    font-size: 1.5rem;
+    font-size: 1.45rem;
   }
-
 
   .formGrid,
   .numberRow,
@@ -614,6 +614,17 @@
 
   .copyBtn {
     width: 100%;
+    min-height: 44px;
   }
 
+  .paymentForm input,
+  .paymentForm select {
+    font-size: 16px; /* Prevents iOS auto-zoom */
+    min-height: 46px;
+  }
+
+  .paymentForm button,
+  .primaryBtn {
+    min-height: 48px;
+  }
 }

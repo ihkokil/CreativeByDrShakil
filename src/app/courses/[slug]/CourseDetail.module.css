@@ -137,21 +137,33 @@
 @media (max-width: 1100px) {
     .container {
         grid-template-columns: 1fr;
-        gap: 40px;
+        gap: 32px;
     }
     
     .sidebarWrapper {
-        order: -1; /* Move sidebar to top on tablet/mobile if desired, but here we keep it after hero */
+        order: 2; /* Keep course syllabus & overview first on tablet/mobile */
+        margin-top: 0;
     }
 }
 
 @media (max-width: 768px) {
     .objectivesList {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
     
     .sectionTitle {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
+    }
+
+    .curriculumHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .sectionItem {
+        padding: 16px;
     }
 }
 
