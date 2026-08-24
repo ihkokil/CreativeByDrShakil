@@ -62,9 +62,12 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (pendingOrder) {
+      const totalAmount = course.salePrice ?? course.price ?? 0;
       return NextResponse.json({
         orderId: pendingOrder.id,
+        order: { id: pendingOrder.id, totalAmount, status: 'pending' },
         status: 'pending',
+        totalAmount,
         message: 'You already have a pending order for this course.',
         course: { id: course.id, title: course.title, slug: course.slug },
       });
@@ -92,6 +95,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       orderId,
+      order: { id: orderId, totalAmount, status: 'pending' },
       status: 'pending',
       totalAmount,
       course: { id: course.id, title: course.title, slug: course.slug },

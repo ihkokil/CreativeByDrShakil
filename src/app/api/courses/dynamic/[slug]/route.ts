@@ -15,18 +15,39 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug).trim();
+
   try {
     const token = await extractCookieToken();
-
     const supabase = getSupabase(token);
 
-    const { data: course, error: courseError } = await supabase
+    let { data: course, error: courseError } = await supabase
       .from('Course')
       .select('*')
       .eq('slug', slug)
       .limit(1)
       .maybeSingle();
+
+    if (!course) {
+      const { data: courseByIlike } = await supabase
+        .from('Course')
+        .select('*')
+        .ilike('slug', slug)
+        .limit(1)
+        .maybeSingle();
+      course = courseByIlike;
+    }
+
+    if (!course) {
+      const { data: courseById } = await supabase
+        .from('Course')
+        .select('*')
+        .eq('id', slug)
+        .limit(1)
+        .maybeSingle();
+      course = courseById;
+    }
 
     if (courseError) throw courseError;
 

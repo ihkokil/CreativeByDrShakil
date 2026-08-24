@@ -10,6 +10,7 @@ function escapeHtml(value: string) {
 }
 
 function createEmailTemplate({
+  badge,
   preheader,
   heading,
   greeting,
@@ -20,6 +21,7 @@ function createEmailTemplate({
   expiryText,
   warningText,
 }: {
+  badge?: string;
   preheader: string;
   heading: string;
   greeting: string;
@@ -32,6 +34,7 @@ function createEmailTemplate({
 }) {
   const safePreheader = escapeHtml(preheader);
   const safeHeading = escapeHtml(heading);
+  const safeBadge = badge ? escapeHtml(badge) : null;
   const safeGreeting = escapeHtml(greeting);
   const safeLead = escapeHtml(lead);
   const safeActionLabel = actionLabel ? escapeHtml(actionLabel) : "";
@@ -48,51 +51,64 @@ function createEmailTemplate({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>${safeHeading}</title>
       </head>
-      <body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+      <body style="margin:0;padding:0;background-color:#0b0f19;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;-webkit-font-smoothing:antialiased;">
+        <!-- Preheader -->
         <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${safePreheader}</div>
 
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f6fb;padding:24px 12px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0b0f19;padding:32px 12px;">
           <tr>
             <td align="center">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 10px 24px rgba(15,23,42,0.08);">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background-color:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.25);border:1px solid #1e293b;">
+                
+                <!-- Brand Header with Signature Gradient -->
                 <tr>
-                  <td align="center" style="padding:24px;background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%);color:#ffffff;text-align:center;">
-                    <img src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Creative by Dr. Shakil" style="height:36px;display:block;margin:0 auto 12px;" />
-                    <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:800;text-align:center;">${safeHeading}</h1>
+                  <td style="padding:32px 28px 24px;background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#b91c1c 100%);text-align:center;">
+                    <img src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Creative by Dr. Shakil" style="height:42px;display:block;margin:0 auto 16px;max-width:200px;" />
+                    ${safeBadge ? `<span style="display:inline-block;padding:4px 12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:999px;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;">${safeBadge}</span>` : ''}
+                    <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">${safeHeading}</h1>
                   </td>
                 </tr>
 
+                <!-- Content Area -->
                 <tr>
-                  <td style="padding:24px;">
-                    <p style="margin:0 0 10px;font-size:16px;line-height:1.6;font-weight:700;">${safeGreeting}</p>
-                    <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#374151;">${safeLead}</p>
+                  <td style="padding:32px 28px;background-color:#ffffff;">
+                    <p style="margin:0 0 12px;font-size:16px;line-height:1.6;font-weight:700;color:#0f172a;">${safeGreeting}</p>
+                    <p style="margin:0 0 16px;font-size:14px;line-height:1.7;color:#334155;">${safeLead}</p>
 
                     ${safeOtpCode ? `
-                    <div style="margin:32px 0;padding:24px;background:#fef2f2;border-radius:12px;text-align:center;border:2px dashed #fca5a5;">
-                      <div style="font-size:12px;text-transform:uppercase;color:#dc2626;font-weight:700;margin-bottom:8px;letter-spacing:0.1em;">Your Verification Code</div>
-                      <div style="font-family:monospace;font-size:36px;font-weight:800;letter-spacing:0.25em;color:#b91c1c;">${safeOtpCode}</div>
+                    <div style="margin:28px 0;padding:22px 24px;background:#f8fafc;border-radius:14px;text-align:center;border:1px solid #e2e8f0;border-left:4px solid #b91c1c;">
+                      <div style="font-size:11px;text-transform:uppercase;color:#64748b;font-weight:700;margin-bottom:8px;letter-spacing:0.1em;">Verification Code</div>
+                      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:36px;font-weight:800;letter-spacing:0.25em;color:#b91c1c;">${safeOtpCode}</div>
                     </div>
                     ` : safeActionUrl && safeActionLabel ? `
-                    <table role="presentation" cellspacing="0" cellpadding="0" style="margin:20px 0 18px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" style="margin:24px 0 20px;">
                       <tr>
-                        <td style="border-radius:10px;background:#dc2626;">
-                          <a href="${safeActionUrl}" style="display:inline-block;padding:12px 18px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${safeActionLabel}</a>
+                        <td align="center" style="border-radius:10px;background:linear-gradient(135deg,#dc2626 0%,#b91c1c 100%);">
+                          <a href="${safeActionUrl}" style="display:inline-block;padding:14px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;letter-spacing:0.01em;">${safeActionLabel} &rarr;</a>
                         </td>
                       </tr>
                     </table>
 
-                    <p style="margin:0 0 8px;font-size:13px;line-height:1.7;color:#6b7280;"><strong style="color:#111827;">Link:</strong> <a href="${safeActionUrl}" style="color:#dc2626;word-break:break-all;">${safeActionUrl}</a></p>
+                    <p style="margin:0 0 12px;font-size:13px;line-height:1.7;color:#64748b;"><strong style="color:#0f172a;">Direct Link:</strong> <a href="${safeActionUrl}" style="color:#b91c1c;word-break:break-all;text-decoration:none;">${safeActionUrl}</a></p>
                     ` : ''}
-                    <p style="margin:0 0 8px;font-size:13px;line-height:1.7;color:#6b7280;">${safeExpiryText}</p>
-                    <p style="margin:0;font-size:13px;line-height:1.7;color:#6b7280;">${safeWarningText}</p>
+
+                    <div style="margin-top:20px;padding:14px 16px;background:#f8fafc;border-radius:10px;border:1px solid #f1f5f9;">
+                      <p style="margin:0 0 4px;font-size:12px;line-height:1.6;color:#64748b;">${safeExpiryText}</p>
+                      <p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8;">${safeWarningText}</p>
+                    </div>
                   </td>
                 </tr>
 
+                <!-- Footer -->
                 <tr>
-                  <td style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.7;">
-                    This is an automated email from Creative By Dr. Shakil. Please do not reply directly to this message.
+                  <td style="padding:20px 28px;border-top:1px solid #f1f5f9;background-color:#f8fafc;color:#64748b;font-size:12px;line-height:1.6;text-align:center;">
+                    <p style="margin:0 0 6px 0;font-weight:600;color:#334155;">Creative by Dr. Shakil &bull; Medical Education Platform</p>
+                    <p style="margin:0;font-size:11px;color:#94a3b8;">
+                      Official Support: <a href="mailto:support@creativebydrshakil.com" style="color:#b91c1c;text-decoration:none;font-weight:600;">support@creativebydrshakil.com</a>
+                    </p>
                   </td>
                 </tr>
+
               </table>
             </td>
           </tr>
@@ -116,6 +132,7 @@ export async function sendVerificationEmail({
   const safeName = escapeHtml(fullName || "there");
 
   const html = createEmailTemplate({
+    badge: "Account Activation",
     preheader: "Verify your account to activate learning access.",
     heading: "Verify Your Email",
     greeting: `Hi ${safeName},`,
@@ -148,6 +165,7 @@ export async function sendPasswordResetEmail({
   const safeName = escapeHtml(fullName || "there");
 
   const html = createEmailTemplate({
+    badge: "Security Alert",
     preheader: "Password reset request for your account.",
     heading: "Reset Your Password",
     greeting: `Hi ${safeName},`,
@@ -180,6 +198,7 @@ export async function sendPasswordSetupEmail({
   const safeName = escapeHtml(fullName || "there");
 
   const html = createEmailTemplate({
+    badge: "Welcome",
     preheader: "Welcome! Set up your password to access your courses.",
     heading: "Set Up Your Password",
     greeting: `Hi ${safeName},`,
@@ -205,9 +224,8 @@ export async function sendOtpEmail({
   email: string;
   otp: string;
 }) {
-  const safeOtp = escapeHtml(otp);
-
   const html = createEmailTemplate({
+    badge: "Account Verification",
     preheader: "Your OTP verification code for Creative By Dr. Shakil.",
     heading: "Verification Code",
     greeting: "Hello,",
@@ -233,6 +251,7 @@ export async function sendForgotPasswordOtpEmail({
   otp: string;
 }) {
   const html = createEmailTemplate({
+    badge: "Password Reset",
     preheader: "Use the OTP code below to reset your password.",
     heading: "Reset Your Password",
     greeting: "Hello,",

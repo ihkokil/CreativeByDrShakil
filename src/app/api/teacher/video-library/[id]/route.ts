@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { cleanupDeletedVideoLibraryNode } from '@/lib/curriculum-cleanup';
+import { findCourseForMediaVaultFolder } from '@/lib/course-media-vault-sync';
 
 async function requireTeacherOrAdmin(request: NextRequest) {
     const bearerToken = extractBearerToken(request);
@@ -91,11 +92,7 @@ export async function PATCH(
                     }
 
                     if (rootCourseFolder) {
-                        const { data: course } = await supabase
-                            .from('Course')
-                            .select('id')
-                            .ilike('title', rootCourseFolder.title)
-                            .maybeSingle();
+                        const course = await findCourseForMediaVaultFolder(supabase, rootCourseFolder);
 
                         if (course) {
                             // If old quiz was linked, update or insert new CourseQuiz
@@ -115,7 +112,15 @@ export async function PATCH(
                                 .eq('quizId', targetQuiz.id)
                                 .maybeSingle();
 
-                            if (!existingCq) {
+                            if (existingCq) {
+                                await supabase
+                                    .from('CourseQuiz')
+                                    .update({
+                                        curriculumNodeId: existing.parentId,
+                                        updatedAt: new Date().toISOString(),
+                                    } as any)
+                                    .eq('id', existingCq.id);
+                            } else {
                                 await supabase.from('CourseQuiz').insert({
                                     id: crypto.randomUUID(),
                                     courseId: course.id,

@@ -58,8 +58,30 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
         }
     }, [userRole]);
 
-    // Initial Data Fetching - Removed because we pass initial data via props.
-    // We only fetch user course state now.
+    // Fetch course on client-side if initialCourse was not resolved by SSR
+    useEffect(() => {
+        let cancelled = false;
+        if (!course && slug) {
+            setLoadingCourse(true);
+            fetch(`/api/courses/dynamic/${encodeURIComponent(slug)}`, { cache: 'no-store' })
+                .then((res) => (res.ok ? res.json() : null))
+                .then((data) => {
+                    if (!cancelled && data?.course) {
+                        setCourse(mapDynamicCourseToCourse(data.course));
+                        if (Array.isArray(data.curriculum)) {
+                            setDynamicCurriculum(data.curriculum);
+                        }
+                    }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    if (!cancelled) setLoadingCourse(false);
+                });
+        }
+        return () => {
+            cancelled = true;
+        };
+    }, [slug, course]);
 
     useEffect(() => {
         let cancelled = false;
@@ -185,10 +207,22 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
         return (
             <main className={styles.main}>
                 <Navbar />
-                <div style={{ padding: "160px 0", textAlign: "center", minHeight: "60vh" }}>
-                    <h2 style={{ marginBottom: "20px" }}>Course not found</h2>
-                    <button className={styles.clearBtn} onClick={() => router.push("/courses")}>Back to Courses</button>
-                </div>
+                <section className={styles.notFoundContainer}>
+                    <div className={`${styles.notFoundCard} glass`}>
+                        <div className={styles.notFoundIconWrap}>
+                            <Layout size={40} className={styles.notFoundIcon} />
+                        </div>
+                        <h1 className={styles.notFoundTitle}>Course Not Found</h1>
+                        <p className={styles.notFoundDesc}>
+                            The requested course could not be located or may have been updated. Explore our full course catalog to find relevant programs.
+                        </p>
+                        <div className={styles.notFoundActions}>
+                            <button className={styles.primaryBackBtn} onClick={() => router.push("/courses")}>
+                                Browse All Courses
+                            </button>
+                        </div>
+                    </div>
+                </section>
                 <Footer />
             </main>
         );

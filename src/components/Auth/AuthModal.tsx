@@ -22,10 +22,20 @@ type AuthStep = "email" | "password" | "otp" | "register" | "forgot" | "forgot-o
 
 export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "login" }: Props) {
     useModalLock(isOpen, onClose);
-    const { refreshSession, showBannedModal } = useAuth();
+    const { user, refreshSession, showBannedModal } = useAuth();
     const [step, setStep] = useState<AuthStep>("email");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
+    // Auto-close modal if user is already authenticated
+    useEffect(() => {
+        if (isOpen) {
+            const hasToken = typeof window !== "undefined" && Boolean(localStorage.getItem("auth_token"));
+            if (user || hasToken) {
+                onClose();
+            }
+        }
+    }, [isOpen, user, onClose]);
 
     // Registration only fields
     const [fullName, setFullName] = useState("");
@@ -538,7 +548,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
 
     return (
         <AnimatePresence>
-            {isOpen && (
+            {isOpen && !user && !(typeof window !== "undefined" && localStorage.getItem("auth_token")) && (
                 <div className={styles.overlay}>
                     <motion.div
                         className={`${styles.modal} glass`}
