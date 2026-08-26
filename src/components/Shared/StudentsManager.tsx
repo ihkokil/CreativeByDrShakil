@@ -761,7 +761,7 @@ export default function StudentsManager() {
       {/* Main Search & Control Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.toolbarTop}>
-          <div className={styles.searchBox}>
+          <form className={styles.searchBox} onSubmit={(e) => e.preventDefault()}>
             <Search size={18} className={styles.searchIcon} />
             <input 
               type="text" 
@@ -781,7 +781,7 @@ export default function StudentsManager() {
                 <X size={15} />
               </button>
             )}
-          </div>
+          </form>
 
           <div className={styles.toolbarActions}>
             <select 

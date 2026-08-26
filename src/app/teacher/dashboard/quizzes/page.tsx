@@ -217,29 +217,47 @@ export default function TeacherQuizzesPage() {
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === page) return;
     setPage(newPage);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', newPage.toString());
-    router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('page', newPage.toString());
+      window.history.replaceState({}, '', url.toString());
+    }
   };
 
   const handleCourseTabChange = (cId: string) => {
     setCourseFilter(cId);
     setPage(1);
-    const params = new URLSearchParams(searchParams.toString());
-    if (cId) params.set('courseId', cId);
-    else params.delete('courseId');
-    params.set('page', '1');
-    router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (cId) url.searchParams.set('courseId', cId);
+      else url.searchParams.delete('courseId');
+      url.searchParams.set('page', '1');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
+  const handleStatusChange = (val: string) => {
+    setStatusFilter(val);
+    setPage(1);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (val) url.searchParams.set('status', val);
+      else url.searchParams.delete('status');
+      url.searchParams.set('page', '1');
+      window.history.replaceState({}, '', url.toString());
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    const params = new URLSearchParams(searchParams.toString());
-    if (search) params.set('search', search);
-    else params.delete('search');
-    params.set('page', '1');
-    router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (search) url.searchParams.set('search', search);
+      else url.searchParams.delete('search');
+      url.searchParams.set('page', '1');
+      window.history.replaceState({}, '', url.toString());
+    }
   };
 
   const handleOpenLinkModal = async (quiz: Quiz) => {
@@ -396,16 +414,6 @@ export default function TeacherQuizzesPage() {
         }
       }
     });
-  };
-
-  const handleStatusChange = (status: string) => {
-    setPage(1);
-    setStatusFilter(status);
-    const params = new URLSearchParams(searchParams.toString());
-    if (status) params.set('status', status);
-    else params.delete('status');
-    params.set('page', '1');
-    router.push(`/teacher/dashboard/quizzes?${params.toString()}`);
   };
 
   const handleDelete = (id: string, title?: string) => {
@@ -656,7 +664,7 @@ export default function TeacherQuizzesPage() {
         </div>
       </div>
 
-      <div className={styles.tableContainer}>
+      <div className={styles.quizzesList}>
         {quizzes.length === 0 ? (
           <div className={styles.emptyState}>
             <FileText className={styles.emptyIcon} />
@@ -670,215 +678,209 @@ export default function TeacherQuizzesPage() {
             )}
           </div>
         ) : (
-          <>
-            <table className={styles.table} role="grid">
-              <thead>
-                <tr>
-                  <th scope="col">Quiz</th>
-                  <th scope="col">Course / Placement</th>
-                  <th scope="col">Questions</th>
-                  <th scope="col">Duration</th>
-                  <th scope="col">Attempts / Users</th>
-                  <th scope="col">Status</th>
-                  <th scope="col">Created</th>
-                  <th scope="col"><span className={styles.visuallyHidden}>Actions</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {quizzes.map((quiz) => (
-                  <tr key={quiz.id}>
-                    <td>
-                      <div className={styles.quizInfo}>
-                        <Link href={`/teacher/dashboard/quizzes/${quiz.id}/edit`} className={styles.quizTitle}>
-                          {quiz.title}
-                        </Link>
-                        {quiz.description && (
-                          <p className={styles.quizDesc}>{quiz.description}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      {quiz.courseName ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                          <span className={styles.courseTag}>
-                            <BookOpen size={11} /> {quiz.courseName}
-                          </span>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px' }}>
-                            {quiz.curriculumNodeId ? '📁 Module Quiz' : '📁 All Quizzes (Global)'}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className={styles.unlinkedTag}>Unlinked</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={styles.questionCount}>
-                        {quiz._count.questions} / {quiz.numQuestionsToServe} served
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '13px', color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                        {quiz.durationMinutes} mins
-                      </span>
-                    </td>
-                    <td>
-                      <span className={styles.attemptsCount} title={`${quiz.attemptsCount} total attempts across ${quiz.uniqueUsersCount || 0} users`}>
-                        {quiz.attemptsCount} / {quiz.uniqueUsersCount || 0} users
-                      </span>
-                    </td>
-                    <td>{getStatusBadge(quiz.status)}</td>
-                    <td className={styles.dateCell}>
-                      {new Date(quiz.createdAt).toLocaleDateString()}
-                    </td>
-                    <td>
-                      <div className={styles.rowActions}>
-                        <button
-                          onClick={() => handleOpenLinkModal(quiz)}
-                          className={styles.rowActionBtn}
-                          title={quiz.courseId ? "Change Course Placement" : "Link to Course"}
-                        >
-                          <BookOpen className={styles.rowActionIcon} style={{ color: quiz.courseId ? 'var(--primary-color)' : 'inherit' }} />
-                        </button>
-                        <Link
-                          href={`/teacher/dashboard/quizzes/${quiz.id}/edit`}
-                          className={styles.rowActionBtn}
-                          title="Edit Quiz"
-                        >
-                          <Edit className={styles.rowActionIcon} />
-                        </Link>
-                        <Link
-                          href={`/teacher/dashboard/quizzes/${quiz.id}/results`}
-                          className={styles.rowActionBtn}
-                          title="View Results"
-                        >
-                          <BarChart2 className={styles.rowActionIcon} />
-                        </Link>
-                        <button
-                          onClick={() => handleDownloadPDF(quiz)}
-                          disabled={generatingPdfId === quiz.id}
-                          className={styles.rowActionBtn}
-                          title="Download Questions & Answers (PDF)"
-                        >
-                          {generatingPdfId === quiz.id ? <Loader2 className={styles.rowActionIcon} /> : <Download className={styles.rowActionIcon} />}
-                        </button>
-                        <Link
-                          href={`/dashboard/quizzes/${quiz.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={styles.rowActionBtn}
-                          title="Preview as Student"
-                        >
-                          <ExternalLink className={styles.rowActionIcon} />
-                        </Link>
-                        <button
-                          onClick={() => handleShareLink(quiz.id)}
-                          className={styles.rowActionBtn}
-                          title="Share Link"
-                        >
-                          <LinkIcon className={styles.rowActionIcon} />
-                        </button>
-                        <button
-                          onClick={() => handleDuplicate(quiz.id)}
-                          className={styles.rowActionBtn}
-                          title="Duplicate Quiz"
-                        >
-                          <Copy className={styles.rowActionIcon} />
-                        </button>
-                        <button
-                          onClick={() => handlePublish(quiz.id, quiz.status)}
-                          className={styles.rowActionBtn}
-                          title={quiz.status === 'published' ? 'Unpublish Quiz' : 'Publish Quiz'}
-                        >
-                          {quiz.status === 'published' ? (
-                            <CheckCircle className={styles.rowActionIcon} style={{ color: 'var(--success-text)' }} />
-                          ) : (
-                            <FileText className={styles.rowActionIcon} />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(quiz.id)}
-                          className={`${styles.rowActionBtn} ${styles.danger}`}
-                          title="Delete Quiz"
-                        >
-                          <Trash2 className={styles.rowActionIcon} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {totalCount > 0 && (
-              <div className={styles.pagination}>
-                <div className={styles.paginationInfo}>
-                  Showing <span className={styles.highlightText}>{((page - 1) * limit) + 1}</span>–<span className={styles.highlightText}>{Math.min(page * limit, totalCount)}</span> of <span className={styles.highlightText}>{totalCount}</span> quizzes
+          quizzes.map((quiz) => (
+            <div key={quiz.id} className={styles.quizCardItem}>
+              <div className={styles.cardHeaderRow}>
+                <div className={styles.quizTitleCol}>
+                  <Link href={`/teacher/dashboard/quizzes/${quiz.id}/edit`} className={styles.quizTitle}>
+                    {quiz.title}
+                  </Link>
+                  {quiz.description && (
+                    <p className={styles.quizDesc}>{quiz.description}</p>
+                  )}
                 </div>
-                
-                {totalPages > 1 && (
-                  <div className={styles.paginationControls}>
-                    <button
-                      onClick={() => handlePageChange(1)}
-                      disabled={page === 1}
-                      className={styles.pageIconBtn}
-                      title="First Page"
-                      aria-label="First Page"
-                    >
-                      <ChevronsLeft size={16} />
-                    </button>
-                    <button
-                      onClick={() => handlePageChange(page - 1)}
-                      disabled={page === 1}
-                      className={styles.pageIconBtn}
-                      title="Previous Page"
-                      aria-label="Previous Page"
-                    >
-                      <ChevronLeft size={16} />
-                    </button>
-
-                    <div className={styles.pageNumbers}>
-                      {getPageNumbers(page, totalPages).map((p, idx) => {
-                        if (p === '...') {
-                          return <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>...</span>;
-                        }
-                        const pageNum = Number(p);
-                        return (
-                          <button
-                            key={`page-${pageNum}`}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`${styles.pageNumberBtn} ${page === pageNum ? styles.pageNumberActive : ''}`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <button
-                      onClick={() => handlePageChange(page + 1)}
-                      disabled={page === totalPages}
-                      className={styles.pageIconBtn}
-                      title="Next Page"
-                      aria-label="Next Page"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                    <button
-                      onClick={() => handlePageChange(totalPages)}
-                      disabled={page === totalPages}
-                      className={styles.pageIconBtn}
-                      title="Last Page"
-                      aria-label="Last Page"
-                    >
-                      <ChevronsRight size={16} />
-                    </button>
-                  </div>
-                )}
+                <div className={styles.badgeGroup}>
+                  {getStatusBadge(quiz.status)}
+                  {quiz.courseName ? (
+                    <span className={styles.courseTag}>
+                      <BookOpen size={12} /> {quiz.courseName} {quiz.curriculumNodeId ? '• Module Quiz' : ''}
+                    </span>
+                  ) : (
+                    <span className={styles.unlinkedTag}>Unlinked</span>
+                  )}
+                </div>
               </div>
-            )}
-          </>
+
+              <div className={styles.quizMetricsRow}>
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>Questions</span>
+                  <span className={styles.metricValue}>
+                    {quiz._count.questions} total ({quiz.numQuestionsToServe} served)
+                  </span>
+                </div>
+
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>Duration</span>
+                  <span className={styles.metricValue}>
+                    {quiz.durationMinutes} mins
+                  </span>
+                </div>
+
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>Attempts</span>
+                  <span className={styles.metricValue}>
+                    {quiz.attemptsCount} attempts ({quiz.uniqueUsersCount || 0} students)
+                  </span>
+                </div>
+
+                <div className={styles.metricItem}>
+                  <span className={styles.metricLabel}>Created</span>
+                  <span className={styles.metricValue}>
+                    {new Date(quiz.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.cardActionsRow}>
+                <button
+                  onClick={() => handleOpenLinkModal(quiz)}
+                  className={styles.actionBtn}
+                  title={quiz.courseId ? "Change Course Placement" : "Link to Course"}
+                >
+                  <BookOpen size={15} /> <span>Placement</span>
+                </button>
+                <Link
+                  href={`/teacher/dashboard/quizzes/${quiz.id}/edit`}
+                  className={styles.actionBtn}
+                  title="Edit Quiz"
+                >
+                  <Edit size={15} /> <span>Edit</span>
+                </Link>
+                <Link
+                  href={`/teacher/dashboard/quizzes/${quiz.id}/results`}
+                  className={styles.actionBtn}
+                  title="View Results"
+                >
+                  <BarChart2 size={15} /> <span>Results</span>
+                </Link>
+                <button
+                  onClick={() => handleDownloadPDF(quiz)}
+                  disabled={generatingPdfId === quiz.id}
+                  className={styles.actionBtn}
+                  title="Download Questions & Answers (PDF)"
+                >
+                  {generatingPdfId === quiz.id ? (
+                    <Loader2 size={15} className={styles.spinnerIcon} />
+                  ) : (
+                    <Download size={15} />
+                  )}
+                  <span>{generatingPdfId === quiz.id ? "PDF..." : "PDF"}</span>
+                </button>
+                <Link
+                  href={`/dashboard/quizzes/${quiz.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.actionBtn}
+                  title="Preview as Student"
+                >
+                  <ExternalLink size={15} /> <span>Preview</span>
+                </Link>
+                <button
+                  onClick={() => handleShareLink(quiz.id)}
+                  className={styles.actionBtn}
+                  title="Share Link"
+                >
+                  <LinkIcon size={15} /> <span>Share</span>
+                </button>
+                <button
+                  onClick={() => handleDuplicate(quiz.id)}
+                  className={styles.actionBtn}
+                  title="Duplicate Quiz"
+                >
+                  <Copy size={15} /> <span>Duplicate</span>
+                </button>
+                <button
+                  onClick={() => handlePublish(quiz.id, quiz.status)}
+                  className={styles.actionBtn}
+                  title={quiz.status === 'published' ? 'Unpublish Quiz' : 'Publish Quiz'}
+                >
+                  {quiz.status === 'published' ? (
+                    <CheckCircle size={15} style={{ color: 'var(--success-text)' }} />
+                  ) : (
+                    <FileText size={15} />
+                  )}
+                  <span>{quiz.status === 'published' ? 'Unpublish' : 'Publish'}</span>
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(quiz.id)}
+                  className={`${styles.actionBtn} ${styles.dangerActionBtn}`}
+                  title="Delete Quiz"
+                >
+                  <Trash2 size={15} /> <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          ))
         )}
       </div>
+
+      {totalCount > 0 && (
+        <div className={styles.pagination}>
+          <div className={styles.paginationInfo}>
+            Showing <span className={styles.highlightText}>{((page - 1) * limit) + 1}</span>–<span className={styles.highlightText}>{Math.min(page * limit, totalCount)}</span> of <span className={styles.highlightText}>{totalCount}</span> quizzes
+          </div>
+          
+          {totalPages > 1 && (
+            <div className={styles.paginationControls}>
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={page === 1}
+                className={styles.pageIconBtn}
+                title="First Page"
+                aria-label="First Page"
+              >
+                <ChevronsLeft size={16} />
+              </button>
+              <button
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page === 1}
+                className={styles.pageIconBtn}
+                title="Previous Page"
+                aria-label="Previous Page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              <div className={styles.pageNumbers}>
+                {getPageNumbers(page, totalPages).map((p, idx) => {
+                  if (p === '...') {
+                    return <span key={`ellipsis-${idx}`} className={styles.pageEllipsis}>...</span>;
+                  }
+                  const pageNum = Number(p);
+                  return (
+                    <button
+                      key={`page-${pageNum}`}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`${styles.pageNumberBtn} ${page === pageNum ? styles.pageNumberActive : ''}`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page === totalPages}
+                className={styles.pageIconBtn}
+                title="Next Page"
+                aria-label="Next Page"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                disabled={page === totalPages}
+                className={styles.pageIconBtn}
+                title="Last Page"
+                aria-label="Last Page"
+              >
+                <ChevronsRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Link to Course Modal */}
       {linkModalQuiz && (

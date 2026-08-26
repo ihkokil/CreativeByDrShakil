@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
     let finalToken = token;
     const xDeviceHash = request.headers.get('x-device-hash');
 
-    if (payload.deviceHash?.startsWith('fallback-') && xDeviceHash) {
-      // Upgrade the JWT to contain the real device hash instead of the fallback
+    if (xDeviceHash && payload.deviceHash !== xDeviceHash) {
+      // Upgrade the JWT to contain the real device hash
       const { signAuthToken } = await import('@/lib/auth-server');
       const { sub, role, email, sessionId, isBanned, isSessionLockedExempt, user_metadata } = payload;
       

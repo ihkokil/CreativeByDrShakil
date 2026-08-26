@@ -16,8 +16,8 @@
 /* Header & KPI Summary */
 .heroHeader {
   position: relative;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 28px 32px;
   backdrop-filter: blur(16px);
@@ -89,8 +89,8 @@
 }
 
 .kpiCard {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 14px 18px;
   display: flex;
@@ -100,8 +100,8 @@
 }
 
 .kpiCard:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--surface-soft);
+  border-color: var(--primary);
 }
 
 .kpiIconBox {
@@ -154,8 +154,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 14px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
   border-radius: 12px;
   padding: 12px 18px;
 }
@@ -180,8 +180,8 @@
   width: 100%;
   padding: 9px 14px 9px 40px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+  background: var(--card-bg);
   color: var(--foreground);
   font-size: 0.9rem;
   outline: none;
@@ -190,7 +190,7 @@
 
 .searchInput:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(237, 28, 40, 0.2);
 }
 
 .actionGroup {
@@ -203,8 +203,8 @@
 .selectBox {
   padding: 9px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+  background: var(--card-bg);
   color: var(--foreground);
   font-size: 0.88rem;
   cursor: pointer;
@@ -218,10 +218,10 @@
 
 .viewToggle {
   display: flex;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
   border-radius: 8px;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--surface-soft);
 }
 
 .toggleBtn {
@@ -255,13 +255,13 @@
   cursor: pointer;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 10px rgba(237, 28, 40, 0.3);
 }
 
 .primaryActionBtn:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 14px rgba(237, 28, 40, 0.4);
 }
 
 /* Course & Batch Card Grids */
@@ -279,8 +279,8 @@
 
 /* Course Card */
 .courseCard {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 22px;
   backdrop-filter: blur(12px);
@@ -293,10 +293,10 @@
 }
 
 .courseCard:hover {
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--surface-soft);
+  border-color: var(--primary);
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-medium);
 }
 
 .cardHeader {
@@ -309,9 +309,9 @@
   width: 46px;
   height: 46px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(147, 51, 234, 0.2) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
+  background: linear-gradient(135deg, rgba(237, 28, 40, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
+  border: 1px solid rgba(237, 28, 40, 0.3);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -367,9 +367,9 @@
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-soft);
   color: var(--text-muted);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
 }
 
 /* Card Stats */
@@ -377,8 +377,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
   border-radius: 10px;
   padding: 12px 14px;
 }
@@ -405,8 +405,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
   color: var(--foreground);
   padding: 10px 16px;
   border-radius: 10px;
@@ -420,13 +420,13 @@
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(237, 28, 40, 0.3);
 }
 
 /* Batch Card Variants */
 .batchCard {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 22px;
   backdrop-filter: blur(12px);
@@ -442,7 +442,7 @@
 
 .batchCard:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-medium);
 }
 
 .batchCardStartToday {
