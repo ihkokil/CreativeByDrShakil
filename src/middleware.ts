@@ -101,8 +101,16 @@ export async function middleware(request: NextRequest) {
 
     if (!isExempt) {
       const clientDeviceHash = request.headers.get('x-device-hash');
+      const isFallbackJwt = typeof payload.deviceHash === 'string' && (payload.deviceHash.startsWith('fallback-') || !payload.deviceHash);
+      const isFallbackClient = typeof clientDeviceHash === 'string' && (clientDeviceHash.startsWith('fallback-') || !clientDeviceHash);
 
-      if (clientDeviceHash && payload.deviceHash && clientDeviceHash !== payload.deviceHash) {
+      if (
+        clientDeviceHash &&
+        payload.deviceHash &&
+        !isFallbackJwt &&
+        !isFallbackClient &&
+        clientDeviceHash !== payload.deviceHash
+      ) {
         return NextResponse.json(
           { error: 'Session hijacking detected. Invalid device hash.', code: 'invalid_device_hash' },
           { status: 401 }

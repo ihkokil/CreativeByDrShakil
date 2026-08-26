@@ -761,7 +761,7 @@ export default function StudentsManager() {
       {/* Main Search & Control Toolbar */}
       <div className={styles.toolbar}>
         <div className={styles.toolbarTop}>
-          <div className={styles.searchBox}>
+          <form className={styles.searchBox} onSubmit={(e) => e.preventDefault()}>
             <Search size={18} className={styles.searchIcon} />
             <input 
               type="text" 
@@ -781,7 +781,7 @@ export default function StudentsManager() {
                 <X size={15} />
               </button>
             )}
-          </div>
+          </form>
 
           <div className={styles.toolbarActions}>
             <select 
@@ -906,7 +906,7 @@ export default function StudentsManager() {
                       }}
                     >
                       <td 
-                        style={{ textAlign: 'center' }}
+                        className={styles.selectCell}
                         onClick={(e) => { 
                           e.stopPropagation(); 
                           handleToggleSelect(student.id); 
@@ -921,7 +921,7 @@ export default function StudentsManager() {
                           aria-label={`Select ${student.fullName}`}
                         />
                       </td>
-                      <td>
+                      <td className={styles.infoCell}>
                         <div className={styles.studentCell}>
                           <div className={styles.avatar}>
                             {student.profileImage ? (
@@ -948,7 +948,7 @@ export default function StudentsManager() {
                           </div>
                         </div>
                       </td>
-                      <td>
+                      <td className={styles.programsCell}>
                         <StudentProgramsCell 
                           student={student} 
                           onCourseClick={(courseId) => {
@@ -965,7 +965,7 @@ export default function StudentsManager() {
                           }}
                         />
                       </td>
-                      <td onClick={(e) => e.stopPropagation()} style={{ textAlign: 'right' }}>
+                      <td className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.actionGroup}>
                           <button 
                             type="button"
@@ -1009,12 +1009,11 @@ export default function StudentsManager() {
 
                           <button
                             type="button"
-                            className={styles.actionBtnPill}
+                            className={`${styles.actionBtnPill} ${styles.actionBtnDelete}`}
                             onClick={() => handleDeleteStudent(student)}
                             title="Delete Student"
-                            style={{ color: 'var(--error)' }}
                           >
-                            <Trash2 size={13} />
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>

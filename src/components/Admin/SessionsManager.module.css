@@ -669,4 +669,40 @@
     width: 100%;
     justify-content: center;
   }
+
+  .userActionsWrapper {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .userActionsWrapper .actionBtn {
+    width: 100%;
+    min-height: 42px;
+    justify-content: center;
+  }
+}
+
+.userActionsWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.userActionsWrapper .actionBtn {
+  min-width: 90px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }

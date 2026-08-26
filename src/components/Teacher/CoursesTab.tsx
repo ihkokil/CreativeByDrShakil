@@ -280,45 +280,40 @@ export default function CoursesTab() {
                 </div>
             </div>
 
-            <div className={styles.tableWrapper}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th>Program Name</th>
-                            <th>Status</th>
-                            <th>Mode</th>
-                            <th>Price</th>
-                            <th>Start Date</th>
-                            <th>Enrolled</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredCourses.map((course) => (
-                            <tr key={course.id}>
-                                    <td>
-                                        <div className={styles.courseInfo}>
-                                            <div className={styles.thumb}>
-                                                <Image src={course.imageUrl || "/placeholder.svg"} alt="" fill style={{ objectFit: 'cover' }} />
-                                            </div>
-                                            <div className={styles.meta}>
-                                                <span className={styles.title}>{course.title}</span>
-                                                <span className={styles.duration}>{course.duration}</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
+            <div className={styles.coursesList}>
+                {filteredCourses.map((course) => (
+                    <div key={course.id} className={styles.courseCardItem}>
+                        <div className={styles.cardMain}>
+                            <div className={styles.thumbWrapper}>
+                                <Image
+                                    src={course.imageUrl || "/placeholder.svg"} 
+                                    alt={course.title}
+                                    fill 
+                                    style={{ objectFit: 'cover' }}
+                                    unoptimized 
+                                />
+                                {course.duration && (
+                                    <span className={styles.durationTag}>{course.duration}</span>
+                                )}
+                            </div>
+                            
+                            <div className={styles.cardDetails}>
+                                <div className={styles.cardTitleRow}>
+                                    <h3 className={styles.courseTitle}>{course.title}</h3>
+                                    <div className={styles.badgeGroup}>
                                         <span className={`${styles.statusBadge} ${styles[course.status]}`}>
                                             {course.status}
                                         </span>
-                                    </td>
-                                    <td>
-                                        <span className={styles.dateText} style={{ fontWeight: 600 }}>
+                                        <span className={styles.modeBadge}>
                                             {!course.releaseMode || course.releaseMode === 'circular' ? "Circular" : "Linear"}
                                         </span>
-                                    </td>
-                                    <td>
-                                        <div className={styles.priceCol}>
+                                    </div>
+                                </div>
+
+                                <div className={styles.cardMetricsRow}>
+                                    <div className={styles.metricItem}>
+                                        <span className={styles.metricLabel}>Pricing</span>
+                                        <div className={styles.priceContainer}>
                                             {course.salePrice ? (
                                                 <>
                                                     <span className={styles.mainPrice}>৳{course.salePrice}</span>
@@ -328,66 +323,74 @@ export default function CoursesTab() {
                                                 <span className={styles.mainPrice}>৳{course.price}</span>
                                             )}
                                         </div>
-                                    </td>
-                                    <td>
-                                        <span className={styles.dateText}>
-                                            {course.courseStartDate ? new Date(course.courseStartDate).toLocaleDateString() : 'N/A'}
+                                    </div>
+
+                                    <div className={styles.metricItem}>
+                                        <span className={styles.metricLabel}>Start Date</span>
+                                        <span className={styles.metricValue}>
+                                            {course.courseStartDate ? new Date(course.courseStartDate).toLocaleDateString() : 'Self-Paced'}
                                         </span>
-                                    </td>
-                                    <td>
-                                        <div className={styles.statsCol}>
-                                            <span className={styles.mainStat}>{course.enrolledCount}</span>
-                                            <span className={styles.subStat}>Students</span>
+                                    </div>
+
+                                    <div className={styles.metricItem}>
+                                        <span className={styles.metricLabel}>Enrollment</span>
+                                        <div className={styles.enrolledBadge}>
+                                            <Users size={14} />
+                                            <span>{course.enrolledCount || 0} Students</span>
                                         </div>
-                                    </td>
-                                    <td>
-                                        <div className={styles.rowActions}>
-                                            <button 
-                                                className={styles.iconAction} 
-                                                onClick={() => setSelectedCourseForStudents({ id: course.id, title: course.title })} 
-                                                title="Manage Students"
-                                            >
-                                                <Users size={18} />
-                                            </button>
-                                            <button className={styles.iconAction} onClick={() => window.open(`/courses/${course.slug}`, '_blank')} title="View on Student Site">
-                                                <ExternalLink size={18} />
-                                            </button>
-                                            <button 
-                                                className={styles.iconAction} 
-                                                onClick={() => router.push(`/teacher/dashboard/courses/${course.id}/edit`)} 
-                                                title="Edit"
-                                            >
-                                                <Edit2 size={18} />
-                                            </button>
-                                            <button 
-                                                className={styles.iconAction} 
-                                                onClick={() => handleDuplicate(course.id)} 
-                                                title="Duplicate"
-                                            >
-                                                <Copy size={18} />
-                                            </button>
-                                            {course.status !== "archived" && (
-                                                <button 
-                                                    className={styles.iconAction} 
-                                                    onClick={() => handleArchive(course.id, course.title)} 
-                                                    title="Archive"
-                                                >
-                                                    <Archive size={18} />
-                                                </button>
-                                            )}
-                                            <button 
-                                                className={`${styles.iconAction} ${styles.delete}`} 
-                                                onClick={() => handleDelete(course.id, course.title)}
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                    </tbody>
-                </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={styles.cardActionsRow}>
+                            <button 
+                                className={styles.primaryActionButton} 
+                                onClick={() => setSelectedCourseForStudents({ id: course.id, title: course.title })} 
+                                title="Manage Students"
+                            >
+                                <Users size={15} /> Manage Students
+                            </button>
+                            <button 
+                                className={styles.actionBtnIcon} 
+                                onClick={() => window.open(`/courses/${course.slug}`, '_blank')} 
+                                title="View on Student Site"
+                            >
+                                <ExternalLink size={15} /> <span>Preview</span>
+                            </button>
+                            <button 
+                                className={styles.actionBtnIcon} 
+                                onClick={() => router.push(`/teacher/dashboard/courses/${course.id}/edit`)} 
+                                title="Edit Course"
+                            >
+                                <Edit2 size={15} /> <span>Edit</span>
+                            </button>
+                            <button 
+                                className={styles.actionBtnIcon} 
+                                onClick={() => handleDuplicate(course.id)} 
+                                title="Duplicate Course"
+                            >
+                                <Copy size={15} /> <span>Duplicate</span>
+                            </button>
+                            {course.status !== "archived" && (
+                                <button 
+                                    className={styles.actionBtnIcon} 
+                                    onClick={() => handleArchive(course.id, course.title)} 
+                                    title="Archive Course"
+                                >
+                                    <Archive size={15} /> <span>Archive</span>
+                                </button>
+                            )}
+                            <button 
+                                className={`${styles.actionBtnIcon} ${styles.deleteAction}`} 
+                                onClick={() => handleDelete(course.id, course.title)}
+                                title="Delete Course"
+                            >
+                                <Trash2 size={15} /> <span>Delete</span>
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
             
             {filteredCourses.length === 0 && (

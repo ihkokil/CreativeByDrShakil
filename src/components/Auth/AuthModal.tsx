@@ -231,6 +231,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                     return;
                 }
                 setMessage({ type: 'error', text: data.error || 'Invalid credentials.' });
+            } else {
                 if (data.token) {
                     localStorage.setItem('auth_token', data.token);
                 }

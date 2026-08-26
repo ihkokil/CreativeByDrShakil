@@ -5,6 +5,8 @@
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .topBar {
@@ -311,17 +313,45 @@
 }
 
 @media (max-width: 768px) {
-  .ordersGrid {
-    grid-template-columns: 1fr;
+  .topBar {
+    width: 100%;
+    justify-content: stretch;
   }
+
   .filterTabs {
     width: 100%;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 6px;
   }
-  .filterTab {
-    flex: 1;
+
+  /* Pending tab is full width (100%) on mobile */
+  .filterTab:first-child {
+    grid-column: 1 / -1;
+    width: 100%;
     justify-content: center;
-    padding: 8px 10px;
-    font-size: 0.78rem;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    min-height: 44px;
+  }
+
+  /* Approved and Rejected are half width (50% / 50%) side by side */
+  .filterTab {
+    justify-content: center;
+    padding: 9px 12px;
+    font-size: 0.82rem;
+    min-height: 42px;
+  }
+
+  .ordersGrid {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .orderCard {
+    width: 100%;
+    min-width: 0;
+    padding: 16px;
   }
 }

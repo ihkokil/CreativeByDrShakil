@@ -1248,8 +1248,7 @@ export default function UsersManager() {
               <th style={{ width: '14%' }}>Desktop (1 Slot)</th>
               <th style={{ width: '14%' }}>Tablet (1 Slot)</th>
               <th style={{ width: '14%' }}>Mobile (1 Slot)</th>
-              <th style={{ width: '10%' }}>Account Controls</th>
-              <th style={{ width: '10%', textAlign: 'right' }}>Session Controls</th>
+              <th style={{ width: '20%', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -1411,9 +1410,9 @@ export default function UsersManager() {
                     {renderDeviceSlot(boundMobile, 'Mobile', Smartphone, userObj.id, 'mobile', userObj.fullName || userObj.email)}
                   </td>
 
-                  {/* Account Actions */}
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px' }}>
+                  {/* Account & Session Actions */}
+                  <td style={{ textAlign: 'right' }}>
+                    <div className={styles.userActionsWrapper}>
                       <button
                         className={styles.actionBtn}
                         onClick={() => handleToggleBan(userObj.id, userObj.isBanned, userObj.fullName || userObj.email)}
@@ -1422,8 +1421,6 @@ export default function UsersManager() {
                           color: userObj.isBanned ? '#22c55e' : '#f97316',
                           borderColor: userObj.isBanned ? 'rgba(34, 197, 94, 0.3)' : 'rgba(249, 115, 22, 0.3)',
                           background: userObj.isBanned ? 'rgba(34, 197, 94, 0.08)' : 'rgba(249, 115, 22, 0.08)',
-                          width: '100%',
-                          justifyContent: 'flex-start',
                         }}
                       >
                         {userObj.isBanned ? <UserCheck size={15} /> : <ShieldAlert size={15} />}
@@ -1438,19 +1435,12 @@ export default function UsersManager() {
                           color: '#ef4444',
                           borderColor: 'rgba(239, 68, 68, 0.3)',
                           background: 'rgba(239, 68, 68, 0.08)',
-                          width: '100%',
-                          justifyContent: 'flex-start',
                         }}
                       >
                         <Trash2 size={15} />
                         <span>Delete</span>
                       </button>
-                    </div>
-                  </td>
 
-                  {/* Session Actions */}
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '125px', marginLeft: 'auto' }}>
                       <button
                         className={styles.actionBtn}
                         onClick={() => handleToggleExempt(userObj.id, userObj.isSessionLockedExempt)}
@@ -1459,8 +1449,6 @@ export default function UsersManager() {
                           color: userObj.isSessionLockedExempt ? '#38bdf8' : 'var(--text-muted)',
                           borderColor: userObj.isSessionLockedExempt ? 'rgba(56, 189, 248, 0.3)' : 'var(--glass-border)',
                           background: userObj.isSessionLockedExempt ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
-                          width: '100%',
-                          justifyContent: 'flex-start',
                         }}
                       >
                         {userObj.isSessionLockedExempt ? <Unlock size={15} /> : <Lock size={15} />}
@@ -1474,7 +1462,6 @@ export default function UsersManager() {
                             userObj.activeSessions.forEach((s) => handleLogoutSession(s.id))
                           }
                           title="Force logout active session"
-                          style={{ width: '100%', justifyContent: 'flex-start' }}
                         >
                           <LogOut size={15} />
                           <span>Logout</span>

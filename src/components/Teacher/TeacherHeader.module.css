@@ -232,6 +232,12 @@
 }
 
 @media (max-width: 768px) {
+    .header {
+        padding: 0 16px;
+        height: 64px;
+        box-sizing: border-box;
+        width: 100%;
+    }
     .profileText, .divider, .iconBtn:first-child {
         display: none;
     }
