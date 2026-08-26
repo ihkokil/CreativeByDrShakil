@@ -79,17 +79,25 @@
 @media (max-width: 768px) {
     .mainContent {
         margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
     .mainContentCollapsed {
         margin-left: 0;
     }
     .pageContent {
-        padding: 16px;
-        padding-bottom: 96px; /* Space for mobile nav */
+        padding: 16px 16px;
+        padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px) + 20px); /* Space for mobile nav */
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
     }
 
     .pageShell {
         gap: 16px;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .mobileBottomNav {

@@ -4,8 +4,8 @@ import styles from "../TeacherDashboard.module.css";
 
 export default function StudentsPage() {
     return (
-        <section className={styles.panel} aria-label="Student Directory & Enrollment Hub">
-            <div className={styles.sectionHeader} style={{ marginBottom: '16px' }}>
+        <div className={styles.pageShell} aria-label="Student Directory & Enrollment Hub">
+            <div className={styles.sectionHeader} style={{ marginBottom: '8px' }}>
                 <div>
                     <h1 className={styles.sectionTitle} style={{ fontSize: '1.65rem', letterSpacing: '-0.02em', margin: 0 }}>
                         Student Directory
@@ -16,7 +16,7 @@ export default function StudentsPage() {
                 </div>
             </div>
             <StudentsManager />
-        </section>
+        </div>
     );
 }
 

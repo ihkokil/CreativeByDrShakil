@@ -535,6 +535,17 @@
   border-color: var(--primary);
 }
 
+.actionBtnDelete {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 25%, transparent);
+}
+
+.actionBtnDelete:hover {
+  background: var(--error) !important;
+  color: #ffffff !important;
+  border-color: var(--error) !important;
+}
+
 /* ===== Floating Batch Action Bar ===== */
 .batchContainer {
   position: fixed;
@@ -1047,8 +1058,45 @@
 }
 
 @media (max-width: 768px) {
+  .wrapper {
+    gap: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .kpiGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .kpiCard {
+    padding: 12px 14px;
+    gap: 12px;
+    border-radius: var(--radius-md);
+    box-sizing: border-box;
+  }
+
+  .kpiIconWrapper {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .kpiValue {
+    font-size: 1.35rem;
+  }
+
+  .kpiLabel {
+    font-size: 0.7rem;
+  }
+
+  .toolbar {
+    padding: 14px;
+    gap: 12px;
+    border-radius: var(--radius-md);
+    box-sizing: border-box;
   }
 
   /* Table Card Transformation */
@@ -1060,12 +1108,9 @@
   }
 
   .table,
-  .table tbody,
-  .table tr,
-  .table td {
+  .table tbody {
     display: block;
     width: 100%;
-    min-width: 0 !important;
   }
 
   .table thead {
@@ -1075,18 +1120,25 @@
   .table tbody {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
   }
 
   .table tbody tr {
     background: var(--surface-soft);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
-    padding: 16px;
+    padding: 14px;
     box-shadow: var(--shadow-soft);
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    grid-template-areas:
+      "select info"
+      "programs programs"
+      "actions actions";
+    gap: 10px 10px;
+    align-items: start;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .table td {
@@ -1094,8 +1146,35 @@
     border-bottom: none;
   }
 
+  .selectCell {
+    grid-area: select;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 8px;
+  }
+
+  .infoCell {
+    grid-area: info;
+    min-width: 0;
+  }
+
+  .programsCell {
+    grid-area: programs;
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  .actionsCell {
+    grid-area: actions;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid var(--glass-border);
+  }
+
   .studentCell {
     width: 100%;
+    gap: 12px;
   }
 
   .courseBadgeGroup {
@@ -1105,15 +1184,22 @@
   .actionGroup {
     width: 100%;
     justify-content: stretch;
-    padding-top: 10px;
-    border-top: 1px solid var(--glass-border);
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 44px;
+    gap: 8px;
   }
 
   .actionBtnPill {
     width: 100%;
-    min-height: 44px;
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 0.8rem;
+  }
+
+  .actionBtnDelete {
+    padding: 0;
+    min-height: 40px;
+    width: 44px;
   }
 
   .batchContainer {
@@ -1151,25 +1237,86 @@
 }
 
 @media (max-width: 640px) {
+  .toolbar {
+    padding: 12px;
+    gap: 10px;
+  }
+
   .toolbarTop {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
 
   .searchBox {
     max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .searchInput {
+    padding: 9px 36px 9px 38px;
+    font-size: 14px;
+    min-height: 42px;
   }
 
   .toolbarActions {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
   }
 
-  .filterSelect,
-  .exportBtn,
+  .filterSelect {
+    width: 100%;
+    min-width: 0;
+    font-size: 13px;
+    padding: 8px 28px 8px 10px;
+    min-height: 40px;
+  }
+
+  .exportBtn {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
   .newStudentBtn {
     width: 100%;
     justify-content: center;
+    min-height: 40px;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .chipsRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-top: 8px;
+  }
+
+  .segmentChips {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+
+  .segmentChip {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
+  .resultCount {
+    font-size: 0.76rem;
   }
 
   .row {
