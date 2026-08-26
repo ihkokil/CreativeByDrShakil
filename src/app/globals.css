@@ -153,16 +153,16 @@
   --primary: #ed1c28;
   --secondary: #dc2626;
   --accent: #b91c1c;
-  --glass: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-highlight: rgba(0, 0, 0, 0.02);
-  --card-bg: rgba(255, 255, 255, 0.90);
-  --text-muted: #475569;
+  --glass: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(0, 0, 0, 0.12);
+  --glass-highlight: rgba(0, 0, 0, 0.03);
+  --card-bg: #ffffff;
+  --text-muted: #64748b;
   --text-secondary: #334155;
-  --surface-soft: rgba(241, 245, 249, 0.88);
-  --surface-strong: rgba(226, 232, 240, 0.92);
-  --shadow-soft: 0 10px 24px rgba(15, 23, 42, 0.06);
-  --shadow-medium: 0 18px 36px rgba(15, 23, 42, 0.1);
+  --surface-soft: #f1f5f9;
+  --surface-strong: #e2e8f0;
+  --shadow-soft: 0 4px 16px rgba(15, 23, 42, 0.06);
+  --shadow-medium: 0 10px 28px rgba(15, 23, 42, 0.09);
 
   /* Feedback Surface & Border Tokens (Light Mode) */
   --success-surface: rgba(16, 185, 129, 0.1);
@@ -174,20 +174,20 @@
   --info-surface: rgba(14, 165, 233, 0.1);
   --info-border: rgba(14, 165, 233, 0.35);
   
-  --dropdown-bg: rgba(255, 255, 255, 0.95);
+  --dropdown-bg: #ffffff;
   --dropdown-border: var(--glass-border);
-  --dropdown-hover: rgba(241, 245, 249, 0.95);
+  --dropdown-hover: #f1f5f9;
   --dropdown-focus: var(--primary);
-  --dropdown-menu-bg: rgba(255, 255, 255, 0.96);
+  --dropdown-menu-bg: #ffffff;
   --dropdown-menu-text: var(--foreground);
-  --dropdown-menu-active: color-mix(in srgb, var(--primary) 15%, #ffffff);
+  --dropdown-menu-active: color-mix(in srgb, var(--primary) 12%, #ffffff);
   --dropdown-placeholder: var(--text-muted);
 
   /* Component Compatibility (Light Theme) */
-  --surface: rgba(255, 255, 255, 0.90);
-  --surface-alt: rgba(241, 245, 249, 0.92);
-  --border: rgba(0, 0, 0, 0.08);
-  --bg-hover: rgba(0, 0, 0, 0.04);
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --border: rgba(0, 0, 0, 0.12);
+  --bg-hover: rgba(0, 0, 0, 0.05);
   --text: #0f172a;
   --primary-dark: #991b1b;
 }

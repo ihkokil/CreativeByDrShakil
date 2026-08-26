@@ -369,7 +369,7 @@ export default function CourseBatchesPage() {
                   💡 The end date will automatically be set to 1 year from the start date. Students enrolled in this batch will adhere to the batch start schedule.
                 </p>
 
-                <div className={styles.modalActions} style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div className={styles.modalActions} style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid var(--glass-border)' }}>
                   <button type="button" onClick={() => setIsModalOpen(false)} className={styles.cancelBtn}>
                     Cancel
                   </button>

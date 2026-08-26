@@ -168,19 +168,26 @@ function LoginContent() {
                 if (data.token) {
                     localStorage.setItem("auth_token", data.token);
                 }
-                await refreshSession();
+                if (data.user) {
+                    try {
+                        localStorage.setItem('auth_user_cache', JSON.stringify({
+                            user: data.user,
+                            role: data.user.role || 'student',
+                            sessionId: data.sessionId || null,
+                        }));
+                    } catch {}
+                }
+                await refreshSession(true);
                 setMessage({ type: "success", text: "Successfully logged in!" });
 
                 const userRole = data.user?.role || "student";
-                setTimeout(() => {
-                    if (userRole === "admin") {
-                        router.push("/admin/dashboard");
-                    } else if (userRole === "teacher") {
-                        router.push("/teacher/dashboard");
-                    } else {
-                        router.push("/dashboard/courses");
-                    }
-                }, 1000);
+                if (userRole === "admin") {
+                    router.push("/admin/dashboard");
+                } else if (userRole === "teacher") {
+                    router.push("/teacher/dashboard");
+                } else {
+                    router.push("/dashboard/courses");
+                }
             }
         } catch (err) {
             setMessage({ type: "error", text: "Connection error. Please try again." });
