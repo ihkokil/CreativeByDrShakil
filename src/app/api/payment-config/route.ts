@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import { getSupabaseAdmin } from '@/lib/db'
+import { NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -15,30 +15,34 @@ export async function GET() {
     if (!config) {
       return NextResponse.json({
         provider: 'bkash',
-        sendMoneyNumber: '01700000000',
-        qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
+        sendMoneyNumber: '01723084529',
+        qrCodeUrl: '',
       }, {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
         },
-      })
+      });
     }
 
-    return NextResponse.json(config, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
-      },
-    })
-  } catch (error) {
-    console.error('Failed to fetch payment configuration:', error);
     return NextResponse.json({
-      provider: 'bkash',
-      sendMoneyNumber: '01700000000',
-      qrCodeUrl: '/uploads/bkash-qr/bkash-qr.png',
+      provider: config.provider || 'bkash',
+      sendMoneyNumber: config.sendMoneyNumber || '01723084529',
+      qrCodeUrl: '',
     }, {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
       },
-    })
+    });
+  } catch (error) {
+    console.error('Failed to fetch payment configuration:', error);
+    return NextResponse.json({
+      provider: 'bkash',
+      sendMoneyNumber: '01723084529',
+      qrCodeUrl: '',
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=3600',
+      },
+    });
   }
 }

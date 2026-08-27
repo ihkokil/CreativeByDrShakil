@@ -21,7 +21,7 @@ export async function GET(
 
     const { data: student }: { data: any } = await supabase
       .from('User')
-      .select('id, fullName, email, profileImage')
+      .select('id, fullName, email, phone, bmdcNumber, role, profileImage, createdAt')
       .eq('id', studentId)
       .limit(1)
       .maybeSingle();
@@ -32,7 +32,7 @@ export async function GET(
 
     let orderQuery = supabase
       .from('Order')
-      .select('courseId, enrolledAt, updatedAt')
+      .select('id, courseId, batchId, enrolledAt, expiresAt, updatedAt, status')
       .eq('userId', studentId)
       .eq('status', 'approved');
 
@@ -42,18 +42,25 @@ export async function GET(
 
     const { data: orders = [] }: { data: any[] | null } = await orderQuery;
     const courseIds = [...new Set((orders || []).map((o: any) => o.courseId).filter(Boolean))];
+    const batchIds = [...new Set((orders || []).map((o: any) => o.batchId).filter(Boolean))];
 
     if (courseIds.length === 0) {
       return NextResponse.json({
         student,
         courses: [],
+        progress: {},
+        avgProgress: 0,
       });
     }
 
-    const { data: courses = [] } = await supabase
-      .from('Course')
-      .select('id, title, slug, imageUrl, curriculumJson')
-      .in('id', courseIds);
+    const [{ data: courses = [] }, { data: batches = [] }] = await Promise.all([
+      supabase.from('Course').select('id, title, slug, imageUrl, curriculumJson').in('id', courseIds),
+      batchIds.length > 0
+        ? supabase.from('Batch').select('id, name, startDate').in('id', batchIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const batchMap = new Map<string, any>((batches || []).map((b: any) => [b.id, b]));
 
     // Get progress for all enrolled courses
     const { data: progressRows = [] } = await supabase
@@ -77,22 +84,41 @@ export async function GET(
       const totalCount = lessonNodes.length;
 
       const order = (orders || []).find((o: any) => o.courseId === course.id);
+      const batch = order?.batchId ? batchMap.get(order.batchId) : null;
+
+      const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
       return {
+        orderId: order?.id || '',
         courseId: course.id,
-        title: course.title,
-        slug: course.slug,
+        courseTitle: course.title,
+        courseSlug: course.slug,
         imageUrl: course.imageUrl,
-        enrolledAt: order?.enrolledAt || order?.updatedAt,
+        enrolledAt: order?.enrolledAt || order?.updatedAt || null,
+        expiresAt: order?.expiresAt || null,
+        batchId: order?.batchId || null,
+        batchName: batch?.name || null,
+        batchStartDate: batch?.startDate || null,
         completedCount,
         totalCount,
-        progressPercent: totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0,
+        progressPercent,
       };
     }));
+
+    const progressMap: Record<string, number> = {};
+    enrichedCourses.forEach((c: any) => {
+      progressMap[c.courseId] = c.progressPercent;
+    });
+
+    const avgProgress = enrichedCourses.length > 0
+      ? Math.round(enrichedCourses.reduce((sum, c) => sum + c.progressPercent, 0) / enrichedCourses.length)
+      : 0;
 
     return NextResponse.json({
       student,
       courses: enrichedCourses,
+      progress: progressMap,
+      avgProgress,
     });
   } catch (error: any) {
     console.error('[students/progress] error:', error);

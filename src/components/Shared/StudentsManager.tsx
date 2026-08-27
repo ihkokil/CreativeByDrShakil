@@ -27,6 +27,9 @@ interface EnrolledCourse {
   courseSlug: string | null;
   enrolledAt: string | null;
   expiresAt: string | null;
+  batchId?: string | null;
+  batchName?: string | null;
+  batchStartDate?: string | null;
 }
 
 interface StudentProfile {
@@ -56,7 +59,7 @@ function StudentProgramsCell({
 
   return (
     <div className={styles.courseBadgeGroup}>
-      {student.enrolledCourses.slice(0, 2).map((c) => {
+      {student.enrolledCourses.slice(0, 3).map((c) => {
         let isExpired = false;
         let isExpiringSoon = false;
 
@@ -73,26 +76,43 @@ function StudentProgramsCell({
             ? styles.dot_expiring 
             : styles.dot_active;
 
-        const dateTooltip = `Enrolled: ${c.enrolledAt ? formatDateGMT6(c.enrolledAt) : '—'} • Expires: ${c.expiresAt ? formatDateGMT6(c.expiresAt) : '—'}`;
+        const dateTooltip = `Course: ${c.courseTitle}\nBatch: ${c.batchName || 'Standard / None'}\nEnrolled: ${c.enrolledAt ? formatDateGMT6(c.enrolledAt) : '—'}\nExpires: ${c.expiresAt ? formatDateGMT6(c.expiresAt) : '—'}`;
 
         return (
           <div 
             key={c.courseId} 
-            className={styles.courseBadge}
+            className={styles.courseCardBadge}
             onClick={(e) => {
               e.stopPropagation();
               onCourseClick?.(c.courseId);
             }}
-            title={`${c.courseTitle}\n${dateTooltip}`}
+            title={dateTooltip}
           >
-            <span className={`${styles.statusDot} ${dotClass}`} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.courseTitle}</span>
+            <div className={styles.courseBadgeHeader}>
+              <span className={`${styles.statusDot} ${dotClass}`} />
+              <span className={styles.courseBadgeTitle}>{c.courseTitle}</span>
+            </div>
+
+            <div className={styles.courseMetaTags}>
+              {c.batchName && (
+                <span className={styles.batchSubBadge} title={`Batch: ${c.batchName}`}>
+                  <Users size={11} />
+                  <span>{c.batchName}</span>
+                </span>
+              )}
+              {c.enrolledAt && (
+                <span className={styles.dateSubBadge} title={`Enrolled on ${formatDateGMT6(c.enrolledAt)}`}>
+                  <Calendar size={11} />
+                  <span>{formatDateGMT6(c.enrolledAt)}</span>
+                </span>
+              )}
+            </div>
           </div>
         );
       })}
-      {student.enrolledCourses.length > 2 && (
-        <span className={styles.moreCoursesBadge} title={student.enrolledCourses.slice(2).map(c => c.courseTitle).join(', ')}>
-          +{student.enrolledCourses.length - 2} more
+      {student.enrolledCourses.length > 3 && (
+        <span className={styles.moreCoursesBadge} title={student.enrolledCourses.slice(3).map(c => c.courseTitle).join(', ')}>
+          +{student.enrolledCourses.length - 3} more
         </span>
       )}
     </div>
@@ -139,6 +159,7 @@ export default function StudentsManager() {
     courseTitle: string;
     enrolledAt: string | null;
     expiresAt: string | null;
+    batchName?: string | null;
   } | null>(null);
   const [editingEnrollment, setEditingEnrollment] = useState<{
     studentName: string;
@@ -293,6 +314,7 @@ export default function StudentsManager() {
               courseTitle: selectedSingleCourse.courseTitle,
               enrolledAt: courseEnrollment.enrolledAt,
               expiresAt: courseEnrollment.expiresAt,
+              batchName: courseEnrollment.batchName,
             });
           }
         } else {
@@ -415,9 +437,14 @@ export default function StudentsManager() {
       showAlert('No students available to export.', 'warning');
       return;
     }
-    const headers = ["Student ID", "Full Name", "Email", "Phone", "BMDC Number", "Registered At", "Total Courses", "Course Names"];
+    const headers = ["Student ID", "Full Name", "Email", "Phone", "BMDC Number", "Registered At", "Total Courses", "Enrolled Programs (Course / Batch / Enroll Date)"];
     const rows = filteredStudents.map(s => {
-      const coursesStr = s.enrolledCourses.map(c => c.courseTitle).join("; ");
+      const coursesStr = s.enrolledCourses.map(c => {
+        const parts = [c.courseTitle];
+        if (c.batchName) parts.push(`[Batch: ${c.batchName}]`);
+        if (c.enrolledAt) parts.push(`(Enrolled: ${formatDateGMT6(c.enrolledAt)})`);
+        return parts.join(' ');
+      }).join("; ");
       return [
         `"${s.id}"`,
         `"${s.fullName || ''}"`,
@@ -959,7 +986,8 @@ export default function StudentsManager() {
                                 courseId: course.courseId,
                                 courseTitle: course.courseTitle,
                                 enrolledAt: course.enrolledAt,
-                                expiresAt: course.expiresAt
+                                expiresAt: course.expiresAt,
+                                batchName: course.batchName,
                               });
                             }
                           }}
@@ -1318,6 +1346,7 @@ export default function StudentsManager() {
           courseTitle={selectedSingleCourse.courseTitle}
           enrolledAt={selectedSingleCourse.enrolledAt}
           expiresAt={selectedSingleCourse.expiresAt}
+          batchName={selectedSingleCourse.batchName}
           onClose={() => setSelectedSingleCourse(null)}
           onEditDate={() => {
             setEditingEnrollment({

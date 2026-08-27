@@ -34,16 +34,24 @@ export async function GET() {
         ? supabase.from('DeviceSession').select('*').in('userId', studentIds).order('createdAt', { ascending: false })
         : Promise.resolve({ data: [] }),
       studentIds.length > 0
-        ? supabase.from('Order').select('id, userId, enrolledAt, expiresAt, courseId').in('userId', studentIds).eq('status', 'approved')
+        ? supabase.from('Order').select('id, userId, enrolledAt, expiresAt, courseId, batchId').in('userId', studentIds).eq('status', 'approved')
         : Promise.resolve({ data: [] }),
     ]);
 
-    const orderCourseIds = [...new Set((ordersList || []).map((o: any) => o.courseId))];
-    const { data: coursesList = [] } = orderCourseIds.length > 0
-      ? await supabase.from('Course').select('id, title, slug').in('id', orderCourseIds)
-      : { data: [] };
+    const orderCourseIds = [...new Set((ordersList || []).map((o: any) => o.courseId).filter(Boolean))];
+    const orderBatchIds = [...new Set((ordersList || []).map((o: any) => o.batchId).filter(Boolean))];
+
+    const [{ data: coursesList = [] }, { data: batchesList = [] }] = await Promise.all([
+      orderCourseIds.length > 0
+        ? supabase.from('Course').select('id, title, slug').in('id', orderCourseIds)
+        : Promise.resolve({ data: [] }),
+      orderBatchIds.length > 0
+        ? supabase.from('Batch').select('id, name, startDate').in('id', orderBatchIds)
+        : Promise.resolve({ data: [] }),
+    ]);
       
     const courseMap = new Map<string, any>((coursesList || []).map((c: any) => [c.id, c]));
+    const batchMap = new Map<string, any>((batchesList || []).map((b: any) => [b.id, b]));
 
     const deviceSessionsMap = new Map<string, any[]>();
     for (const ds of (deviceSessionsList as any[] || [])) {
@@ -56,11 +64,15 @@ export async function GET() {
     for (const o of (ordersList as any[] || [])) {
       const course = courseMap.get(o.courseId);
       if (course) {
+        const batch = o.batchId ? batchMap.get(o.batchId) : null;
         const list = ordersMap.get(o.userId) || [];
         list.push({
           id: o.id,
           enrolledAt: o.enrolledAt,
           expiresAt: o.expiresAt,
+          batchId: o.batchId || null,
+          batchName: batch?.name || null,
+          batchStartDate: batch?.startDate || null,
           course: {
             id: course.id,
             title: course.title,
@@ -98,6 +110,9 @@ export async function GET() {
           courseSlug: order.course.slug,
           enrolledAt: order.enrolledAt,
           expiresAt: order.expiresAt,
+          batchId: order.batchId || null,
+          batchName: order.batchName || null,
+          batchStartDate: order.batchStartDate || null,
         })),
       };
     });

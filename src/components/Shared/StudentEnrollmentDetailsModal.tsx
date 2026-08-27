@@ -2,23 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { X, Calendar, Settings, XCircle, BookX, ChevronDown } from 'lucide-react';
+import { X, Calendar, Settings, XCircle, BookX, ChevronDown, Users } from 'lucide-react';
 import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './StudentEnrollmentDetailsModal.module.css';
 import { formatDateGMT6 } from '@/lib/date-format';
 import { useModal } from '@/hooks/useModal';
 
-interface EnrolledCourse {
+export interface EnrolledCourse {
   orderId: string;
   courseId: string;
   courseTitle: string;
   courseSlug: string | null;
+  imageUrl?: string | null;
   enrolledAt: string | null;
   expiresAt: string | null;
+  batchId?: string | null;
+  batchName?: string | null;
+  batchStartDate?: string | null;
+  completedCount?: number;
+  totalCount?: number;
+  progressPercent?: number;
 }
 
-interface StudentProfile {
+export interface StudentProfile {
   id: string;
   fullName: string;
   email: string;
@@ -47,11 +54,19 @@ export default function StudentEnrollmentDetailsModal({
   onEditRules,
   onRevoke
 }: StudentEnrollmentDetailsModalProps) {
+  const [studentData, setStudentData] = useState<StudentProfile>(student);
+  const [coursesList, setCoursesList] = useState<EnrolledCourse[]>(student.enrolledCourses || []);
   const [progressMap, setProgressMap] = useState<Record<string, number>>({});
-
-  useModal(true, onClose);
+  const [avgProgress, setAvgProgress] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [expandedCourseId, setExpandedCourseId] = useState<string | null>(defaultExpandedCourseId || null);
+
+  useModal(true, onClose);
+
+  useEffect(() => {
+    setStudentData(student);
+    setCoursesList(student.enrolledCourses || []);
+  }, [student]);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,8 +79,61 @@ export default function StudentEnrollmentDetailsModal({
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const data = await res.json();
-        if (res.ok && isMounted && data.progress) {
-          setProgressMap(data.progress);
+        
+        if (res.ok && isMounted) {
+          if (data.student) {
+            setStudentData(prev => ({
+              ...prev,
+              fullName: data.student.fullName || prev.fullName,
+              email: data.student.email || prev.email,
+              phone: data.student.phone ?? prev.phone,
+              bmdcNumber: data.student.bmdcNumber ?? prev.bmdcNumber,
+              profileImage: data.student.profileImage ?? prev.profileImage,
+              role: data.student.role || prev.role,
+              createdAt: data.student.createdAt || prev.createdAt,
+            }));
+          }
+
+          if (Array.isArray(data.courses) && data.courses.length > 0) {
+            const mappedCourses: EnrolledCourse[] = data.courses.map((c: any) => {
+              const existingCourse = student.enrolledCourses?.find(ec => ec.courseId === c.courseId);
+              return {
+                orderId: c.orderId || existingCourse?.orderId || '',
+                courseId: c.courseId,
+                courseTitle: c.courseTitle || c.title || existingCourse?.courseTitle || 'Untitled Course',
+                courseSlug: c.courseSlug || c.slug || existingCourse?.courseSlug || null,
+                imageUrl: c.imageUrl || null,
+                enrolledAt: c.enrolledAt || existingCourse?.enrolledAt || null,
+                expiresAt: c.expiresAt || existingCourse?.expiresAt || null,
+                batchId: c.batchId || existingCourse?.batchId || null,
+                batchName: c.batchName || existingCourse?.batchName || null,
+                batchStartDate: c.batchStartDate || existingCourse?.batchStartDate || null,
+                completedCount: c.completedCount ?? 0,
+                totalCount: c.totalCount ?? 0,
+                progressPercent: c.progressPercent ?? 0,
+              };
+            });
+
+            setCoursesList(mappedCourses);
+
+            const pMap: Record<string, number> = {};
+            mappedCourses.forEach(c => {
+              pMap[c.courseId] = c.progressPercent ?? 0;
+            });
+            setProgressMap(pMap);
+
+            if (typeof data.avgProgress === 'number') {
+              setAvgProgress(data.avgProgress);
+            } else if (mappedCourses.length > 0) {
+              const totalPct = mappedCourses.reduce((sum, c) => sum + (c.progressPercent ?? 0), 0);
+              setAvgProgress(Math.round(totalPct / mappedCourses.length));
+            }
+          } else if (data.progress) {
+            setProgressMap(data.progress);
+            if (typeof data.avgProgress === 'number') {
+              setAvgProgress(data.avgProgress);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to fetch student progress', err);
@@ -74,16 +142,12 @@ export default function StudentEnrollmentDetailsModal({
       }
     };
 
-    if (student.enrolledCourses.length > 0) {
-      fetchProgress();
-    } else {
-      setLoading(false);
-    }
+    fetchProgress();
 
     return () => {
       isMounted = false;
     };
-  }, [student.id, student.enrolledCourses.length]);
+  }, [student.id, student.enrolledCourses]);
 
   const getInitials = (name: string) => {
     if (!name) return 'ST';
@@ -92,11 +156,8 @@ export default function StudentEnrollmentDetailsModal({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const totalCourses = student.enrolledCourses.length;
-  const totalProgressMapValues = Object.values(progressMap);
-  const avgProgress = totalCourses > 0 && totalProgressMapValues.length > 0
-    ? Math.round(totalProgressMapValues.reduce((a, b) => a + b, 0) / totalProgressMapValues.length)
-    : 0;
+  const totalCourses = coursesList.length;
+  const now = new Date();
 
   return (
     <div className={styles.overlay} data-drawer="true">
@@ -111,9 +172,9 @@ export default function StudentEnrollmentDetailsModal({
         <div className={styles.header}>
           <div className={styles.titleArea}>
             <h2>Student Details</h2>
-            <p>View profile and manage access.</p>
+            <p>View profile, progress, and manage enrollment access.</p>
           </div>
-          <button className={styles.closeBtn} onClick={onClose}><X size={20} /></button>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal"><X size={20} /></button>
         </div>
 
         <div className={styles.body}>
@@ -121,34 +182,34 @@ export default function StudentEnrollmentDetailsModal({
           <div className={styles.profileSummaryCard}>
             <div className={styles.profileHeader}>
               <div className={styles.avatarLarge}>
-                {student.profileImage ? (
-                  <Image src={student.profileImage} alt={student.fullName} fill style={{ objectFit: 'cover' }} unoptimized/>
-                ) : getInitials(student.fullName)}
+                {studentData.profileImage ? (
+                  <Image src={studentData.profileImage} alt={studentData.fullName} fill style={{ objectFit: 'cover' }} unoptimized/>
+                ) : getInitials(studentData.fullName)}
               </div>
               <div className={styles.profileHeaderInfo}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h3>{student.fullName}</h3>
-                  <span className={styles.roleBadge}>{student.role}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3>{studentData.fullName}</h3>
+                  <span className={styles.roleBadge}>{studentData.role || 'Student'}</span>
                 </div>
-                <span className={styles.registeredDate}>Joined {formatDateGMT6(student.createdAt)}</span>
+                <span className={styles.registeredDate}>Joined {formatDateGMT6(studentData.createdAt)}</span>
               </div>
             </div>
 
             <div className={styles.contactGrid}>
               <div className={styles.contactItem}>
                 <span className={styles.contactLabel}>Email Address</span>
-                <span className={styles.contactValue}>{student.email}</span>
+                <span className={styles.contactValue}>{studentData.email}</span>
               </div>
-              {student.phone && (
+              {studentData.phone && (
                 <div className={styles.contactItem}>
                   <span className={styles.contactLabel}>Phone Number</span>
-                  <span className={styles.contactValue}>{student.phone}</span>
+                  <span className={styles.contactValue}>{studentData.phone}</span>
                 </div>
               )}
-              {student.bmdcNumber && (
+              {studentData.bmdcNumber && (
                 <div className={styles.contactItem}>
                   <span className={styles.contactLabel}>BM&DC Number</span>
-                  <span className={styles.contactValue}>{student.bmdcNumber}</span>
+                  <span className={styles.contactValue}>{studentData.bmdcNumber}</span>
                 </div>
               )}
             </div>
@@ -166,25 +227,31 @@ export default function StudentEnrollmentDetailsModal({
           </div>
 
           <div className={styles.courseSectionTitle}>
-            <h3>Enrolled Programs</h3>
+            <h3>Enrolled Programs ({totalCourses})</h3>
           </div>
 
           <div className={styles.courseList}>
-            {loading ? (
+            {loading && coursesList.length === 0 ? (
               <div className={styles.loadingState}>
                 <Loader variant="inline" text="Loading enrollment data..." />
-                Loading progress...
+                Loading enrolled programs...
               </div>
-            ) : student.enrolledCourses.length === 0 ? (
+            ) : coursesList.length === 0 ? (
               <div className={styles.emptyState}>
                 <BookX size={48} />
                 <h3>No Enrollments</h3>
                 <p>This student is not enrolled in any courses.</p>
               </div>
             ) : (
-              student.enrolledCourses.map((c) => {
-                const progress = progressMap[c.courseId] || 0;
+              coursesList.map((c) => {
+                const progress = progressMap[c.courseId] ?? c.progressPercent ?? 0;
                 const isExpanded = expandedCourseId === c.courseId;
+
+                let isExpired = false;
+                if (c.expiresAt) {
+                  const expDate = new Date(c.expiresAt);
+                  if (expDate.getTime() < now.getTime()) isExpired = true;
+                }
 
                 return (
                   <div key={c.courseId} className={styles.courseCard}>
@@ -193,16 +260,36 @@ export default function StudentEnrollmentDetailsModal({
                       onClick={() => setExpandedCourseId(isExpanded ? null : c.courseId)}
                     >
                       <div className={styles.courseInfo}>
-                        <h4 className={styles.courseTitle}>{c.courseTitle}</h4>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <h4 className={styles.courseTitle}>{c.courseTitle}</h4>
+                          {c.batchName && (
+                            <span className={styles.modalBatchTag} title={`Batch: ${c.batchName}`}>
+                              <Users size={12} /> {c.batchName}
+                            </span>
+                          )}
+                          {isExpired && (
+                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '1px 6px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                              Expired
+                            </span>
+                          )}
+                        </div>
                         <p className={styles.courseDate}>
-                          Enrolled: {formatDateGMT6(c.enrolledAt)}
+                          <span>Enrolled: {formatDateGMT6(c.enrolledAt)}</span>
+                          {c.expiresAt && <span> • Expires: {formatDateGMT6(c.expiresAt)}</span>}
                         </p>
                       </div>
                       
                       <div className={styles.progressWrap}>
-                        <div className={styles.progressText}>{progress}%</div>
+                        <div className={styles.progressText}>
+                          {progress}%
+                          {typeof c.completedCount === 'number' && typeof c.totalCount === 'number' && c.totalCount > 0 && (
+                            <span style={{ display: 'block', fontSize: '0.68rem', fontWeight: 500, opacity: 0.75 }}>
+                              {c.completedCount}/{c.totalCount} done
+                            </span>
+                          )}
+                        </div>
                         <div className={styles.progressBar}>
-                          <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+                          <div className={styles.progressFill} style={{ width: `${progress}%`, background: progress === 100 ? 'var(--success, #10b981)' : 'var(--primary)' }} />
                         </div>
                       </div>
 
@@ -229,7 +316,7 @@ export default function StudentEnrollmentDetailsModal({
                               <div className={styles.actionCardTitle}>
                                 <Settings size={16} /> Module Rules
                               </div>
-                              <span className={styles.actionCardDesc}>Manage content availability</span>
+                              <span className={styles.actionCardDesc}>Manage content availability & drip</span>
                             </div>
                             
                             <div className={`${styles.actionCard} ${styles.danger}`} onClick={() => onRevoke(c)}>

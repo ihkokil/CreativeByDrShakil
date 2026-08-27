@@ -8,8 +8,7 @@ interface BkashDisplayProps {
 }
 
 export function BkashDisplay({ amount }: BkashDisplayProps) {
-  const [bkashNumber, setBkashNumber] = useState('01700000000')
-  const [qrCodeUrl, setQrCodeUrl] = useState('/uploads/bkash-qr/bkash-qr.png')
+  const [bkashNumber, setBkashNumber] = useState('01723084529')
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
@@ -22,7 +21,6 @@ export function BkashDisplay({ amount }: BkashDisplayProps) {
         if (!mounted) return
 
         if (data?.sendMoneyNumber) setBkashNumber(data.sendMoneyNumber)
-        if (data?.qrCodeUrl) setQrCodeUrl(data.qrCodeUrl)
       } catch {
         // Keep defaults on error.
       }
@@ -57,10 +55,6 @@ export function BkashDisplay({ amount }: BkashDisplayProps) {
       <div className={styles.amountContainer}>
         <p>Pay exact or include charge:</p>
         <strong>{amount} TK</strong>
-      </div>
-      <div className={styles.qrCode}>
-        <img src={qrCodeUrl} alt="bKash QR code" />
-        <p>Scan QR code for send money</p>
       </div>
     </div>
   )

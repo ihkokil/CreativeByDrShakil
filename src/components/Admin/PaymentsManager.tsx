@@ -150,7 +150,10 @@ export default function PaymentsManager() {
                 <div className={styles.cardHeader}>
                   <div className={styles.cardInfo}>
                     <h3 className={styles.courseTitle}>{o.course?.title || "Course"}</h3>
-                    <p className={styles.studentMeta}>{o.user?.fullName} · {o.user?.email}</p>
+                    <div className={styles.studentMetaBlock}>
+                      <div className={styles.studentNameText}>{o.user?.fullName || "Unnamed Student"}</div>
+                      <div className={styles.studentEmailText}>{o.user?.email || "No Email"}</div>
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -160,7 +163,7 @@ export default function PaymentsManager() {
                       setExpandedOrderId(isExpanded ? null : o.id);
                     }}
                   >
-                    <span>{isExpanded ? "Collapse" : "Inspect"}</span>
+                    <span>{isExpanded ? "Collapse" : "Details"}</span>
                     {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                   </button>
                 </div>
@@ -215,21 +218,21 @@ export default function PaymentsManager() {
                       <div className={styles.cardActions} style={{ marginTop: 8 }}>
                         <button
                           type="button"
-                          className={styles.rejectBtn}
-                          disabled={actingOn === o.id}
-                          onClick={() => decide(o.id, "reject")}
-                        >
-                          <XCircle size={15} />
-                          <span>{actingOn === o.id ? "Saving..." : "Reject"}</span>
-                        </button>
-                        <button
-                          type="button"
                           className={styles.approveBtn}
                           disabled={actingOn === o.id}
                           onClick={() => decide(o.id, "approve")}
                         >
                           <CheckCircle2 size={15} />
                           <span>{actingOn === o.id ? "Saving..." : "Approve & Enroll"}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.rejectBtn}
+                          disabled={actingOn === o.id}
+                          onClick={() => decide(o.id, "reject")}
+                        >
+                          <XCircle size={15} />
+                          <span>{actingOn === o.id ? "Saving..." : "Reject"}</span>
                         </button>
                       </div>
                     )}
@@ -245,7 +248,7 @@ export default function PaymentsManager() {
                       onClick={() => decide(o.id, "approve")}
                     >
                       <CheckCircle2 size={15} />
-                      <span>Approve</span>
+                      <span>{actingOn === o.id ? "Saving..." : "Approve & Enroll"}</span>
                     </button>
                     <button
                       type="button"
@@ -254,7 +257,7 @@ export default function PaymentsManager() {
                       onClick={() => decide(o.id, "reject")}
                     >
                       <XCircle size={15} />
-                      <span>Reject</span>
+                      <span>{actingOn === o.id ? "Saving..." : "Reject"}</span>
                     </button>
                   </div>
                 ) : null}

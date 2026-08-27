@@ -227,6 +227,30 @@
     margin: 8px 0;
 }
 
+.switchDashboardBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+    color: var(--primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.switchDashboardBtn:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 25%, transparent);
+    transform: translateY(-1px);
+}
+
 .menuBtn {
     display: none;
 }

@@ -180,6 +180,19 @@ export default function UsersManager() {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
+  const getRelativeActivity = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return 'Never';
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    if (diffMs < 0 || diffMs < 60 * 1000) return 'Just now';
+    const mins = Math.floor(diffMs / (60 * 1000));
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return formatDateGMT6(dateStr);
+  };
+
   const token = useMemo(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('auth_token');
@@ -305,6 +318,37 @@ export default function UsersManager() {
         } catch (err: any) {
           setConfirmModalState((prev) => ({ ...prev, loading: false }));
           setError(err.message || 'Failed to logout all sessions');
+        }
+      },
+    });
+  };
+
+  const handleUnbindAllDevices = () => {
+    setConfirmModalState({
+      isOpen: true,
+      title: 'Unbind All Devices for All Users?',
+      message: 'Are you sure you want to reset and unlink all bound devices across every student? This will clear all bound device hardware slots and allow students to bind new devices upon their next login.',
+      confirmLabel: 'Unbind All Devices',
+      variant: 'danger',
+      iconType: 'reset',
+      onConfirm: async () => {
+        try {
+          setConfirmModalState((prev) => ({ ...prev, loading: true }));
+          const response = await fetch('/api/admin/sessions/unbind-all', {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+
+          if (response.ok) {
+            setConfirmModalState((prev) => ({ ...prev, isOpen: false, loading: false }));
+            fetchUsers(currentPage, debouncedSearch, sortBy, true);
+          } else {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to unbind all devices');
+          }
+        } catch (err: any) {
+          setConfirmModalState((prev) => ({ ...prev, loading: false }));
+          setError(err.message || 'Failed to unbind all devices');
         }
       },
     });
@@ -545,11 +589,15 @@ export default function UsersManager() {
 
     const isLocked = session.isLocked;
     const isLoggedOut = !!session.loggedOutAt;
+    const sessionTime = new Date(session.lastActivityAt || session.createdAt).getTime();
+    const nowMs = Date.now();
+    const isOnlineNow = !isLocked && !isLoggedOut && (nowMs - sessionTime) <= 5 * 60 * 1000;
     const label = session.deviceLabel || session.browserName || `${fallbackLabel} Device`;
+    const relativeTime = getRelativeActivity(session.lastActivityAt || session.createdAt);
 
     return (
       <div
-        className={`${styles.sessionBadge} ${isLocked ? styles.locked : styles.active}`}
+        className={styles.sessionBadge}
         onClick={() => setSelectedSession({ ...session, userId })}
         style={{
           display: 'flex',
@@ -559,26 +607,31 @@ export default function UsersManager() {
           borderRadius: '10px',
           fontSize: '0.75rem',
           border: isLocked
-            ? '1px dashed rgba(239, 68, 68, 0.4)'
+            ? '1px dashed rgba(239, 68, 68, 0.5)'
+            : isOnlineNow
+            ? '1px solid rgba(34, 197, 94, 0.5)'
             : isLoggedOut
             ? '1px solid var(--glass-border)'
-            : '1px solid rgba(34, 197, 94, 0.35)',
+            : '1px solid rgba(56, 189, 248, 0.35)',
           background: isLocked
-            ? 'rgba(239, 68, 68, 0.06)'
+            ? 'rgba(239, 68, 68, 0.08)'
+            : isOnlineNow
+            ? 'rgba(34, 197, 94, 0.08)'
             : isLoggedOut
             ? 'var(--surface-soft)'
-            : 'rgba(34, 197, 94, 0.06)',
+            : 'rgba(56, 189, 248, 0.04)',
+          boxShadow: isOnlineNow ? '0 0 10px rgba(34, 197, 94, 0.15)' : 'none',
           cursor: 'pointer',
           minWidth: '145px',
           transition: 'all 0.15s ease',
         }}
       >
-        {/* Row 1: Device Icon & Label */}
+        {/* Row 1: Device Icon & Label & Online Dot */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
           <IconComponent
             size={14}
             style={{
-              color: isLocked ? '#ef4444' : isLoggedOut ? 'var(--text-muted)' : '#22c55e',
+              color: isLocked ? '#ef4444' : isOnlineNow ? '#22c55e' : isLoggedOut ? 'var(--text-muted)' : '#38bdf8',
               flexShrink: 0,
             }}
           />
@@ -590,21 +643,28 @@ export default function UsersManager() {
               whiteSpace: 'nowrap',
               color: 'var(--foreground)',
               fontSize: '0.78rem',
+              flex: 1,
             }}
             title={label}
           >
             {label}
           </span>
+          {isOnlineNow && <span className={styles.pulsingDotGreen} title="Active Online Now" />}
         </div>
 
-        {/* Row 2: IP Address */}
-        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+        {/* Row 2: IP Address & OS */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '4px' }}>
+          <span style={{ fontSize: '0.72rem', color: isOnlineNow ? '#22c55e' : 'var(--text-muted)', fontFamily: 'monospace' }}>
             {session.ipAddress || '127.0.0.1'}
           </span>
+          {session.osInfo && (
+            <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {session.osInfo}
+            </span>
+          )}
         </div>
 
-        {/* Row 3: Status Badge (Active/Idle/Locked) on Left & Reset Button on Right */}
+        {/* Row 3: Status Badge on Left & Reset Button on Right */}
         <div
           style={{
             display: 'flex',
@@ -630,7 +690,35 @@ export default function UsersManager() {
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ef4444' }} />
               Locked
             </span>
-          ) : isLoggedOut ? (
+          ) : isOnlineNow ? (
+            <span
+              style={{
+                color: '#22c55e',
+                fontWeight: 700,
+                fontSize: '0.68rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span className={styles.pulsingDotGreen} />
+              Active Now
+            </span>
+          ) : !isLoggedOut ? (
+            <span
+              style={{
+                color: '#38bdf8',
+                fontSize: '0.68rem',
+                fontWeight: 500,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#38bdf8' }} />
+              Bound ({relativeTime})
+            </span>
+          ) : (
             <span
               style={{
                 color: 'var(--text-muted)',
@@ -641,21 +729,7 @@ export default function UsersManager() {
               }}
             >
               <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#64748b' }} />
-              Idle
-            </span>
-          ) : (
-            <span
-              style={{
-                color: '#22c55e',
-                fontWeight: 600,
-                fontSize: '0.68rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#22c55e' }} />
-              Active
+              Logged Out
             </span>
           )}
 
@@ -740,27 +814,9 @@ export default function UsersManager() {
       </div>
 
       {/* 2. Collapsible Global Policy Card */}
-      <div style={{
-        borderRadius: '16px',
-        border: '1px solid var(--glass-border)',
-        background: 'var(--glass)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        overflow: 'hidden',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)',
-        transition: 'all 0.2s ease',
-      }}>
+      <div className={styles.policyCard}>
         {/* Policy Header Bar */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          padding: '16px 20px',
-          background: isPolicyPanelOpen ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
-          borderBottom: isPolicyPanelOpen ? '1px solid var(--glass-border)' : 'none',
-        }}>
+        <div className={styles.policyHeader} style={{ background: isPolicyPanelOpen ? 'rgba(255, 255, 255, 0.02)' : 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
               display: 'flex',
@@ -772,12 +828,13 @@ export default function UsersManager() {
               background: 'rgba(237, 28, 40, 0.12)',
               color: 'var(--primary)',
               border: '1px solid rgba(237, 28, 40, 0.25)',
+              flexShrink: 0,
             }}>
               <Sliders size={18} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: 'var(--foreground)' }}>
                   Global Session & Device Security Rules
                 </h3>
                 <span style={{
@@ -793,51 +850,34 @@ export default function UsersManager() {
                 </span>
               </div>
               <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Configure application-wide hardware category allowances, concurrency limits & automatic locks.
+                Configure application-wide concurrency limits, automatic locks & global session management.
               </p>
             </div>
           </div>
 
           {/* Header Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className={styles.policyActions}>
+            <button
+              onClick={handleUnbindAllDevices}
+              className={styles.policyBtnDanger}
+              title="Reset and unlink all bound devices for every student"
+            >
+              <RotateCcw size={14} />
+              <span>Unbind All Devices</span>
+            </button>
+
             <button
               onClick={handleLogoutAllSessions}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 14px',
-                borderRadius: '10px',
-                border: '1px solid rgba(239, 68, 68, 0.35)',
-                background: 'rgba(239, 68, 68, 0.1)',
-                color: '#ef4444',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
+              className={styles.policyBtnDanger}
               title="Terminate all active student sessions platform-wide"
             >
               <LogOut size={14} />
-              Logout All Sessions
+              <span>Logout All Sessions</span>
             </button>
 
             <button
               onClick={() => setIsPolicyPanelOpen(!isPolicyPanelOpen)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 12px',
-                borderRadius: '10px',
-                border: '1px solid var(--glass-border)',
-                background: 'var(--surface-soft)',
-                color: 'var(--foreground)',
-                fontWeight: 600,
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
+              className={styles.policyBtnDefault}
             >
               {isPolicyPanelOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
               <span>{isPolicyPanelOpen ? 'Hide Policy' : 'Configure Policy'}</span>
@@ -847,235 +887,86 @@ export default function UsersManager() {
 
         {/* Collapsible Content */}
         {isPolicyPanelOpen && (
-          <div style={{
-            padding: '18px 20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '16px',
-          }}>
-            {/* Left: Allowed Device Categories (3 Interactive Tile Switches) */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              padding: '14px 16px',
-              borderRadius: '12px',
-              background: 'var(--surface-soft)',
-              border: '1px solid var(--glass-border)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ margin: 0, fontSize: '0.86rem', fontWeight: 700, color: 'var(--foreground)' }}>
-                  Allowed Device Categories
+          <div className={styles.policyContent}>
+            {/* Concurrent Session Limit Box */}
+            <div className={styles.policySettingBox}>
+              <div>
+                <h4 style={{ margin: '0 0 4px 0', fontSize: '0.86rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                  Concurrent Session Limit
                 </h4>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Click to toggle</span>
+                <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  Max simultaneous active devices allowed per student
+                </p>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {/* Desktop Switch Tile */}
-                <div
-                  className={`${styles.deviceTile} ${globalSettings.allowDesktop ? styles.deviceTileActive : ''}`}
-                  onClick={() => handleUpdateGlobalSetting({ allowDesktop: !globalSettings.allowDesktop })}
+              <div style={{ position: 'relative', marginTop: '6px' }}>
+                <select
+                  value={globalSettings.maxConcurrentSessions}
+                  onChange={(e) => handleUpdateGlobalSetting({ maxConcurrentSessions: parseInt(e.target.value) })}
+                  className={styles.customSelect}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: globalSettings.allowDesktop ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                      color: globalSettings.allowDesktop ? '#22c55e' : 'var(--text-muted)',
-                    }}>
-                      <Monitor size={16} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foreground)' }}>Desktop & Laptop</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Windows, macOS, Linux PCs</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: globalSettings.allowDesktop ? '#22c55e' : '#ef4444',
-                    }}>
-                      {globalSettings.allowDesktop ? 'Allowed' : 'Blocked'}
-                    </span>
-                    <div className={`${styles.switchTrack} ${globalSettings.allowDesktop ? styles.switchTrackActive : ''}`}>
-                      <div className={`${styles.switchThumb} ${globalSettings.allowDesktop ? styles.switchThumbActive : ''}`} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tablet Switch Tile */}
-                <div
-                  className={`${styles.deviceTile} ${globalSettings.allowTablet ? styles.deviceTileActive : ''}`}
-                  onClick={() => handleUpdateGlobalSetting({ allowTablet: !globalSettings.allowTablet })}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: globalSettings.allowTablet ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                      color: globalSettings.allowTablet ? '#22c55e' : 'var(--text-muted)',
-                    }}>
-                      <Tablet size={16} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foreground)' }}>Tablet Computers</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>iPad, Android Tablets</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: globalSettings.allowTablet ? '#22c55e' : '#ef4444',
-                    }}>
-                      {globalSettings.allowTablet ? 'Allowed' : 'Blocked'}
-                    </span>
-                    <div className={`${styles.switchTrack} ${globalSettings.allowTablet ? styles.switchTrackActive : ''}`}>
-                      <div className={`${styles.switchThumb} ${globalSettings.allowTablet ? styles.switchThumbActive : ''}`} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Mobile Switch Tile */}
-                <div
-                  className={`${styles.deviceTile} ${globalSettings.allowMobile ? styles.deviceTileActive : ''}`}
-                  onClick={() => handleUpdateGlobalSetting({ allowMobile: !globalSettings.allowMobile })}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: globalSettings.allowMobile ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                      color: globalSettings.allowMobile ? '#22c55e' : 'var(--text-muted)',
-                    }}>
-                      <Smartphone size={16} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foreground)' }}>Mobile Smartphones</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>iOS iPhones, Android Phones</div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: globalSettings.allowMobile ? '#22c55e' : '#ef4444',
-                    }}>
-                      {globalSettings.allowMobile ? 'Allowed' : 'Blocked'}
-                    </span>
-                    <div className={`${styles.switchTrack} ${globalSettings.allowMobile ? styles.switchTrackActive : ''}`}>
-                      <div className={`${styles.switchThumb} ${globalSettings.allowMobile ? styles.switchThumbActive : ''}`} />
-                    </div>
-                  </div>
+                  <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Session (Strict 1-Device)</option>
+                  <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Sessions</option>
+                  <option value={3} style={{ background: '#18181b', color: '#fff' }}>3 Sessions</option>
+                  <option value={5} style={{ background: '#18181b', color: '#fff' }}>5 Sessions</option>
+                  <option value={10} style={{ background: '#18181b', color: '#fff' }}>10 Sessions</option>
+                </select>
+                <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+                  <ChevronDown size={14} />
                 </div>
               </div>
             </div>
 
-            {/* Right: Concurrency & Lock Policy Controls */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              padding: '14px 16px',
-              borderRadius: '12px',
-              background: 'var(--surface-soft)',
-              border: '1px solid var(--glass-border)',
-              justifyContent: 'space-between',
-            }}>
-              <div>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.86rem', fontWeight: 700, color: 'var(--foreground)' }}>
-                  Session Limits & Automated Locks
-                </h4>
+            {/* Auto-Lock First Device Switch Box */}
+            <div className={styles.policySettingBox}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '0.86rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    Auto-Lock Previous Devices
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Terminate older inactive slots on new device registration
+                  </p>
+                </div>
+              </div>
 
-                {/* Concurrent Session Limit */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.02)',
-                  border: '1px solid var(--glass-border)',
-                  marginBottom: '10px',
-                }}>
+              <div
+                className={`${styles.deviceTile} ${globalSettings.autoLockFirstBrowser ? styles.deviceTileActive : ''}`}
+                onClick={() => handleUpdateGlobalSetting({ autoLockFirstBrowser: !globalSettings.autoLockFirstBrowser })}
+                style={{ marginTop: '6px' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: globalSettings.autoLockFirstBrowser ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                    color: globalSettings.autoLockFirstBrowser ? '#22c55e' : 'var(--text-muted)',
+                  }}>
+                    <Lock size={16} />
+                  </div>
                   <div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                      Concurrent Session Limit
+                    <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                      Automatic Lock Protection
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      Max simultaneous active devices per student
-                    </div>
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <select
-                      value={globalSettings.maxConcurrentSessions}
-                      onChange={(e) => handleUpdateGlobalSetting({ maxConcurrentSessions: parseInt(e.target.value) })}
-                      className={styles.customSelect}
-                    >
-                      <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Session (Strict 1-Device)</option>
-                      <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Sessions</option>
-                      <option value={3} style={{ background: '#18181b', color: '#fff' }}>3 Sessions</option>
-                      <option value={5} style={{ background: '#18181b', color: '#fff' }}>5 Sessions</option>
-                      <option value={10} style={{ background: '#18181b', color: '#fff' }}>10 Sessions</option>
-                    </select>
-                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
-                      <ChevronDown size={14} />
+                      {globalSettings.autoLockFirstBrowser ? 'Active & Protecting Accounts' : 'Disabled (Allow Multiple)'}
                     </div>
                   </div>
                 </div>
-
-                {/* Auto-Lock First Device Switch */}
-                <div
-                  className={`${styles.deviceTile} ${globalSettings.autoLockFirstBrowser ? styles.deviceTileActive : ''}`}
-                  onClick={() => handleUpdateGlobalSetting({ autoLockFirstBrowser: !globalSettings.autoLockFirstBrowser })}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      background: globalSettings.autoLockFirstBrowser ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                      color: globalSettings.autoLockFirstBrowser ? '#22c55e' : 'var(--text-muted)',
-                    }}>
-                      <Lock size={16} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                        Auto-Lock Previous Devices
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        Terminate inactive slots on new device registration
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 600,
-                      color: globalSettings.autoLockFirstBrowser ? '#22c55e' : '#ef4444',
-                    }}>
-                      {globalSettings.autoLockFirstBrowser ? 'Enabled' : 'Disabled'}
-                    </span>
-                    <div className={`${styles.switchTrack} ${globalSettings.autoLockFirstBrowser ? styles.switchTrackActive : ''}`}>
-                      <div className={`${styles.switchThumb} ${globalSettings.autoLockFirstBrowser ? styles.switchThumbActive : ''}`} />
-                    </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    color: globalSettings.autoLockFirstBrowser ? '#22c55e' : '#ef4444',
+                  }}>
+                    {globalSettings.autoLockFirstBrowser ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <div className={`${styles.switchTrack} ${globalSettings.autoLockFirstBrowser ? styles.switchTrackActive : ''}`}>
+                    <div className={`${styles.switchThumb} ${globalSettings.autoLockFirstBrowser ? styles.switchThumbActive : ''}`} />
                   </div>
                 </div>
               </div>
@@ -1086,7 +977,7 @@ export default function UsersManager() {
 
       {/* 3. Search, Filter Pills & Live Sync Toolbar */}
       <div className={styles.toolbarCard}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className={styles.toolbarTopRow}>
           {/* Search Input */}
           <div className={styles.searchBox}>
             <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
@@ -1123,47 +1014,23 @@ export default function UsersManager() {
             )}
           </div>
 
-          {/* Live Sync Badge & Manual Refresh */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '7px 12px',
-              borderRadius: '10px',
-              background: 'rgba(34, 197, 94, 0.08)',
-              border: '1px solid rgba(34, 197, 94, 0.25)',
-              fontSize: '0.78rem',
-              color: '#22c55e',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}>
+          {/* Controls: Live Sync Badge, Manual Refresh, Sort */}
+          <div className={styles.toolbarControls}>
+            <div className={styles.syncBadge}>
               <span className={styles.pulsingDot} />
               <span>Live Sync (12s)</span>
             </div>
 
             <button
               onClick={() => fetchUsers(currentPage, debouncedSearch, sortBy, true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '34px',
-                height: '34px',
-                borderRadius: '10px',
-                border: '1px solid var(--glass-border)',
-                background: 'var(--surface-soft)',
-                color: 'var(--foreground)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
+              className={styles.iconBtn}
               title="Refresh student list immediately"
             >
               <RefreshCw size={14} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
             </button>
 
             {/* Sort Dropdown */}
-            <div style={{ position: 'relative', minWidth: '160px' }}>
+            <div className={styles.sortSelectWrapper}>
               <select
                 value={sortBy}
                 onChange={(e) => {
@@ -1171,7 +1038,6 @@ export default function UsersManager() {
                   setCurrentPage(1);
                 }}
                 className={styles.customSelect}
-                style={{ width: '100%' }}
               >
                 <option value="lastActive" style={{ background: '#18181b', color: '#fff' }}>Sort: Last Active</option>
                 <option value="newest" style={{ background: '#18181b', color: '#fff' }}>Sort: Newest First</option>
@@ -1300,25 +1166,43 @@ export default function UsersManager() {
                   <tr key={userObj.id}>
                     <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'var(--surface-soft)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        color: 'var(--primary)',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        border: '1px solid var(--glass-border)'
-                      }}>
-                        {userObj.profileImage ? (
-                          <Image src={userObj.profileImage} alt={userObj.fullName} fill style={{ objectFit: 'cover' }} unoptimized />
-                        ) : getInitials(userObj.fullName)}
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          background: 'var(--surface-soft)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          color: 'var(--primary)',
+                          position: 'relative',
+                          overflow: 'hidden',
+                          border: userObj.isOnline ? '2px solid #22c55e' : '1px solid var(--glass-border)',
+                          boxShadow: userObj.isOnline ? '0 0 10px rgba(34, 197, 94, 0.35)' : 'none',
+                        }}>
+                          {userObj.profileImage ? (
+                            <Image src={userObj.profileImage} alt={userObj.fullName} fill style={{ objectFit: 'cover' }} unoptimized />
+                          ) : getInitials(userObj.fullName)}
+                        </div>
+                        {userObj.isOnline && (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              bottom: '-1px',
+                              right: '-1px',
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              backgroundColor: '#22c55e',
+                              border: '2px solid var(--card-bg, #0d0d12)',
+                              boxShadow: '0 0 6px #22c55e',
+                            }}
+                            title="Online Now"
+                          />
+                        )}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -1329,17 +1213,18 @@ export default function UsersManager() {
                             <span style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
+                              gap: '5px',
                               fontSize: '0.68rem',
                               fontWeight: 700,
                               color: '#22c55e',
                               background: 'rgba(34, 197, 94, 0.12)',
-                              border: '1px solid rgba(34, 197, 94, 0.3)',
-                              padding: '2px 6px',
-                              borderRadius: '10px',
+                              border: '1px solid rgba(34, 197, 94, 0.35)',
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              boxShadow: '0 0 8px rgba(34, 197, 94, 0.15)',
                             }}>
-                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#22c55e', boxShadow: '0 0 6px #22c55e' }} />
-                              Online
+                              <span className={styles.pulsingDotGreen} />
+                              Online Now
                             </span>
                           ) : (
                             <span style={{
@@ -1351,8 +1236,8 @@ export default function UsersManager() {
                               color: 'var(--text-muted)',
                               background: 'rgba(255, 255, 255, 0.04)',
                               border: '1px solid var(--glass-border)',
-                              padding: '2px 6px',
-                              borderRadius: '10px',
+                              padding: '2px 7px',
+                              borderRadius: '12px',
                             }}>
                               <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#64748b' }} />
                               Offline
@@ -1383,18 +1268,34 @@ export default function UsersManager() {
 
                   {/* Live Network & Activity Column */}
                   <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Wifi size={13} style={{ color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)' }} />
-                        <code style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                        <Wifi size={14} style={{ color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)' }} />
+                        <code style={{
+                          fontSize: '0.84rem',
+                          fontWeight: 600,
+                          color: userObj.isOnline ? '#22c55e' : 'var(--foreground)',
+                          background: userObj.isOnline ? 'rgba(34, 197, 94, 0.08)' : 'var(--surface-soft)',
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          border: userObj.isOnline ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid var(--glass-border)',
+                        }}>
                           {latestSession?.ipAddress || '127.0.0.1'}
                         </code>
                       </div>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {latestSession?.browserName || 'Browser'} • {latestSession?.osInfo || 'OS'}
+                      <span style={{ fontSize: '0.74rem', color: 'var(--foreground)', fontWeight: 500 }}>
+                        {latestSession?.browserName || 'Browser'}{latestSession?.osInfo ? ` • ${latestSession.osInfo}` : ''}
                       </span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                        {lastActiveText}
+                      <span style={{
+                        fontSize: '0.7rem',
+                        color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)',
+                        fontWeight: userObj.isOnline ? 600 : 400,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}>
+                        <Activity size={11} />
+                        {userObj.isOnline ? 'Active Just Now' : `Last active ${getRelativeActivity(userObj.lastActiveAt)}`}
                       </span>
                     </div>
                   </td>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Loader from "@/components/UI/Loader";
 import { 
-  X, Folder, Calendar, Settings, XCircle, Mail, Phone, FileText
+  X, Folder, Calendar, Settings, XCircle, Mail, Phone, FileText, Users
 } from 'lucide-react';
 import styles from './SingleCourseProgressModal.module.css';
 import { formatDateGMT6 } from '@/lib/date-format';
@@ -26,6 +26,7 @@ interface SingleCourseProgressModalProps {
   courseTitle: string;
   enrolledAt: string | null;
   expiresAt: string | null;
+  batchName?: string | null;
   onClose: () => void;
   onEditDate: () => void;
   onEditRules: () => void;
@@ -38,6 +39,7 @@ export default function SingleCourseProgressModal({
   courseTitle,
   enrolledAt,
   expiresAt,
+  batchName,
   onClose,
   onEditDate,
   onEditRules,
@@ -179,9 +181,17 @@ export default function SingleCourseProgressModal({
                 )}
               </div>
               
-              <div className={styles.courseBadge}>
-                <Folder size={14} />
-                {courseTitle}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div className={styles.courseBadge}>
+                  <Folder size={14} />
+                  {courseTitle}
+                </div>
+                {batchName && (
+                  <div className={styles.courseBadge} style={{ background: 'color-mix(in srgb, var(--primary) 12%, transparent)', borderColor: 'color-mix(in srgb, var(--primary) 25%, transparent)', color: 'var(--primary)' }}>
+                    <Users size={13} />
+                    {batchName}
+                  </div>
+                )}
               </div>
 
               <div className={styles.studentInfo}>

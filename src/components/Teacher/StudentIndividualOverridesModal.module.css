@@ -205,3 +205,57 @@
   font-weight: 600;
   margin-bottom: 16px;
 }
+
+@media (max-width: 768px) {
+  .overlay {
+    padding: 10px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(calc(100vh - 16px), calc(100dvh - 16px));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .header {
+    padding: 16px;
+  }
+
+  .body {
+    padding: 16px;
+  }
+
+  .nodeRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .nodeControls {
+    width: 100%;
+    justify-content: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .nodeControls select,
+  .nodeControls input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .saveBtn {
+    grid-column: 1 / -1;
+    justify-content: center;
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .children {
+    padding-left: 10px;
+  }
+}

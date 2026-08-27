@@ -5,6 +5,8 @@
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .loading {
@@ -336,15 +338,28 @@
   }
 }
 
+.userActionsWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.userActionsWrapper .actionBtn {
+  min-width: 90px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
 @media (max-width: 768px) {
-  .tableContainer {
-    overflow-x: auto;
-  }
-
-  .table {
-    min-width: 900px;
-  }
-
   .sessionList {
     flex-direction: column;
   }
@@ -516,6 +531,14 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
+.toolbarTopRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
 .searchBox {
   display: flex;
   align-items: center;
@@ -525,13 +548,61 @@
   background: var(--surface-soft);
   border: 1px solid var(--glass-border);
   transition: all 0.2s ease;
-  flex: 1;
+  flex: 1 1 240px;
+  min-width: 240px;
 }
 
 .searchBox:focus-within {
   border-color: var(--primary);
   background: var(--surface-strong);
   box-shadow: 0 0 0 3px rgba(237, 28, 40, 0.12);
+}
+
+.toolbarControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.syncBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  font-size: 0.78rem;
+  color: #22c55e;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
+  color: var(--foreground);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.iconBtn:hover {
+  background: var(--surface-strong);
+  border-color: var(--primary);
+}
+
+.sortSelectWrapper {
+  position: relative;
+  min-width: 150px;
 }
 
 .filterPillsRow {
@@ -541,6 +612,7 @@
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: none;
+  width: 100%;
 }
 
 .filterPillsRow::-webkit-scrollbar {
@@ -594,6 +666,7 @@
   cursor: pointer;
   outline: none;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .customSelect:hover, .customSelect:focus {
@@ -601,9 +674,156 @@
   background: var(--surface-strong);
 }
 
+/* Policy Card Styles */
+.policyCard {
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.policyHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  transition: background 0.2s ease;
+}
+
+.policyActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.policyBtnDanger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.policyBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  transform: translateY(-1px);
+}
+
+.policyBtnDefault {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.policyBtnDefault:hover {
+  background: var(--surface-strong);
+  border-color: var(--primary);
+}
+
+.policyContent {
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.policySettingBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+}
+
 @media (max-width: 768px) {
   .container {
     padding-bottom: calc(var(--mobile-nav-height, 74px) + 24px);
+    gap: 16px;
+  }
+
+  .policyHeader {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .policyActions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .policyActions .policyBtnDanger,
+  .policyActions .policyBtnDefault {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 8px;
+    font-size: 0.75rem;
+  }
+
+  .policyContent {
+    padding: 14px 16px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .toolbarTopRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .searchBox {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbarControls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+  }
+
+  .syncBadge {
+    justify-content: center;
+    font-size: 0.74rem;
+    padding: 6px 8px;
+  }
+
+  .sortSelectWrapper {
+    min-width: 0;
+    width: 100%;
   }
 
   .tableContainer {
@@ -659,13 +879,13 @@
   }
 
   .customSelect {
-    font-size: 16px;
-    min-height: 44px;
+    font-size: 14px;
+    min-height: 38px;
   }
 
   .actionBtn,
   .revokeBtn {
-    min-height: 44px;
+    min-height: 40px;
     width: 100%;
     justify-content: center;
   }
@@ -681,28 +901,60 @@
 
   .userActionsWrapper .actionBtn {
     width: 100%;
-    min-height: 42px;
+    min-height: 40px;
     justify-content: center;
   }
 }
 
-.userActionsWrapper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
+@media (max-width: 480px) {
+  .policyActions {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbarControls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .syncBadge {
+    grid-column: span 2;
+  }
 }
 
-.userActionsWrapper .actionBtn {
-  min-width: 90px;
-  padding: 6px 10px;
-  font-size: 0.8rem;
-  border-radius: 8px;
-  border: 1px solid var(--glass-border);
-  background: var(--surface-soft);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Pulsing Online Indicators & Animations */
+.pulsingDot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: presencePulse 1.8s ease-in-out infinite;
+}
+
+.pulsingDotGreen {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.9);
+  animation: presencePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes presencePulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.75;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+    box-shadow: 0 0 0 5px rgba(34, 197, 94, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.75;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
 }

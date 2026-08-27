@@ -255,6 +255,19 @@
     text-overflow: ellipsis;
 }
 
+.modalBatchTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+    color: var(--primary);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
 .courseDate {
     margin: 4px 0 0 0;
     font-size: 0.8rem;

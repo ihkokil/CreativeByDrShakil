@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Settings, LogOut, ChevronDown, Menu } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, Menu, GraduationCap } from "lucide-react";
 import styles from "./TeacherHeader.module.css";
 import Image from "next/image";
 import { useState } from "react";
@@ -41,6 +41,15 @@ export default function TeacherHeader({ title, user, onToggleSidebar }: TeacherH
                 <h1 className={styles.title}>{title}</h1>
             </div>
             <div className={styles.right}>
+                <button
+                    onClick={() => router.push("/dashboard")}
+                    className={styles.switchDashboardBtn}
+                    title="Switch to Student Dashboard"
+                >
+                    <GraduationCap size={16} />
+                    <span>Student View</span>
+                </button>
+
                 <div className={styles.themeWrapper}>
                     <ThemeToggle />
                 </div>
@@ -80,6 +89,16 @@ export default function TeacherHeader({ title, user, onToggleSidebar }: TeacherH
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
                                 >
+                                    <button 
+                                        className={styles.dropdownItem} 
+                                        onClick={() => {
+                                            setIsOpen(false);
+                                            router.push("/dashboard");
+                                        }}
+                                    >
+                                        <GraduationCap size={18} />
+                                        <span>Student Dashboard</span>
+                                    </button>
                                     <button 
                                         className={styles.dropdownItem} 
                                         onClick={() => {

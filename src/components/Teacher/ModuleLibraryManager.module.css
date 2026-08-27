@@ -1818,4 +1818,96 @@
     background: rgba(239, 68, 68, 0.18);
     border-color: #ef4444;
     color: white;
+}
+
+@media (max-width: 768px) {
+    .managerContainer {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+
+    .topBar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .primaryBtn {
+        width: 100%;
+        justify-content: center;
+        min-height: 44px;
+    }
+
+    .libraryGrid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .rootCard {
+        min-height: 160px;
+        padding: 20px 16px;
+    }
+
+    .rootActions {
+        opacity: 1;
+    }
+
+    .nodeRow {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .quizModal {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 0 !important;
+        height: min(90vh, 90dvh) !important;
+        border-radius: 20px 20px 0 0 !important;
+    }
+
+    .quizModalBody {
+        padding: 16px;
+    }
+
+    .quizModalFooter {
+        padding: 14px 16px;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .quizModalActions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .quizModalActions button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .editQuizModal {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .editQuizModalBody {
+        padding: 16px;
+    }
+
+    .editQuizModalFooter {
+        padding: 14px 16px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .editQuizModalFooter button {
+        width: 100%;
+        justify-content: center;
+    }
 }

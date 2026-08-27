@@ -734,7 +734,7 @@ export default function TeacherQuizzesPage() {
               <div className={styles.cardActionsRow}>
                 <button
                   onClick={() => handleOpenLinkModal(quiz)}
-                  className={styles.actionBtn}
+                  className={`${styles.actionBtn} ${quiz.courseId ? styles.placedActionBtn : ''}`}
                   title={quiz.courseId ? "Change Course Placement" : "Link to Course"}
                 >
                   <BookOpen size={15} /> <span>Placement</span>
@@ -961,25 +961,22 @@ export default function TeacherQuizzesPage() {
               )}
             </div>
 
-            <div className={styles.modalActions} style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between' }}>
+            <div className={styles.placementModalActions}>
               {linkModalQuiz.courseId ? (
                 <button
                   type="button"
                   onClick={handleUnlinkFromCourse}
                   disabled={linkingLoading}
-                  className={`${styles.modalConfirm} ${styles.danger}`}
-                  style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444' }}
+                  className={styles.unlinkModalBtn}
                 >
                   Unlink Quiz
                 </button>
-              ) : (
-                <div />
-              )}
-              <div style={{ display: 'flex', gap: '8px' }}>
+              ) : null}
+              <div className={styles.placementModalBtns}>
                 <button
                   type="button"
                   onClick={() => setLinkModalQuiz(null)}
-                  className={styles.modalCancel}
+                  className={styles.placementCancelBtn}
                   disabled={linkingLoading}
                 >
                   Cancel
@@ -988,8 +985,7 @@ export default function TeacherQuizzesPage() {
                   type="button"
                   onClick={handleSaveCourseLink}
                   disabled={linkingLoading || !selectedCourseId}
-                  className={styles.modalConfirm}
-                  style={{ background: 'var(--primary-color)', color: 'white' }}
+                  className={styles.placementSaveBtn}
                 >
                   {linkingLoading ? 'Saving...' : 'Save Placement'}
                 </button>

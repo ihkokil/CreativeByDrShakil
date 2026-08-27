@@ -619,3 +619,23 @@ export async function terminateAllSessions(): Promise<void> {
 
   if (error) throw error;
 }
+
+export async function unbindAllDevices(): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  const { data: students, error: userError }: { data: any, error: any } = await supabase
+    .from('User')
+    .select('id')
+    .eq('role', 'student');
+
+  if (userError) throw userError;
+
+  const studentIds = (students || []).map((s: any) => s.id);
+  if (studentIds.length === 0) return;
+
+  const { error } = await supabase
+    .from('DeviceSession')
+    .delete()
+    .in('userId', studentIds);
+
+  if (error) throw error;
+}
