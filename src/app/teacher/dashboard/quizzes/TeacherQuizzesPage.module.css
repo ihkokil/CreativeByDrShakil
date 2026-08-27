@@ -37,6 +37,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .topBarRow {
@@ -92,7 +94,7 @@
 }
 
 .searchForm {
-  flex: 1;
+  flex: 1 1 280px;
   min-width: 280px;
 }
 
@@ -145,6 +147,7 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .filterSelect {
@@ -414,6 +417,19 @@
   background: var(--bg-secondary);
   color: var(--text-primary);
   border-color: color-mix(in srgb, var(--primary-color) 35%, var(--border-color));
+}
+
+.placedActionBtn {
+  color: var(--primary-color, #ED1C24);
+  background: var(--primary-color-alpha, rgba(237, 28, 40, 0.1));
+  border-color: rgba(237, 28, 40, 0.35);
+  font-weight: 700;
+}
+
+.placedActionBtn:hover {
+  background: rgba(237, 28, 40, 0.18);
+  color: var(--primary-color, #ED1C24);
+  border-color: var(--primary-color, #ED1C24);
 }
 
 .dangerActionBtn {
@@ -812,6 +828,84 @@
 
 .modalConfirm.danger {
   background: #ef4444;
+}
+
+.placementModalActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+  width: 100%;
+}
+
+.unlinkModalBtn {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unlinkModalBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: #ef4444;
+}
+
+.placementModalBtns {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.placementCancelBtn,
+.placementSaveBtn {
+  flex: 1 1 50%;
+  width: 50%;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placementCancelBtn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.placementCancelBtn:hover:not(:disabled) {
+  background: var(--card-bg);
+  border-color: var(--text-muted);
+}
+
+.placementSaveBtn {
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  color: #ffffff;
+}
+
+.placementSaveBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.placementSaveBtn:disabled,
+.placementCancelBtn:disabled,
+.unlinkModalBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Settings, LogOut, ChevronDown, Menu } from "lucide-react";
+import { User, Settings, LogOut, ChevronDown, Menu, Shield } from "lucide-react";
 import styles from "@/components/Teacher/TeacherHeader.module.css";
 import Image from "next/image";
 import { useState } from "react";
@@ -16,9 +16,11 @@ interface StudentHeaderProps {
 }
 
 export default function StudentHeader({ title, user, onToggleSidebar }: StudentHeaderProps) {
-    const { signOut } = useAuth();
+    const { signOut, role } = useAuth();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+
+    const isTeacherOrAdmin = role === 'teacher' || role === 'admin' || user?.role === 'teacher' || user?.role === 'admin' || user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin';
 
     const getInitials = (name: string, fallback: string) => {
         if (!name) return fallback;
@@ -40,6 +42,17 @@ export default function StudentHeader({ title, user, onToggleSidebar }: StudentH
                 <h1 className={styles.title}>{title}</h1>
             </div>
             <div className={styles.right}>
+                {isTeacherOrAdmin && (
+                    <button
+                        onClick={() => router.push("/teacher/dashboard")}
+                        className={styles.switchDashboardBtn}
+                        title="Switch to Teacher Dashboard"
+                    >
+                        <Shield size={16} />
+                        <span>Teacher Dashboard</span>
+                    </button>
+                )}
+
                 <div className={styles.themeWrapper}>
                     <ThemeToggle />
                 </div>
@@ -50,7 +63,7 @@ export default function StudentHeader({ title, user, onToggleSidebar }: StudentH
                     <div className={styles.profileBtn} onClick={() => setIsOpen(!isOpen)}>
                         <div className={styles.profileText}>
                             <span className={styles.userName}>{user?.user_metadata?.full_name || "Learner"}</span>
-                            <span className={styles.userRole}>Student Account</span>
+                            <span className={styles.userRole}>{isTeacherOrAdmin ? "Instructor Account" : "Student Account"}</span>
                         </div>
                         <div className={styles.avatar}>
                             {user?.user_metadata?.profile_image ? (
@@ -79,6 +92,18 @@ export default function StudentHeader({ title, user, onToggleSidebar }: StudentH
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
                                 >
+                                    {isTeacherOrAdmin && (
+                                        <button 
+                                            className={styles.dropdownItem} 
+                                            onClick={() => {
+                                                setIsOpen(false);
+                                                router.push("/teacher/dashboard");
+                                            }}
+                                        >
+                                            <Shield size={18} />
+                                            <span>Teacher Dashboard</span>
+                                        </button>
+                                    )}
                                     <button 
                                         className={styles.dropdownItem} 
                                         onClick={() => {

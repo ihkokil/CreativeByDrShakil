@@ -137,9 +137,9 @@ export async function GET(request: NextRequest) {
         const activeSessions = userDeviceSessions.filter((s: any) => !s.loggedOutAt && !s.isLocked);
 
         const latestSession = [...userDeviceSessions].sort(
-          (a: any, b: any) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
+          (a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime()
         )[0];
-        const lastActiveAt = latestSession ? latestSession.lastActivityAt : u.createdAt;
+        const lastActiveAt = latestSession ? (latestSession.lastActivityAt || latestSession.createdAt) : u.createdAt;
 
         let autoLockSetting = globalSettings.autoLockFirstBrowser;
         let hasUserOverride = false;
@@ -153,23 +153,37 @@ export async function GET(request: NextRequest) {
         const nowMs = Date.now();
         const isOnline = !u.isBanned && activeSessions.some((s: any) => {
           const activityTime = new Date(s.lastActivityAt || s.createdAt).getTime();
-          return (nowMs - activityTime) <= 3 * 60 * 1000;
+          return (nowMs - activityTime) <= 5 * 60 * 1000;
         });
 
-        // Find the bound (registered) device for each category
-        const boundDesktop = userDeviceSessions
-          .filter((s: any) => s.deviceType === 'desktop' && s.deviceHash)
-          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0] || null;
+        // Resolve the best session for each hardware category slot
+        const getCategorySession = (type: 'desktop' | 'tablet' | 'mobile') => {
+          // 1. Highest priority: Currently active session (not logged out, not locked)
+          const active = activeSessions
+            .filter((s: any) => s.deviceType === type)
+            .sort((a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime())[0];
+          if (active) return active;
 
-        const boundTablet = userDeviceSessions
-          .filter((s: any) => s.deviceType === 'tablet' && s.deviceHash)
-          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0] || null;
+          // 2. Next priority: Bound device session with a registered deviceHash
+          const bound = userDeviceSessions
+            .filter((s: any) => s.deviceType === type && s.deviceHash)
+            .sort((a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime())[0];
+          if (bound) return bound;
 
-        const boundMobile = userDeviceSessions
-          .filter((s: any) => s.deviceType === 'mobile' && s.deviceHash)
-          .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0] || null;
+          // 3. Fallback: Most recent session for this device type
+          return userDeviceSessions
+            .filter((s: any) => s.deviceType === type)
+            .sort((a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime())[0] || null;
+        };
 
-        const currentActiveSession = activeSessions[0] || latestSession || null;
+        const boundDesktop = getCategorySession('desktop');
+        const boundTablet = getCategorySession('tablet');
+        const boundMobile = getCategorySession('mobile');
+
+        // Current active session is the most recently active session
+        const currentActiveSession = activeSessions.sort(
+          (a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime()
+        )[0] || latestSession || null;
 
         const userOrders = ordersMap.get(u.id) || [];
         return {

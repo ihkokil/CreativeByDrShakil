@@ -15,8 +15,7 @@
 }
 
 .searchBox {
-    flex: 1;
-    max-width: 400px;
+    flex: 1 1 240px;
     position: relative;
     display: flex;
     align-items: center;
@@ -51,6 +50,7 @@
 .actions {
     display: flex;
     gap: 12px;
+    flex-shrink: 0;
 }
 
 .filterBtn {
@@ -419,6 +419,21 @@
     border-color: color-mix(in srgb, var(--primary) 35%, var(--glass-border));
 }
 
+.enrollAction {
+    background: color-mix(in srgb, #10b981 12%, transparent);
+    border-color: color-mix(in srgb, #10b981 35%, transparent);
+    color: #10b981;
+    font-weight: 700;
+}
+
+.enrollAction:hover {
+    background: #10b981;
+    color: #ffffff;
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    transform: translateY(-1px);
+}
+
 .deleteAction {
     color: #ef4444;
     border-color: rgba(239, 68, 68, 0.25);
@@ -489,7 +504,6 @@
         width: 100%;
     }
     .primaryActionButton {
-        grid-column: 1 / -1;
         justify-content: center;
         min-height: 42px;
     }

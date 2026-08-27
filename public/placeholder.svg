@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="50%" stop-color="#0f0f12" />
+      <stop offset="100%" stop-color="#1e1014" />
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ed1c28" />
+      <stop offset="100%" stop-color="#991b1b" />
+    </linearGradient>
+    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255, 255, 255, 0.03)" stroke-width="1" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="450" fill="url(#bgGradient)" />
+  <rect width="800" height="450" fill="url(#grid)" />
+
+  <!-- Subtle glow -->
+  <circle cx="400" cy="200" r="160" fill="rgba(237, 28, 40, 0.08)" filter="blur(40px)" />
+
+  <!-- Center Icon Box -->
+  <g transform="translate(400, 190)">
+    <!-- Rounded badge -->
+    <rect x="-48" y="-48" width="96" height="96" rx="24" fill="rgba(237, 28, 40, 0.12)" stroke="rgba(237, 28, 40, 0.3)" stroke-width="2" />
+    
+    <!-- Medical Book / Stethoscope Icon -->
+    <path d="M-20 -15 C-20 -20 -10 -24 0 -20 C10 -24 20 -20 20 -15 L20 18 C10 14 0 16 -1 20 C-1 16 -10 14 -20 18 Z" fill="none" stroke="url(#redGrad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M0 -20 L0 20" stroke="url(#redGrad)" stroke-width="3" stroke-linecap="round" />
+    <path d="M-12 -6 L-4 -6" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M-12 2 L-6 2" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M4 -6 L12 -6" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M4 2 L10 2" stroke="rgba(255,255,255,0.4)" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Course Title Text -->
+  <text x="400" y="290" text-anchor="middle" fill="#f4f4f5" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="700" letter-spacing="0.5">
+    Creative Medical Academy
+  </text>
+  <text x="400" y="318" text-anchor="middle" fill="#a1a1aa" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="500">
+    Online Medical Education
+  </text>
+</svg>

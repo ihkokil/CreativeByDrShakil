@@ -17,7 +17,8 @@ import {
     ChevronRight,
     Eye,
     Copy,
-    Archive
+    Archive,
+    PlayCircle
 } from "lucide-react";
 import Image from "next/image";
 import styles from "./CoursesTab.module.css";
@@ -203,6 +204,28 @@ export default function CoursesTab() {
         });
     };
 
+    const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
+
+    const handleEnrollAndStart = async (course: Course) => {
+        try {
+            setEnrollingCourseId(course.id);
+            const token = localStorage.getItem("auth_token");
+            const res = await fetch(`/api/teacher/courses/${course.id}/self-enroll`, {
+                method: "POST",
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                showAlert(data.error || "Failed to enroll in course.", "error");
+                return;
+            }
+            router.push(`/study/${data.slug || course.slug}`);
+        } catch (err: any) {
+            showAlert("Failed to start course: " + (err.message || "Unknown error"), "error");
+        } finally {
+            setEnrollingCourseId(null);
+        }
+    };
 
     const filteredCourses = courses.filter(c => {
         const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -345,11 +368,19 @@ export default function CoursesTab() {
 
                         <div className={styles.cardActionsRow}>
                             <button 
+                                className={`${styles.actionBtnIcon} ${styles.enrollAction}`} 
+                                onClick={() => handleEnrollAndStart(course)} 
+                                disabled={enrollingCourseId === course.id}
+                                title="Enroll and Start Course (Study View)"
+                            >
+                                <PlayCircle size={15} /> <span>{enrollingCourseId === course.id ? "Enrolling..." : "Enroll & Start"}</span>
+                            </button>
+                            <button 
                                 className={styles.primaryActionButton} 
                                 onClick={() => setSelectedCourseForStudents({ id: course.id, title: course.title })} 
-                                title="Manage Students"
+                                title="Students"
                             >
-                                <Users size={15} /> Manage Students
+                                <Users size={15} /> <span>Students</span>
                             </button>
                             <button 
                                 className={styles.actionBtnIcon} 

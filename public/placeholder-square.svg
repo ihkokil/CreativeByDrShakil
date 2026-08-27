@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="sqBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+    <linearGradient id="sqGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ed1c28" />
+      <stop offset="100%" stop-color="#ef4444" />
+    </linearGradient>
+  </defs>
+
+  <rect width="400" height="400" fill="url(#sqBg)" />
+  
+  <circle cx="200" cy="180" r="100" fill="rgba(237, 28, 40, 0.06)" filter="blur(20px)" />
+
+  <!-- Instructor / User Avatar Shape -->
+  <g transform="translate(200, 180)">
+    <circle cx="0" cy="-30" r="40" fill="none" stroke="url(#sqGlow)" stroke-width="4" />
+    <path d="M-60 65 C-60 20 60 20 60 65" fill="none" stroke="url(#sqGlow)" stroke-width="4" stroke-linecap="round" />
+  </g>
+
+  <text x="200" y="295" text-anchor="middle" fill="#f4f4f5" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" letter-spacing="0.5">
+    Instructor
+  </text>
+  <text x="200" y="320" text-anchor="middle" fill="#71717a" font-family="system-ui, -apple-system, sans-serif" font-size="13">
+    Medical Faculty
+  </text>
+</svg>
