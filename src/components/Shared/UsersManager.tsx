@@ -92,7 +92,9 @@ interface UserData {
 
 export default function UsersManager() {
   const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -117,7 +119,6 @@ export default function UsersManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const pageSize = 20;
   const [globalSettings, setGlobalSettings] = useState({
     autoLockFirstBrowser: true,
@@ -129,6 +130,7 @@ export default function UsersManager() {
   const [isPolicyPanelOpen, setIsPolicyPanelOpen] = useState(true);
   const [activeFilterTab, setActiveFilterTab] = useState<'all' | 'online' | 'desktop' | 'tablet' | 'mobile' | 'banned' | 'exempt'>('all');
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMount = useRef(true);
 
   // Compute live directory statistics
   const stats = useMemo(() => {
@@ -200,74 +202,89 @@ export default function UsersManager() {
     return null;
   }, []);
 
-  const fetchUsers = useCallback(async (page = currentPage, search = debouncedSearch, sort = sortBy, isSilent = false) => {
-    if (!isSilent) {
-      setLoading(true);
-    } else {
-      setIsRefreshing(true);
-    }
-    setError('');
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(pageSize),
-        sortBy: sort,
-      });
-      if (search) params.set('search', search);
-
-      const response = await fetch(`/api/users?${params.toString()}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch users');
-
-      const data = await response.json();
-      setUsers(data.users || []);
-      if (data.globalSettings) {
-        setGlobalSettings(data.globalSettings);
+  const fetchUsers = useCallback(
+    async (
+      page = currentPage,
+      search = debouncedSearch,
+      sort = sortBy,
+      mode: 'initial' | 'search' | 'background' = 'search'
+    ) => {
+      if (mode === 'initial') {
+        setInitialLoading(true);
+      } else if (mode === 'background') {
+        setIsRefreshing(true);
+      } else {
+        setIsFetching(true);
       }
-      if (data.pagination) {
-        setCurrentPage(data.pagination.page);
-        setTotalPages(data.pagination.totalPages);
-        setTotalCount(data.pagination.totalCount);
+      setError('');
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(pageSize),
+          sortBy: sort,
+        });
+        if (search) params.set('search', search);
+
+        const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const response = await fetch(`/api/users?${params.toString()}`, {
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch users');
+
+        const data = await response.json();
+        setUsers(data.users || []);
+        if (data.globalSettings) {
+          setGlobalSettings(data.globalSettings);
+        }
+        if (data.pagination) {
+          setCurrentPage(data.pagination.page);
+          setTotalPages(data.pagination.totalPages);
+          setTotalCount(data.pagination.totalCount);
+        }
+      } catch (err: any) {
+        if (mode !== 'background') {
+          setError(err.message || 'Failed to load users');
+        }
+      } finally {
+        setInitialLoading(false);
+        setIsFetching(false);
+        setIsRefreshing(false);
       }
-    } catch (err: any) {
-      if (!isSilent) {
-        setError(err.message || 'Failed to load users');
-      }
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [token, currentPage, debouncedSearch, sortBy]);
+    },
+    [currentPage, debouncedSearch, sortBy]
+  );
 
-  useEffect(() => {
-    fetchUsers(1, '', 'lastActive');
-  }, [token]);
-
-  // Real-time live presence polling every 12 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchUsers(currentPage, debouncedSearch, sortBy, true);
-    }, 12000);
-
-    return () => clearInterval(interval);
-  }, [fetchUsers, currentPage, debouncedSearch, sortBy]);
-
-  // Debounce search: wait 400ms after typing stops before fetching
+  // Debounce search: wait 350ms after typing stops before updating debouncedSearch
   useEffect(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
       setDebouncedSearch(searchQuery);
       setCurrentPage(1);
-    }, 400);
-    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+    }, 350);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
   }, [searchQuery]);
 
-  // Fetch when page, debounced search, or sortBy changes
+  // Fetch users when page, debounced search, or sortBy changes
   useEffect(() => {
-    fetchUsers(currentPage, debouncedSearch, sortBy);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchUsers(1, '', 'lastActive', 'initial');
+    } else {
+      fetchUsers(currentPage, debouncedSearch, sortBy, 'search');
+    }
   }, [currentPage, debouncedSearch, sortBy]);
+
+  // Real-time live presence polling every 12 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUsers(currentPage, debouncedSearch, sortBy, 'background');
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [fetchUsers, currentPage, debouncedSearch, sortBy]);
 
   const handleUpdateGlobalSetting = async (updatedFields: Partial<typeof globalSettings>) => {
     try {
@@ -310,7 +327,7 @@ export default function UsersManager() {
 
           if (response.ok) {
             setConfirmModalState((prev) => ({ ...prev, isOpen: false, loading: false }));
-            fetchUsers(currentPage, debouncedSearch, sortBy, true);
+            fetchUsers(currentPage, debouncedSearch, sortBy, 'background');
           } else {
             const data = await response.json();
             throw new Error(data.error || 'Failed to logout all sessions');
@@ -341,7 +358,7 @@ export default function UsersManager() {
 
           if (response.ok) {
             setConfirmModalState((prev) => ({ ...prev, isOpen: false, loading: false }));
-            fetchUsers(currentPage, debouncedSearch, sortBy, true);
+            fetchUsers(currentPage, debouncedSearch, sortBy, 'background');
           } else {
             const data = await response.json();
             throw new Error(data.error || 'Failed to unbind all devices');
@@ -518,7 +535,7 @@ export default function UsersManager() {
           }
 
           setConfirmModalState((prev) => ({ ...prev, isOpen: false, loading: false }));
-          fetchUsers(currentPage, debouncedSearch, sortBy, true);
+          fetchUsers(currentPage, debouncedSearch, sortBy, 'background');
         } catch (err: any) {
           setConfirmModalState((prev) => ({ ...prev, loading: false }));
           setError(err.message || 'Failed to reset device slot');
@@ -551,7 +568,7 @@ export default function UsersManager() {
     return users;
   }, [users, activeFilterTab]);
 
-  if (loading) {
+  if (initialLoading) {
     return <div className={styles.loading}>Loading directory...</div>;
   }
 
@@ -980,7 +997,7 @@ export default function UsersManager() {
         <div className={styles.toolbarTopRow}>
           {/* Search Input */}
           <div className={styles.searchBox}>
-            <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
             <input
               type="text"
               placeholder="Search directory by student name, email, IP address..."
@@ -992,9 +1009,21 @@ export default function UsersManager() {
                 color: 'var(--foreground)',
                 outline: 'none',
                 width: '100%',
-                fontSize: '0.88rem',
+                fontSize: '0.92rem',
               }}
             />
+            {(isFetching || searchQuery !== debouncedSearch) && (
+              <span title="Searching..." style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <RefreshCw
+                  size={14}
+                  style={{
+                    color: 'var(--primary)',
+                    animation: 'spin 1s linear infinite',
+                    flexShrink: 0,
+                  }}
+                />
+              </span>
+            )}
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
@@ -1022,7 +1051,7 @@ export default function UsersManager() {
             </div>
 
             <button
-              onClick={() => fetchUsers(currentPage, debouncedSearch, sortBy, true)}
+              onClick={() => fetchUsers(currentPage, debouncedSearch, sortBy, 'background')}
               className={styles.iconBtn}
               title="Refresh student list immediately"
             >
@@ -1105,7 +1134,13 @@ export default function UsersManager() {
         </div>
       </div>
 
-      <div className={styles.tableContainer}>
+      <div
+        className={styles.tableContainer}
+        style={{
+          opacity: isFetching ? 0.7 : 1,
+          transition: 'opacity 0.2s ease',
+        }}
+      >
         <table className={styles.table}>
           <thead>
             <tr>
@@ -1118,9 +1153,18 @@ export default function UsersManager() {
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.length === 0 ? (
+            {isFetching && filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                    <RefreshCw size={28} style={{ color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--foreground)' }}>Searching directory...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                     <Users size={36} style={{ opacity: 0.3, color: 'var(--primary)' }} />
                     <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)' }}>No students found</span>

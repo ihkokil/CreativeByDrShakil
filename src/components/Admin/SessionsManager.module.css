@@ -383,23 +383,23 @@
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
   width: 100%;
 }
 
 .kpiCard {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  border-radius: 14px;
+  gap: 16px;
+  padding: 18px 22px;
+  border-radius: 16px;
   background: var(--glass);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
 }
 
 .kpiCard:hover {
@@ -412,27 +412,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   flex-shrink: 0;
 }
 
 .kpiValue {
-  font-size: 1.35rem;
-  font-weight: 700;
+  font-size: 1.55rem;
+  font-weight: 800;
   color: var(--foreground);
   line-height: 1.1;
   letter-spacing: -0.5px;
 }
 
 .kpiLabel {
-  font-size: 0.76rem;
-  font-weight: 500;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-muted);
-  margin-top: 3px;
+  margin-top: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.5px;
 }
 
 .pulsingDot {
@@ -461,7 +461,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 14px 18px;
   border-radius: 12px;
   background: var(--surface-soft);
   border: 1px solid var(--glass-border);
@@ -522,10 +522,10 @@
 .toolbarCard {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  background: var(--glass);
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: var(--surface-soft);
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -533,7 +533,7 @@
 
 .toolbarTopRow {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
   flex-wrap: wrap;
   width: 100%;
@@ -542,26 +542,26 @@
 .searchBox {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  background: var(--surface-soft);
+  gap: 12px;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--card-bg, #0d0d12);
   border: 1px solid var(--glass-border);
   transition: all 0.2s ease;
-  flex: 1 1 240px;
-  min-width: 240px;
+  flex: 1 1 280px;
+  min-width: 280px;
 }
 
 .searchBox:focus-within {
   border-color: var(--primary);
-  background: var(--surface-strong);
-  box-shadow: 0 0 0 3px rgba(237, 28, 40, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 .toolbarControls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   flex-shrink: 0;
 }
@@ -569,12 +569,13 @@
 .syncBadge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 12px;
   background: rgba(34, 197, 94, 0.08);
   border: 1px solid rgba(34, 197, 94, 0.25);
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   color: #22c55e;
   font-weight: 600;
   white-space: nowrap;
@@ -584,11 +585,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   border: 1px solid var(--glass-border);
-  background: var(--surface-soft);
+  background: var(--card-bg, #0d0d12);
   color: var(--foreground);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -598,19 +599,21 @@
 .iconBtn:hover {
   background: var(--surface-strong);
   border-color: var(--primary);
+  transform: translateY(-1px);
 }
 
 .sortSelectWrapper {
   position: relative;
-  min-width: 150px;
+  min-width: 170px;
 }
 
 .filterPillsRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-top: 14px;
+  border-top: 1px solid var(--glass-border);
   scrollbar-width: none;
   width: 100%;
 }
@@ -623,12 +626,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border-radius: 20px;
+  padding: 8px 16px;
+  min-height: 38px;
+  border-radius: 10px;
   border: 1px solid var(--glass-border);
-  background: var(--surface-soft);
+  background: var(--card-bg, #0d0d12);
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -640,28 +644,30 @@
   background: var(--surface-strong);
   color: var(--foreground);
   border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .filterPillActive {
   background: var(--primary);
   color: #ffffff;
   border-color: var(--primary);
-  box-shadow: 0 2px 8px rgba(237, 28, 40, 0.35);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 35%, transparent);
 }
 
 .filterPillActive:hover {
-  background: var(--secondary);
+  background: color-mix(in srgb, var(--primary) 85%, black);
   color: #ffffff;
 }
 
 .customSelect {
   appearance: none;
-  padding: 7px 30px 7px 12px;
-  border-radius: 10px;
+  padding: 10px 36px 10px 16px;
+  min-height: 44px;
+  border-radius: 12px;
   border: 1px solid var(--glass-border);
-  background: var(--surface-soft);
+  background: var(--card-bg, #0d0d12);
   color: var(--foreground);
-  font-size: 0.8rem;
+  font-size: 0.86rem;
   font-weight: 600;
   cursor: pointer;
   outline: none;
@@ -670,7 +676,7 @@
 }
 
 .customSelect:hover, .customSelect:focus {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--primary);
   background: var(--surface-strong);
 }
 
@@ -691,15 +697,15 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 16px 20px;
+  gap: 16px;
+  padding: 18px 24px;
   transition: background 0.2s ease;
 }
 
 .policyActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -707,13 +713,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: 8px 16px;
+  min-height: 40px;
   border-radius: 10px;
   border: 1px solid rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
   font-weight: 600;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -729,13 +736,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
+  padding: 8px 16px;
+  min-height: 40px;
   border-radius: 10px;
   border: 1px solid var(--glass-border);
   background: var(--surface-soft);
   color: var(--foreground);
   font-weight: 600;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -744,10 +752,11 @@
 .policyBtnDefault:hover {
   background: var(--surface-strong);
   border-color: var(--primary);
+  transform: translateY(-1px);
 }
 
 .policyContent {
-  padding: 18px 20px;
+  padding: 20px 24px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
@@ -757,9 +766,9 @@
 .policySettingBox {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px 16px;
-  border-radius: 12px;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 14px;
   background: var(--surface-soft);
   border: 1px solid var(--glass-border);
 }
