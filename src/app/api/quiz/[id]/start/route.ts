@@ -109,9 +109,9 @@ export async function POST(
       return NextResponse.json({ error: 'Quiz has no questions.' }, { status: 400 });
     }
 
-    // Optionally shuffle and limit questions
+    // Shuffle and limit questions (default to true unless explicitly false)
     let selectedQuestions = [...(questions || [])];
-    if (quiz.shuffleQuestions) {
+    if (quiz.shuffleQuestions !== false) {
       selectedQuestions = shuffleArray(selectedQuestions);
     }
     if (quiz.numQuestionsToServe && quiz.numQuestionsToServe < selectedQuestions.length) {
@@ -137,11 +137,11 @@ export async function POST(
 
     if (attemptError) throw attemptError;
 
-    // Create question mappings with optional option shuffling
+    // Create question mappings with optional option shuffling (default to true unless explicitly false)
     const optionLetters = ['A', 'B', 'C', 'D', 'E'];
     for (let i = 0; i < selectedQuestions.length; i++) {
       const q = selectedQuestions[i] as any;
-      const optionOrder = quiz.shuffleOptions ? shuffleArray([...optionLetters]) : [...optionLetters];
+      const optionOrder = quiz.shuffleOptions !== false ? shuffleArray([...optionLetters]) : [...optionLetters];
 
       await supabase.from('QuizQuestionMapping')
 // @ts-ignore

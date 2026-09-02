@@ -215,6 +215,22 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
           quiz.maxAttempts === 0 ||
           (quiz.attempt?.attemptNumber ?? 0) < quiz.maxAttempts)));
 
+  const sbaMarks = (quiz as any).sbaMarks !== undefined && (quiz as any).sbaMarks !== null
+    ? Number((quiz as any).sbaMarks)
+    : (quiz.marksPerCorrect !== undefined && quiz.marksPerCorrect !== null ? Number(quiz.marksPerCorrect) : 2);
+
+  const sbaNegative = (quiz as any).sbaNegative !== undefined && (quiz as any).sbaNegative !== null
+    ? Number((quiz as any).sbaNegative)
+    : (quiz.allowNegativeMarking && quiz.negativeValue ? Number(quiz.negativeValue) : 0);
+
+  const tfMarks = (quiz as any).tfMarks !== undefined && (quiz as any).tfMarks !== null
+    ? Number((quiz as any).tfMarks)
+    : 2;
+
+  const tfNegative = (quiz as any).tfNegative !== undefined && (quiz as any).tfNegative !== null
+    ? Number((quiz as any).tfNegative)
+    : (quiz.allowNegativeMarking === false && (quiz as any).tfNegative === undefined ? 0 : 0.5);
+
   const totalMarks = (quiz as any).totalMarks !== undefined ? (quiz as any).totalMarks : (quiz.numQuestionsToServe * (quiz.marksPerCorrect || 1));
 
   return (
@@ -293,41 +309,31 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
               </div>
             </div>
 
-            <div className={styles.ruleCard}>
+            <div className={`${styles.ruleCard} ${styles.ruleCardSpan2}`}>
               <div className={styles.ruleIcon}>
-                {quiz.allowNegativeMarking ? (
+                {sbaNegative > 0 || tfNegative > 0 ? (
                   <XCircle className={styles.ruleIconSvg} />
                 ) : (
                   <Shield className={styles.ruleIconSvg} />
                 )}
               </div>
-              <div className={styles.ruleContent}>
+              <div className={styles.ruleContent} style={{ width: '100%' }}>
                 <span className={styles.ruleLabel}>Scoring Policy</span>
-                <span className={styles.ruleValue}>
-                  {((quiz as any).sbaMarks !== undefined || (quiz as any).tfMarks !== undefined)
-                    ? `SBA: +${(quiz as any).sbaMarks ?? 2} / -${(quiz as any).sbaNegative ?? 0} | T/F: +${(quiz as any).tfMarks ?? 2} / -${(quiz as any).tfNegative ?? 0.5}`
-                    : (quiz.allowNegativeMarking
-                      ? `+${quiz.marksPerCorrect || 1} / -${quiz.negativeValue || 0.25} per question`
-                      : "No negative marking"
-                    )
-                  }
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.ruleCard}>
-              <div className={styles.ruleIcon}>
-                <RotateCcw className={styles.ruleIconSvg} />
-              </div>
-              <div className={styles.ruleContent}>
-                <span className={styles.ruleLabel}>Attempts</span>
-                <span className={styles.ruleValue}>
-                  {quiz.allowMultipleAttempts
-                    ? quiz.maxAttempts && quiz.maxAttempts > 0
-                      ? `Max ${quiz.maxAttempts} attempts`
-                      : "Unlimited retries"
-                    : "1 attempt allowed"}
-                </span>
+                <div className={styles.scoringBadgesWrapper}>
+                  <div className={styles.scoringItem}>
+                    <span className={styles.scoringTypeTag}>SBA</span>
+                    <span className={styles.scoringItemText}>
+                      <strong>+{sbaMarks} marks</strong> per question {sbaNegative > 0 ? <span className={styles.penaltyText}>(&minus;{sbaNegative} negative marks)</span> : <span className={styles.noPenaltyText}>(No negative marks)</span>}
+                    </span>
+                  </div>
+                  <div className={styles.scoringDivider} />
+                  <div className={styles.scoringItem}>
+                    <span className={styles.scoringTypeTag}>True/False</span>
+                    <span className={styles.scoringItemText}>
+                      <strong>+{tfMarks} marks</strong> per option {tfNegative > 0 ? <span className={styles.penaltyText}>(&minus;{tfNegative} negative marks)</span> : <span className={styles.noPenaltyText}>(No negative marks)</span>}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -337,7 +343,11 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
               </div>
               <div className={styles.ruleContent}>
                 <span className={styles.ruleLabel}>Ranking</span>
-                <span className={styles.ruleValue}>{getPositionTypeLabel(quiz.positionType)}</span>
+                <span className={styles.ruleValue}>
+                  {getPositionTypeLabel(quiz.positionType)} ({quiz.allowMultipleAttempts 
+                    ? (quiz.maxAttempts && quiz.maxAttempts > 0 ? `Max ${quiz.maxAttempts} attempts` : 'Unlimited attempts') 
+                    : 'Single attempt'})
+                </span>
               </div>
             </div>
           </div>
@@ -350,22 +360,16 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
               <h3>Exam Instructions & Rules</h3>
               <ul>
                 <li>
-                  This quiz consists of <strong>{quiz.numQuestionsToServe} questions</strong> to be
-                  completed in <strong>{formatDuration(quiz.durationMinutes)}</strong>.
+                  This quiz consists of <strong>{quiz.numQuestionsToServe} questions</strong> to be completed within <strong>{formatDuration(quiz.durationMinutes)}</strong>.
                 </li>
                 <li>
-                  Each correct answer carries{" "}
-                  <strong>
-                    {quiz.marksPerCorrect} mark{quiz.marksPerCorrect !== 1 ? "s" : ""}
-                  </strong>
-                  .
-                  {quiz.allowNegativeMarking
-                    ? ` Wrong answers will deduct ${quiz.negativeValue || 0.25} mark${(quiz.negativeValue || 0.25) !== 1 ? "s" : ""}.`
-                    : " There is no negative marking."}
+                  <strong>Single Best Answer (SBA) Scoring:</strong> Each question carries <strong>+{sbaMarks} mark{sbaMarks !== 1 ? 's' : ''}</strong> for a correct answer{sbaNegative > 0 ? <>, and <strong>-{sbaNegative} negative mark{sbaNegative !== 1 ? 's' : ''}</strong> per question for an incorrect answer</> : <>, with <strong>no negative marks (0 marks)</strong> for wrong answers</>}. Unattempted questions receive <strong>0 marks</strong>.
                 </li>
                 <li>
-                  You can freely change your selected answers{" "}
-                  <strong>anytime before submission</strong> within the time limit.
+                  <strong>Multiple True / False (Matrix) Scoring:</strong> Each question contains 5 separate options. Correctly identifying an option carries <strong>+{tfMarks} mark{tfMarks !== 1 ? 's' : ''} per option</strong> (up to <strong>+{Number((tfMarks * 5).toFixed(2))} marks</strong> per question){tfNegative > 0 ? <>, and <strong>-{tfNegative} negative mark{tfNegative !== 1 ? 's' : ''} per option</strong> for an incorrect option choice</> : <>, with <strong>no negative marks (0 marks)</strong> for incorrect option choices</>}. Unselected options receive <strong>0 marks</strong>.
+                </li>
+                <li>
+                  You can freely change your selected answers <strong>anytime before submission</strong> within the time limit.
                 </li>
                 <li>
                   The quiz will be <strong>auto-submitted</strong> when the timer runs out.

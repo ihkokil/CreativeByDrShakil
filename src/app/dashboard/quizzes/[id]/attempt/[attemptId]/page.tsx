@@ -525,32 +525,38 @@ export default function QuizTakePage() {
         </div>
       )}
 
-      {/* Top Navigation Bar with Progress Bar */}
+      {/* Top Navigation Bar with Progress Bar & Sticky Centered Timer */}
       {!showResults && (
         <header className={styles.topBar}>
-          <div className={styles.topBarProgress} title={`${answeredCount} of ${totalQuestions} answered`}>
-            <span className={styles.progressTextDesktop}>{answeredCount}/{totalQuestions} Answered</span>
-            <span className={styles.progressTextMobile}>{answeredCount}/{totalQuestions}</span>
-            <div className={styles.progressBarTrack} role="progressbar" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={totalQuestions}>
-              <div className={styles.progressBarFill} style={{ width: `${progressPercent}%` }} />
+          <div className={styles.topBarLeft}>
+            <div className={styles.topBarProgress} title={`${answeredCount} of ${totalQuestions} answered`}>
+              <span className={styles.progressTextDesktop}>{answeredCount}/{totalQuestions} Answered</span>
+              <span className={styles.progressTextMobile}>{answeredCount}/{totalQuestions}</span>
+              <div className={styles.progressBarTrack} role="progressbar" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={totalQuestions}>
+                <div className={styles.progressBarFill} style={{ width: `${progressPercent}%` }} />
+              </div>
             </div>
           </div>
 
-          <div className={styles.topBarDivider} />
-
-          <div className={`${styles.topBarTimer} ${isTimeCritical ? styles.timerCritical : isTimeWarning ? styles.timerWarning : ''}`}>
-            <Clock className={styles.topBarTimerIcon} />
-            <span>{formatTime(timeRemaining)}</span>
+          <div className={styles.topBarCenter}>
+            <div className={`${styles.topBarTimer} ${isTimeCritical ? styles.timerCritical : isTimeWarning ? styles.timerWarning : ''}`}>
+              <Clock className={styles.topBarTimerIcon} />
+              <span>{formatTime(timeRemaining)}</span>
+            </div>
           </div>
 
-          <button
-            onClick={() => setShowSubmitConfirm(true)}
-            disabled={submitting}
-            className={styles.topBarSubmitBtn}
-          >
-            <Check size={16} />
-            {submitting ? 'Submitting...' : 'Submit'}
-          </button>
+          <div className={styles.topBarRight}>
+            <button
+              type="button"
+              onClick={() => setShowSubmitConfirm(true)}
+              disabled={submitting}
+              className={styles.topBarSubmitBtn}
+              aria-label="Submit quiz"
+            >
+              <Check size={16} />
+              <span>{submitting ? 'Submitting...' : 'Submit'}</span>
+            </button>
+          </div>
         </header>
       )}
 
@@ -587,6 +593,7 @@ export default function QuizTakePage() {
                 <div className={styles.optionsGrid} role={isSba ? "radiogroup" : "group"} aria-label={`Options for question ${index + 1}`}>
                   {isTF ? (
                     q.options.map((option, idx) => {
+                      const displayLetter = String.fromCharCode(65 + idx);
                       const answer = answers[q.id];
                       const currentStr = answer?.selectedOption || '-'.repeat(q.options.length || 5);
                       const originalIdx = option.letter.charCodeAt(0) - 65;
@@ -609,7 +616,7 @@ export default function QuizTakePage() {
                       return (
                         <div key={`${q.id}-${option.letter}`} className={optionClass}>
                           <div className={styles.mcqMatrixLabel}>
-                            <span className={styles.optionLetter}>{option.letter}</span>
+                            <span className={styles.optionLetter}>{displayLetter}</span>
                             <span className={styles.optionText}>{option.text}</span>
                           </div>
 
@@ -621,7 +628,7 @@ export default function QuizTakePage() {
                                 disabled={showResults}
                                 className={`${styles.mcqBtn} ${styles.trueBtn} ${isT ? styles.mcqBtnSelected : ''} ${showResults && isCorrectT ? styles.mcqBtnCorrect : ''} ${showResults && isT && !isCorrectT ? styles.mcqBtnWrong : ''}`}
                                 aria-pressed={isT}
-                                aria-label={`Mark option ${option.letter} as True`}
+                                aria-label={`Mark option ${displayLetter} as True`}
                               >
                                 <span className={styles.btnChoiceIcon}>T</span>
                                 <span>True</span>
@@ -632,7 +639,7 @@ export default function QuizTakePage() {
                                 disabled={showResults}
                                 className={`${styles.mcqBtn} ${styles.falseBtn} ${isF ? styles.mcqBtnSelected : ''} ${showResults && isCorrectF ? styles.mcqBtnCorrect : ''} ${showResults && isF && !isCorrectF ? styles.mcqBtnWrong : ''}`}
                                 aria-pressed={isF}
-                                aria-label={`Mark option ${option.letter} as False`}
+                                aria-label={`Mark option ${displayLetter} as False`}
                               >
                                 <span className={styles.btnChoiceIcon}>F</span>
                                 <span>False</span>
@@ -663,7 +670,8 @@ export default function QuizTakePage() {
                       );
                     })
                   ) : (
-                    q.options.map((option) => {
+                    q.options.map((option, optIdx) => {
+                      const displayLetter = String.fromCharCode(65 + optIdx);
                       const answer = answers[q.id];
                       const isSelected = answer?.selectedOption === option.letter;
                       
@@ -689,7 +697,7 @@ export default function QuizTakePage() {
                           aria-checked={isSelected}
                           aria-disabled={showResults}
                         >
-                          <span className={styles.optionLetter}>{option.letter}</span>
+                          <span className={styles.optionLetter}>{displayLetter}</span>
                           <span className={styles.optionText}>{option.text}</span>
                           
                           {isSelected && !showResults && (

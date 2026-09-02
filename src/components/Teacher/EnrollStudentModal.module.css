@@ -319,15 +319,34 @@
     background: rgba(255, 255, 255, 0.2);
 }
 
+.batchDateGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
 @media (max-width: 560px) {
     .modal {
         max-width: 100%;
-        max-height: 90vh;
-        padding: 20px;
+        max-height: calc(100dvh - 32px);
+        padding: 18px 14px;
+        border-radius: 20px;
     }
     
     .tab {
         font-size: 0.8rem;
         padding: 10px 12px;
+        min-height: 42px;
+    }
+
+    .batchDateGrid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .submitBtn {
+        min-height: 44px;
+        touch-action: manipulation;
     }
 }

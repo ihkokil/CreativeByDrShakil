@@ -471,6 +471,11 @@ export default function StudentsManager() {
 
   // Batch Enrollment Submit
   const handleBatchEnrollSubmit = async () => {
+    if (selectedIds.size === 0) {
+      showAlert('Please select at least one student to enroll.', 'warning');
+      return;
+    }
+
     if (!batchCourseId) {
       showAlert('Please select a course to enroll.', 'warning');
       return;
@@ -478,11 +483,12 @@ export default function StudentsManager() {
     
     setIsSubmitting(true);
     try {
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : token;
       const res = await fetch('/api/students', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         },
         body: JSON.stringify({
           studentIds: Array.from(selectedIds),
@@ -658,13 +664,26 @@ export default function StudentsManager() {
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editStudent) return;
+
+    const emailTrimmed = (formData.email || '').trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailTrimmed || !emailRegex.test(emailTrimmed)) {
+      setFormMessage({ type: 'error', text: 'Please enter a valid email address.' });
+      return;
+    }
+
     setIsSubmitting(true);
     setFormMessage(null);
     try {
+      const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : token;
       const res = await fetch('/api/admin/students/manage', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ id: editStudent.id, ...formData })
+        headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+        body: JSON.stringify({ 
+          id: editStudent.id, 
+          ...formData,
+          email: emailTrimmed,
+        })
       });
       const data = await res.json();
 
@@ -1142,12 +1161,12 @@ export default function StudentsManager() {
                     <span className={styles.enrollPanelTitle}>
                       <BookPlus size={16} /> Bulk Course Enrollment
                     </span>
-                    <button type="button" className={styles.enrollPanelClose} onClick={() => setShowEnrollPanel(false)}>
+                    <button type="button" className={styles.enrollPanelClose} onClick={() => setShowEnrollPanel(false)} aria-label="Close bulk enroll panel">
                       <X size={16} />
                     </button>
                   </div>
                   <div className={styles.enrollPanelBody}>
-                    <div className={styles.enrollPanelField} style={{ flex: 1.5 }}>
+                    <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldCourse}`}>
                       <label>Target Course</label>
                       <select 
                         value={batchCourseId}
@@ -1163,7 +1182,7 @@ export default function StudentsManager() {
                       </select>
                     </div>
 
-                    <div className={styles.enrollPanelField} style={{ flex: 1.5 }}>
+                    <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldBatch}`}>
                       <label>Target Batch / Cohort</label>
                       <select 
                         value={batchId}
@@ -1204,7 +1223,7 @@ export default function StudentsManager() {
                         : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : batchEnrollDate);
 
                       return (
-                        <div className={styles.enrollPanelField} style={{ flex: 1 }}>
+                        <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldDate}`}>
                           <label>{isCustom ? 'Enrollment Date' : 'Date (Batch Fixed)'}</label>
                           <input 
                             type="date" 
@@ -1223,14 +1242,13 @@ export default function StudentsManager() {
                       );
                     })()}
 
-                    <div className={styles.enrollPanelField} style={{ flex: '0 1 auto' }}>
-                      <label style={{ visibility: 'hidden' }}>Action</label>
+                    <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldAction}`}>
+                      <label className={styles.enrollPanelActionLabel}>Action</label>
                       <button 
                         type="button"
                         className={`${styles.batchActionBtn} ${styles.primary}`}
                         onClick={handleBatchEnrollSubmit}
                         disabled={isSubmitting || !batchCourseId}
-                        style={{ padding: '0 20px', height: '42px', width: '100%', justifyContent: 'center' }}
                       >
                         {isSubmitting ? <><Loader variant="button" /> Enrolling...</> : 'Enroll Now'}
                       </button>
@@ -1246,12 +1264,12 @@ export default function StudentsManager() {
                     <span className={styles.enrollPanelTitle} style={{ color: 'var(--error)' }}>
                       <Trash size={16} /> Bulk Remove from Course
                     </span>
-                    <button type="button" className={styles.enrollPanelClose} onClick={() => setShowRemovePanel(false)}>
+                    <button type="button" className={styles.enrollPanelClose} onClick={() => setShowRemovePanel(false)} aria-label="Close remove panel">
                       <X size={16} />
                     </button>
                   </div>
                   <div className={styles.enrollPanelBody}>
-                    <div className={styles.enrollPanelField} style={{ flex: 2 }}>
+                    <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldCourse}`}>
                       <label>Select Course to Remove From</label>
                       <select 
                         value={removeCourseId}
@@ -1263,14 +1281,13 @@ export default function StudentsManager() {
                         ))}
                       </select>
                     </div>
-                    <div className={styles.enrollPanelField} style={{ flex: '0 1 auto' }}>
-                      <label style={{ visibility: 'hidden' }}>Action</label>
+                    <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldAction}`}>
+                      <label className={styles.enrollPanelActionLabel}>Action</label>
                       <button 
                         type="button"
                         className={`${styles.batchActionBtn} ${styles.danger}`}
                         onClick={handleBatchRemove}
                         disabled={isSubmitting || !removeCourseId}
-                        style={{ padding: '0 20px', height: '42px', width: '100%', justifyContent: 'center' }}
                       >
                         {isSubmitting ? <><Loader variant="button" /> Removing...</> : 'Remove Students'}
                       </button>
@@ -1486,6 +1503,14 @@ export default function StudentsManager() {
                 <div style={{ position: 'relative' }}>
                   <User size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                   <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={styles.input} style={{ paddingLeft: '40px', width: '100%' }} />
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Email Address</label>
+                <div style={{ position: 'relative' }}>
+                  <Mail size={16} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={styles.input} placeholder="student@example.com" style={{ paddingLeft: '40px', width: '100%' }} />
                 </div>
               </div>
               

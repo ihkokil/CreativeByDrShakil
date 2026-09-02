@@ -555,7 +555,7 @@ export default function TeacherQuizResultsPage() {
 
                                       <div className={styles.reviewOptions}>
                                         {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
-                                          question.options?.map((option: any) => {
+                                          question.options?.map((option: any, idx: number) => {
                                             const studentStr = question.studentAnswer || '-'.repeat(question.options.length);
                                             const correctStr = question.correctOption || 'F'.repeat(question.options.length);
                                             const originalIdx = option.letter.charCodeAt(0) - 65;
@@ -565,6 +565,7 @@ export default function TeacherQuizResultsPage() {
                                             const isCorrectF = correctStr[originalIdx] === 'F';
                                             const answered = isT || isF;
                                             const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
+                                            const displayLetter = String.fromCharCode(65 + idx);
 
                                             let optionClass = styles.reviewOption;
                                             if (answered) {
@@ -575,7 +576,7 @@ export default function TeacherQuizResultsPage() {
                                             return (
                                               <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 16px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                                                  <span className={styles.optionLetter}>{option.letter}</span>
+                                                  <span className={styles.optionLetter}>{displayLetter}</span>
                                                   <span className={styles.optionText}>{option.text}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -607,7 +608,8 @@ export default function TeacherQuizResultsPage() {
                                             );
                                           })
                                         ) : (
-                                          question.options?.map((option: any) => {
+                                          question.options?.map((option: any, optIdx: number) => {
+                                            const displayLetter = String.fromCharCode(65 + optIdx);
                                             const isStudentAnswer = option.letter === question.studentAnswer;
                                             const isCorrectAnswer = option.letter === question.correctOption;
                                             const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
@@ -619,7 +621,7 @@ export default function TeacherQuizResultsPage() {
 
                                             return (
                                               <div key={`${question.questionId}-${option.letter}`} className={optionClass}>
-                                                <span className={styles.optionLetter}>{option.letter}</span>
+                                                <span className={styles.optionLetter}>{displayLetter}</span>
                                                 <span className={styles.optionText}>{option.text}</span>
                                                 {isStudentAnswer && isCorrectAnswer && <span className={styles.correctBadge}>✓ Student Answer (Correct)</span>}
                                                 {isWrongAnswer && <span className={styles.wrongBadge}>✗ Student Answer</span>}
@@ -1232,7 +1234,7 @@ export default function TeacherQuizResultsPage() {
                 {attempt.negativeMarks > 0 && (
                   <div className={`${styles.attemptStat} text-error`}>
                     <div className={styles.attemptStatValue}>-{attempt.negativeMarks.toFixed(2)}</div>
-                    <div className={styles.attemptStatLabel}>Penalty</div>
+                    <div className={styles.attemptStatLabel}>Negative Marks</div>
                   </div>
                 )}
               </div>
@@ -1276,7 +1278,7 @@ export default function TeacherQuizResultsPage() {
 
                     <div className={styles.reviewOptions}>
                       {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
-                        question.options?.map((option: any) => {
+                        question.options?.map((option: any, idx: number) => {
                           const studentStr = question.studentAnswer || '-'.repeat(question.options.length);
                           const correctStr = question.correctOption || 'F'.repeat(question.options.length);
                           const originalIdx = option.letter.charCodeAt(0) - 65;
@@ -1293,10 +1295,12 @@ export default function TeacherQuizResultsPage() {
                             else optionClass += ` ${styles.optionIncorrect}`;
                           }
 
+                          const displayLetter = String.fromCharCode(65 + idx);
+
                           return (
                             <div key={`${question.questionId}-${option.letter}`} className={optionClass} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px 16px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                                <span className={styles.optionLetter}>{option.letter}</span>
+                                <span className={styles.optionLetter}>{displayLetter}</span>
                                 <span className={styles.optionText}>{option.text}</span>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -1330,7 +1334,8 @@ export default function TeacherQuizResultsPage() {
                           );
                         })
                       ) : (
-                        question.options?.map((option: any) => {
+                        question.options?.map((option: any, optIdx: number) => {
+                          const displayLetter = String.fromCharCode(65 + optIdx);
                           const isStudentAnswer = option.letter === question.studentAnswer;
                           const isCorrectAnswer = option.letter === question.correctOption;
                           const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
@@ -1342,7 +1347,7 @@ export default function TeacherQuizResultsPage() {
 
                           return (
                             <div key={`${question.questionId}-${option.letter}`} className={optionClass}>
-                              <span className={styles.optionLetter}>{option.letter}</span>
+                              <span className={styles.optionLetter}>{displayLetter}</span>
                               <span className={styles.optionText}>{option.text}</span>
                               {isStudentAnswer && isCorrectAnswer && <span className={styles.correctBadge}>✓ Student Answer (Correct)</span>}
                               {isWrongAnswer && <span className={styles.wrongBadge}>✗ Student Answer</span>}

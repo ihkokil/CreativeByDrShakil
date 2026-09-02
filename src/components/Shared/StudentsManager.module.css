@@ -823,8 +823,37 @@
   flex-direction: column;
   gap: 5px;
   flex: 1;
-  min-width: 180px;
+  min-width: 160px;
   position: relative;
+  box-sizing: border-box;
+}
+
+.enrollPanelFieldCourse {
+  flex: 1.5;
+  min-width: 180px;
+}
+
+.enrollPanelFieldBatch {
+  flex: 1.5;
+  min-width: 180px;
+}
+
+.enrollPanelFieldDate {
+  flex: 1;
+  min-width: 140px;
+}
+
+.enrollPanelFieldAction {
+  flex: 0 0 auto;
+  min-width: 130px;
+}
+
+.enrollPanelActionLabel {
+  visibility: hidden;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .enrollPanelField label {
@@ -847,6 +876,7 @@
   outline: none;
   cursor: pointer;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .enrollPanelField select:focus,
@@ -1372,32 +1402,103 @@
   }
 
   .batchContainer {
-    bottom: calc(var(--mobile-nav-height, 72px) + 16px);
+    position: fixed;
+    bottom: calc(var(--mobile-nav-height, 72px) + 12px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
     width: calc(100% - 24px);
-    left: 12px;
-    right: 12px;
-    margin: 0 auto;
+    max-width: 600px;
+    max-height: calc(100vh - 120px);
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0;
     box-sizing: border-box;
+    z-index: 1000;
   }
 
   .batchBar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 12px 14px;
     box-sizing: border-box;
+    width: 100%;
+  }
+
+  .batchLeft {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
   }
 
   .batchActions {
     justify-content: stretch;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .batchActionBtn {
+    padding: 8px 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    min-height: 42px;
+    width: 100%;
+    justify-content: center;
+    white-space: nowrap;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .enrollPanel {
+    padding: 14px;
+    width: 100%;
     box-sizing: border-box;
   }
 
   .enrollPanelBody {
+    display: flex;
     flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .enrollPanelField,
+  .enrollPanelFieldCourse,
+  .enrollPanelFieldBatch,
+  .enrollPanelFieldDate,
+  .enrollPanelFieldAction {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+    box-sizing: border-box;
+  }
+
+  .enrollPanelField select,
+  .enrollPanelField input[type="date"] {
+    width: 100%;
+    height: 44px;
+    font-size: 16px;
+    box-sizing: border-box;
+  }
+
+  .enrollPanelFieldAction .batchActionBtn {
+    width: 100%;
+    height: 44px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .enrollPanelActionLabel {
+    display: none;
   }
 
   .overlay {
@@ -1528,16 +1629,6 @@
     flex-direction: column;
     gap: 12px;
   }
-
-  .batchActions {
-    grid-template-columns: 1fr;
-  }
-
-  .batchActionBtn {
-    justify-content: center;
-    width: 100%;
-    min-height: 44px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -1568,5 +1659,14 @@
   .actionBtnDelete {
     grid-column: span 2;
     width: 100%;
+  }
+
+  .batchActions {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .batchActionBtn.primary {
+    grid-column: span 2;
   }
 }

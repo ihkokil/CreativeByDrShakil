@@ -118,7 +118,7 @@ export async function POST(
       return NextResponse.json({ error: 'Not enough questions in the quiz bank.' }, { status: 500 });
     }
     
-    const shuffledQuestions = shuffleArray([...availableQuestions]);
+    const shuffledQuestions = quizData.shuffleQuestions !== false ? shuffleArray([...availableQuestions]) : [...availableQuestions];
     const selectedQuestions = shuffledQuestions.slice(0, quizData.numQuestionsToServe);
     
     const attemptId = nanoid();
@@ -168,7 +168,7 @@ export async function POST(
         if (q.optionE) validIndices.push(4);
       }
       
-      const optionOrder = quizData.shuffleOptions ? shuffleArray([...validIndices]) : validIndices;
+      const optionOrder = quizData.shuffleOptions !== false ? shuffleArray([...validIndices]) : validIndices;
       
       return {
         id: nanoid(),

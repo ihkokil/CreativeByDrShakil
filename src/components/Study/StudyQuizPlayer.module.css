@@ -134,7 +134,7 @@
 
 .rulesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
@@ -147,11 +147,16 @@
   border: 1px solid var(--border-color);
   border-radius: 10px;
   transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .ruleCard:hover {
   border-color: var(--primary-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.ruleCardSpan2 {
+  grid-column: span 2;
 }
 
 .ruleIcon {
@@ -174,7 +179,8 @@
 .ruleContent {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .ruleLabel {
@@ -182,12 +188,93 @@
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .ruleValue {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-color);
+}
+
+.scoringBadgesWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 2px;
+}
+
+.scoringItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--text-color);
+  flex-wrap: wrap;
+}
+
+.scoringTypeTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: 1px solid rgba(237, 28, 40, 0.2);
+}
+
+.scoringItemText {
+  color: var(--text-color);
+  font-weight: 500;
+  font-size: 13.5px;
+}
+
+.scoringItemText strong {
+  color: var(--text-color);
+  font-weight: 700;
+}
+
+.penaltyText {
+  color: var(--error-color, #ef4444);
+  font-weight: 600;
+  margin-left: 2px;
+}
+
+.noPenaltyText {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  margin-left: 2px;
+}
+
+.scoringDivider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .rulesGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ruleCardSpan2 {
+    grid-column: span 1;
+  }
+
+  .scoringDivider {
+    display: none;
+  }
+
+  .scoringBadgesWrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
 }
 
 .warningSection {

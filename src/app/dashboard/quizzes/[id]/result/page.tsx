@@ -526,7 +526,7 @@ export default function QuizResultPage() {
                     </div>
                     {Number(attempt.negativeMarks || 0) > 0 && (
                       <div className={styles.breakdownItem}>
-                        <span className={styles.breakdownLabel}>Negative Penalty</span>
+                        <span className={styles.breakdownLabel}>Negative Marks</span>
                         <span className={`${styles.breakdownValue} ${styles.colorError}`}>
                           -{Number(attempt.negativeMarks).toFixed(2)}
                         </span>
@@ -675,7 +675,7 @@ export default function QuizResultPage() {
                       <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
                                   <div className={styles.reviewOptions}>
                         {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
-                          question.options.map((option) => {
+                          question.options.map((option, idx) => {
                              const studentStr = question.studentAnswer || '-'.repeat(question.options.length || 5);
                              const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
                              const originalIdx = option.letter.charCodeAt(0) - 65;
@@ -685,6 +685,7 @@ export default function QuizResultPage() {
                              const isCorrectF = correctStr[originalIdx] === 'F';
                              const answered = isT || isF;
                              const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
+                             const displayLetter = String.fromCharCode(65 + idx);
                              
                              let rowStatusClass = styles.tfCompactSkipped;
                              if (answered) {
@@ -695,7 +696,7 @@ export default function QuizResultPage() {
                                 <div key={`${question.questionId}-${option.letter}`} className={`${styles.tfCompactRow} ${rowStatusClass}`}>
                                   {/* Left: Letter Badge + Statement Text */}
                                   <div className={styles.tfCompactLeft}>
-                                    <span className={styles.optionLetter}>{option.letter}</span>
+                                    <span className={styles.optionLetter}>{displayLetter}</span>
                                     <span className={styles.tfCompactText}>{option.text}</span>
                                   </div>
 
@@ -742,7 +743,8 @@ export default function QuizResultPage() {
                              );
                           })
                         ) : (
-                          question.options.map(option => {
+                          question.options.map((option, optIdx) => {
+                            const displayLetter = String.fromCharCode(65 + optIdx);
                             const isStudentAnswer = option.letter === question.studentAnswer;
                             const isCorrectAnswer = option.letter === question.correctOption;
                             const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
@@ -755,7 +757,7 @@ export default function QuizResultPage() {
                             return (
                               <div key={`${question.questionId}-${option.letter}`} className={`${styles.sbaReviewRow} ${sbaClass}`}>
                                 <div className={styles.sbaRowLeft}>
-                                  <span className={styles.optionLetter}>{option.letter}</span>
+                                  <span className={styles.optionLetter}>{displayLetter}</span>
                                   <span className={styles.optionText}>{option.text}</span>
                                 </div>
                                 <div className={styles.sbaRowRight}>
@@ -853,7 +855,8 @@ export default function QuizResultPage() {
 
                       <div className={styles.reviewOptions}>
                         {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
-                          question.options.map((option) => {
+                          question.options.map((option, idx) => {
+                            const displayLetter = String.fromCharCode(65 + idx);
                             const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
                             const originalIdx = option.letter.charCodeAt(0) - 65;
                             const isCorrectT = correctStr[originalIdx] === 'T';
@@ -861,7 +864,7 @@ export default function QuizResultPage() {
                             return (
                               <div key={`key-${question.questionId}-${option.letter}`} className={styles.tfCompactRow} style={{ borderColor: 'var(--border-color)' }}>
                                 <div className={styles.tfCompactLeft}>
-                                  <span className={styles.optionLetter}>{option.letter}</span>
+                                  <span className={styles.optionLetter}>{displayLetter}</span>
                                   <span className={styles.tfCompactText}>{option.text}</span>
                                 </div>
                                 <div className={styles.tfCompactRight}>
@@ -874,7 +877,8 @@ export default function QuizResultPage() {
                             );
                           })
                         ) : (
-                          question.options.map((option) => {
+                          question.options.map((option, optIdx) => {
+                            const displayLetter = String.fromCharCode(65 + optIdx);
                             const isCorrectAnswer = option.letter === question.correctOption;
 
                             return (
@@ -883,7 +887,7 @@ export default function QuizResultPage() {
                                 className={`${styles.sbaReviewRow} ${isCorrectAnswer ? styles.sbaCorrect : styles.sbaNeutral}`}
                               >
                                 <div className={styles.sbaRowLeft}>
-                                  <span className={styles.optionLetter}>{option.letter}</span>
+                                  <span className={styles.optionLetter}>{displayLetter}</span>
                                   <span className={styles.optionText} style={{ fontWeight: isCorrectAnswer ? 600 : 400 }}>
                                     {option.text}
                                   </span>

@@ -600,7 +600,7 @@ export default function ReviewAttemptsPage() {
 
                             {attempt.negativeMarks !== undefined && attempt.negativeMarks !== null && attempt.negativeMarks > 0 && (
                               <span className={`${styles.chip} ${styles.chipPenalty}`}>
-                                -{attempt.negativeMarks.toFixed(2)} Penalty
+                                -{attempt.negativeMarks.toFixed(2)} Negative Marks
                               </span>
                             )}
 
