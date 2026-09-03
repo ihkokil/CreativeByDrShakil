@@ -16,7 +16,19 @@ export async function GET(request: NextRequest) {
         }
 
         const headers = new Headers();
-        headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+
+        // HTTP header values only support ByteString (ASCII <= 255).
+        // Non-ASCII characters (e.g. em dash "—", unicode symbols) throw TypeError if used directly in filename="...".
+        // Use RFC 6266 / RFC 5987 standard format: ASCII fallback in `filename` and percent-encoded UTF-8 in `filename*`.
+        const asciiFileName = fileName
+            .replace(/[^\x20-\x7E]/g, '_')
+            .replace(/["\\]/g, '');
+        const encodedFileName = encodeURIComponent(fileName);
+
+        headers.set(
+            'Content-Disposition',
+            `attachment; filename="${asciiFileName}"; filename*=UTF-8''${encodedFileName}`
+        );
         headers.set('Content-Type', response.headers.get('content-type') || 'application/octet-stream');
         
         const contentLength = response.headers.get('content-length');
