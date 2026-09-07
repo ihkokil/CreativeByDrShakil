@@ -15,12 +15,14 @@ export default function MobileBottomNavWrapper() {
     // Only show for logged-in students (not admin/teacher)
     if (!user || role === "admin" || role === "teacher") return null;
 
-    // Suppress on dashboard, study, and management routes
+    const cleanPath = pathname?.replace(/\/+$/, "") || "";
+
+    // Suppress on study mode, inside quiz attempts (distraction-free), and management routes
     if (
-        pathname?.startsWith("/dashboard") ||
-        pathname?.startsWith("/study") ||
-        pathname?.startsWith("/admin") ||
-        pathname?.startsWith("/teacher")
+        cleanPath.startsWith("/study") ||
+        cleanPath.startsWith("/admin") ||
+        cleanPath.startsWith("/teacher") ||
+        cleanPath.startsWith("/dashboard/quizzes/")
     ) {
         return null;
     }

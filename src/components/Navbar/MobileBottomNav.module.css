@@ -15,7 +15,7 @@
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--glass-border);
   display: flex;
-  z-index: 1000;
+  z-index: 990;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
 }

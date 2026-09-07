@@ -6,7 +6,6 @@ import { useEffect, useState, Suspense } from "react";
 import StudentSidebar from "@/components/Student/StudentSidebar";
 import StudentHeader from "@/components/Student/StudentHeader";
 import styles from "./StudentDashboard.module.css";
-import { Loader2, LayoutDashboard, UserCog, TrendingUp, ClipboardList, BookOpen, MoreHorizontal, ShieldCheck, ReceiptText } from "lucide-react";
 import Loader from "@/components/UI/Loader";
 
 function StudentDashboardLayoutContent({
@@ -61,14 +60,6 @@ function StudentDashboardLayoutContent({
         }
     };
 
-    const mobileNavItems = [
-        { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'courses', label: 'Courses', icon: BookOpen },
-        { id: 'purchases', label: 'Payments', icon: ReceiptText },
-        { id: 'quizzes', label: 'Quizzes', icon: ClipboardList },
-        { id: 'profile', label: 'Profile', icon: UserCog },
-        { id: 'security', label: 'Security', icon: ShieldCheck },
-    ];
 
     if (loading || !user) {
         return <Loader text="Entering Learning Hub..." />;
@@ -107,23 +98,6 @@ function StudentDashboardLayoutContent({
                     {children}
                 </div>
 
-                {/* Mobile Bottom Nav */}
-                <nav className={styles.mobileBottomNav}>
-                    {mobileNavItems.map((item) => (
-                        <button
-                            key={item.id}
-                            className={`${styles.mobileTab} ${activeTab === item.id ? styles.mobileTabActive : ""}`}
-                            onClick={() => setActiveTab(item.id)}
-                        >
-                            <item.icon size={20} />
-                            <span>{item.label}</span>
-                        </button>
-                    ))}
-                    <button className={styles.mobileTab} onClick={() => setIsSidebarExpanded(true)}>
-                        <MoreHorizontal size={20} />
-                        <span>Menu</span>
-                    </button>
-                </nav>
             </main>
         </div>
     );
