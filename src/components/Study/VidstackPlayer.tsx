@@ -5,6 +5,7 @@ import { MediaPlayer, MediaProvider, type MediaPlayerInstance, SeekButton } from
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
+import './VidstackPlayer.css';
 
 export interface VidstackPlayerProps {
   src: string;
@@ -57,30 +58,6 @@ export default function VidstackPlayer({
     }
   };
 
-  // Safety fallback for YouTube state sync:
-  // If player gets stuck in playing state while YouTube iframe is blocked/paused, force Vidstack pause to resync UI.
-  useEffect(() => {
-    if (type !== 'youtube') return;
-
-    let timeoutId: NodeJS.Timeout | null = null;
-    const checkSync = () => {
-      const player = playerRef.current;
-      if (player && player.state.playing && player.state.currentTime === 0) {
-        timeoutId = setTimeout(() => {
-          if (player.state.playing && player.state.currentTime === 0) {
-            player.pause();
-          }
-        }, 1200);
-      }
-    };
-
-    const timer = setInterval(checkSync, 1000);
-    return () => {
-      clearInterval(timer);
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [type, resolvedSrc]);
-
   const SeekBackwardIcon = defaultLayoutIcons.SeekButton.Backward;
   const SeekForwardIcon = defaultLayoutIcons.SeekButton.Forward;
 
@@ -101,17 +78,24 @@ export default function VidstackPlayer({
         logLevel="warn"
         style={{ width: '100%', height: '100%' }}
       >
-        <MediaProvider />
+        <MediaProvider
+          iframeProps={{
+            allow:
+              'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+            allowFullScreen: true,
+            referrerPolicy: 'strict-origin-when-cross-origin',
+          }}
+        />
         <DefaultVideoLayout
           icons={defaultLayoutIcons}
           slots={{
             beforePlayButton: (
-              <SeekButton seconds={-10} className="vds-button" aria-label="Seek backward 10 seconds">
+              <SeekButton seconds={-10} className="vds-button vds-seek-button vds-seek-backward" aria-label="Seek backward 10 seconds">
                 <SeekBackwardIcon className="vds-icon" />
               </SeekButton>
             ),
             afterPlayButton: (
-              <SeekButton seconds={10} className="vds-button" aria-label="Seek forward 10 seconds">
+              <SeekButton seconds={10} className="vds-button vds-seek-button vds-seek-forward" aria-label="Seek forward 10 seconds">
                 <SeekForwardIcon className="vds-icon" />
               </SeekButton>
             ),
@@ -140,4 +124,5 @@ export default function VidstackPlayer({
     </div>
   );
 }
+
 

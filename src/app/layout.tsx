@@ -55,6 +55,7 @@ export default function RootLayout({
                     }}
                 />
                 <script src="/polyfills.js" />
+                <meta name="referrer" content="strict-origin-when-cross-origin" />
                 <link rel="preconnect" href="https://www.youtube-nocookie.com" />
                 <link rel="preconnect" href="https://www.youtube.com" />
                 <link rel="preconnect" href="https://i.ytimg.com" />

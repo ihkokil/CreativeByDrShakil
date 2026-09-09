@@ -1,0 +1,66 @@
+/* ─── Vidstack Player Overrides & Mobile YouTube Fixes ─── */
+
+/* 
+ * 1. Suppress the buffering spinner when the player is paused or unstarted.
+ * YouTube embeds on mobile do not fire the 'cued' event until user interaction,
+ * which causes Vidstack to think the video is buffering on initial load.
+ * Hiding the spinner when paused ensures students see the Play button immediately.
+ */
+:where([data-media-player][data-paused]) :where(.vds-buffering-indicator) {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* 
+ * 2. Ensure the center play button is always visible and clickable when paused
+ */
+:where([data-media-player][data-paused]) :where(.vds-play-button) {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+/* 
+ * 3. Make Seek Buttons (-10s / +10s) clickable and responsive on mobile & desktop.
+ * Vidstack's small/mobile layout wraps the center controls in a group with
+ * pointer-events: none, and only enables pointer-events on .vds-play-button.
+ * We must explicitly enable pointer-events on the seek buttons.
+ */
+:where(.vds-video-layout .vds-controls) :where(.vds-seek-button, [aria-label*="Seek"]) {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 20 !important;
+  position: relative !important;
+}
+
+/* Mobile layout (data-sm): Center row alignment, touch area, and spacing */
+:where(.vds-video-layout[data-sm] .vds-controls) :where(.vds-seek-button, [aria-label*="Seek"]) {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  z-index: 20 !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  transform: translateY(25%);
+  margin: 0 14px !important;
+  background-color: var(--video-sm-play-button-bg, rgba(0, 0, 0, 0.6)) !important;
+  border-radius: 100% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  touch-action: manipulation;
+  color: #fff !important;
+}
+
+:where(.vds-video-layout[data-sm] .vds-controls) :where(.vds-seek-button:active, [aria-label*="Seek"]:active) {
+  transform: translateY(25%) scale(0.9);
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+:where(.vds-video-layout[data-sm] .vds-controls) :where(.vds-seek-button .vds-icon, [aria-label*="Seek"] .vds-icon) {
+  width: 22px !important;
+  height: 22px !important;
+  pointer-events: none;
+}
