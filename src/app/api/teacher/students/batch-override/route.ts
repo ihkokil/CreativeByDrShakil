@@ -98,9 +98,31 @@ export async function POST(request: NextRequest) {
           batchId = customBatch.id;
         }
 
+        const { data: batch } = await supabase
+          .from('Batch')
+          .select('id, name, startDate, endDate')
+          .eq('id', batchId)
+          .limit(1)
+          .maybeSingle();
+
         const updateData: any = { batchId };
-        if (startDate) {
-          updateData.enrolledAt = new Date(startDate).toISOString();
+        const bName = (batch?.name || '').toLowerCase();
+        const isCustomOrInstant = bName.includes('start today') || bName.includes('custom') || bName.includes('all unlocked') || bName.includes('instant');
+
+        if (!isCustomOrInstant && batch?.startDate) {
+          updateData.enrolledAt = batch.startDate;
+          if (batch.endDate) {
+            updateData.expiresAt = batch.endDate;
+          } else {
+            const exp = new Date(batch.startDate);
+            exp.setFullYear(exp.getFullYear() + 1);
+            updateData.expiresAt = exp.toISOString();
+          }
+        } else if (startDate) {
+          updateData.enrolledAt = startDate;
+          const exp = new Date(startDate);
+          exp.setFullYear(exp.getFullYear() + 1);
+          updateData.expiresAt = exp.toISOString();
         }
 
         for (const uid of targets) {

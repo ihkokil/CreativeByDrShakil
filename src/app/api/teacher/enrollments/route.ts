@@ -185,7 +185,14 @@ export async function POST(request: NextRequest) {
       // Allow re-enrolling or moving students to a new batch even if they are already approved
       
       let finalEnrolledAt = new Date().toISOString();
-      if (batch) {
+      const isSpecialBatch = batch?.name && (
+        batch.name.toLowerCase().includes('instant') ||
+        batch.name.toLowerCase().includes('all unlocked') ||
+        batch.name.toLowerCase().includes('custom') ||
+        batch.name.toLowerCase().includes('start today')
+      );
+
+      if (batch?.startDate && !isSpecialBatch) {
         finalEnrolledAt = batch.startDate;
       } else if (body.customDate) {
         finalEnrolledAt = new Date(body.customDate).toISOString();

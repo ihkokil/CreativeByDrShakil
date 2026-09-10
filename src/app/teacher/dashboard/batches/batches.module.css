@@ -523,6 +523,44 @@
   margin: 4px 0 0 0;
 }
 
+.batchCardHeaderActions {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+}
+
+.actionIconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.actionIconBtn:hover {
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.actionIconBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
 /* Table Container & Table */
 .tableContainer {
   background: var(--card-bg, rgba(255, 255, 255, 0.025));

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import styles from "../batches.module.css";
 import Loader from "@/components/UI/Loader";
-import { Layers, Calendar, ArrowLeft, Plus, Users, ArrowRight, Search, Zap, Rocket, CalendarDays, Lock, X } from "lucide-react";
+import { Layers, Calendar, ArrowLeft, Plus, Users, ArrowRight, Search, Zap, Rocket, CalendarDays, Lock, X, Pencil, Trash2 } from "lucide-react";
 import { formatDateGMT6, formatDateInputGMT6 } from "@/lib/date-format";
 import { motion, AnimatePresence } from "framer-motion";
 import { useModalLock } from "@/hooks/useModalLock";
@@ -32,13 +32,28 @@ export default function CourseBatchesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "students" | "name">("date");
 
-  // Modal state
+  // Create Batch Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newBatchName, setNewBatchName] = useState("");
   const [newBatchStartDate, setNewBatchStartDate] = useState(() => formatDateInputGMT6(new Date()));
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit Batch Modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
+  const [editBatchName, setEditBatchName] = useState("");
+  const [editBatchStartDate, setEditBatchStartDate] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Delete Batch Modal state
+  const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  useModalLock(isModalOpen, () => setIsModalOpen(false));
+  useModalLock(isModalOpen || isEditModalOpen || Boolean(batchToDelete), () => {
+    setIsModalOpen(false);
+    setIsEditModalOpen(false);
+    setBatchToDelete(null);
+  });
 
   useEffect(() => {
     fetchBatches();
@@ -89,6 +104,72 @@ export default function CourseBatchesPage() {
       alert(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const openEditModal = (batch: Batch, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingBatch(batch);
+    setEditBatchName(batch.name);
+    setEditBatchStartDate(batch.startDate ? formatDateInputGMT6(batch.startDate) : formatDateInputGMT6(new Date()));
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBatch) return;
+    setIsUpdating(true);
+
+    try {
+      const res = await fetch(`/api/teacher/batches/${courseId}/${editingBatch.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editBatchName,
+          startDate: editBatchStartDate,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update batch");
+
+      setIsEditModalOpen(false);
+      setEditingBatch(null);
+      fetchBatches();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const openDeleteModal = (batch: Batch, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (batch.studentCount > 0) {
+      alert(`Cannot delete batch "${batch.name}" because it currently has ${batch.studentCount} enrolled student(s). Please transfer or unenroll students first.`);
+      return;
+    }
+    setBatchToDelete(batch);
+  };
+
+  const handleDeleteBatch = async () => {
+    if (!batchToDelete) return;
+    setIsDeleting(true);
+
+    try {
+      const res = await fetch(`/api/teacher/batches/${courseId}/${batchToDelete.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete batch");
+
+      setBatchToDelete(null);
+      fetchBatches();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -257,8 +338,32 @@ export default function CourseBatchesPage() {
               desc = 'All curriculum materials and lessons are unlocked instantly upon enrollment.';
             }
 
+            const canManage = !isStartToday && !isAllUnlocked;
+
             return (
               <div key={batch.id} className={`${styles.batchCard} ${cardClass}`}>
+                {canManage && (
+                  <div className={styles.batchCardHeaderActions}>
+                    <button
+                      type="button"
+                      className={styles.actionIconBtn}
+                      title="Edit Batch"
+                      aria-label="Edit Batch"
+                      onClick={(e) => openEditModal(batch, e)}
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.actionIconBtn} ${styles.actionIconBtnDanger}`}
+                      title="Delete Batch"
+                      aria-label="Delete Batch"
+                      onClick={(e) => openDeleteModal(batch, e)}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )}
                 <div>
                   <div className={styles.cardHeader}>
                     <div className={`${styles.courseIconBox} ${iconClass}`}>
@@ -378,6 +483,129 @@ export default function CourseBatchesPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Batch Slide-Over Drawer */}
+      <AnimatePresence>
+        {isEditModalOpen && editingBatch && (
+          <div className={styles.drawerOverlay} data-drawer="true" onClick={() => setIsEditModalOpen(false)}>
+            <motion.div 
+              className={styles.drawerContent}
+              initial={{ opacity: 0, x: '100%' }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.drawerHeader}>
+                <div>
+                  <h3 className={styles.modalTitle}>Edit Batch</h3>
+                  <p className={styles.pageSubtitle} style={{ marginTop: 4 }}>
+                    Update details for <strong>{editingBatch.name}</strong>.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.drawerCloseBtn}
+                  onClick={() => setIsEditModalOpen(false)}
+                  aria-label="Close drawer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Batch Name</label>
+                  <input 
+                    type="text" 
+                    value={editBatchName} 
+                    onChange={(e) => setEditBatchName(e.target.value)} 
+                    placeholder="e.g. Batch #73"
+                    className={styles.formInput}
+                    required 
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Start Date</label>
+                  <input 
+                    type="date" 
+                    value={editBatchStartDate} 
+                    onChange={(e) => setEditBatchStartDate(e.target.value)} 
+                    className={styles.formInput}
+                    required 
+                  />
+                </div>
+
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  💡 Modifying the start date will recalculate the circular release schedule for students enrolled in this batch.
+                </p>
+
+                <div className={styles.modalActions} style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid var(--glass-border)' }}>
+                  <button type="button" onClick={() => setIsEditModalOpen(false)} className={styles.cancelBtn}>
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={isUpdating} className={styles.primaryActionBtn}>
+                    {isUpdating ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Batch Confirmation Modal */}
+      <AnimatePresence>
+        {batchToDelete && (
+          <div className={styles.drawerOverlay} data-drawer="true" onClick={() => setBatchToDelete(null)}>
+            <motion.div 
+              className={styles.drawerContent}
+              style={{ maxWidth: 440 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.drawerHeader}>
+                <div>
+                  <h3 className={styles.modalTitle} style={{ color: '#ef4444' }}>Delete Batch</h3>
+                  <p className={styles.pageSubtitle} style={{ marginTop: 4 }}>
+                    Are you sure you want to delete <strong>{batchToDelete.name}</strong>?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.drawerCloseBtn}
+                  onClick={() => setBatchToDelete(null)}
+                  aria-label="Close modal"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ padding: '8px 0', color: 'var(--text-muted)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                This batch will be permanently removed. This action cannot be undone.
+              </div>
+
+              <div className={styles.modalActions} style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid var(--glass-border)' }}>
+                <button type="button" onClick={() => setBatchToDelete(null)} className={styles.cancelBtn}>
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  disabled={isDeleting} 
+                  onClick={handleDeleteBatch}
+                  className={styles.primaryActionBtn}
+                  style={{ background: '#ef4444', borderColor: '#ef4444' }}
+                >
+                  {isDeleting ? "Deleting..." : "Confirm Delete"}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

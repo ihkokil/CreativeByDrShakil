@@ -6,6 +6,7 @@ import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from "framer-motion";
 import { useModal } from '@/hooks/useModal';
 import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap, Users } from "lucide-react";
+import { formatDateInputGMT6 } from "@/lib/date-format";
 
 interface Student {
     id: string;
@@ -258,7 +259,7 @@ export default function EnrollStudentModal({
                                                 const selBatch = batches.find(b => b.id === bId);
                                                 const isStartTodayOrCustom = selBatch && (selBatch.name.toLowerCase().includes('start today') || selBatch.name.toLowerCase().includes('custom'));
                                                 if (selBatch && !isStartTodayOrCustom && selBatch.startDate) {
-                                                    setCustomDate(new Date(selBatch.startDate).toISOString().split('T')[0]);
+                                                    setCustomDate(formatDateInputGMT6(selBatch.startDate));
                                                 }
                                             }}
                                             style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
@@ -288,7 +289,7 @@ export default function EnrollStudentModal({
                                         const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
                                         const dateVal = isCustom 
                                             ? customDate 
-                                            : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : customDate);
+                                            : (selBatch?.startDate ? formatDateInputGMT6(selBatch.startDate) : customDate);
 
                                         return (
                                             <div className={styles.fieldGroup}>

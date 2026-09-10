@@ -52,11 +52,18 @@ export async function GET(request: NextRequest) {
       ? supabase.from('Payment').select('id, orderId, status, transactionId, phoneNumber, submittedAt, approvedAt').in('orderId', orderIds)
       : Promise.resolve({ data: [] });
 
-    const [coursesRes, paymentsRes] = await Promise.all([coursesPromise, paymentsPromise]);
+    const orderBatchIds = (rawOrders || []).map((o: any) => o.batchId).filter(Boolean);
+    const batchesPromise = orderBatchIds.length > 0
+      ? supabase.from('Batch').select('id, name, startDate').in('id', orderBatchIds)
+      : Promise.resolve({ data: [] });
+
+    const [coursesRes, paymentsRes, batchesRes] = await Promise.all([coursesPromise, paymentsPromise, batchesPromise]);
     const coursesList = coursesRes.data || [];
     const paymentsList = paymentsRes.data || [];
+    const batchesList = batchesRes.data || [];
 
     const coursesMap = new Map(coursesList.map((c: any) => [c.id, c]));
+    const batchesMap = new Map<string, any>(batchesList.map((b: any) => [b.id, b]));
     const paymentsMap = new Map<string, any[]>();
     paymentsList.forEach((p: any) => {
       const list = paymentsMap.get(p.orderId) || [];
@@ -64,11 +71,24 @@ export async function GET(request: NextRequest) {
       paymentsMap.set(p.orderId, list);
     });
 
-    const orders = (rawOrders || []).map((o: any) => ({
-      ...o,
-      course: coursesMap.get(o.courseId) || null,
-      payments: paymentsMap.get(o.id) || [],
-    }));
+    const orders = (rawOrders || []).map((o: any) => {
+      const batch: any = o.batchId ? batchesMap.get(o.batchId) : null;
+      let effectiveEnrolledAt = o.enrolledAt;
+      if (batch?.startDate) {
+        const bName = (batch.name || '').toLowerCase();
+        const isCustomOrInstant = bName.includes('instant') || bName.includes('all unlocked') || bName.includes('custom') || bName.includes('start today');
+        if (!isCustomOrInstant) {
+          effectiveEnrolledAt = batch.startDate;
+        }
+      }
+      return {
+        ...o,
+        enrolledAt: effectiveEnrolledAt || o.enrolledAt || o.updatedAt,
+        batch: batch || null,
+        course: coursesMap.get(o.courseId) || null,
+        payments: paymentsMap.get(o.id) || [],
+      };
+    });
 
     let enrolledCourses: any[] = [];
     

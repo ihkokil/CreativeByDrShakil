@@ -88,13 +88,23 @@ export async function GET(
 
       const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+      const isSpecialBatch = batch?.name && (
+        batch.name.toLowerCase().includes('instant') ||
+        batch.name.toLowerCase().includes('all unlocked') ||
+        batch.name.toLowerCase().includes('custom') ||
+        batch.name.toLowerCase().includes('start today')
+      );
+      const effectiveEnrolledAt = (batch?.startDate && !isSpecialBatch)
+        ? batch.startDate
+        : (order?.enrolledAt || order?.updatedAt || null);
+
       return {
         orderId: order?.id || '',
         courseId: course.id,
         courseTitle: course.title,
         courseSlug: course.slug,
         imageUrl: course.imageUrl,
-        enrolledAt: order?.enrolledAt || order?.updatedAt || null,
+        enrolledAt: effectiveEnrolledAt,
         expiresAt: order?.expiresAt || null,
         batchId: order?.batchId || null,
         batchName: batch?.name || null,

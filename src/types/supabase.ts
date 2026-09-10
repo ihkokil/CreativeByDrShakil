@@ -18,17 +18,32 @@ export type Database = {
         Row: {
           id: string
           name: string
-          enrollmentDate: string
+          enrollmentDate?: string | null
+          courseId?: string
+          startDate?: string | null
+          endDate?: string | null
+          createdAt?: string
+          updatedAt?: string
         }
         Insert: {
-          id: string
+          id?: string
           name: string
-          enrollmentDate: string
+          enrollmentDate?: string | null
+          courseId?: string
+          startDate?: string | null
+          endDate?: string | null
+          createdAt?: string
+          updatedAt?: string
         }
         Update: {
           id?: string
           name?: string
-          enrollmentDate?: string
+          enrollmentDate?: string | null
+          courseId?: string
+          startDate?: string | null
+          endDate?: string | null
+          createdAt?: string
+          updatedAt?: string
         }
         Relationships: []
       }

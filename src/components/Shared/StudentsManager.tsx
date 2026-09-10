@@ -1192,7 +1192,7 @@ export default function StudentsManager() {
                           const selBatch = courseBatches.find(b => b.id === bId);
                           const isStartTodayOrCustom = selBatch && (selBatch.name.toLowerCase().includes('start today') || selBatch.name.toLowerCase().includes('custom'));
                           if (selBatch && !isStartTodayOrCustom && selBatch.startDate) {
-                            setBatchEnrollDate(new Date(selBatch.startDate).toISOString().split('T')[0]);
+                            setBatchEnrollDate(formatDateInputGMT6(selBatch.startDate));
                           }
                         }}
                         disabled={!batchCourseId}
@@ -1220,7 +1220,7 @@ export default function StudentsManager() {
                       const isCustom = !batchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
                       const dateVal = isCustom 
                         ? batchEnrollDate 
-                        : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : batchEnrollDate);
+                        : (selBatch?.startDate ? formatDateInputGMT6(selBatch.startDate) : batchEnrollDate);
 
                       return (
                         <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldDate}`}>

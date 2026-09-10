@@ -204,6 +204,17 @@ export function collectSecondChildGroups(nodes: BuilderCurriculumNode[]): Releas
   let index = 0;
 
   nodes.forEach((mainTopic) => {
+    const titleLower = String(mainTopic.title || '').trim().toLowerCase();
+    if (
+      titleLower === 'all resources' ||
+      titleLower === 'all quizzes' ||
+      titleLower === 'all quizes' ||
+      mainTopic.id === 'all-resources-root' ||
+      mainTopic.id === 'all-quizzes-root'
+    ) {
+      return;
+    }
+
     const id = mainTopic.releaseGroupId || `group_${slugify(mainTopic.title)}_${mainTopic.id.slice(-6)}`;
     groups.push({
       id,
@@ -802,7 +813,8 @@ const resolveAvailableAt = (
   }
 
   for (let index = path.length - 1; index >= 0; index -= 1) {
-    const groupId = path[index].releaseGroupId;
+    const node = path[index];
+    const groupId = node.releaseGroupId || `group_${slugify(node.title)}_${node.id.slice(-6)}`;
     if (groupId && computedGroupDates[groupId]) {
       return computedGroupDates[groupId];
     }
@@ -834,11 +846,14 @@ export function annotateCurriculumAvailability(
   const visit = (list: BuilderCurriculumNode[], trail: BuilderCurriculumNode[]): BuilderNodeWithAvailability[] =>
     list.map((node) => {
       const path = [...trail, node];
-      const isAllResources = path.some(n => String(n.title).trim().toLowerCase() === 'all resources');
+      const isSpecialVirtualFolder = path.some(n => {
+        const t = String(n.title).trim().toLowerCase();
+        return t === 'all resources' || t === 'all quizzes' || t === 'all quizes' || n.id === 'all-resources-root' || n.id === 'all-quizzes-root';
+      });
       const override = findNearestOverride(path);
-      const availableAt = isAllResources ? null : resolveAvailableAt(path, computedGroupDates, override);
+      const availableAt = isSpecialVirtualFolder ? null : resolveAvailableAt(path, computedGroupDates, override);
       const availableAtDate = normalizeDate(availableAt);
-      const locked = isAllResources
+      const locked = isSpecialVirtualFolder
         ? false
         : override?.availabilityMode === 'locked'
         ? true
@@ -848,7 +863,7 @@ export function annotateCurriculumAvailability(
         ...node,
         availableAt,
         locked,
-        availabilityMode: isAllResources ? 'available' : (override?.availabilityMode || 'inherit'),
+        availabilityMode: isSpecialVirtualFolder ? 'available' : (override?.availabilityMode || 'inherit'),
         availabilityOverrideAt: override?.availableAt || null,
         children: visit(node.children || [], path),
       };

@@ -15,9 +15,42 @@ export async function ensureCourseEnrollment(
   const supabase = getSupabaseAdmin();
   const dateStr = enrolledAt ? enrolledAt.toISOString() : new Date().toISOString();
   
+  let finalEnrolledAt = enrolledAt ? enrolledAt.toISOString() : new Date().toISOString();
+  let finalExpiresAt = expiresAt ? expiresAt.toISOString() : null;
+
   if (!batchId) {
     const customBatch = await ensureCustomBatch(supabase, courseId);
     batchId = customBatch.id;
+  } else {
+    const { data: batch } = await supabase
+      .from('Batch')
+      .select('id, name, startDate, endDate')
+      .eq('id', batchId)
+      .limit(1)
+      .maybeSingle();
+
+    if (batch) {
+      const bName = (batch.name || '').toLowerCase();
+      const isCustomOrInstant = bName.includes('start today') || bName.includes('custom') || bName.includes('all unlocked') || bName.includes('instant');
+      if (!isCustomOrInstant && batch.startDate) {
+        finalEnrolledAt = batch.startDate;
+        if (!expiresAt) {
+          if (batch.endDate) {
+            finalExpiresAt = batch.endDate;
+          } else {
+            const exp = new Date(finalEnrolledAt);
+            exp.setFullYear(exp.getFullYear() + 1);
+            finalExpiresAt = exp.toISOString();
+          }
+        }
+      }
+    }
+  }
+
+  if (!finalExpiresAt) {
+    const exp = new Date(finalEnrolledAt);
+    exp.setFullYear(exp.getFullYear() + 1);
+    finalExpiresAt = exp.toISOString();
   }
 
   // Create order for the course
@@ -39,8 +72,8 @@ export async function ensureCourseEnrollment(
       batchId,
       totalAmount: 0,
       status: 'approved',
-      enrolledAt: dateStr,
-      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      enrolledAt: finalEnrolledAt,
+      expiresAt: finalExpiresAt,
       createdAt: dateStr,
       updatedAt: dateStr,
     } as any);
@@ -52,8 +85,8 @@ export async function ensureCourseEnrollment(
   } else {
     await (supabase.from('Order') as any).update({
       batchId,
-      enrolledAt: dateStr,
-      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      enrolledAt: finalEnrolledAt,
+      expiresAt: finalExpiresAt,
       updatedAt: new Date().toISOString(),
     } as any).eq('id', existingOrder.id);
   }

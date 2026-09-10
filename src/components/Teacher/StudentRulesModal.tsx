@@ -274,7 +274,15 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                             <label>Select Batch:</label>
                                             <select 
                                                 value={selectedBatchId}
-                                                onChange={(e) => setSelectedBatchId(e.target.value)}
+                                                onChange={(e) => {
+                                                    const bId = e.target.value;
+                                                    setSelectedBatchId(bId);
+                                                    const foundBatch = batches.find(b => b.id === bId);
+                                                    const isCust = !bId || foundBatch?.name.toLowerCase().includes('start today') || foundBatch?.name.toLowerCase().includes('custom');
+                                                    if (!isCust && foundBatch?.startDate) {
+                                                        setStartDate(formatDateInputGMT6(foundBatch.startDate));
+                                                    }
+                                                }}
                                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'var(--text-color)' }}
                                             >
                                                 {!batches.some(b => b.name.toLowerCase().includes('start today') || b.name.toLowerCase().includes('custom')) && (
@@ -302,7 +310,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                             const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
                                             const displayDate = isCustom 
                                                 ? startDate 
-                                                : (selBatch?.startDate ? new Date(selBatch.startDate).toISOString().split('T')[0] : startDate);
+                                                : (selBatch?.startDate ? formatDateInputGMT6(selBatch.startDate) : startDate);
 
                                             return (
                                                 <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2', marginTop: '12px' }}>

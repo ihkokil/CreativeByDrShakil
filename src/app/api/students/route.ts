@@ -65,10 +65,13 @@ export async function GET() {
       const course = courseMap.get(o.courseId);
       if (course) {
         const batch = o.batchId ? batchMap.get(o.batchId) : null;
+        const bName = (batch?.name || '').toLowerCase();
+        const isCustomOrInstant = bName.includes('start today') || bName.includes('custom') || bName.includes('all unlocked') || bName.includes('instant');
+        const effectiveEnrolledAt = (!isCustomOrInstant && batch?.startDate) ? batch.startDate : o.enrolledAt;
         const list = ordersMap.get(o.userId) || [];
         list.push({
           id: o.id,
-          enrolledAt: o.enrolledAt,
+          enrolledAt: effectiveEnrolledAt,
           expiresAt: o.expiresAt,
           batchId: o.batchId || null,
           batchName: batch?.name || null,
@@ -155,11 +158,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    const enrolledAt = enrolledAtStr ? new Date(enrolledAtStr) : new Date();
+    let enrolledAt = enrolledAtStr ? new Date(enrolledAtStr) : new Date();
     if (Number.isNaN(enrolledAt.getTime())) {
       return NextResponse.json({ error: 'Invalid enrolledAt date provided.' }, { status: 400 });
     }
-    const expiresAt = new Date(enrolledAt.getTime() + 365 * 24 * 60 * 60 * 1000);
+    let expiresAt: Date | undefined = undefined;
+
+    if (batchId) {
+      const { data: batch } = await supabase
+        .from('Batch')
+        .select('id, name, startDate, endDate')
+        .eq('id', batchId)
+        .limit(1)
+        .maybeSingle();
+
+      if (batch) {
+        const bName = (batch.name || '').toLowerCase();
+        const isCustomOrInstant = bName.includes('start today') || bName.includes('custom') || bName.includes('all unlocked') || bName.includes('instant');
+        if (!isCustomOrInstant && batch.startDate) {
+          enrolledAt = new Date(batch.startDate);
+          if (batch.endDate) {
+            expiresAt = new Date(batch.endDate);
+          }
+        }
+      }
+    }
+
+    if (!expiresAt) {
+      expiresAt = new Date(enrolledAt.getTime() + 365 * 24 * 60 * 60 * 1000);
+    }
 
     const enrolledStudents: string[] = [];
     const errors: string[] = [];

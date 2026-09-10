@@ -60,14 +60,7 @@ export async function GET(
       if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
-      const { data: user }: { data: any } = await supabase
-        .from('User')
-        .select('enrollmentDate, batchId')
-        .eq('id', payload.sub)
-        .limit(1)
-        .maybeSingle();
-
-      const targetBatchId = order.batchId || user?.batchId;
+      const targetBatchId = order.batchId;
       if (targetBatchId) {
         const { data: batch }: { data: any } = await supabase
           .from('Batch')
@@ -78,10 +71,17 @@ export async function GET(
         studentBatch = batch;
       }
       
-      if (order.enrolledAt) {
+      const isSpecialBatch = studentBatch?.name && (
+        studentBatch.name.toLowerCase().includes('instant') ||
+        studentBatch.name.toLowerCase().includes('all unlocked') ||
+        studentBatch.name.toLowerCase().includes('custom') ||
+        studentBatch.name.toLowerCase().includes('start today')
+      );
+
+      if (studentBatch?.startDate && !isSpecialBatch) {
+        enrolledAt = studentBatch.startDate;
+      } else if (order.enrolledAt) {
         enrolledAt = order.enrolledAt;
-      } else if (user?.enrollmentDate) {
-        enrolledAt = user.enrollmentDate;
       } else {
         enrolledAt = order.updatedAt;
       }
@@ -235,6 +235,7 @@ export async function GET(
       } else if (studentBatch.startDate) {
         effectiveReleaseMode = course.releaseMode || 'circular';
         releaseStart = studentBatch.startDate;
+        enrolledAt = studentBatch.startDate;
       }
     }
 
