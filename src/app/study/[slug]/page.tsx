@@ -1,42 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import dynamic from "next/dynamic";
-import styles from "../Study.module.css";
-import {
-    ChevronRight,
-    ArrowLeft,
-    Lock,
-    Menu,
-    X,
-    Check,
-    CheckCheck,
-} from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import CourseCurriculum, { CurriculumNode } from "@/components/Course/CourseCurriculum";
-import { useParams, useSearchParams } from "next/navigation";
-const LessonPlayer = dynamic(() => import('@/components/Study/LessonPlayer'), { ssr: false });
+import { Lock } from "lucide-react";
+import styles from "../Study.module.css";
+import { CurriculumNode } from "@/components/Course/CourseCurriculum";
 import Loader from "@/components/UI/Loader";
 import { getStudentModuleView } from "@/lib/module-scheduling";
 import AuthModal from "@/components/Auth/AuthModal";
-import ThemeToggle from "@/components/ThemeToggle/ThemeToggle";
-
-const findFirstPlayableNode = (nodes: CurriculumNode[]): CurriculumNode | null => {
-    for (const node of nodes) {
-        if (node.type !== "folder" && !node.locked) {
-            return node;
-        }
-        if (node.children?.length) {
-            const found = findFirstPlayableNode(node.children);
-            if (found) return found;
-        }
-    }
-    return null;
-};
+import StudyOutlineHub from "@/components/Study/StudyOutlineHub";
+import StudyPlayerView from "@/components/Study/StudyPlayerView";
 
 const collectLessonNodes = (nodes: CurriculumNode[]): CurriculumNode[] => {
     const lessons: CurriculumNode[] = [];
-
     const walk = (list: CurriculumNode[]) => {
         list.forEach((node) => {
             if (node.type !== "folder") {
@@ -47,13 +24,12 @@ const collectLessonNodes = (nodes: CurriculumNode[]): CurriculumNode[] => {
             }
         });
     };
-
     walk(nodes);
     return lessons;
 };
 
-
 export default function StudyCoursePage() {
+    const router = useRouter();
     const params = useParams<{ slug: string }>();
     const slug = params?.slug;
     const searchParams = useSearchParams();
@@ -68,9 +44,19 @@ export default function StudyCoursePage() {
     const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
     const [markingComplete, setMarkingComplete] = useState(false);
     const [progressError, setProgressError] = useState<string | null>(null);
-    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
     const [authMode, setAuthMode] = useState<"login" | "register">("login");
+    const [lastVisitedLessonId, setLastVisitedLessonId] = useState<string | null>(null);
+
+    // Initialize lastVisitedLessonId from localStorage on client
+    useEffect(() => {
+        if (typeof window !== "undefined" && slug) {
+            const saved = localStorage.getItem(`last_lesson_${slug}`);
+            if (saved) {
+                setLastVisitedLessonId(saved);
+            }
+        }
+    }, [slug]);
 
     useEffect(() => {
         if (error === "Unauthorized.") {
@@ -121,23 +107,24 @@ export default function StudyCoursePage() {
                         .map((node) => node.id);
                 setCompletedLessonIds(initialCompleted);
 
-                // Sort nextCurriculum to find initial active lesson correctly in visual order
-                const scheduledModules = nextCurriculum.map((node: CurriculumNode) => ({
-                    ...node,
-                    releaseAt: node.availableAt || new Date(0).toISOString(),
-                }));
-                const parsedEnrollmentDate = eDate ? new Date(eDate) : new Date(0);
-                const view = getStudentModuleView(scheduledModules, parsedEnrollmentDate, new Date());
-                const sortedNextCurriculum = view.modules as unknown as CurriculumNode[];
+                // Check if a specific lesson was requested in URL
+                if (lessonParam) {
+                    const scheduledModules = nextCurriculum.map((node: CurriculumNode) => ({
+                        ...node,
+                        releaseAt: node.availableAt || new Date(0).toISOString(),
+                    }));
+                    const parsedEnrollmentDate = eDate ? new Date(eDate) : new Date(0);
+                    const view = getStudentModuleView(scheduledModules, parsedEnrollmentDate, new Date());
+                    const sortedNextCurriculum = view.modules as unknown as CurriculumNode[];
 
-                const firstPlayable = findFirstPlayableNode(sortedNextCurriculum);
-                const firstIncompletePlayable = collectLessonNodes(sortedNextCurriculum).find(
-                    (node: CurriculumNode) => node.type !== "folder" && !node.locked && !initialCompleted.includes(node.id)
-                );
-                const targetLesson = lessonParam 
-                    ? collectLessonNodes(sortedNextCurriculum).find((node) => node.id === lessonParam && !node.locked)
-                    : null;
-                setActiveLesson(targetLesson || firstIncompletePlayable || firstPlayable);
+                    const targetLesson = collectLessonNodes(sortedNextCurriculum).find(
+                        (node) => node.id === lessonParam && !node.locked
+                    );
+                    setActiveLesson(targetLesson || null);
+                } else {
+                    // Default to Course Outline Hub when no lesson parameter is specified
+                    setActiveLesson(null);
+                }
             } catch (err: any) {
                 if (!cancelled) {
                     setError(err.message || "Failed to load study curriculum.");
@@ -154,20 +141,28 @@ export default function StudyCoursePage() {
         return () => {
             cancelled = true;
         };
-    }, [slug, lessonParam]);
+    }, [slug]);
 
-    const breadcrumbs = useMemo(() => {
-        if (!activeLesson) return "Select a lesson";
-        return activeLesson.title;
-    }, [activeLesson]);
+    // Keep activeLesson in sync with URL searchParams if slug is already loaded
+    useEffect(() => {
+        if (!loading && curriculum.length > 0) {
+            if (lessonParam) {
+                const allNodes = collectLessonNodes(curriculum);
+                const found = allNodes.find((node) => node.id === lessonParam && !node.locked);
+                setActiveLesson(found || null);
+                if (found) {
+                    setLastVisitedLessonId(found.id);
+                    if (typeof window !== "undefined" && slug) {
+                        localStorage.setItem(`last_lesson_${slug}`, found.id);
+                    }
+                }
+            } else {
+                setActiveLesson(null);
+            }
+        }
+    }, [lessonParam, loading, curriculum, slug]);
 
-    const handleVideoSelect = (node: CurriculumNode) => {
-        if (node.locked) return;
-        setActiveLesson(node);
-        setProgressError(null);
-        setSidebarOpen(false);
-    };
-
+    // Sorted curriculum with scheduling & completion annotations
     const sortedCurriculumWithProgress = useMemo(() => {
         const completedSet = new Set(completedLessonIds);
 
@@ -191,30 +186,31 @@ export default function StudyCoursePage() {
         return view.modules as unknown as CurriculumNode[];
     }, [curriculum, completedLessonIds, enrollmentDate]);
 
-    const lessonNodes = useMemo(() => collectLessonNodes(sortedCurriculumWithProgress), [sortedCurriculumWithProgress]);
-    const unlockedLessons = useMemo(
-        () => lessonNodes.filter((node) => !node.locked),
-        [lessonNodes]
-    );
+    // Switch to a lesson
+    const handleSelectLesson = useCallback((node: CurriculumNode) => {
+        if (node.locked || node.type === "folder") return;
+        setActiveLesson(node);
+        setLastVisitedLessonId(node.id);
+        if (typeof window !== "undefined" && slug) {
+            localStorage.setItem(`last_lesson_${slug}`, node.id);
+        }
+        setProgressError(null);
+        if (slug) {
+            router.push(`/study/${slug}?lesson=${encodeURIComponent(node.id)}`, { scroll: false });
+        }
+    }, [slug, router]);
 
-    const progress = useMemo(() => {
-        const totalCount = lessonNodes.length;
-        const completedCount = completedLessonIds.filter((id) => lessonNodes.some((node) => node.id === id)).length;
-        const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-        return { totalCount, completedCount, percentage };
-    }, [lessonNodes, completedLessonIds]);
+    // Return to Course Outline Hub
+    const handleBackToOutline = useCallback(() => {
+        setActiveLesson(null);
+        setProgressError(null);
+        if (slug) {
+            router.push(`/study/${slug}`, { scroll: false });
+        }
+    }, [slug, router]);
 
-    const activeLessonIndex = useMemo(
-        () => unlockedLessons.findIndex((node) => node.id === activeLesson?.id),
-        [unlockedLessons, activeLesson]
-    );
-
-    const previousLesson = activeLessonIndex > 0 ? unlockedLessons[activeLessonIndex - 1] : null;
-    const nextLesson = activeLessonIndex >= 0 && activeLessonIndex < unlockedLessons.length - 1
-        ? unlockedLessons[activeLessonIndex + 1]
-        : null;
-
-    const handleMarkComplete = async () => {
+    // Mark current lesson complete
+    const handleMarkComplete = useCallback(async () => {
         if (!slug || !activeLesson || activeLesson.locked || activeLesson.type === "folder") {
             return;
         }
@@ -238,17 +234,14 @@ export default function StudyCoursePage() {
             }
 
             if (data.success) {
-                setCompletedLessonIds(prev => Array.from(new Set([...prev, activeLesson.id])));
+                setCompletedLessonIds((prev) => Array.from(new Set([...prev, activeLesson.id])));
             }
         } catch (err: any) {
             setProgressError(err.message || "Could not update progress right now.");
         } finally {
             setMarkingComplete(false);
         }
-    };
-
-    // Replaced by sortedCurriculumWithProgress
-
+    }, [slug, activeLesson]);
 
     if (loading) {
         return <Loader text="Loading study workspace..." />;
@@ -301,104 +294,33 @@ export default function StudyCoursePage() {
         );
     }
 
+    // Render Focused Player View when an active lesson is selected
+    if (activeLesson) {
+        return (
+            <StudyPlayerView
+                courseTitle={courseTitle}
+                curriculum={sortedCurriculumWithProgress}
+                activeLesson={activeLesson}
+                completedLessonIds={completedLessonIds}
+                markingComplete={markingComplete}
+                progressError={progressError}
+                onBackToOutline={handleBackToOutline}
+                onSelectLesson={handleSelectLesson}
+                onMarkComplete={handleMarkComplete}
+            />
+        );
+    }
+
+    // Render Full-width Course Outline Hub (All Accordions Collapsed by default)
     return (
-        <div className={styles.layout}>
-            {sidebarOpen && (
-                <div 
-                    className={styles.sidebarOverlay} 
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
-            <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarActive : ""}`}>
-                <div className={styles.sidebarHeader}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
-                        <Link href="/dashboard/courses" className={styles.backBtn} style={{ marginBottom: 0 }}>
-                            <ArrowLeft size={18} /> Exit Study
-                        </Link>
-                        <button 
-                            className={styles.sidebarCloseBtn}
-                            onClick={() => setSidebarOpen(false)}
-                            aria-label="Close menu"
-                        >
-                            <X size={20} />
-                        </button>
-                    </div>
-                    <div className={styles.courseTitle}>
-                        <h3>{courseTitle}</h3>
-                        <div className={styles.progressSection}>
-                            <div className={styles.progressBar}>
-                                <div className={styles.progressFill} style={{ width: `${progress.percentage}%` }} />
-                            </div>
-                            <span>{progress.completedCount}/{progress.totalCount} completed ({progress.percentage}%)</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={styles.curriculum}>
-                    <CourseCurriculum
-                        data={sortedCurriculumWithProgress}
-                        onVideoSelect={handleVideoSelect}
-                        activeNodeId={activeLesson?.id}
-                    />
-                </div>
-            </aside>
-
-            <main className={styles.main}>
-                <header className={styles.header}>
-                    <div className={styles.headerLeft}>
-                        <button 
-                            className={styles.menuToggleBtn} 
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            aria-label="Toggle curriculum menu"
-                        >
-                            <Menu size={20} />
-                        </button>
-                        <div className={styles.breadcrumbs}>
-                            <span>{breadcrumbs}</span>
-                        </div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                        <ThemeToggle />
-                        
-                        {activeLesson && !activeLesson.locked && activeLesson.type !== "folder" && (
-                            <button
-                                className={`${styles.completeBtn} ${completedLessonIds.includes(activeLesson.id) ? styles.completedState : ''}`}
-                                onClick={handleMarkComplete}
-                                disabled={markingComplete}
-                                title={completedLessonIds.includes(activeLesson.id) ? "Completed" : "Mark as Complete"}
-                            >
-                                {completedLessonIds.includes(activeLesson.id) ? <CheckCheck size={16} /> : <Check size={16} />}
-                                {markingComplete ? "Saving..." : completedLessonIds.includes(activeLesson.id) ? "Completed" : "Complete"}
-                            </button>
-                        )}
-                    </div>
-                </header>
-
-                <div className={styles.contentArea}>
-                    {progressError && (
-                        <div style={{ marginBottom: "16px", color: "#ef4444", fontWeight: 600 }}>{progressError}</div>
-                    )}
-                    <LessonPlayer 
-                        key={activeLesson?.id || 'no-lesson'}
-                        lesson={activeLesson as any} 
-                        nextLesson={() => {
-                            if (nextLesson) setActiveLesson(nextLesson);
-                        }}
-                        onComplete={handleMarkComplete}
-                    />
-
-                </div>
-
-                <footer className={styles.navBar}>
-                    <button className={styles.navBtn} disabled={!previousLesson} onClick={() => previousLesson && setActiveLesson(previousLesson)}>
-                        <ArrowLeft size={18} /> Previous Lesson
-                    </button>
-                    <button className={styles.navBtn} disabled={!nextLesson} onClick={() => nextLesson && setActiveLesson(nextLesson)}>
-                        Next Lesson <ChevronRight size={18} />
-                    </button>
-                </footer>
-            </main>
-        </div>
+        <StudyOutlineHub
+            courseTitle={courseTitle}
+            curriculum={sortedCurriculumWithProgress}
+            completedLessonIds={completedLessonIds}
+            onSelectLesson={handleSelectLesson}
+            activeLessonId={null}
+            lastVisitedLessonId={lastVisitedLessonId}
+            courseSlug={slug || ""}
+        />
     );
 }
