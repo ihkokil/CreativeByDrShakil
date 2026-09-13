@@ -22,14 +22,23 @@ export async function GET(request: NextRequest) {
   }
 
   if (payload.sessionId) {
-    const { isSessionValid } = await import('@/lib/session-manager');
+    const { checkSessionValidity } = await import('@/lib/session-manager');
     const xDeviceHash = request.headers.get('x-device-hash');
-    const sessionValid = await isSessionValid(payload.sessionId, payload.sub, xDeviceHash);
-    if (!sessionValid) {
-      // Session has been revoked or logged out
+    const sessionResult = await checkSessionValidity(payload.sessionId, payload.sub, xDeviceHash);
+
+    if (sessionResult.status === 'error') {
+      // Transient database/network error: Return 500 so the client keeps current authenticated state
+      return NextResponse.json(
+        { error: 'Transient database error verifying session.' },
+        { status: 500 }
+      );
+    }
+
+    if (sessionResult.status === 'revoked') {
+      // Session has been explicitly revoked or logged out in the database
       const cookieStore = await import('next/headers').then(m => m.cookies());
       cookieStore.delete(AUTH_COOKIE_NAME);
-      return NextResponse.json({ user: null, role: null }, { status: 200 });
+      return NextResponse.json({ user: null, role: null, code: 'session_revoked' }, { status: 200 });
     }
   }
 
@@ -41,7 +50,15 @@ export async function GET(request: NextRequest) {
       .eq('id', payload.sub)
       .maybeSingle();
 
-    if (error || !userRecord || userRecord.isBanned) {
+    if (error) {
+      console.error('[/api/auth/session] DB error fetching user record:', error);
+      return NextResponse.json(
+        { error: 'Transient database error retrieving user profile.' },
+        { status: 500 }
+      );
+    }
+
+    if (!userRecord || userRecord.isBanned) {
       const cookieStore = await import('next/headers').then(m => m.cookies());
       cookieStore.delete(AUTH_COOKIE_NAME);
       return NextResponse.json({ user: null, role: null }, { status: 200 });
@@ -49,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     if (payload.sessionId) {
       const { updateSessionActivity } = await import('@/lib/session-manager');
-      await updateSessionActivity(payload.sessionId);
+      await updateSessionActivity(payload.sessionId).catch(() => {});
     }
 
     let finalToken = token;

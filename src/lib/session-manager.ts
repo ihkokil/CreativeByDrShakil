@@ -412,27 +412,68 @@ export async function unlockSession(sessionId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function isSessionValid(sessionId: string, jwtSub?: string, xDeviceHash?: string | null): Promise<boolean> {
-  const supabase = getSupabaseAdmin();
-  const { data: session, error }: { data: any, error: any } = await supabase
-    .from('DeviceSession')
-    .select('isLocked, loggedOutAt, deviceHash, userId, User(isBanned, isSessionLockedExempt)')
-    .eq('id', sessionId)
-    .limit(1)
-    .maybeSingle();
+export type SessionValidationResult =
+  | { status: 'valid' }
+  | { status: 'revoked'; reason: 'not_found' | 'locked' | 'logged_out' | 'user_mismatch' | 'user_banned' }
+  | { status: 'error'; error: any };
 
-  if (error || !session) return false;
-  if (session.isLocked || session.loggedOutAt) return false;
-  if (jwtSub && session.userId !== jwtSub) return false;
+export async function checkSessionValidity(
+  sessionId: string,
+  jwtSub?: string,
+  xDeviceHash?: string | null
+): Promise<SessionValidationResult> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data: session, error }: { data: any; error: any } = await supabase
+      .from('DeviceSession')
+      .select('isLocked, loggedOutAt, deviceHash, userId, User(isBanned, isSessionLockedExempt)')
+      .eq('id', sessionId)
+      .limit(1)
+      .maybeSingle();
 
-  const user = Array.isArray(session.User) ? session.User[0] : session.User;
-  if (user?.isBanned) return false;
+    if (error) {
+      console.error('[checkSessionValidity] Database error querying session:', error);
+      return { status: 'error', error };
+    }
 
-  const isExempt = user?.isSessionLockedExempt || false;
-  if (xDeviceHash && !isExempt && session.deviceHash && session.deviceHash !== xDeviceHash) {
-    updateSessionDeviceHash(sessionId, xDeviceHash).catch(() => {});
+    if (!session) {
+      return { status: 'revoked', reason: 'not_found' };
+    }
+
+    if (session.isLocked) {
+      return { status: 'revoked', reason: 'locked' };
+    }
+
+    if (session.loggedOutAt) {
+      return { status: 'revoked', reason: 'logged_out' };
+    }
+
+    if (jwtSub && session.userId !== jwtSub) {
+      return { status: 'revoked', reason: 'user_mismatch' };
+    }
+
+    const user = Array.isArray(session.User) ? session.User[0] : session.User;
+    if (user?.isBanned) {
+      return { status: 'revoked', reason: 'user_banned' };
+    }
+
+    const isExempt = user?.isSessionLockedExempt || false;
+    if (xDeviceHash && !isExempt && session.deviceHash && session.deviceHash !== xDeviceHash) {
+      updateSessionDeviceHash(sessionId, xDeviceHash).catch(() => {});
+    }
+
+    return { status: 'valid' };
+  } catch (err) {
+    console.error('[checkSessionValidity] Unexpected error querying session:', err);
+    return { status: 'error', error: err };
   }
+}
 
+export async function isSessionValid(sessionId: string, jwtSub?: string, xDeviceHash?: string | null): Promise<boolean> {
+  const result = await checkSessionValidity(sessionId, jwtSub, xDeviceHash);
+  // Fail-safe: only treat as definitely invalid if explicitly confirmed revoked in the database.
+  // Transient DB connection errors must not abruptly log the user out.
+  if (result.status === 'revoked') return false;
   return true;
 }
 

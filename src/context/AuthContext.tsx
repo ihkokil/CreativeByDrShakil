@@ -264,6 +264,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         setHasSessionTerminated(true);
                         setSessionTerminatedReason(data.message || null);
                         localStorage.removeItem('auth_token');
+                        localStorage.removeItem('auth_user_cache');
                     }
                     return;
                 }
@@ -309,6 +310,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     current?.access_token === nextToken ? current : { access_token: nextToken }
                 );
             } else if (!nextUser) {
+                if (data?.code === 'session_revoked') {
+                    setHasSessionTerminated(true);
+                    setSessionTerminatedReason(data.message || 'Your session has been terminated.');
+                }
                 setSession((current) => (current ? null : current));
                 if (localStorage.getItem('auth_token')) {
                     localStorage.removeItem('auth_token');
@@ -367,15 +372,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return () => clearInterval(interval);
     }, [user, sessionId, showBannedModal]);
 
-    // Poll full session validity every 30 seconds
+    // Poll full session validity periodically while tab is visible, and upon returning to the tab
     useEffect(() => {
         if (!user || !sessionId) return;
 
-        const interval = setInterval(() => {
-            refreshSession(true);
-        }, 30000);
+        const handleVisibilityChange = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                refreshSession(true);
+            }
+        };
 
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+            refreshSession(true);
+        }, 180000); // 3 minutes
+
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        return () => {
+            clearInterval(interval);
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
+        };
     }, [user, sessionId, refreshSession]);
 
     const signOut = async () => {

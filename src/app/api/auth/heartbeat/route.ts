@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractBearerToken, extractCookieToken, verifyAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
-import { updateSessionActivity, isSessionValid } from '@/lib/session-manager';
+import { updateSessionActivity, checkSessionValidity } from '@/lib/session-manager';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +29,14 @@ export async function POST(request: NextRequest) {
 
     if (payload.sessionId) {
       const xDeviceHash = request.headers.get('x-device-hash');
-      const valid = await isSessionValid(payload.sessionId, payload.sub, xDeviceHash);
-      if (!valid) {
+      const result = await checkSessionValidity(payload.sessionId, payload.sub, xDeviceHash);
+      
+      if (result.status === 'error') {
+        // Transient database error: return 500 so heartbeat skips this ping without terminating session
+        return NextResponse.json({ ok: false, error: 'Transient database error' }, { status: 500 });
+      }
+
+      if (result.status === 'revoked') {
         return NextResponse.json({
           ok: false,
           code: 'session_revoked',
@@ -38,7 +44,7 @@ export async function POST(request: NextRequest) {
         }, { status: 401 });
       }
 
-      await updateSessionActivity(payload.sessionId);
+      await updateSessionActivity(payload.sessionId).catch(() => {});
     }
 
     return NextResponse.json({
