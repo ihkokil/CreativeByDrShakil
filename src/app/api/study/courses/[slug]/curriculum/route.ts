@@ -230,7 +230,12 @@ export async function GET(
       if (bName.includes('instant') || bName.includes('all unlocked')) {
         effectiveReleaseMode = 'instant';
       } else if (bName.includes('custom') || bName.includes('start today')) {
-        effectiveReleaseMode = 'custom_batch';
+        const courseMode = course.releaseMode;
+        if (courseMode && ['fixed_interval', 'groups_per_week', 'day_of_week'].includes(courseMode)) {
+          effectiveReleaseMode = courseMode;
+        } else {
+          effectiveReleaseMode = 'custom_batch';
+        }
         releaseStart = enrolledAt || new Date().toISOString();
       } else if (studentBatch.startDate) {
         effectiveReleaseMode = course.releaseMode || 'circular';

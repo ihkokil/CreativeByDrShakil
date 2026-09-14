@@ -79,7 +79,7 @@ export default function SingleCourseProgressModal({
 
     fetchCourseData();
     return () => { isMounted = false; };
-  }, [student.id, courseId]);
+  }, [student.id, courseId, enrolledAt]);
 
   const calculateProgress = (nodes: BuilderNode[]): { completed: number, total: number } => {
     let completed = 0;

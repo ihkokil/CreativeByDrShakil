@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { decompressUuid, compressUuid, sendTelegramEnrollmentNotification, editTelegramMessage, sanitizeTelegramReplyMarkup } from '@/lib/telegram';
-import { ensureCourseEnrollment, ensureCustomBatch, ensureDefaultBatches, ensureAllUnlockedBatch } from '@/lib/enrollment';
+import { ensureCourseEnrollment, ensureCustomBatch, ensureDefaultBatches, ensureAllUnlockedBatch, applyStudentScheduleRule } from '@/lib/enrollment';
 
 function getTelegramToken() {
   const raw = process.env.TELEGRAM_BOT_TOKEN;
@@ -116,28 +116,25 @@ async function applyCustomEnrollmentDate(
   expDate.setUTCFullYear(expDate.getUTCFullYear() + 1);
   const expiresIso = expDate.toISOString();
 
-  const customBatch = await ensureCustomBatch(supabase, courseId);
+  const { data: courseInfo } = await supabase
+    .from('Course')
+    .select('title, releaseMode')
+    .eq('id', courseId)
+    .limit(1)
+    .maybeSingle();
 
-  // Update order with custom start date, custom batch, and 1-year expiration
-  const { data: updatedOrders } = await (supabase.from('Order') as any).update({
-    enrolledAt: customIso,
-    expiresAt: expiresIso,
-    batchId: customBatch.id,
-    updatedAt: new Date().toISOString(),
-  } as any).eq('courseId', courseId).eq('userId', userId).in('status', ['approved', 'completed']).select('id');
+  const courseMode = courseInfo?.releaseMode;
+  const releaseMode = (courseMode && ['fixed_interval', 'groups_per_week', 'day_of_week'].includes(courseMode))
+    ? courseMode
+    : 'custom_batch';
 
-  if (!updatedOrders || updatedOrders.length === 0) {
-    await (supabase.from('Order') as any).update({
-      enrolledAt: customIso,
-      expiresAt: expiresIso,
-      batchId: customBatch.id,
-      status: 'approved',
-      updatedAt: new Date().toISOString(),
-    } as any).eq('courseId', courseId).eq('userId', userId);
-  }
-
-  // Clear node overrides so modules follow custom enrollment date schedule
-  await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+  await applyStudentScheduleRule({
+    supabase,
+    courseId,
+    userIds: [userId],
+    action: releaseMode,
+    startDate: targetDate,
+  });
 
   const [uRes, cRes] = await Promise.all([
     supabase.from('User').select('fullName, email').eq('id', userId).limit(1).maybeSingle(),
@@ -1142,8 +1139,13 @@ export async function POST(request: NextRequest) {
         supabase.from('Course').select('title').eq('id', courseId).limit(1).maybeSingle(),
       ]);
 
-      // Clear node overrides
-      await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+      await applyStudentScheduleRule({
+        supabase,
+        courseId,
+        userIds: [userId],
+        action: 'fixed_interval',
+        intervalDays: days,
+      });
 
       await answerCallbackQuery(callbackQueryId, `Fixed interval (${days}d) applied`);
       await sendTelegramReply(
@@ -1169,8 +1171,13 @@ export async function POST(request: NextRequest) {
         supabase.from('Course').select('title').eq('id', courseId).limit(1).maybeSingle(),
       ]);
 
-      // Clear node overrides
-      await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+      await applyStudentScheduleRule({
+        supabase,
+        courseId,
+        userIds: [userId],
+        action: 'groups_per_week',
+        groupsPerWeek: groups,
+      });
 
       await answerCallbackQuery(callbackQueryId, `${groups} group(s)/wk applied`);
       await sendTelegramReply(
@@ -1192,18 +1199,33 @@ export async function POST(request: NextRequest) {
       const preset = parts[3];
 
       let label = 'Designated Days';
-      if (preset === 'smw') label = 'Saturday, Monday, Wednesday';
-      else if (preset === 'stt') label = 'Sunday, Tuesday, Thursday';
-      else if (preset === 'fri') label = 'Friday Only';
-      else if (preset === 'dly') label = 'Daily (Every Day)';
+      let daysOfWeek = [0, 2, 4];
+      if (preset === 'smw') {
+        label = 'Saturday, Monday, Wednesday';
+        daysOfWeek = [6, 1, 3];
+      } else if (preset === 'stt') {
+        label = 'Sunday, Tuesday, Thursday';
+        daysOfWeek = [0, 2, 4];
+      } else if (preset === 'fri') {
+        label = 'Friday Only';
+        daysOfWeek = [5];
+      } else if (preset === 'dly') {
+        label = 'Daily (Every Day)';
+        daysOfWeek = [0, 1, 2, 3, 4, 5, 6];
+      }
 
       const [userRes, courseRes] = await Promise.all([
         supabase.from('User').select('fullName, email').eq('id', userId).limit(1).maybeSingle(),
         supabase.from('Course').select('title').eq('id', courseId).limit(1).maybeSingle(),
       ]);
 
-      // Clear node overrides
-      await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+      await applyStudentScheduleRule({
+        supabase,
+        courseId,
+        userIds: [userId],
+        action: 'day_of_week',
+        daysOfWeek,
+      });
 
       await answerCallbackQuery(callbackQueryId, `Day schedule applied`);
       await sendTelegramReply(

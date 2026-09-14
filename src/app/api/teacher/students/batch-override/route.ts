@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { ensureCustomBatch, ensureAllUnlockedBatch } from '@/lib/enrollment';
+import { ensureCustomBatch, ensureAllUnlockedBatch, applyStudentScheduleRule } from '@/lib/enrollment';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,62 +33,46 @@ export async function POST(request: NextRequest) {
 
     if (action) {
       if (action === 'current_batch' || action === 'start_from_today') {
-        for (const uid of targets) {
-          // Delete existing overrides so student falls back to inheriting default batch schedule
-          await supabase
-            .from('StudentModuleAvailability')
-            .delete()
-            .eq('courseId', courseId)
-            .eq('userId', uid);
-        }
-        return NextResponse.json({ success: true, processed: targets.length });
+        const result = await applyStudentScheduleRule({
+          supabase,
+          courseId,
+          userIds: targets,
+          action: 'current_batch',
+        });
+        return NextResponse.json(result);
       }
 
       if (action === 'custom_date') {
-        // Ensure Custom Batch exists for this course
-        const customBatch = await ensureCustomBatch(supabase, courseId);
+        const { data: courseInfo } = await supabase
+          .from('Course')
+          .select('releaseMode')
+          .eq('id', courseId)
+          .limit(1)
+          .maybeSingle();
 
-        for (const uid of targets) {
-          const updateData: any = { batchId: customBatch.id };
-          if (startDate) {
-            updateData.enrolledAt = new Date(startDate).toISOString();
-          }
-          await supabase
-            .from('Order')
-            .update(updateData)
-            .eq('courseId', courseId)
-            .eq('userId', uid)
-            .eq('status', 'approved');
+        const courseMode = courseInfo?.releaseMode;
+        const releaseMode = (courseMode && ['fixed_interval', 'groups_per_week', 'day_of_week'].includes(courseMode))
+          ? courseMode
+          : 'custom_batch';
 
-          // Delete node-level overrides so standard scheduling starts from the custom date
-          await supabase
-            .from('StudentModuleAvailability')
-            .delete()
-            .eq('courseId', courseId)
-            .eq('userId', uid);
-        }
-        return NextResponse.json({ success: true, processed: targets.length });
+        const result = await applyStudentScheduleRule({
+          supabase,
+          courseId,
+          userIds: targets,
+          action: releaseMode as any,
+          startDate,
+        });
+        return NextResponse.json(result);
       }
       
       if (action === 'instant' || action === 'unlock_all') {
-        const allUnlockedBatch = await ensureAllUnlockedBatch(supabase, courseId);
-
-        for (const uid of targets) {
-          // Reassign student to All Unlocked Batch
-          await (supabase.from('Order') as any)
-            .update({ batchId: allUnlockedBatch.id } as any)
-            .eq('courseId', courseId)
-            .eq('userId', uid)
-            .eq('status', 'approved');
-
-          // Clear any specific node-level overrides
-          await supabase
-            .from('StudentModuleAvailability')
-            .delete()
-            .eq('courseId', courseId)
-            .eq('userId', uid);
-        }
-        return NextResponse.json({ success: true, processed: targets.length });
+        const result = await applyStudentScheduleRule({
+          supabase,
+          courseId,
+          userIds: targets,
+          action: 'instant',
+        });
+        return NextResponse.json(result);
       }
       
       if (action === 'batch_change' || action === 'change_batch') {
@@ -130,14 +114,9 @@ export async function POST(request: NextRequest) {
             .update(updateData as any)
             .eq('courseId', courseId)
             .eq('userId', uid)
-            .eq('status', 'approved');
-        }
-        return NextResponse.json({ success: true, processed: targets.length });
-      }
+            .in('status', ['approved', 'completed']);
 
-      if (action === 'fixed_interval' || action === 'custom_interval' || action === 'groups_per_week' || action === 'day_of_week' || action === 'week_days') {
-        // Clear node level overrides to allow dynamic schedule rules
-        for (const uid of targets) {
+          // Clear student module overrides when moving to a new batch
           await supabase
             .from('StudentModuleAvailability')
             .delete()
@@ -145,6 +124,26 @@ export async function POST(request: NextRequest) {
             .eq('userId', uid);
         }
         return NextResponse.json({ success: true, processed: targets.length });
+      }
+
+      if (action === 'fixed_interval' || action === 'custom_interval' || action === 'groups_per_week' || action === 'day_of_week' || action === 'week_days') {
+        const normalizedAction = (
+          action === 'custom_interval' ? 'fixed_interval' :
+          action === 'week_days' ? 'day_of_week' :
+          action
+        ) as any;
+
+        const result = await applyStudentScheduleRule({
+          supabase,
+          courseId,
+          userIds: targets,
+          action: normalizedAction,
+          intervalDays: body.intervalDays ? Number(body.intervalDays) : undefined,
+          groupsPerWeek: body.groupsPerWeek ? Number(body.groupsPerWeek) : undefined,
+          daysOfWeek: Array.isArray(body.daysOfWeek) ? body.daysOfWeek : undefined,
+          startDate: body.startDate,
+        });
+        return NextResponse.json(result);
       }
       
       // Fallback for unsupported actions

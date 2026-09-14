@@ -714,7 +714,7 @@ export function computeReleaseGroupDates(
   }
 
   if (mode === 'groups_per_week') {
-    const groupsPerWeek = config.releaseGroupsPerWeek === 3 ? 3 : 2;
+    const groupsPerWeek = Math.max(1, Number(config.releaseGroupsPerWeek) || 1);
     const stepMs = (7 * 24 * 60 * 60 * 1000) / groupsPerWeek;
     groups.forEach((group) => {
       const date = new Date(startDate.getTime() + group.index * stepMs);
@@ -741,25 +741,23 @@ export function computeReleaseGroupDates(
     }
 
     groups.forEach((group) => {
-      let validDaysHit = 0;
-      const currentCheckDate = new Date(startDate);
-
-      if (selectedDays.includes(getDhakaDay(currentCheckDate))) {
-        if (group.index === 0) {
-          dates[group.id] = currentCheckDate.toISOString();
-          return;
-        }
-        validDaysHit++;
+      if (group.index === 0) {
+        dates[group.id] = startDate.toISOString();
+        return;
       }
 
-      while (validDaysHit <= group.index) {
+      let targetCount = group.index;
+      let count = 0;
+      const currentCheckDate = new Date(startDate);
+
+      while (count < targetCount) {
         currentCheckDate.setDate(currentCheckDate.getDate() + 1);
         if (selectedDays.includes(getDhakaDay(currentCheckDate))) {
-          if (validDaysHit === group.index) {
+          count++;
+          if (count === targetCount) {
             dates[group.id] = currentCheckDate.toISOString();
             return;
           }
-          validDaysHit++;
         }
       }
     });
@@ -834,7 +832,8 @@ export function annotateCurriculumAvailability(
 
   const findNearestOverride = (path: BuilderCurriculumNode[]): LessonAvailabilityOverride | null => {
     for (let index = path.length - 1; index >= 0; index -= 1) {
-      const candidate = overrideMap.get(path[index].id);
+      const node = path[index];
+      const candidate = overrideMap.get(node.id) || (node.releaseGroupId ? overrideMap.get(node.releaseGroupId) : null);
       if (candidate) {
         return candidate;
       }

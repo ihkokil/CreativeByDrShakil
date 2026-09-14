@@ -157,6 +157,7 @@ export default function StudentsManager() {
     student: StudentProfile;
     courseId: string;
     courseTitle: string;
+    orderId?: string;
     enrolledAt: string | null;
     expiresAt: string | null;
     batchName?: string | null;
@@ -166,6 +167,7 @@ export default function StudentsManager() {
     courseTitle: string;
     orderId: string;
     enrolledAt: string;
+    expiresAt?: string;
   } | null>(null);
   const [editingRulesFor, setEditingRulesFor] = useState<{
     courseId: string;
@@ -312,6 +314,7 @@ export default function StudentsManager() {
               student: updatedStudent,
               courseId: selectedSingleCourse.courseId,
               courseTitle: selectedSingleCourse.courseTitle,
+              orderId: courseEnrollment.orderId,
               enrolledAt: courseEnrollment.enrolledAt,
               expiresAt: courseEnrollment.expiresAt,
               batchName: courseEnrollment.batchName,
@@ -599,6 +602,44 @@ export default function StudentsManager() {
         }
       }
     });
+  };
+
+  // Single Enrollment Date Save
+  const handleSaveEnrollmentDate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEnrollment || !editingEnrollment.orderId) {
+      showAlert('Order ID not found for this enrollment.', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/students/update-enrollment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          orderId: editingEnrollment.orderId,
+          enrolledAt: editingEnrollment.enrolledAt,
+          expiresAt: editingEnrollment.expiresAt || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setEditingEnrollment(null);
+        showAlert('Enrollment date updated successfully!', 'success');
+        await fetchStudents();
+      } else {
+        showAlert(data.error || 'Failed to update enrollment date.', 'error');
+      }
+    } catch (err: any) {
+      showAlert('Network error while updating enrollment date.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Single Student Delete (From Directory)
@@ -1004,6 +1045,7 @@ export default function StudentsManager() {
                                 student,
                                 courseId: course.courseId,
                                 courseTitle: course.courseTitle,
+                                orderId: course.orderId,
                                 enrolledAt: course.enrolledAt,
                                 expiresAt: course.expiresAt,
                                 batchName: course.batchName,
@@ -1340,6 +1382,7 @@ export default function StudentsManager() {
               courseTitle: course.courseTitle,
               orderId: course.orderId,
               enrolledAt: course.enrolledAt ? formatDateInputGMT6(course.enrolledAt) : formatDateInputGMT6(new Date()),
+              expiresAt: course.expiresAt ? formatDateInputGMT6(course.expiresAt) : '',
             });
           }}
           onEditRules={(course) => {
@@ -1366,11 +1409,14 @@ export default function StudentsManager() {
           batchName={selectedSingleCourse.batchName}
           onClose={() => setSelectedSingleCourse(null)}
           onEditDate={() => {
+            const course = selectedSingleCourse.student.enrolledCourses?.find(c => c.courseId === selectedSingleCourse.courseId);
+            const orderId = selectedSingleCourse.orderId || course?.orderId || '';
             setEditingEnrollment({
               studentName: selectedSingleCourse.student.fullName,
               courseTitle: selectedSingleCourse.courseTitle,
-              orderId: selectedSingleCourse.student.enrolledCourses.find(c => c.courseId === selectedSingleCourse.courseId)?.orderId || '',
-              enrolledAt: selectedSingleCourse.enrolledAt || ''
+              orderId,
+              enrolledAt: selectedSingleCourse.enrolledAt ? formatDateInputGMT6(selectedSingleCourse.enrolledAt) : formatDateInputGMT6(new Date()),
+              expiresAt: selectedSingleCourse.expiresAt ? formatDateInputGMT6(selectedSingleCourse.expiresAt) : '',
             });
           }}
           onEditRules={() => {
@@ -1381,12 +1427,131 @@ export default function StudentsManager() {
             });
           }}
           onRevoke={() => {
-            const orderId = selectedSingleCourse.student.enrolledCourses.find(c => c.courseId === selectedSingleCourse.courseId)?.orderId;
+            const course = selectedSingleCourse.student.enrolledCourses?.find(c => c.courseId === selectedSingleCourse.courseId);
+            const orderId = selectedSingleCourse.orderId || course?.orderId;
             if (orderId) {
               handleRevokeEnrollment(orderId, selectedSingleCourse.student.fullName, selectedSingleCourse.courseTitle);
+            } else {
+              showAlert('Enrollment order ID could not be found.', 'error');
             }
           }}
         />
+      )}
+
+      {/* Edit Single Enrollment Date Modal */}
+      {editingEnrollment && (
+        <div className={styles.overlay} onClick={() => setEditingEnrollment(null)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2>Change Enrollment Date</h2>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', color: 'var(--text-muted)' }}>
+                  Update access schedule for this course.
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setEditingEnrollment(null)} 
+                className={styles.closeBtn}
+                aria-label="Close dialog"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveEnrollmentDate} className={styles.modalBody}>
+              <div style={{
+                background: 'var(--surface-soft)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: '14px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <User size={15} style={{ color: 'var(--primary)' }} />
+                  <strong style={{ fontSize: '0.95rem', color: 'var(--foreground)' }}>
+                    {editingEnrollment.studentName}
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <BookOpen size={15} style={{ color: 'var(--text-muted)' }} />
+                  <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                    {editingEnrollment.courseTitle}
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Calendar size={14} style={{ color: 'var(--primary)' }} />
+                  Enrollment Date (Start)
+                </label>
+                <input 
+                  type="date" 
+                  required
+                  className={styles.input}
+                  value={editingEnrollment.enrolledAt}
+                  onChange={(e) => {
+                    const newStart = e.target.value;
+                    let newExpiry = editingEnrollment.expiresAt;
+                    if (newStart) {
+                      const d = new Date(newStart);
+                      d.setFullYear(d.getFullYear() + 1);
+                      newExpiry = formatDateInputGMT6(d);
+                    }
+                    setEditingEnrollment({ 
+                      ...editingEnrollment, 
+                      enrolledAt: newStart,
+                      expiresAt: newExpiry
+                    });
+                  }}
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+                  Expiration Date (Default: 1 year from start)
+                </label>
+                <input 
+                  type="date" 
+                  className={styles.input}
+                  value={editingEnrollment.expiresAt || ''}
+                  onChange={(e) => setEditingEnrollment({ ...editingEnrollment, expiresAt: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  className={styles.actionBtnPill} 
+                  style={{ minHeight: '44px', padding: '0 20px', fontSize: '0.9rem' }} 
+                  onClick={() => setEditingEnrollment(null)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className={styles.newStudentBtn} 
+                  style={{ minHeight: '44px', padding: '0 24px', fontSize: '0.9rem' }} 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader variant="button" />
+                  ) : (
+                    <>
+                      <Calendar size={16} />
+                      Save Date
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {/* Student Rules Modal */}

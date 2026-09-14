@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { extractCookieToken } from '@/lib/auth-server';
 import { requireTeacherPayload } from '@/lib/route-auth';
+import { ensureCustomBatch, applyStudentScheduleRule } from '@/lib/enrollment';
 import type { Database } from '@/types/supabase';
 
 export async function POST(request: NextRequest) {
@@ -38,23 +39,51 @@ export async function POST(request: NextRequest) {
 
     if (enrolledAt !== undefined) {
       updateData.enrolledAt = enrolledAt ? new Date(enrolledAt).toISOString() : null;
-      if (updateData.enrolledAt) {
+      if (updateData.enrolledAt && expiresAt === undefined) {
         const oneYearLater = new Date(updateData.enrolledAt);
         oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
         updateData.expiresAt = oneYearLater.toISOString();
       }
+
+      if (updateData.enrolledAt) {
+        const customBatch = await ensureCustomBatch(supabase, order.courseId);
+        (updateData as any).batchId = customBatch.id;
+      }
     }
 
-    if (expiresAt !== undefined && !updateData.expiresAt) {
+    if (expiresAt !== undefined) {
       updateData.expiresAt = expiresAt ? new Date(expiresAt).toISOString() : null;
     }
 
     const { error: updateError } = await supabase
       .from('Order')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', orderId);
 
     if (updateError) throw updateError;
+
+    // Recalculate module availability starting from the updated enrollment date
+    if (enrolledAt !== undefined && updateData.enrolledAt) {
+      const { data: courseInfo } = await supabase
+        .from('Course')
+        .select('releaseMode')
+        .eq('id', order.courseId)
+        .limit(1)
+        .maybeSingle();
+
+      const courseMode = courseInfo?.releaseMode;
+      const releaseMode = (courseMode && ['fixed_interval', 'groups_per_week', 'day_of_week'].includes(courseMode))
+        ? courseMode
+        : 'custom_batch';
+
+      await applyStudentScheduleRule({
+        supabase,
+        courseId: order.courseId,
+        userIds: [order.userId],
+        action: releaseMode as any,
+        startDate: new Date(updateData.enrolledAt),
+      });
+    }
 
     const { data: updatedOrder } = await supabase
       .from('Order')
