@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -204,17 +204,6 @@ export default function StudyOutlineHub({
         const firstIncomplete = unlockedLessons.find(l => !completedSet.has(l.node.id));
         return firstIncomplete || unlockedLessons[0] || null;
     }, [allLessons, completedSet, lastVisitedLessonId]);
-
-    // When resumeLesson is determined, auto-expand its parent module
-    useEffect(() => {
-        if (resumeLesson?.moduleId) {
-            setExpandedModuleIds(prev => {
-                const next = new Set(prev);
-                next.add(resumeLesson.moduleId);
-                return next;
-            });
-        }
-    }, [resumeLesson?.moduleId]);
 
     // Toggle single module accordion
     const toggleModule = (id: string, isLocked: boolean) => {
@@ -506,6 +495,7 @@ export default function StudyOutlineHub({
                                                         <div
                                                             key={item.id}
                                                             className={`${styles.lessonRow} ${isActive ? styles.lessonRowActive : ''} ${item.locked ? styles.lessonRowLocked : ''}`}
+                                                            onClick={() => !item.locked && onSelectLesson(item)}
                                                         >
                                                             <div className={styles.lessonRowLeft}>
                                                                 <div
@@ -556,7 +546,10 @@ export default function StudyOutlineHub({
                                                                 <button
                                                                     className={`${styles.playLessonBtn} ${isActive ? styles.playLessonBtnActive : ''}`}
                                                                     disabled={item.locked}
-                                                                    onClick={() => onSelectLesson(item)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        onSelectLesson(item);
+                                                                    }}
                                                                 >
                                                                     {itemType === 'document' ? (
                                                                         <>
