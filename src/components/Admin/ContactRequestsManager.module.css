@@ -289,6 +289,59 @@
   color: #10b981;
 }
 
+.adminReplyPreview {
+  margin-top: 4px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-left: 3px solid #10b981;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.adminReplyHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.76rem;
+}
+
+.adminReplyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #10b981;
+}
+
+.adminReplyTime {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.adminReplyAuthor {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.adminReplyText {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--foreground);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  opacity: 0.92;
+}
+
 .itemAction {
   flex-shrink: 0;
 }
@@ -598,8 +651,63 @@
   transition: opacity 0.2s;
 }
 
-.attachmentCard:hover .attachmentOverlay {
-  opacity: 1;
+.savedResponseCard {
+  border-radius: 16px;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  border-left: 4px solid #10b981;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.savedResponseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.savedResponseBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #10b981;
+}
+
+.savedResponseTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.savedResponseAuthor {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.savedResponseAuthor strong {
+  color: var(--foreground);
+}
+
+.savedResponseBody {
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--foreground);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.savedResponseBody p {
+  margin: 0;
 }
 
 .replySection {

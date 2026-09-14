@@ -35,6 +35,12 @@ export type ContactSubmission = {
   status: ContactStatus;
   adminReply?: string | null;
   adminReplySentAt?: string | null;
+  repliedByAdminId?: string | null;
+  repliedByAdmin?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -156,6 +162,9 @@ export default function ContactRequestsManager() {
         current.map((sub) => (sub.id === selectedSubmission.id ? { ...sub, ...updatedItem } : sub))
       );
       setSelectedSubmission((prev) => (prev ? { ...prev, ...updatedItem } : null));
+
+      // Refresh list to synchronize status counts across tabs
+      fetchSubmissions();
     } catch (error: any) {
       setMessage({ type: 'error', text: error?.message || 'Failed to update contact request.' });
       throw error;
@@ -298,9 +307,24 @@ export default function ContactRequestsManager() {
                     </div>
 
                     {sub.adminReply && (
-                      <div className={styles.repliedIndicator}>
-                        <CheckCircle2 size={13} />
-                        <span>Replied by Admin {sub.adminReplySentAt ? `(${formatDateTimeGMT6(sub.adminReplySentAt)})` : ''}</span>
+                      <div className={styles.adminReplyPreview}>
+                        <div className={styles.adminReplyHeader}>
+                          <div className={styles.adminReplyBadge}>
+                            <CheckCircle2 size={13} />
+                            <span>Response Saved</span>
+                          </div>
+                          {sub.adminReplySentAt && (
+                            <span className={styles.adminReplyTime}>
+                              {formatDateTimeGMT6(sub.adminReplySentAt)}
+                            </span>
+                          )}
+                          {sub.repliedByAdmin?.fullName && (
+                            <span className={styles.adminReplyAuthor}>
+                              &bull; by {sub.repliedByAdmin.fullName}
+                            </span>
+                          )}
+                        </div>
+                        <p className={styles.adminReplyText}>{sub.adminReply}</p>
                       </div>
                     )}
                   </div>

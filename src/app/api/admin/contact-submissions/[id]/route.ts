@@ -94,7 +94,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updateData.adminReply = adminReply;
       updateData.adminReplySentAt = new Date().toISOString();
       updateData.repliedByAdminId = adminCheck.payload?.sub;
-      updateData.status = normalizedStatus || 'responded';
+      updateData.status = (normalizedStatus === 'closed' || normalizedStatus === 'in_review')
+        ? normalizedStatus
+        : 'responded';
     }
 
     const { error: updateError } = await supabase
@@ -114,6 +116,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     if (!updatedSubmission) {
       return NextResponse.json({ error: 'Submission not found after update.' }, { status: 404 });
+    }
+
+    if ((updatedSubmission as any).repliedByAdminId) {
+      const { data: admin } = await supabase
+        .from('User')
+        .select('id, fullName, email')
+        .eq('id', (updatedSubmission as any).repliedByAdminId)
+        .limit(1)
+        .maybeSingle();
+
+      (updatedSubmission as any).repliedByAdmin = admin || null;
     }
 
     let replyEmailSent = false;
@@ -185,21 +198,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         const subject = `[Support Response] Re: ${(updatedSubmission as any).subject || 'Your Message'}`;
         const text = `Hi ${userName},\n\nOur team has responded to your message:\n\n${adminReply}\n\n---\nOriginal Message:\n${userMsg}\n\nSupport Email: support@creativebydrshakil.com`;
 
-        // Send to student and copy to support@creativebydrshakil.com
-        await Promise.allSettled([
-          sendMail({
-            to: userEmail,
-            subject,
-            text,
-            html,
-          }),
-          sendMail({
-            to: 'support@creativebydrshakil.com',
-            subject: `[Copy - Sent to ${userName}] ${subject}`,
-            text: `(Copy of response sent to ${userName} <${userEmail}>)\n\nResponse:\n${adminReply}\n\nOriginal Message:\n${userMsg}`,
-            html,
-          }),
-        ]);
+        // Send official response directly to student only (no copy to support)
+        await sendMail({
+          to: userEmail,
+          subject,
+          text,
+          html,
+        });
 
         replyEmailSent = true;
       } catch (err) {

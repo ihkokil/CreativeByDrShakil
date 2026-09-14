@@ -22,6 +22,12 @@ export type ContactSubmission = {
   status: ContactStatus;
   adminReply?: string | null;
   adminReplySentAt?: string | null;
+  repliedByAdminId?: string | null;
+  repliedByAdmin?: {
+    id: string;
+    fullName: string;
+    email: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -58,15 +64,19 @@ export default function ContactRequestModal({
       setStatusDraft(submission.status);
       setReplyDraft(submission.adminReply || '');
     }
-  }, [submission?.id]);
+  }, [submission?.id, submission?.updatedAt, submission?.adminReply, submission?.adminReplySentAt, submission?.status]);
 
   if (!isOpen || !submission) {
     return null;
   }
 
   const handleUpdate = async () => {
-    await onUpdate(statusDraft, replyDraft);
+    // If typing a reply and status was open, auto-promote to responded
+    const targetStatus = (replyDraft.trim() && statusDraft === 'open') ? 'responded' : statusDraft;
+    await onUpdate(targetStatus, replyDraft);
   };
+
+  const hasPreviousReply = Boolean(submission.adminReply?.trim());
 
   return (
     <>
@@ -118,7 +128,7 @@ export default function ContactRequestModal({
 
           {/* User Message */}
           <div className={styles.messageSection}>
-            <span className={styles.sectionHeading}>Message / Complain</span>
+            <span className={styles.sectionHeading}>User Message / Complain</span>
             <div className={styles.messageBox}>
               <p>{submission.message}</p>
             </div>
@@ -150,6 +160,31 @@ export default function ContactRequestModal({
             </div>
           )}
 
+          {/* Saved Admin Response Display */}
+          {hasPreviousReply && (
+            <div className={styles.savedResponseCard}>
+              <div className={styles.savedResponseHeader}>
+                <div className={styles.savedResponseBadge}>
+                  <CheckCircle2 size={15} />
+                  <span>Saved Official Response</span>
+                </div>
+                {submission.adminReplySentAt && (
+                  <span className={styles.savedResponseTime}>
+                    <Clock size={13} /> Sent {formatDateTimeGMT6(submission.adminReplySentAt)}
+                  </span>
+                )}
+              </div>
+              {submission.repliedByAdmin && (
+                <div className={styles.savedResponseAuthor}>
+                  Delivered by <strong>{submission.repliedByAdmin.fullName}</strong> ({submission.repliedByAdmin.email})
+                </div>
+              )}
+              <div className={styles.savedResponseBody}>
+                <p>{submission.adminReply}</p>
+              </div>
+            </div>
+          )}
+
           {/* Status & Reply Form */}
           <div className={styles.replySection}>
             <div className={styles.statusRow}>
@@ -177,12 +212,20 @@ export default function ContactRequestModal({
             </div>
 
             <label className={styles.replyLabel}>
-              <span>Reply to User (Emails user & CCs support@creativebydrshakil.com)</span>
+              <span>
+                {hasPreviousReply
+                  ? `Update Response / Send Follow-up (Emails ${submission.email})`
+                  : `Compose Response (Emails user directly at ${submission.email})`}
+              </span>
               <textarea
                 rows={5}
                 value={replyDraft}
                 onChange={(e) => setReplyDraft(e.target.value)}
-                placeholder="Type your official response to the user here..."
+                placeholder={
+                  hasPreviousReply
+                    ? "Type your updated response or follow-up note to the user..."
+                    : "Type your official response to the user here..."
+                }
                 className={styles.replyTextarea}
               />
             </label>
@@ -195,7 +238,13 @@ export default function ContactRequestModal({
           </button>
           <button className={styles.primaryBtn} onClick={handleUpdate} disabled={isSaving}>
             {isSaving ? <Loader variant="button" /> : <Send size={16} />}
-            <span>{replyDraft.trim() ? 'Send Response & Email' : 'Save Status'}</span>
+            <span>
+              {replyDraft.trim()
+                ? hasPreviousReply
+                  ? 'Update & Send Email'
+                  : 'Send Response & Email'
+                : 'Save Status'}
+            </span>
             {!isSaving && <ArrowRight size={16} />}
           </button>
         </div>
