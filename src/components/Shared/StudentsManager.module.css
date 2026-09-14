@@ -1224,13 +1224,27 @@
   }
 
   .toolbar {
-    padding: 14px;
-    gap: 12px;
+    padding: 12px 14px;
+    gap: 10px;
     border-radius: var(--radius-md);
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
     min-width: 0;
+  }
+
+  .toolbarTop {
+    gap: 10px;
+  }
+
+  .searchBox {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    box-sizing: border-box;
   }
 
   /* Table Card Transformation */
@@ -1533,16 +1547,21 @@
   }
 
   .searchBox {
+    flex: none;
     max-width: 100%;
     min-width: 0;
     width: 100%;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
     box-sizing: border-box;
   }
 
   .searchInput {
     padding: 9px 36px 9px 38px;
-    font-size: 14px;
-    min-height: 42px;
+    font-size: 16px;
+    min-height: 44px;
+    height: 100%;
     width: 100%;
     box-sizing: border-box;
   }
