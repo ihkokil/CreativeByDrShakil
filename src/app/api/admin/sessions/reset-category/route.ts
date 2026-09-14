@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, deviceType } = body;
+    const { userId, deviceType, sessionId } = body;
 
     if (!userId) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
 
     let query = supabase.from('DeviceSession').delete().eq('userId', userId);
 
-    if (deviceType && ['desktop', 'tablet', 'mobile'].includes(deviceType)) {
+    if (sessionId) {
+      query = query.eq('id', sessionId);
+    } else if (deviceType && ['desktop', 'tablet', 'mobile'].includes(deviceType)) {
       query = query.eq('deviceType', deviceType);
     }
 

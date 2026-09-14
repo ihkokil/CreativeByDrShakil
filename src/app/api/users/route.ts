@@ -157,28 +157,29 @@ export async function GET(request: NextRequest) {
         });
 
         // Resolve the best session for each hardware category slot
-        const getCategorySession = (type: 'desktop' | 'tablet' | 'mobile') => {
-          // 1. Highest priority: Currently active session (not logged out, not locked)
-          const active = activeSessions
-            .filter((s: any) => s.deviceType === type)
-            .sort((a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime())[0];
-          if (active) return active;
-
-          // 2. Next priority: Bound device session with a registered deviceHash
-          const bound = userDeviceSessions
-            .filter((s: any) => s.deviceType === type && s.deviceHash)
-            .sort((a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime())[0];
-          if (bound) return bound;
-
-          // 3. Fallback: Most recent session for this device type
-          return userDeviceSessions
-            .filter((s: any) => s.deviceType === type)
-            .sort((a: any, b: any) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime())[0] || null;
+        const getCategorySessions = (type: 'desktop' | 'tablet' | 'mobile') => {
+          const catSessions = userDeviceSessions.filter((s: any) => s.deviceType === type);
+          const seen = new Set<string>();
+          const distinct: any[] = [];
+          const sorted = [...catSessions].sort((a: any, b: any) => {
+            const aActive = !a.loggedOutAt && !a.isLocked ? 1 : 0;
+            const bActive = !b.loggedOutAt && !b.isLocked ? 1 : 0;
+            if (bActive !== aActive) return bActive - aActive;
+            return new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime();
+          });
+          for (const s of sorted) {
+            const key = s.deviceHash || s.id;
+            if (!seen.has(key)) {
+              seen.add(key);
+              distinct.push(s);
+            }
+          }
+          return distinct;
         };
 
-        const boundDesktop = getCategorySession('desktop');
-        const boundTablet = getCategorySession('tablet');
-        const boundMobile = getCategorySession('mobile');
+        const boundDesktops = getCategorySessions('desktop');
+        const boundTablets = getCategorySessions('tablet');
+        const boundMobiles = getCategorySessions('mobile');
 
         // Current active session is the most recently active session
         const currentActiveSession = activeSessions.sort(
@@ -200,9 +201,12 @@ export async function GET(request: NextRequest) {
           sessions: userDeviceSessions,
           currentSession: currentActiveSession,
           boundDevices: {
-            desktop: boundDesktop,
-            tablet: boundTablet,
-            mobile: boundMobile,
+            desktop: boundDesktops[0] || null,
+            tablet: boundTablets[0] || null,
+            mobile: boundMobiles[0] || null,
+            desktops: boundDesktops,
+            tablets: boundTablets,
+            mobiles: boundMobiles,
           },
           lastActiveAt,
           autoLockSetting,

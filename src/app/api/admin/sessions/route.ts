@@ -71,9 +71,13 @@ export async function GET() {
 
     const globalAutoLockSetting = await getGlobalAutoLockSetting();
 
+    const { getGlobalSessionSettings, setGlobalSessionSettings } = await import('@/lib/session-manager');
+    const globalSettings = await getGlobalSessionSettings();
+
     // Format response
     const response = {
       globalAutoLockSetting,
+      globalSettings,
       students: await Promise.all(
         students.map(async (student: any) => {
           const resolved = await resolveAutoLockSetting(student.id);
@@ -100,9 +104,8 @@ export async function GET() {
 }
 
 /**
- * POST /api/admin/sessions/settings
- * Update global auto-lock setting
- * Body: {autoLockFirstBrowser: boolean}
+ * POST /api/admin/sessions
+ * Update global auto-lock and per-device session settings
  */
 export async function POST(request: NextRequest) {
   try {
@@ -113,7 +116,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { autoLockFirstBrowser, allowDesktop, allowTablet, allowMobile, maxConcurrentSessions, userId } = body;
+    const {
+      autoLockFirstBrowser,
+      allowDesktop,
+      allowTablet,
+      allowMobile,
+      maxConcurrentSessions,
+      maxDesktopSessions,
+      maxTabletSessions,
+      maxMobileSessions,
+      userId,
+    } = body;
 
     // If userId is provided, update user-specific setting
     if (userId) {
@@ -148,6 +161,18 @@ export async function POST(request: NextRequest) {
     if (maxConcurrentSessions !== undefined) {
       if (typeof maxConcurrentSessions !== 'number') return NextResponse.json({ error: 'maxConcurrentSessions must be a number' }, { status: 400 });
       settingsUpdate.maxConcurrentSessions = maxConcurrentSessions;
+    }
+    if (maxDesktopSessions !== undefined) {
+      if (typeof maxDesktopSessions !== 'number') return NextResponse.json({ error: 'maxDesktopSessions must be a number' }, { status: 400 });
+      settingsUpdate.maxDesktopSessions = maxDesktopSessions;
+    }
+    if (maxTabletSessions !== undefined) {
+      if (typeof maxTabletSessions !== 'number') return NextResponse.json({ error: 'maxTabletSessions must be a number' }, { status: 400 });
+      settingsUpdate.maxTabletSessions = maxTabletSessions;
+    }
+    if (maxMobileSessions !== undefined) {
+      if (typeof maxMobileSessions !== 'number') return NextResponse.json({ error: 'maxMobileSessions must be a number' }, { status: 400 });
+      settingsUpdate.maxMobileSessions = maxMobileSessions;
     }
 
     const { setGlobalSessionSettings } = await import('@/lib/session-manager');

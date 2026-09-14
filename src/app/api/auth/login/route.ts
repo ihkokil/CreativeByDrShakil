@@ -160,13 +160,31 @@ export async function POST(request: NextRequest) {
         deviceLabel,
         osInfo,
       });
-    } catch (error: any) {
+      } catch (error: any) {
       if (error.message === 'device_category_locked') {
         const categoryName = deviceType === 'desktop' ? 'Desktop/Laptop' :
                              deviceType === 'tablet' ? 'Tablet' : 'Mobile';
+        const limit = deviceType === 'desktop' ? globalSettings.maxDesktopSessions :
+                      deviceType === 'tablet' ? globalSettings.maxTabletSessions :
+                      globalSettings.maxMobileSessions;
+        const slotText = limit > 1 ? `the maximum allowed ${limit} registered ${categoryName.toLowerCase()} devices` : `a registered ${categoryName.toLowerCase()} device`;
         return NextResponse.json({
-          error: `This account is already linked to a different ${categoryName.toLowerCase()} device. You can only access your account from your registered ${categoryName.toLowerCase()} device, or contact Dr. Nahid Akhter Shakil / support@creativebydrshakil.com for assistance.`,
+          error: `This account has reached its registered device limit (${slotText}). You can only access your account from your registered ${categoryName.toLowerCase()} devices, or contact Dr. Nahid Akhter Shakil / support@creativebydrshakil.com to reset your device slot.`,
           code: 'device_category_locked',
+        }, { status: 403 });
+      }
+      if (error.message === 'device_category_disabled') {
+        const categoryName = deviceType === 'desktop' ? 'desktop' :
+                             deviceType === 'tablet' ? 'tablet' : 'mobile';
+        return NextResponse.json({
+          error: `Access from ${categoryName} devices is currently disabled.`,
+          code: 'device_category_disabled',
+        }, { status: 403 });
+      }
+      if (error.message === 'category_session_limit_exceeded' || error.message === 'global_session_limit_exceeded') {
+        return NextResponse.json({
+          error: 'Maximum simultaneous active sessions reached. Please log out from another device or contact support.',
+          code: 'session_limit_exceeded',
         }, { status: 403 });
       }
       if (error.message === 'user_banned') {

@@ -57,36 +57,100 @@ export async function createDeviceSession(options: CreateSessionOptions): Promis
   const isStudent = userRecord?.role === 'student';
   const isExempt = !!userRecord?.isSessionLockedExempt;
 
-  // 2. Strict 1-Device per Category Lock for Non-Exempt Students
-  if (isStudent && !isExempt && options.deviceHash) {
-    // Find registered devices for this category (desktop, tablet, mobile)
-    const { data: boundSessions } = await supabase
-      .from('DeviceSession')
-      .select('id, deviceHash, deviceLabel')
-      .eq('userId', options.userId)
-      .eq('deviceType', options.deviceType)
-      .not('deviceHash', 'is', null)
-      .order('createdAt', { ascending: true });
+  // 2. Granular Per-Device Category & Concurrency Lock for Non-Exempt Students
+  if (isStudent && !isExempt) {
+    const globalSettings = await getGlobalSessionSettings();
 
-    if (boundSessions && boundSessions.length > 0) {
-      // Find the first non-fallback bound hash
-      const validBound = boundSessions.find((s: any) => s.deviceHash && !s.deviceHash.startsWith('fallback-'));
-      if (validBound && validBound.deviceHash) {
-        const matchesAnyKnown = boundSessions.some((s: any) => s.deviceHash === options.deviceHash);
-        if (!matchesAnyKnown && !options.deviceHash.startsWith('fallback-')) {
+    const maxForCategory = options.deviceType === 'desktop' ? globalSettings.maxDesktopSessions :
+                           options.deviceType === 'tablet' ? globalSettings.maxTabletSessions :
+                           globalSettings.maxMobileSessions;
+
+    // A. Verify category is allowed
+    if (maxForCategory <= 0) {
+      throw new Error('device_category_disabled');
+    }
+
+    // B. Hardware Slot Binding Check
+    if (options.deviceHash) {
+      // Find registered devices for this category (desktop, tablet, mobile)
+      const { data: boundSessions } = await supabase
+        .from('DeviceSession')
+        .select('id, deviceHash, deviceLabel')
+        .eq('userId', options.userId)
+        .eq('deviceType', options.deviceType)
+        .not('deviceHash', 'is', null)
+        .order('createdAt', { ascending: true });
+
+      // Gather distinct known bound hardware hashes (ignoring fallback hashes)
+      const knownBoundHashes = Array.from(new Set(
+        (boundSessions || [])
+          .map((s: any) => s.deviceHash)
+          .filter((h: string) => h && !h.startsWith('fallback-'))
+      ));
+
+      const isCurrentDeviceKnown = knownBoundHashes.includes(options.deviceHash);
+      const isFallback = options.deviceHash.startsWith('fallback-');
+
+      // If current device is a new physical device, verify if category slot capacity is reached
+      if (!isCurrentDeviceKnown && !isFallback) {
+        if (knownBoundHashes.length >= maxForCategory) {
           throw new Error('device_category_locked');
         }
       }
     }
 
-    // 3. Single Active Login Session Concurrency:
-    // Log out all existing active sessions for this student across all browsers & devices
-    await supabase
+    // C. Active Session Concurrency Management:
+    // Check all currently active sessions for this student
+    const { data: activeSessions } = await supabase
       .from('DeviceSession')
-      // @ts-ignore
-      .update({ loggedOutAt: new Date().toISOString() })
+      .select('id, deviceType, createdAt')
       .eq('userId', options.userId)
-      .is('loggedOutAt', null);
+      .is('loggedOutAt', null)
+      .eq('isLocked', false)
+      .order('createdAt', { ascending: true });
+
+    const activeList = activeSessions || [];
+    const activeCategorySessions = activeList.filter((s: any) => s.deviceType === options.deviceType);
+
+    // If active sessions in this category reach or exceed the category limit:
+    if (activeCategorySessions.length >= maxForCategory) {
+      if (globalSettings.autoLockFirstBrowser) {
+        // Gracefully terminate the oldest session(s) in this category
+        const excessCount = activeCategorySessions.length - maxForCategory + 1;
+        const toTerminate = activeCategorySessions.slice(0, excessCount).map((s: any) => s.id);
+        if (toTerminate.length > 0) {
+          await supabase
+            .from('DeviceSession')
+            // @ts-ignore
+            .update({ loggedOutAt: new Date().toISOString() })
+            .in('id', toTerminate);
+        }
+      } else {
+        throw new Error('category_session_limit_exceeded');
+      }
+    }
+
+    // D. Global Total Concurrency Cap Check
+    if (globalSettings.maxConcurrentSessions > 0) {
+      const remainingActive = activeList.filter((s: any) => 
+        !activeCategorySessions.slice(0, Math.max(0, activeCategorySessions.length - maxForCategory + 1)).some((t: any) => t.id === s.id)
+      );
+      if (remainingActive.length >= globalSettings.maxConcurrentSessions) {
+        if (globalSettings.autoLockFirstBrowser) {
+          const excessGlobal = remainingActive.length - globalSettings.maxConcurrentSessions + 1;
+          const globalToTerminate = remainingActive.slice(0, excessGlobal).map((s: any) => s.id);
+          if (globalToTerminate.length > 0) {
+            await supabase
+              .from('DeviceSession')
+              // @ts-ignore
+              .update({ loggedOutAt: new Date().toISOString() })
+              .in('id', globalToTerminate);
+          }
+        } else {
+          throw new Error('global_session_limit_exceeded');
+        }
+      }
+    }
   }
 
   // 4. Create new device session
@@ -532,6 +596,9 @@ export interface GlobalSessionSettings {
   allowTablet: boolean;
   allowMobile: boolean;
   maxConcurrentSessions: number;
+  maxDesktopSessions: number;
+  maxTabletSessions: number;
+  maxMobileSessions: number;
 }
 
 export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings> {
@@ -545,12 +612,29 @@ export async function getGlobalSessionSettings(): Promise<GlobalSessionSettings>
 
   if (error) throw error;
 
+  const maxDesktopSessions = setting?.maxDesktopSessions !== undefined && setting?.maxDesktopSessions !== null
+    ? Number(setting.maxDesktopSessions)
+    : (setting?.allowDesktop === false ? 0 : 1);
+
+  const maxTabletSessions = setting?.maxTabletSessions !== undefined && setting?.maxTabletSessions !== null
+    ? Number(setting.maxTabletSessions)
+    : (setting?.allowTablet === false ? 0 : 1);
+
+  const maxMobileSessions = setting?.maxMobileSessions !== undefined && setting?.maxMobileSessions !== null
+    ? Number(setting.maxMobileSessions)
+    : (setting?.allowMobile === false ? 0 : 1); // Default 1 device per type
+
   return {
     autoLockFirstBrowser: setting?.autoLockFirstBrowser ?? true,
-    allowDesktop: setting?.allowDesktop ?? true,
-    allowTablet: setting?.allowTablet ?? true,
-    allowMobile: setting?.allowMobile ?? true,
-    maxConcurrentSessions: setting?.maxConcurrentSessions ?? 3,
+    allowDesktop: maxDesktopSessions > 0,
+    allowTablet: maxTabletSessions > 0,
+    allowMobile: maxMobileSessions > 0,
+    maxConcurrentSessions: setting?.maxConcurrentSessions !== undefined && setting?.maxConcurrentSessions !== null
+      ? Number(setting.maxConcurrentSessions)
+      : 1, // Default 1 session per user
+    maxDesktopSessions,
+    maxTabletSessions,
+    maxMobileSessions,
   };
 }
 
@@ -568,11 +652,37 @@ export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSe
   const updatedFields: any = {
     updatedAt: new Date().toISOString(),
   };
+
   if (settings.autoLockFirstBrowser !== undefined) updatedFields.autoLockFirstBrowser = settings.autoLockFirstBrowser;
-  if (settings.allowDesktop !== undefined) updatedFields.allowDesktop = settings.allowDesktop;
-  if (settings.allowTablet !== undefined) updatedFields.allowTablet = settings.allowTablet;
-  if (settings.allowMobile !== undefined) updatedFields.allowMobile = settings.allowMobile;
   if (settings.maxConcurrentSessions !== undefined) updatedFields.maxConcurrentSessions = settings.maxConcurrentSessions;
+
+  // Handle per-device limits and sync boolean flags
+  if (settings.maxDesktopSessions !== undefined) {
+    const val = Math.max(0, settings.maxDesktopSessions);
+    updatedFields.maxDesktopSessions = val;
+    updatedFields.allowDesktop = val > 0;
+  } else if (settings.allowDesktop !== undefined) {
+    updatedFields.allowDesktop = settings.allowDesktop;
+    if (!settings.allowDesktop) updatedFields.maxDesktopSessions = 0;
+  }
+
+  if (settings.maxTabletSessions !== undefined) {
+    const val = Math.max(0, settings.maxTabletSessions);
+    updatedFields.maxTabletSessions = val;
+    updatedFields.allowTablet = val > 0;
+  } else if (settings.allowTablet !== undefined) {
+    updatedFields.allowTablet = settings.allowTablet;
+    if (!settings.allowTablet) updatedFields.maxTabletSessions = 0;
+  }
+
+  if (settings.maxMobileSessions !== undefined) {
+    const val = Math.max(0, settings.maxMobileSessions);
+    updatedFields.maxMobileSessions = val;
+    updatedFields.allowMobile = val > 0;
+  } else if (settings.allowMobile !== undefined) {
+    updatedFields.allowMobile = settings.allowMobile;
+    if (!settings.allowMobile) updatedFields.maxMobileSessions = 0;
+  }
 
   if (existing) {
     const { error } = await supabase
@@ -584,15 +694,17 @@ export async function setGlobalSessionSettings(settings: Partial<GlobalSessionSe
   } else {
     const { error } = await supabase
       .from('GlobalSessionLockSettings')
-      
-// @ts-ignore
-.insert({
+      // @ts-ignore
+      .insert({
         id: 'global',
         autoLockFirstBrowser: settings.autoLockFirstBrowser ?? true,
-        allowDesktop: settings.allowDesktop ?? true,
-        allowTablet: settings.allowTablet ?? true,
-        allowMobile: settings.allowMobile ?? true,
-        maxConcurrentSessions: settings.maxConcurrentSessions ?? 3,
+        allowDesktop: (settings.maxDesktopSessions ?? 1) > 0,
+        allowTablet: (settings.maxTabletSessions ?? 1) > 0,
+        allowMobile: (settings.maxMobileSessions ?? 1) > 0,
+        maxConcurrentSessions: settings.maxConcurrentSessions ?? 1,
+        maxDesktopSessions: settings.maxDesktopSessions ?? 1,
+        maxTabletSessions: settings.maxTabletSessions ?? 1,
+        maxMobileSessions: settings.maxMobileSessions ?? 1,
         updatedAt: new Date().toISOString(),
       } as any);
     if (error) throw error;

@@ -543,14 +543,17 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 0 16px;
+  height: 44px;
   min-height: 44px;
+  max-height: 44px;
   border-radius: 12px;
   background: var(--card-bg, #0d0d12);
   border: 1px solid var(--glass-border);
   transition: all 0.2s ease;
-  flex: 1 1 280px;
-  min-width: 280px;
+  flex: 1 1 auto;
+  min-width: 240px;
+  box-sizing: border-box;
 }
 
 .searchBox:focus-within {
@@ -756,11 +759,135 @@
 }
 
 .policyContent {
-  padding: 20px 24px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   border-top: 1px solid var(--glass-border);
+}
+
+/* Unified Equal-Height Policy Cards Grid */
+.policyGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+}
+
+@media (max-width: 1280px) {
+  .policyGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .policyGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .policyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.policyCardItem {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+  transition: all 0.2s ease;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.policyCardItem:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.policyCardTop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.policyCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.policyCardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.policyCardBadge {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.policyCardDesc {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  min-height: 34px;
+}
+
+.policyCardControl {
+  position: relative;
+  width: 100%;
+  height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.policyCardControl select {
+  width: 100%;
+  height: 42px;
+  box-sizing: border-box;
+  padding: 0 32px 0 12px;
+  font-size: 0.82rem;
+}
+
+.policyToggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.policyToggleBtnActive {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.policyToggleBtn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .policySettingBox {
@@ -802,7 +929,11 @@
 
   .policyContent {
     padding: 14px 16px;
-    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .toolbarCard {
+    padding: 14px 16px;
     gap: 12px;
   }
 
@@ -813,8 +944,14 @@
   }
 
   .searchBox {
+    flex: none;
     width: 100%;
     min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    padding: 0 14px;
+    box-sizing: border-box;
   }
 
   .toolbarControls {
@@ -879,7 +1016,8 @@
 
   .searchBox input {
     font-size: 16px; /* Prevents iOS auto-zoom */
-    min-height: 38px;
+    height: 100%;
+    min-height: 0;
   }
 
   .filterPill {
@@ -967,3 +1105,442 @@
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
   }
 }
+
+/* ==========================================================================
+   Modern Two-Row Student Card & Granular Device Slots System
+   ========================================================================== */
+
+.studentCardList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.studentCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+}
+
+.studentCard:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+}
+
+.studentCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.studentIdentityCol {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-width: 240px;
+}
+
+.avatarWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatarCircle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--primary);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  transition: border-color 0.2s;
+}
+
+.avatarCircleOnline {
+  border: 2px solid #22c55e !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
+}
+
+.onlineBadgeDot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  border: 2.5px solid var(--card-bg, #0d0d12);
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.studentInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.studentNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nameText {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--foreground);
+  letter-spacing: -0.2px;
+}
+
+.badgeOnline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.2px;
+}
+
+.badgeOffline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  padding: 2px 7px;
+  border-radius: 12px;
+}
+
+.badgeBanned {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.badgeExempt {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.emailText {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studentNetworkSnippet {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.studentNetworkSnippet code {
+  font-family: monospace;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  padding: 1px 5px;
+  border-radius: 5px;
+  color: var(--foreground);
+}
+
+.studentDevicesCol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.emptySlotCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--glass-border);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  min-width: 140px;
+  min-height: 68px;
+  justify-content: center;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.emptySlotCard:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.studentCardBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid var(--glass-border);
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.studentMetaCol {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.coursePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-border);
+  padding: 3px 9px;
+  border-radius: 8px;
+  color: var(--foreground);
+  font-weight: 500;
+  font-size: 0.74rem;
+}
+
+.studentActionsCol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionBtnLogout {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  min-height: 32px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtnLogout:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  transform: translateY(-1px);
+}
+
+.actionBtnExempt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  min-height: 32px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtnExempt:hover {
+  background: var(--surface-strong);
+  color: var(--foreground);
+  transform: translateY(-1px);
+}
+
+.actionBtnExemptActive {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+}
+
+.actionBtnBan {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  min-height: 32px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  background: rgba(249, 115, 22, 0.08);
+  color: #f97316;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtnBan:hover {
+  background: rgba(249, 115, 22, 0.2);
+  border-color: #f97316;
+  transform: translateY(-1px);
+}
+
+.actionBtnBanActive {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.actionBtnDelete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  min-height: 32px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.05);
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtnDelete:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  transform: translateY(-1px);
+}
+
+/* Policy Controls Multi-Device Grid */
+.policyDeviceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.policyDeviceBox {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--glass-border);
+  transition: all 0.2s ease;
+}
+
+.policyDeviceBox:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 900px) {
+  .studentCardTop {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .studentIdentityCol {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+  }
+
+  .studentDevicesCol {
+    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .studentCardBottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .studentActionsCol {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    gap: 8px;
+  }
+
+  .studentActionsCol button {
+    justify-content: center;
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 600px) {
+  .studentCardTop {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .studentCardBottom {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .studentDevicesCol {
+    grid-template-columns: 1fr;
+  }
+
+  .studentActionsCol {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+}
+

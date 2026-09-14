@@ -35,6 +35,7 @@ import {
   Sparkles,
   CheckCircle2,
   Shield,
+  BookOpen,
 } from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
 import ConfirmModal from '@/components/Admin/ConfirmModal';
@@ -60,6 +61,9 @@ interface BoundDevices {
   desktop: SessionData | null;
   tablet: SessionData | null;
   mobile: SessionData | null;
+  desktops?: SessionData[];
+  tablets?: SessionData[];
+  mobiles?: SessionData[];
 }
 
 interface UserData {
@@ -125,7 +129,10 @@ export default function UsersManager() {
     allowDesktop: true,
     allowTablet: true,
     allowMobile: true,
-    maxConcurrentSessions: 3,
+    maxConcurrentSessions: 1,
+    maxDesktopSessions: 1,
+    maxTabletSessions: 1,
+    maxMobileSessions: 1,
   });
   const [isPolicyPanelOpen, setIsPolicyPanelOpen] = useState(true);
   const [activeFilterTab, setActiveFilterTab] = useState<'all' | 'online' | 'desktop' | 'tablet' | 'mobile' | 'banned' | 'exempt'>('all');
@@ -147,15 +154,13 @@ export default function UsersManager() {
       if (u.isBanned) banned++;
       if (u.isSessionLockedExempt) exempt++;
 
-      if (u.boundDevices?.desktop || (u.sessions || []).some((s) => s.deviceType === 'desktop')) {
-        boundDesktops++;
-      }
-      if (u.boundDevices?.tablet || (u.sessions || []).some((s) => s.deviceType === 'tablet')) {
-        boundTablets++;
-      }
-      if (u.boundDevices?.mobile || (u.sessions || []).some((s) => s.deviceType === 'mobile')) {
-        boundMobiles++;
-      }
+      const uDesktops = u.boundDevices?.desktops?.length || (u.boundDevices?.desktop || (u.sessions || []).some((s) => s.deviceType === 'desktop') ? 1 : 0);
+      const uTablets = u.boundDevices?.tablets?.length || (u.boundDevices?.tablet || (u.sessions || []).some((s) => s.deviceType === 'tablet') ? 1 : 0);
+      const uMobiles = u.boundDevices?.mobiles?.length || (u.boundDevices?.mobile || (u.sessions || []).some((s) => s.deviceType === 'mobile') ? 1 : 0);
+
+      boundDesktops += uDesktops;
+      boundTablets += uTablets;
+      boundMobiles += uMobiles;
 
       (u.sessions || []).forEach((ds) => {
         if (!ds.loggedOutAt && !ds.isLocked) activeSessions++;
@@ -505,15 +510,18 @@ export default function UsersManager() {
   const handleResetDeviceSlot = (
     userId: string,
     deviceType?: 'desktop' | 'tablet' | 'mobile',
-    userName?: string
+    userName?: string,
+    sessionId?: string,
+    slotNumber?: number | null
   ) => {
-    const slotTitle = deviceType ? `${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)} Slot` : 'All Device Slots';
+    const slotNumText = slotNumber ? ` Slot #${slotNumber}` : '';
+    const slotTitle = deviceType ? `${deviceType.charAt(0).toUpperCase() + deviceType.slice(1)}${slotNumText}` : 'All Device Slots';
     const nameText = userName ? ` for ${userName}` : '';
 
     setConfirmModalState({
       isOpen: true,
       title: `Reset ${slotTitle}?`,
-      message: `Are you sure you want to unbind and reset the ${slotTitle.toLowerCase()}${nameText}? This will immediately free this slot so the student can register their current device on next login.`,
+      message: `Are you sure you want to unbind and reset the ${slotTitle.toLowerCase()}${nameText}? This will immediately free this device slot so the student can register their current device on next login.`,
       confirmLabel: 'Reset & Unbind Slot',
       variant: 'danger',
       iconType: 'reset',
@@ -526,7 +534,7 @@ export default function UsersManager() {
               'Content-Type': 'application/json',
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
-            body: JSON.stringify({ userId, deviceType }),
+            body: JSON.stringify({ userId, deviceType, sessionId }),
           });
 
           if (!response.ok) {
@@ -557,13 +565,13 @@ export default function UsersManager() {
     if (activeFilterTab === 'banned') return users.filter((u) => u.isBanned);
     if (activeFilterTab === 'exempt') return users.filter((u) => u.isSessionLockedExempt);
     if (activeFilterTab === 'desktop') {
-      return users.filter((u) => u.boundDevices?.desktop || (u.sessions || []).some((s) => s.deviceType === 'desktop'));
+      return users.filter((u) => (u.boundDevices?.desktops?.length ?? 0) > 0 || u.boundDevices?.desktop || (u.sessions || []).some((s) => s.deviceType === 'desktop'));
     }
     if (activeFilterTab === 'tablet') {
-      return users.filter((u) => u.boundDevices?.tablet || (u.sessions || []).some((s) => s.deviceType === 'tablet'));
+      return users.filter((u) => (u.boundDevices?.tablets?.length ?? 0) > 0 || u.boundDevices?.tablet || (u.sessions || []).some((s) => s.deviceType === 'tablet'));
     }
     if (activeFilterTab === 'mobile') {
-      return users.filter((u) => u.boundDevices?.mobile || (u.sessions || []).some((s) => s.deviceType === 'mobile'));
+      return users.filter((u) => (u.boundDevices?.mobiles?.length ?? 0) > 0 || u.boundDevices?.mobile || (u.sessions || []).some((s) => s.deviceType === 'mobile'));
     }
     return users;
   }, [users, activeFilterTab]);
@@ -578,28 +586,19 @@ export default function UsersManager() {
     IconComponent: any,
     userId: string,
     deviceType: 'desktop' | 'tablet' | 'mobile',
-    userName?: string
+    userName?: string,
+    slotNumber?: number | null
   ) => {
+    const slotSuffix = slotNumber ? ` #${slotNumber}` : '';
     if (!session) {
       return (
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 12px',
-            borderRadius: '10px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px dashed var(--glass-border)',
-            color: 'var(--text-muted)',
-            fontSize: '0.75rem',
-            minWidth: '145px',
-            minHeight: '70px',
-            justifyContent: 'center',
-          }}
+          key={`${deviceType}-empty-${slotNumber || 1}`}
+          className={styles.emptySlotCard}
+          title={`No ${fallbackLabel} registered in Slot ${slotNumber || 1}`}
         >
-          <IconComponent size={15} style={{ opacity: 0.4 }} />
-          <span>No {fallbackLabel}</span>
+          <IconComponent size={14} style={{ opacity: 0.35 }} />
+          <span>Empty {fallbackLabel}{slotSuffix}</span>
         </div>
       );
     }
@@ -614,6 +613,7 @@ export default function UsersManager() {
 
     return (
       <div
+        key={session.id || `${deviceType}-${slotNumber || 1}`}
         className={styles.sessionBadge}
         onClick={() => setSelectedSession({ ...session, userId })}
         style={{
@@ -643,7 +643,7 @@ export default function UsersManager() {
           transition: 'all 0.15s ease',
         }}
       >
-        {/* Row 1: Device Icon & Label & Online Dot */}
+        {/* Row 1: Device Icon & Label & Slot Indicator & Online Dot */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
           <IconComponent
             size={14}
@@ -662,9 +662,14 @@ export default function UsersManager() {
               fontSize: '0.78rem',
               flex: 1,
             }}
-            title={label}
+            title={`${label}${slotSuffix}`}
           >
             {label}
+            {slotNumber ? (
+              <span style={{ marginLeft: '4px', fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                #{slotNumber}
+              </span>
+            ) : null}
           </span>
           {isOnlineNow && <span className={styles.pulsingDotGreen} title="Active Online Now" />}
         </div>
@@ -753,7 +758,7 @@ export default function UsersManager() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleResetDeviceSlot(userId, deviceType, userName);
+              handleResetDeviceSlot(userId, deviceType, userName, session.id, slotNumber);
             }}
             style={{
               background: 'rgba(239, 68, 68, 0.12)',
@@ -768,7 +773,7 @@ export default function UsersManager() {
               alignItems: 'center',
               gap: '3px',
             }}
-            title={`Reset & Unbind ${fallbackLabel}`}
+            title={`Reset & Unbind ${fallbackLabel}${slotSuffix}`}
           >
             <RotateCcw size={9} />
             Reset
@@ -905,85 +910,196 @@ export default function UsersManager() {
         {/* Collapsible Content */}
         {isPolicyPanelOpen && (
           <div className={styles.policyContent}>
-            {/* Concurrent Session Limit Box */}
-            <div className={styles.policySettingBox}>
-              <div>
-                <h4 style={{ margin: '0 0 4px 0', fontSize: '0.86rem', fontWeight: 700, color: 'var(--foreground)' }}>
-                  Concurrent Session Limit
-                </h4>
-                <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                  Max simultaneous active devices allowed per student
-                </p>
-              </div>
-
-              <div style={{ position: 'relative', marginTop: '6px' }}>
-                <select
-                  value={globalSettings.maxConcurrentSessions}
-                  onChange={(e) => handleUpdateGlobalSetting({ maxConcurrentSessions: parseInt(e.target.value) })}
-                  className={styles.customSelect}
-                >
-                  <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Session (Strict 1-Device)</option>
-                  <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Sessions</option>
-                  <option value={3} style={{ background: '#18181b', color: '#fff' }}>3 Sessions</option>
-                  <option value={5} style={{ background: '#18181b', color: '#fff' }}>5 Sessions</option>
-                  <option value={10} style={{ background: '#18181b', color: '#fff' }}>10 Sessions</option>
-                </select>
-                <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
-                  <ChevronDown size={14} />
-                </div>
-              </div>
-            </div>
-
-            {/* Auto-Lock First Device Switch Box */}
-            <div className={styles.policySettingBox}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: '0.86rem', fontWeight: 700, color: 'var(--foreground)' }}>
-                    Auto-Lock Previous Devices
-                  </h4>
-                  <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                    Terminate older inactive slots on new device registration
+            <div className={styles.policyGrid}>
+              {/* 1. Concurrent Session Limit Card */}
+              <div className={styles.policyCardItem}>
+                <div className={styles.policyCardTop}>
+                  <div className={styles.policyCardHeader}>
+                    <div className={styles.policyCardTitle}>
+                      <Layers size={17} style={{ color: '#3b82f6' }} />
+                      <span>Concurrent Limit</span>
+                    </div>
+                    <span
+                      className={styles.policyCardBadge}
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        color: '#3b82f6',
+                      }}
+                    >
+                      {globalSettings.maxConcurrentSessions} Session{globalSettings.maxConcurrentSessions > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <p className={styles.policyCardDesc}>
+                    Simultaneous active logins allowed per student across any device.
                   </p>
                 </div>
-              </div>
-
-              <div
-                className={`${styles.deviceTile} ${globalSettings.autoLockFirstBrowser ? styles.deviceTileActive : ''}`}
-                onClick={() => handleUpdateGlobalSetting({ autoLockFirstBrowser: !globalSettings.autoLockFirstBrowser })}
-                style={{ marginTop: '6px' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: globalSettings.autoLockFirstBrowser ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                    color: globalSettings.autoLockFirstBrowser ? '#22c55e' : 'var(--text-muted)',
-                  }}>
-                    <Lock size={16} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--foreground)' }}>
-                      Automatic Lock Protection
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      {globalSettings.autoLockFirstBrowser ? 'Active & Protecting Accounts' : 'Disabled (Allow Multiple)'}
-                    </div>
+                <div className={styles.policyCardControl}>
+                  <select
+                    value={globalSettings.maxConcurrentSessions}
+                    onChange={(e) => handleUpdateGlobalSetting({ maxConcurrentSessions: parseInt(e.target.value) })}
+                    className={styles.customSelect}
+                  >
+                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Session (Strict 1-Device)</option>
+                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Simultaneous Devices</option>
+                    <option value={3} style={{ background: '#18181b', color: '#fff' }}>3 Simultaneous Devices</option>
+                    <option value={4} style={{ background: '#18181b', color: '#fff' }}>4 Simultaneous Devices</option>
+                    <option value={5} style={{ background: '#18181b', color: '#fff' }}>5 Simultaneous Devices</option>
+                  </select>
+                  <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+                    <ChevronDown size={14} />
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    color: globalSettings.autoLockFirstBrowser ? '#22c55e' : '#ef4444',
-                  }}>
-                    {globalSettings.autoLockFirstBrowser ? 'Enabled' : 'Disabled'}
-                  </span>
-                  <div className={`${styles.switchTrack} ${globalSettings.autoLockFirstBrowser ? styles.switchTrackActive : ''}`}>
-                    <div className={`${styles.switchThumb} ${globalSettings.autoLockFirstBrowser ? styles.switchThumbActive : ''}`} />
+              </div>
+
+              {/* 2. Auto-Lock & Seamless Handover Card */}
+              <div className={styles.policyCardItem}>
+                <div className={styles.policyCardTop}>
+                  <div className={styles.policyCardHeader}>
+                    <div className={styles.policyCardTitle}>
+                      <Lock size={17} style={{ color: globalSettings.autoLockFirstBrowser ? '#22c55e' : '#ef4444' }} />
+                      <span>Auto-Lock Handover</span>
+                    </div>
+                    <span
+                      className={styles.policyCardBadge}
+                      style={{
+                        background: globalSettings.autoLockFirstBrowser ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                        color: globalSettings.autoLockFirstBrowser ? '#22c55e' : '#ef4444',
+                      }}
+                    >
+                      {globalSettings.autoLockFirstBrowser ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  <p className={styles.policyCardDesc}>
+                    Auto log out oldest session when cap is reached for smooth transition.
+                  </p>
+                </div>
+                <div className={styles.policyCardControl}>
+                  <button
+                    type="button"
+                    className={`${styles.policyToggleBtn} ${globalSettings.autoLockFirstBrowser ? styles.policyToggleBtnActive : ''}`}
+                    onClick={() => handleUpdateGlobalSetting({ autoLockFirstBrowser: !globalSettings.autoLockFirstBrowser })}
+                    title="Toggle automatic handover protection"
+                  >
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: globalSettings.autoLockFirstBrowser ? '#22c55e' : 'var(--text-muted)' }}>
+                      {globalSettings.autoLockFirstBrowser ? 'Auto-Handover: ON' : 'Hard Block on Cap'}
+                    </span>
+                    <div className={`${styles.switchTrack} ${globalSettings.autoLockFirstBrowser ? styles.switchTrackActive : ''}`}>
+                      <div className={`${styles.switchThumb} ${globalSettings.autoLockFirstBrowser ? styles.switchThumbActive : ''}`} />
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Desktop / Laptop Slots Card */}
+              <div className={styles.policyCardItem}>
+                <div className={styles.policyCardTop}>
+                  <div className={styles.policyCardHeader}>
+                    <div className={styles.policyCardTitle}>
+                      <Monitor size={17} style={{ color: (globalSettings.maxDesktopSessions ?? 1) > 0 ? '#38bdf8' : 'var(--text-muted)' }} />
+                      <span>Desktop / Laptop</span>
+                    </div>
+                    <span
+                      className={styles.policyCardBadge}
+                      style={{
+                        background: (globalSettings.maxDesktopSessions ?? 1) > 0 ? 'rgba(56, 189, 248, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                        color: (globalSettings.maxDesktopSessions ?? 1) > 0 ? '#38bdf8' : 'var(--text-muted)',
+                      }}
+                    >
+                      {(globalSettings.maxDesktopSessions ?? 1) === 0 ? 'Disabled' : `${globalSettings.maxDesktopSessions ?? 1} Slot${(globalSettings.maxDesktopSessions ?? 1) > 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+                  <p className={styles.policyCardDesc}>
+                    Max registered laptop or desktop browsers allowed per student.
+                  </p>
+                </div>
+                <div className={styles.policyCardControl}>
+                  <select
+                    value={globalSettings.maxDesktopSessions ?? 1}
+                    onChange={(e) => handleUpdateGlobalSetting({ maxDesktopSessions: parseInt(e.target.value) })}
+                    className={styles.customSelect}
+                  >
+                    <option value={0} style={{ background: '#18181b', color: '#fff' }}>0 - Disabled</option>
+                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Desktop Slot</option>
+                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Desktop Slots (Max)</option>
+                  </select>
+                  <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+                    <ChevronDown size={14} />
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Tablet / iPad Slots Card */}
+              <div className={styles.policyCardItem}>
+                <div className={styles.policyCardTop}>
+                  <div className={styles.policyCardHeader}>
+                    <div className={styles.policyCardTitle}>
+                      <Tablet size={17} style={{ color: (globalSettings.maxTabletSessions ?? 1) > 0 ? '#a855f7' : 'var(--text-muted)' }} />
+                      <span>Tablet / iPad</span>
+                    </div>
+                    <span
+                      className={styles.policyCardBadge}
+                      style={{
+                        background: (globalSettings.maxTabletSessions ?? 1) > 0 ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                        color: (globalSettings.maxTabletSessions ?? 1) > 0 ? '#a855f7' : 'var(--text-muted)',
+                      }}
+                    >
+                      {(globalSettings.maxTabletSessions ?? 1) === 0 ? 'Disabled' : `${globalSettings.maxTabletSessions ?? 1} Slot${(globalSettings.maxTabletSessions ?? 1) > 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+                  <p className={styles.policyCardDesc}>
+                    Max registered iPad or Android tablets allowed per student.
+                  </p>
+                </div>
+                <div className={styles.policyCardControl}>
+                  <select
+                    value={globalSettings.maxTabletSessions ?? 1}
+                    onChange={(e) => handleUpdateGlobalSetting({ maxTabletSessions: parseInt(e.target.value) })}
+                    className={styles.customSelect}
+                  >
+                    <option value={0} style={{ background: '#18181b', color: '#fff' }}>0 - Disabled</option>
+                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Tablet Slot</option>
+                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Tablet Slots (Max)</option>
+                  </select>
+                  <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+                    <ChevronDown size={14} />
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Mobile Smartphone Slots Card */}
+              <div className={styles.policyCardItem}>
+                <div className={styles.policyCardTop}>
+                  <div className={styles.policyCardHeader}>
+                    <div className={styles.policyCardTitle}>
+                      <Smartphone size={17} style={{ color: (globalSettings.maxMobileSessions ?? 1) > 0 ? '#22c55e' : 'var(--text-muted)' }} />
+                      <span>Mobile Smartphone</span>
+                    </div>
+                    <span
+                      className={styles.policyCardBadge}
+                      style={{
+                        background: (globalSettings.maxMobileSessions ?? 1) > 0 ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+                        color: (globalSettings.maxMobileSessions ?? 1) > 0 ? '#22c55e' : 'var(--text-muted)',
+                      }}
+                    >
+                      {(globalSettings.maxMobileSessions ?? 1) === 0 ? 'Disabled' : `${globalSettings.maxMobileSessions ?? 1} Slot${(globalSettings.maxMobileSessions ?? 1) > 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+                  <p className={styles.policyCardDesc}>
+                    Max registered smartphone browsers allowed per student.
+                  </p>
+                </div>
+                <div className={styles.policyCardControl}>
+                  <select
+                    value={globalSettings.maxMobileSessions ?? 1}
+                    onChange={(e) => handleUpdateGlobalSetting({ maxMobileSessions: parseInt(e.target.value) })}
+                    className={styles.customSelect}
+                  >
+                    <option value={0} style={{ background: '#18181b', color: '#fff' }}>0 - Disabled</option>
+                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Mobile Slot</option>
+                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Mobile Slots (Max)</option>
+                  </select>
+                  <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+                    <ChevronDown size={14} />
                   </div>
                 </div>
               </div>
@@ -1134,352 +1250,327 @@ export default function UsersManager() {
         </div>
       </div>
 
+      {/* 4. Student Directory Cards: Row 1 = Details + Actions, Row 2 = Meta + Device Slots */}
       <div
-        className={styles.tableContainer}
+        className={styles.studentCardList}
         style={{
           opacity: isFetching ? 0.7 : 1,
           transition: 'opacity 0.2s ease',
         }}
       >
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th style={{ width: '22%' }}>Student & Presence</th>
-              <th style={{ width: '16%' }}>Live Network & Activity</th>
-              <th style={{ width: '14%' }}>Desktop (1 Slot)</th>
-              <th style={{ width: '14%' }}>Tablet (1 Slot)</th>
-              <th style={{ width: '14%' }}>Mobile (1 Slot)</th>
-              <th style={{ width: '20%', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isFetching && filteredUsers.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                    <RefreshCw size={28} style={{ color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--foreground)' }}>Searching directory...</span>
-                  </div>
-                </td>
-              </tr>
-            ) : filteredUsers.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                    <Users size={36} style={{ opacity: 0.3, color: 'var(--primary)' }} />
-                    <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)' }}>No students found</span>
-                    <span style={{ fontSize: '0.82rem' }}>
-                      {searchQuery
-                        ? `No results match "${searchQuery}"`
-                        : `No student accounts match the active "${activeFilterTab}" filter`}
-                    </span>
-                    {(searchQuery || activeFilterTab !== 'all') && (
-                      <button
-                        onClick={() => {
-                          setSearchQuery('');
-                          setActiveFilterTab('all');
-                        }}
-                        style={{
-                          marginTop: '8px',
-                          padding: '6px 14px',
-                          borderRadius: '8px',
-                          border: '1px solid var(--glass-border)',
-                          background: 'var(--surface-soft)',
-                          color: 'var(--foreground)',
-                          fontSize: '0.8rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Reset All Filters
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filteredUsers.map((userObj) => {
-                const boundDesktop = userObj.boundDevices?.desktop || (userObj.sessions || []).find((s) => s.deviceType === 'desktop');
-                const boundTablet = userObj.boundDevices?.tablet || (userObj.sessions || []).find((s) => s.deviceType === 'tablet');
-                const boundMobile = userObj.boundDevices?.mobile || (userObj.sessions || []).find((s) => s.deviceType === 'mobile');
+        {isFetching && filteredUsers.length === 0 ? (
+          <div className={styles.studentCard} style={{ padding: '48px 20px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <RefreshCw size={28} style={{ color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
+              <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--foreground)' }}>Searching directory...</span>
+            </div>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className={styles.studentCard} style={{ padding: '48px 20px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <Users size={36} style={{ opacity: 0.3, color: 'var(--primary)' }} />
+              <span style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--foreground)' }}>No students found</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                {searchQuery
+                  ? `No results match "${searchQuery}"`
+                  : `No student accounts match the active "${activeFilterTab}" filter`}
+              </span>
+              {(searchQuery || activeFilterTab !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setActiveFilterTab('all');
+                  }}
+                  style={{
+                    marginTop: '8px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--glass-border)',
+                    background: 'var(--surface-soft)',
+                    color: 'var(--foreground)',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset All Filters
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          filteredUsers.map((userObj) => {
+            const latestSession = userObj.currentSession || [...(userObj.sessions || [])].sort((a, b) => new Date(b.lastActivityAt || b.createdAt).getTime() - new Date(a.lastActivityAt || a.createdAt).getTime())[0];
+            const maxDesktop = globalSettings.maxDesktopSessions ?? 1;
+            const maxTablet = globalSettings.maxTabletSessions ?? 1;
+            const maxMobile = globalSettings.maxMobileSessions ?? 1;
 
-                const latestSession = userObj.currentSession || [...(userObj.sessions || [])].sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime())[0];
-                const lastActiveText = latestSession ? formatDateTimeGMT6(latestSession.lastActivityAt) : 'Never';
+            // Arrays of bound devices per category
+            const desktops = userObj.boundDevices?.desktops || (userObj.boundDevices?.desktop ? [userObj.boundDevices.desktop] : []);
+            const tablets = userObj.boundDevices?.tablets || (userObj.boundDevices?.tablet ? [userObj.boundDevices.tablet] : []);
+            const mobiles = userObj.boundDevices?.mobiles || (userObj.boundDevices?.mobile ? [userObj.boundDevices.mobile] : []);
 
-                return (
-                  <tr key={userObj.id}>
-                    <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <div style={{
-                          width: '42px',
-                          height: '42px',
-                          borderRadius: '50%',
-                          background: 'var(--surface-soft)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: '0.9rem',
-                          color: 'var(--primary)',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          border: userObj.isOnline ? '2px solid #22c55e' : '1px solid var(--glass-border)',
-                          boxShadow: userObj.isOnline ? '0 0 10px rgba(34, 197, 94, 0.35)' : 'none',
-                        }}>
-                          {userObj.profileImage ? (
-                            <Image src={userObj.profileImage} alt={userObj.fullName} fill style={{ objectFit: 'cover' }} unoptimized />
-                          ) : getInitials(userObj.fullName)}
-                        </div>
-                        {userObj.isOnline && (
-                          <span
-                            style={{
-                              position: 'absolute',
-                              bottom: '-1px',
-                              right: '-1px',
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '50%',
-                              backgroundColor: '#22c55e',
-                              border: '2px solid var(--card-bg, #0d0d12)',
-                              boxShadow: '0 0 6px #22c55e',
-                            }}
-                            title="Online Now"
-                          />
-                        )}
+            return (
+              <div key={userObj.id} className={styles.studentCard}>
+                {/* ROW 1: Details (Left) + Action Buttons (Right) */}
+                <div className={styles.studentCardTop}>
+                  {/* Left: Identity, Presence, Network Snippet */}
+                  <div className={styles.studentIdentityCol}>
+                    <div className={styles.avatarWrapper}>
+                      <div className={`${styles.avatarCircle} ${userObj.isOnline ? styles.avatarCircleOnline : ''}`}>
+                        {userObj.profileImage ? (
+                          <Image src={userObj.profileImage} alt={userObj.fullName} fill style={{ objectFit: 'cover' }} unoptimized />
+                        ) : getInitials(userObj.fullName)}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span className={styles.nameCell}>{userObj.fullName}</span>
-                          
-                          {/* Live Online / Offline Presence Badge */}
-                          {userObj.isOnline ? (
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              color: '#22c55e',
-                              background: 'rgba(34, 197, 94, 0.12)',
-                              border: '1px solid rgba(34, 197, 94, 0.35)',
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              boxShadow: '0 0 8px rgba(34, 197, 94, 0.15)',
-                            }}>
-                              <span className={styles.pulsingDotGreen} />
-                              Online Now
-                            </span>
-                          ) : (
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '0.68rem',
-                              fontWeight: 500,
-                              color: 'var(--text-muted)',
-                              background: 'rgba(255, 255, 255, 0.04)',
-                              border: '1px solid var(--glass-border)',
-                              padding: '2px 7px',
-                              borderRadius: '12px',
-                            }}>
-                              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#64748b' }} />
-                              Offline
-                            </span>
-                          )}
+                      {userObj.isOnline && <span className={styles.onlineBadgeDot} title="Active Online Now" />}
+                    </div>
 
-                          {userObj.isBanned && (
-                            <span style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              color: '#ef4444',
-                              background: 'rgba(239, 68, 68, 0.12)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              padding: '2px 6px',
-                              borderRadius: '10px'
-                            }}>
-                              Banned
-                            </span>
-                          )}
+                    <div className={styles.studentInfo}>
+                      <div className={styles.studentNameRow}>
+                        <span className={styles.nameText}>{userObj.fullName || 'Unnamed Student'}</span>
+
+                        {userObj.isOnline ? (
+                          <span className={styles.badgeOnline}>
+                            <span className={styles.pulsingDotGreen} />
+                            Online
+                          </span>
+                        ) : (
+                          <span className={styles.badgeOffline}>
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#64748b' }} />
+                            Offline
+                          </span>
+                        )}
+
+                        {userObj.isBanned && (
+                          <span className={styles.badgeBanned}>
+                            Banned
+                          </span>
+                        )}
+
+                        {userObj.isSessionLockedExempt && (
+                          <span className={styles.badgeExempt}>
+                            Exempted
+                          </span>
+                        )}
+
+                        <span style={{
+                          fontSize: '0.66rem',
+                          textTransform: 'uppercase',
+                          fontWeight: 700,
+                          padding: '1px 6px',
+                          borderRadius: '6px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          color: 'var(--text-muted)',
+                        }}>
+                          {userObj.role}
+                        </span>
+                      </div>
+
+                      <div className={styles.emailText}>{userObj.email}</div>
+
+                      {/* Live Network & Activity Snippet */}
+                      <div className={styles.studentNetworkSnippet}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Wifi size={12} style={{ color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)' }} />
+                          <code>{latestSession?.ipAddress || '127.0.0.1'}</code>
                         </div>
-                        <span className={styles.emailCell}>{userObj.email}</span>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          Joined {formatDateGMT6(userObj.createdAt)}
+                        <span>•</span>
+                        <span>{latestSession?.browserName || 'Browser'}{latestSession?.osInfo ? ` (${latestSession.osInfo})` : ''}</span>
+                        <span>•</span>
+                        <span style={{ color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <Activity size={10} />
+                          {userObj.isOnline ? 'Active Just Now' : `Last active ${getRelativeActivity(userObj.lastActiveAt)}`}
                         </span>
                       </div>
                     </div>
-                  </td>
+                  </div>
 
-                  {/* Live Network & Activity Column */}
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Wifi size={14} style={{ color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)' }} />
-                        <code style={{
-                          fontSize: '0.84rem',
-                          fontWeight: 600,
-                          color: userObj.isOnline ? '#22c55e' : 'var(--foreground)',
-                          background: userObj.isOnline ? 'rgba(34, 197, 94, 0.08)' : 'var(--surface-soft)',
-                          padding: '1px 6px',
-                          borderRadius: '6px',
-                          border: userObj.isOnline ? '1px solid rgba(34, 197, 94, 0.25)' : '1px solid var(--glass-border)',
-                        }}>
-                          {latestSession?.ipAddress || '127.0.0.1'}
-                        </code>
+                  {/* Right: Action Buttons (Logout, Exempt, Ban, Delete) */}
+                  <div className={styles.studentActionsCol}>
+                    {userObj.activeSessions.length > 0 && (
+                      <button
+                        className={styles.actionBtnLogout}
+                        onClick={() =>
+                          userObj.activeSessions.forEach((s) => handleLogoutSession(s.id))
+                        }
+                        title="Terminate active student session immediately"
+                      >
+                        <LogOut size={13} />
+                        <span>Logout</span>
+                      </button>
+                    )}
+
+                    <button
+                      className={`${styles.actionBtnExempt} ${userObj.isSessionLockedExempt ? styles.actionBtnExemptActive : ''}`}
+                      onClick={() => handleToggleExempt(userObj.id, userObj.isSessionLockedExempt)}
+                      title={userObj.isSessionLockedExempt ? "Enforce device constraints for this student" : "Exempt student from all session limits"}
+                    >
+                      {userObj.isSessionLockedExempt ? <Unlock size={13} /> : <Lock size={13} />}
+                      <span>{userObj.isSessionLockedExempt ? 'Exempted' : 'Exempt'}</span>
+                    </button>
+
+                    <button
+                      className={`${styles.actionBtnBan} ${userObj.isBanned ? styles.actionBtnBanActive : ''}`}
+                      onClick={() => handleToggleBan(userObj.id, userObj.isBanned, userObj.fullName || userObj.email)}
+                      title={userObj.isBanned ? "Unban student account" : "Ban student account and terminate login"}
+                    >
+                      {userObj.isBanned ? <UserCheck size={13} /> : <ShieldAlert size={13} />}
+                      <span>{userObj.isBanned ? 'Unban' : 'Ban'}</span>
+                    </button>
+
+                    <button
+                      className={styles.actionBtnDelete}
+                      onClick={() => handleDeleteUser(userObj.id, userObj.fullName || userObj.email)}
+                      title="Permanently delete user and cascade purge all records"
+                    >
+                      <Trash2 size={13} />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ROW 2: Enrolled Courses & Joined Meta (Left) + Hardware Device Slots (Right) */}
+                <div className={styles.studentCardBottom}>
+                  {/* Left: Enrolled Courses & Joined Info */}
+                  <div className={styles.studentMetaCol}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      Joined {formatDateGMT6(userObj.createdAt)}
+                    </span>
+
+                    {userObj.enrolledCourses && userObj.enrolledCourses.length > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {userObj.enrolledCourses.slice(0, 3).map((c) => (
+                          <span key={c.courseId} className={styles.coursePill} title={c.courseTitle}>
+                            <BookOpen size={11} style={{ opacity: 0.6 }} />
+                            {c.courseTitle.length > 22 ? `${c.courseTitle.slice(0, 22)}…` : c.courseTitle}
+                          </span>
+                        ))}
+                        {userObj.enrolledCourses.length > 3 && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            +{userObj.enrolledCourses.length - 3} more
+                          </span>
+                        )}
                       </div>
-                      <span style={{ fontSize: '0.74rem', color: 'var(--foreground)', fontWeight: 500 }}>
-                        {latestSession?.browserName || 'Browser'}{latestSession?.osInfo ? ` • ${latestSession.osInfo}` : ''}
+                    ) : (
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        No courses enrolled
                       </span>
-                      <span style={{
-                        fontSize: '0.7rem',
-                        color: userObj.isOnline ? '#22c55e' : 'var(--text-muted)',
-                        fontWeight: userObj.isOnline ? 600 : 400,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}>
-                        <Activity size={11} />
-                        {userObj.isOnline ? 'Active Just Now' : `Last active ${getRelativeActivity(userObj.lastActiveAt)}`}
-                      </span>
-                    </div>
-                  </td>
+                    )}
+                  </div>
 
-                  {/* 3 Bound Device Category Slots */}
-                  <td>
-                    {renderDeviceSlot(boundDesktop, 'Desktop', Monitor, userObj.id, 'desktop', userObj.fullName || userObj.email)}
-                  </td>
-                  <td>
-                    {renderDeviceSlot(boundTablet, 'Tablet', Tablet, userObj.id, 'tablet', userObj.fullName || userObj.email)}
-                  </td>
-                  <td>
-                    {renderDeviceSlot(boundMobile, 'Mobile', Smartphone, userObj.id, 'mobile', userObj.fullName || userObj.email)}
-                  </td>
+                  {/* Right: Dynamic Hardware Device Slots */}
+                  <div className={styles.studentDevicesCol}>
+                    {/* Render Desktop Slots */}
+                    {maxDesktop > 0 && Array.from({ length: maxDesktop }).map((_, idx) => {
+                      const session = desktops[idx] || null;
+                      return renderDeviceSlot(
+                        session,
+                        'Desktop',
+                        Monitor,
+                        userObj.id,
+                        'desktop',
+                        userObj.fullName || userObj.email,
+                        maxDesktop > 1 ? idx + 1 : null
+                      );
+                    })}
 
-                  {/* Account & Session Actions */}
-                  <td style={{ textAlign: 'right' }}>
-                    <div className={styles.userActionsWrapper}>
-                      <button
-                        className={styles.actionBtn}
-                        onClick={() => handleToggleBan(userObj.id, userObj.isBanned, userObj.fullName || userObj.email)}
-                        title={userObj.isBanned ? "Unban user and allow login" : "Ban user and prevent login"}
-                        style={{
-                          color: userObj.isBanned ? '#22c55e' : '#f97316',
-                          borderColor: userObj.isBanned ? 'rgba(34, 197, 94, 0.3)' : 'rgba(249, 115, 22, 0.3)',
-                          background: userObj.isBanned ? 'rgba(34, 197, 94, 0.08)' : 'rgba(249, 115, 22, 0.08)',
-                        }}
-                      >
-                        {userObj.isBanned ? <UserCheck size={15} /> : <ShieldAlert size={15} />}
-                        <span>{userObj.isBanned ? 'Unban' : 'Ban'}</span>
-                      </button>
+                    {/* Render Tablet Slots */}
+                    {maxTablet > 0 && Array.from({ length: maxTablet }).map((_, idx) => {
+                      const session = tablets[idx] || null;
+                      return renderDeviceSlot(
+                        session,
+                        'Tablet',
+                        Tablet,
+                        userObj.id,
+                        'tablet',
+                        userObj.fullName || userObj.email,
+                        maxTablet > 1 ? idx + 1 : null
+                      );
+                    })}
 
-                      <button
-                        className={styles.actionBtn}
-                        onClick={() => handleDeleteUser(userObj.id, userObj.fullName || userObj.email)}
-                        title="Permanently delete user and cascade purge all records"
-                        style={{
-                          color: '#ef4444',
-                          borderColor: 'rgba(239, 68, 68, 0.3)',
-                          background: 'rgba(239, 68, 68, 0.08)',
-                        }}
-                      >
-                        <Trash2 size={15} />
-                        <span>Delete</span>
-                      </button>
-
-                      <button
-                        className={styles.actionBtn}
-                        onClick={() => handleToggleExempt(userObj.id, userObj.isSessionLockedExempt)}
-                        title={userObj.isSessionLockedExempt ? "Enforce device constraints for this student" : "Exempt student from all device & session limits"}
-                        style={{
-                          color: userObj.isSessionLockedExempt ? '#38bdf8' : 'var(--text-muted)',
-                          borderColor: userObj.isSessionLockedExempt ? 'rgba(56, 189, 248, 0.3)' : 'var(--glass-border)',
-                          background: userObj.isSessionLockedExempt ? 'rgba(56, 189, 248, 0.08)' : 'transparent',
-                        }}
-                      >
-                        {userObj.isSessionLockedExempt ? <Unlock size={15} /> : <Lock size={15} />}
-                        <span>{userObj.isSessionLockedExempt ? 'Exempted' : 'Exempt'}</span>
-                      </button>
-
-                      {userObj.activeSessions.length > 0 && (
-                        <button
-                          className={styles.actionBtn}
-                          onClick={() =>
-                            userObj.activeSessions.forEach((s) => handleLogoutSession(s.id))
-                          }
-                          title="Force logout active session"
-                        >
-                          <LogOut size={15} />
-                          <span>Logout</span>
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            }))}
-          </tbody>
-        </table>
-
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 16px',
-            borderTop: '1px solid var(--glass-border)',
-            fontSize: '0.85rem',
-            color: 'var(--text-muted)',
-          }}>
-            <span>
-              Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, totalCount)} of {totalCount} students
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--glass-border)',
-                  background: currentPage <= 1 ? 'transparent' : 'var(--surface-soft)',
-                  color: currentPage <= 1 ? 'var(--text-muted)' : 'var(--foreground)',
-                  cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
-                  opacity: currentPage <= 1 ? 0.4 : 1,
-                }}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span style={{ fontWeight: 600, color: 'var(--foreground)', minWidth: '80px', textAlign: 'center' }}>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  border: '1px solid var(--glass-border)',
-                  background: currentPage >= totalPages ? 'transparent' : 'var(--surface-soft)',
-                  color: currentPage >= totalPages ? 'var(--text-muted)' : 'var(--foreground)',
-                  cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
-                  opacity: currentPage >= totalPages ? 0.4 : 1,
-                }}
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
+                    {/* Render Mobile Slots */}
+                    {maxMobile > 0 && Array.from({ length: maxMobile }).map((_, idx) => {
+                      const session = mobiles[idx] || null;
+                      return renderDeviceSlot(
+                        session,
+                        'Mobile',
+                        Smartphone,
+                        userObj.id,
+                        'mobile',
+                        userObj.fullName || userObj.email,
+                        maxMobile > 1 ? idx + 1 : null
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 20px',
+          borderRadius: '14px',
+          background: 'var(--surface-soft)',
+          border: '1px solid var(--glass-border)',
+          fontSize: '0.85rem',
+          color: 'var(--text-muted)',
+          marginTop: '12px',
+        }}>
+          <span>
+            Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, totalCount)} of {totalCount} students
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid var(--glass-border)',
+                background: currentPage <= 1 ? 'transparent' : 'var(--surface-soft)',
+                color: currentPage <= 1 ? 'var(--text-muted)' : 'var(--foreground)',
+                cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                opacity: currentPage <= 1 ? 0.4 : 1,
+              }}
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span style={{ fontWeight: 600, color: 'var(--foreground)', minWidth: '80px', textAlign: 'center' }}>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid var(--glass-border)',
+                background: currentPage >= totalPages ? 'transparent' : 'var(--surface-soft)',
+                color: currentPage >= totalPages ? 'var(--text-muted)' : 'var(--foreground)',
+                cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                opacity: currentPage >= totalPages ? 0.4 : 1,
+              }}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {selectedSession && (
         <SessionDetailsModal

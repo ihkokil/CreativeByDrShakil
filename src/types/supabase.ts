@@ -499,6 +499,9 @@ export type Database = {
           createdAt: string
           id: string
           maxConcurrentSessions: number
+          maxDesktopSessions: number
+          maxTabletSessions: number
+          maxMobileSessions: number
           updatedAt: string
         }
         Insert: {
@@ -509,6 +512,9 @@ export type Database = {
           createdAt?: string
           id?: string
           maxConcurrentSessions?: number
+          maxDesktopSessions?: number
+          maxTabletSessions?: number
+          maxMobileSessions?: number
           updatedAt: string
         }
         Update: {
@@ -519,6 +525,9 @@ export type Database = {
           createdAt?: string
           id?: string
           maxConcurrentSessions?: number
+          maxDesktopSessions?: number
+          maxTabletSessions?: number
+          maxMobileSessions?: number
           updatedAt?: string
         }
         Relationships: []
