@@ -20,6 +20,8 @@ interface CourseProgress {
     courseTitle: string;
     enrollmentCount: number;
     avgProgress: number;
+    updatedAt?: string | null;
+    lastEnrollmentAt?: string | null;
 }
 
 interface TeacherOverviewProps {
@@ -44,6 +46,29 @@ export default function TeacherOverview({
     onTabChange,
 }: TeacherOverviewProps) {
     const router = useRouter();
+
+    // Prioritize enrolled & active courses first, then most recently modified, sliced to top 2
+    const activeCourses = [...(courseProgress || [])]
+        .sort((a, b) => {
+            const aHasStudents = (a.enrollmentCount || 0) > 0 ? 1 : 0;
+            const bHasStudents = (b.enrollmentCount || 0) > 0 ? 1 : 0;
+            if (bHasStudents !== aHasStudents) {
+                return bHasStudents - aHasStudents;
+            }
+            if (aHasStudents && bHasStudents) {
+                const aEnroll = a.lastEnrollmentAt ? new Date(a.lastEnrollmentAt).getTime() : 0;
+                const bEnroll = b.lastEnrollmentAt ? new Date(b.lastEnrollmentAt).getTime() : 0;
+                if (bEnroll !== aEnroll) return bEnroll - aEnroll;
+                if ((b.enrollmentCount || 0) !== (a.enrollmentCount || 0)) {
+                    return (b.enrollmentCount || 0) - (a.enrollmentCount || 0);
+                }
+            }
+            const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            if (bTime !== aTime) return bTime - aTime;
+            return (b.avgProgress || 0) - (a.avgProgress || 0);
+        })
+        .slice(0, 2);
 
     return (
         <div className={styles.dashboardOverview}>
@@ -132,8 +157,8 @@ export default function TeacherOverview({
                         </button>
                     </div>
                     <div className={styles.courseProgressList}>
-                        {courseProgress.length > 0 ? (
-                            courseProgress.slice(0, 4).map((cp) => (
+                        {activeCourses.length > 0 ? (
+                            activeCourses.map((cp) => (
                                 <div key={cp.courseId} className={styles.courseProgressItem}>
                                     <div className={styles.courseProgressTop}>
                                         <strong className={styles.courseName}>{cp.courseTitle}</strong>

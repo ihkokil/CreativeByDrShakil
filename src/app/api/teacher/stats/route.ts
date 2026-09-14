@@ -15,11 +15,11 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Get all courses
+    // Get all courses (sorted by latest modification)
     const { data: rawCourses } = await supabase
       .from('Course')
-      .select('id, title, status, price, createdAt, curriculumJson')
-      .order('createdAt', { ascending: false });
+      .select('id, title, status, price, createdAt, updatedAt, curriculumJson')
+      .order('updatedAt', { ascending: false });
       
     const courses = rawCourses || [];
 
@@ -61,9 +61,15 @@ export async function GET(request: NextRequest) {
     // Per-course stats
     const enrollmentsByCourse: Record<string, number> = {};
     const revenueByCourse: Record<string, number> = {};
+    const lastEnrollmentByCourse: Record<string, string> = {};
     for (const order of approvedOrders) {
       enrollmentsByCourse[order.courseId] = (enrollmentsByCourse[order.courseId] || 0) + 1;
       revenueByCourse[order.courseId] = (revenueByCourse[order.courseId] || 0) + (order.totalAmount || 0);
+      if (order.createdAt) {
+        if (!lastEnrollmentByCourse[order.courseId] || new Date(order.createdAt) > new Date(lastEnrollmentByCourse[order.courseId])) {
+          lastEnrollmentByCourse[order.courseId] = order.createdAt;
+        }
+      }
     }
 
     const courseStats = (courses || []).map((c: any) => ({
@@ -108,7 +114,28 @@ export async function GET(request: NextRequest) {
         courseTitle: cs.title,
         enrollmentCount: cs.enrollments,
         avgProgress,
+        updatedAt: course?.updatedAt || course?.createdAt || null,
+        lastEnrollmentAt: lastEnrollmentByCourse[cs.id] || null,
       };
+    });
+
+    // Prioritize active & enrolled courses first, then most recently modified
+    courseProgress.sort((a, b) => {
+      const aHasStudents = a.enrollmentCount > 0 ? 1 : 0;
+      const bHasStudents = b.enrollmentCount > 0 ? 1 : 0;
+      if (bHasStudents !== aHasStudents) {
+        return bHasStudents - aHasStudents;
+      }
+      if (aHasStudents && bHasStudents) {
+        const aEnroll = a.lastEnrollmentAt ? new Date(a.lastEnrollmentAt).getTime() : 0;
+        const bEnroll = b.lastEnrollmentAt ? new Date(b.lastEnrollmentAt).getTime() : 0;
+        if (bEnroll !== aEnroll) return bEnroll - aEnroll;
+        if (b.enrollmentCount !== a.enrollmentCount) return b.enrollmentCount - a.enrollmentCount;
+      }
+      const aUpdate = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bUpdate = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      if (bUpdate !== aUpdate) return bUpdate - aUpdate;
+      return b.avgProgress - a.avgProgress;
     });
 
     const aggregateProgress = totalPossibleLessonsForAll > 0 

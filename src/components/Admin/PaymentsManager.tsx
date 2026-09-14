@@ -213,33 +213,10 @@ export default function PaymentsManager() {
                       <span className={styles.detailLabel}>Submitted At</span>
                       <span className={styles.detailValue}>{formatDateTime(o.payment?.submittedAt)}</span>
                     </div>
-
-                    {status === "pending" && (
-                      <div className={styles.cardActions} style={{ marginTop: 8 }}>
-                        <button
-                          type="button"
-                          className={styles.approveBtn}
-                          disabled={actingOn === o.id}
-                          onClick={() => decide(o.id, "approve")}
-                        >
-                          <CheckCircle2 size={15} />
-                          <span>{actingOn === o.id ? "Saving..." : "Approve & Enroll"}</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.rejectBtn}
-                          disabled={actingOn === o.id}
-                          onClick={() => decide(o.id, "reject")}
-                        >
-                          <XCircle size={15} />
-                          <span>{actingOn === o.id ? "Saving..." : "Reject"}</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 )}
 
-                {!isExpanded && status === "pending" ? (
+                {status === "pending" && (
                   <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
@@ -260,7 +237,7 @@ export default function PaymentsManager() {
                       <span>{actingOn === o.id ? "Saving..." : "Reject"}</span>
                     </button>
                   </div>
-                ) : null}
+                )}
               </article>
             );
           })}
