@@ -72,6 +72,29 @@ function getTelegramChatIds() {
   return envChatIds.split(',').map(id => id.trim()).filter(Boolean);
 }
 
+export function sanitizeTelegramReplyMarkup<T extends Record<string, unknown> | undefined>(markup: T): T {
+  if (!markup || !('inline_keyboard' in markup) || !Array.isArray((markup as any).inline_keyboard)) {
+    return markup;
+  }
+  const inline_keyboard = ((markup as any).inline_keyboard as any[]).map((row: any[]) => {
+    if (!Array.isArray(row)) return row;
+    return row.map((btn: any) => {
+      if (btn && typeof btn.callback_data === 'string') {
+        const byteLen = Buffer.byteLength(btn.callback_data, 'utf8');
+        if (byteLen > 64) {
+          console.warn(`[Telegram Warning] callback_data exceeds 64 bytes (${byteLen}b): "${btn.callback_data}". Truncating to 64 bytes.`);
+          return {
+            ...btn,
+            callback_data: btn.callback_data.slice(0, 64),
+          };
+        }
+      }
+      return btn;
+    });
+  });
+  return { ...markup, inline_keyboard } as T;
+}
+
 function getTelegramApiUrl(method: string) {
   const token = getTelegramToken();
   if (!token) return null;
@@ -154,6 +177,8 @@ async function sendTelegramMessage({
     return;
   }
 
+  const sanitizedMarkup = sanitizeTelegramReplyMarkup(replyMarkup);
+
   for (const chatId of chatIds) {
     try {
       const response = await fetch(url, {
@@ -163,7 +188,7 @@ async function sendTelegramMessage({
           chat_id: chatId,
           text,
           parse_mode: 'HTML',
-          reply_markup: replyMarkup,
+          reply_markup: sanitizedMarkup,
           disable_web_page_preview: true,
         }),
       });
@@ -301,6 +326,8 @@ export async function editTelegramMessage({
   const url = getTelegramApiUrl('editMessageText');
   if (!url) return;
 
+  const sanitizedMarkup = sanitizeTelegramReplyMarkup(replyMarkup);
+
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -310,7 +337,7 @@ export async function editTelegramMessage({
         message_id: messageId,
         text,
         parse_mode: 'HTML',
-        reply_markup: replyMarkup,
+        reply_markup: sanitizedMarkup,
         disable_web_page_preview: true,
       }),
     });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
-import { decompressUuid, compressUuid, sendTelegramEnrollmentNotification, editTelegramMessage } from '@/lib/telegram';
+import { decompressUuid, compressUuid, sendTelegramEnrollmentNotification, editTelegramMessage, sanitizeTelegramReplyMarkup } from '@/lib/telegram';
 import { ensureCourseEnrollment, ensureCustomBatch, ensureDefaultBatches, ensureAllUnlockedBatch } from '@/lib/enrollment';
 
 function getTelegramToken() {
@@ -16,6 +16,169 @@ function escapeHtml(value: string) {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+}
+
+interface PendingDatePrompt {
+  compUserId: string;
+  compCourseId: string;
+  timestamp: number;
+}
+
+const pendingDatePrompts: Map<string, PendingDatePrompt> =
+  ((globalThis as any)._pendingTelegramDatePrompts =
+    (globalThis as any)._pendingTelegramDatePrompts || new Map<string, PendingDatePrompt>());
+
+function savePendingCustomDatePrompt(chatId: string | number, compUserId: string, compCourseId: string) {
+  pendingDatePrompts.set(String(chatId), {
+    compUserId,
+    compCourseId,
+    timestamp: Date.now(),
+  });
+}
+
+function getPendingCustomDatePrompt(chatId: string | number): PendingDatePrompt | null {
+  const entry = pendingDatePrompts.get(String(chatId));
+  if (!entry) return null;
+  // Expire after 15 minutes
+  if (Date.now() - entry.timestamp > 15 * 60 * 1000) {
+    pendingDatePrompts.delete(String(chatId));
+    return null;
+  }
+  return entry;
+}
+
+function clearPendingCustomDatePrompt(chatId: string | number) {
+  pendingDatePrompts.delete(String(chatId));
+}
+
+function parseCustomDate(input: string): Date | null {
+  if (!input) return null;
+  const str = input.trim().toLowerCase();
+  const now = new Date();
+
+  if (str === 'today') {
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+  if (str === 'yesterday') {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d;
+  }
+  const relMatch = str.match(/^(\d+)\s*(d|day|days|w|week|weeks)\s*(ago)?$/);
+  if (relMatch) {
+    const count = parseInt(relMatch[1], 10);
+    const unit = relMatch[2];
+    const days = unit.startsWith('w') ? count * 7 : count;
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    d.setUTCDate(d.getUTCDate() - days);
+    return d;
+  }
+
+  // Check DD-MM-YYYY or YYYY-MM-DD separated by -, /, ., or spaces
+  const parts = str.split(/[-/.\s]+/);
+  if (parts.length === 3) {
+    let day: number, month: number, year: number;
+    if (parts[0].length === 4) {
+      // YYYY-MM-DD
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      day = parseInt(parts[2], 10);
+    } else {
+      // DD-MM-YYYY
+      day = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10);
+      year = parseInt(parts[2], 10);
+      if (year < 100) year += 2000;
+    }
+    if (year >= 2020 && year <= 2040 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+  }
+
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return new Date(Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate()));
+  }
+  return null;
+}
+
+async function applyCustomEnrollmentDate(
+  supabase: any,
+  chatId: string | number,
+  userId: string,
+  courseId: string,
+  targetDate: Date
+) {
+  const customIso = targetDate.toISOString();
+  const isoDate = customIso.split('T')[0];
+
+  const expDate = new Date(targetDate);
+  expDate.setUTCFullYear(expDate.getUTCFullYear() + 1);
+  const expiresIso = expDate.toISOString();
+
+  const customBatch = await ensureCustomBatch(supabase, courseId);
+
+  // Update order with custom start date, custom batch, and 1-year expiration
+  const { data: updatedOrders } = await (supabase.from('Order') as any).update({
+    enrolledAt: customIso,
+    expiresAt: expiresIso,
+    batchId: customBatch.id,
+    updatedAt: new Date().toISOString(),
+  } as any).eq('courseId', courseId).eq('userId', userId).in('status', ['approved', 'completed']).select('id');
+
+  if (!updatedOrders || updatedOrders.length === 0) {
+    await (supabase.from('Order') as any).update({
+      enrolledAt: customIso,
+      expiresAt: expiresIso,
+      batchId: customBatch.id,
+      status: 'approved',
+      updatedAt: new Date().toISOString(),
+    } as any).eq('courseId', courseId).eq('userId', userId);
+  }
+
+  // Clear node overrides so modules follow custom enrollment date schedule
+  await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
+
+  const [uRes, cRes] = await Promise.all([
+    supabase.from('User').select('fullName, email').eq('id', userId).limit(1).maybeSingle(),
+    supabase.from('Course').select('title').eq('id', courseId).limit(1).maybeSingle(),
+  ]);
+
+  const studentName = uRes.data?.fullName || 'Student';
+  const studentEmail = uRes.data?.email || '';
+  const courseTitle = cRes.data?.title || 'Course';
+
+  const formattedDate = targetDate.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  const formattedExp = expDate.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+
+  const keyboard = [
+    [
+      { text: '⚙️ Change Settings Again', callback_data: `avc|${compressUuid(userId)}|${compressUuid(courseId)}` },
+      { text: '👤 Student Courses', callback_data: `av|${compressUuid(userId)}` },
+    ],
+  ];
+
+  await sendTelegramReply(
+    chatId,
+    `✅ <b>Custom Enrollment Date Applied</b>\n\n` +
+    `👤 <b>Student:</b> ${escapeHtml(studentName)} (<code>${escapeHtml(studentEmail)}</code>)\n` +
+    `📚 <b>Course:</b> ${escapeHtml(courseTitle)}\n` +
+    `🗓 <b>Batch:</b> Start Today Batch\n` +
+    `📅 <b>Custom Date:</b> <code>${formattedDate} (${isoDate})</code>\n` +
+    `⏳ <b>Access Valid Until:</b> <code>${formattedExp}</code>\n\n` +
+    `<i>Module availability timeline now calculates starting from this date.</i>`,
+    { inline_keyboard: keyboard }
+  );
 }
 
 async function answerCallbackQuery(callbackQueryId: string, text?: string) {
@@ -47,6 +210,8 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
     return;
   }
 
+  const sanitizedMarkup = sanitizeTelegramReplyMarkup(replyMarkup);
+
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -55,7 +220,7 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
         chat_id: chatId,
         text,
         parse_mode: 'HTML',
-        reply_markup: replyMarkup,
+        reply_markup: sanitizedMarkup,
         disable_web_page_preview: true,
       }),
     });
@@ -72,7 +237,7 @@ async function sendTelegramReply(chatId: string | number, text: string, replyMar
           body: JSON.stringify({
             chat_id: chatId,
             text: plainText,
-            reply_markup: replyMarkup,
+            reply_markup: sanitizedMarkup,
             disable_web_page_preview: true,
           }),
         });
@@ -189,65 +354,60 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ ok: true });
         }
 
-        // Check for ForceReply context for custom dates
+        // Check for ForceReply context or active pending prompt for custom dates
+        let targetContext: { compUserId: string; compCourseId: string } | null = null;
+
         if (message.reply_to_message && message.reply_to_message.text) {
           const rText = message.reply_to_message.text;
           const contextMatch = rText.match(/\[Context: (amcd\|[^\]]+|ed\|[^\]]+)\]/);
           if (contextMatch) {
-            const rawDate = text.trim();
-            let dateObj: Date | null = null;
-            const dateParts = rawDate.split(/[-/.]/);
-            if (dateParts.length === 3) {
-              if (dateParts[0].length === 4) {
-                // YYYY-MM-DD
-                dateObj = new Date(`${dateParts[0]}-${dateParts[1].padStart(2, '0')}-${dateParts[2].padStart(2, '0')}T00:00:00.000Z`);
-              } else {
-                // DD-MM-YYYY
-                dateObj = new Date(`${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}T00:00:00.000Z`);
-              }
-            } else {
-              dateObj = new Date(rawDate);
-            }
-
-            if (!dateObj || isNaN(dateObj.getTime())) {
-              await sendTelegramReply(chatId, `❌ Invalid date format. Please use <b>DD-MM-YYYY</b> format (e.g. 15-08-2026).`);
-              return NextResponse.json({ ok: true });
-            }
-
-            const isoDate = dateObj.toISOString().split('T')[0];
             const parts = contextMatch[1].split('|');
-            const userId = decompressUuid(parts[1]);
-            const courseId = decompressUuid(parts[2]);
+            targetContext = { compUserId: parts[1], compCourseId: parts[2] };
+          }
+        }
 
-            const customBatch = await ensureCustomBatch(supabase, courseId);
-            const customIso = dateObj.toISOString();
+        // Fallback: Check if this chat recently initiated a custom date prompt
+        if (!targetContext) {
+          const pending = getPendingCustomDatePrompt(chatId);
+          if (pending) {
+            targetContext = { compUserId: pending.compUserId, compCourseId: pending.compCourseId };
+          }
+        }
 
-            // Update order with custom start date and custom batch
-            await (supabase.from('Order') as any).update({
-              enrolledAt: customIso,
-              batchId: customBatch.id,
-              updatedAt: new Date().toISOString(),
-            } as any).eq('userId', userId).eq('courseId', courseId).eq('status', 'approved');
-
-            // Clear node overrides
-            await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
-
-            const [uRes, cRes] = await Promise.all([
-              supabase.from('User').select('fullName, email').eq('id', userId).limit(1).maybeSingle(),
-              supabase.from('Course').select('title').eq('id', courseId).limit(1).maybeSingle(),
-            ]);
-
+        if (targetContext) {
+          const dateObj = parseCustomDate(text);
+          if (!dateObj) {
             await sendTelegramReply(
               chatId,
-              `✅ <b>Custom Enrollment Date Applied</b>\n\n` +
-              `👤 <b>Student:</b> ${escapeHtml(uRes.data?.fullName || 'Student')} (<code>${escapeHtml(uRes.data?.email || '')}</code>)\n` +
-              `📚 <b>Course:</b> ${escapeHtml(cRes.data?.title || 'Course')}\n` +
-              `🗓 <b>Batch:</b> Start Today Batch\n` +
-              `📅 <b>Custom Date:</b> <code>${isoDate}</code>\n\n` +
-              `<i>Module availability timeline now calculates starting from this date.</i>`
+              `❌ <b>Unrecognized Date:</b> "<code>${escapeHtml(text)}</code>"\n\n` +
+              `Please enter a valid date in <b>DD-MM-YYYY</b> format (e.g. <code>15-08-2026</code>) or <code>YYYY-MM-DD</code>.\n` +
+              `You can also type relative phrases like <code>today</code>, <code>yesterday</code>, or <code>7 days ago</code>.`
             );
             return NextResponse.json({ ok: true });
           }
+
+          const userId = decompressUuid(targetContext.compUserId);
+          const courseId = decompressUuid(targetContext.compCourseId);
+
+          await applyCustomEnrollmentDate(supabase, chatId, userId, courseId, dateObj);
+          clearPendingCustomDatePrompt(chatId);
+          return NextResponse.json({ ok: true });
+        }
+
+        // Helpful hint if user entered a date without context
+        const looseDate = parseCustomDate(text);
+        if (looseDate && /[-/.]|\b(today|yesterday|ago)\b/i.test(text)) {
+          const iso = looseDate.toISOString().split('T')[0];
+          await sendTelegramReply(
+            chatId,
+            `ℹ️ <b>Date Received:</b> <code>${iso}</code>\n\n` +
+            `To apply this enrollment date to a student:\n` +
+            `1. Search for the student by typing their name, email, or phone number.\n` +
+            `2. Tap <b>⚙️ Change Module Availability</b>.\n` +
+            `3. Select the course and tap <b>📆 Custom Date</b>.\n` +
+            `4. Tap <b>✍️ Type Specific Date</b> then send the date.`
+          );
+          return NextResponse.json({ ok: true });
         }
 
         await sendTelegramReply(chatId, `Command received: ${text}\nYour Chat ID: <code>${chatId}</code>`);
@@ -791,7 +951,7 @@ export async function POST(request: NextRequest) {
         [{ text: `3. 📦 Groups Per Week`, callback_data: `am|${compUserId}|${compCourseId}|gpw_menu` }],
         [{ text: `4. 📅 Day of Week`, callback_data: `am|${compUserId}|${compCourseId}|dow_menu` }],
         [{ text: `5. 🔀 Batch Change`, callback_data: `am|${compUserId}|${compCourseId}|bat_menu` }],
-        [{ text: `6. 📆 Custom Date`, callback_data: `am|${compUserId}|${compCourseId}|dat_menu` }],
+        [{ text: `6. 📆 Custom Date`, callback_data: `am|${compUserId}|${compCourseId}|dt_m` }],
       ];
 
       await answerCallbackQuery(callbackQueryId, 'Select option');
@@ -934,17 +1094,38 @@ export async function POST(request: NextRequest) {
       }
 
       // 6. Custom Date Menu
-      if (action === 'dat_menu') {
+      if (action === 'dat_menu' || action === 'dt_m' || action === 'dt_menu') {
         const todayStr = new Date().toISOString().split('T')[0];
         const keyboard = [
-          [{ text: `📅 Today (${todayStr})`, callback_data: `amc|${compUserId}|${compCourseId}|today` }],
-          [{ text: `📅 Yesterday`, callback_data: `amc|${compUserId}|${compCourseId}|yesterday` }],
-          [{ text: `📅 1st of This Month`, callback_data: `amc|${compUserId}|${compCourseId}|month_start` }],
-          [{ text: `✍️ Custom Date (Type DD-MM-YYYY)`, callback_data: `amcd|${compUserId}|${compCourseId}` }],
+          [
+            { text: `📅 Today (${todayStr})`, callback_data: `amc|${compUserId}|${compCourseId}|td` },
+            { text: `📅 Yesterday`, callback_data: `amc|${compUserId}|${compCourseId}|yd` }
+          ],
+          [
+            { text: `⏮ 7 Days Ago (W1)`, callback_data: `amc|${compUserId}|${compCourseId}|7d` },
+            { text: `⏮ 14 Days Ago (W2)`, callback_data: `amc|${compUserId}|${compCourseId}|14d` }
+          ],
+          [
+            { text: `⏮ 21 Days Ago (W3)`, callback_data: `amc|${compUserId}|${compCourseId}|21d` },
+            { text: `📅 1st of Month`, callback_data: `amc|${compUserId}|${compCourseId}|m1` }
+          ],
+          [
+            { text: `✍️ Type Specific Date (DD-MM-YYYY)`, callback_data: `amcd|${compUserId}|${compCourseId}` }
+          ],
+          [
+            { text: `🔙 Back to Options`, callback_data: `avc|${compUserId}|${compCourseId}` }
+          ]
         ];
 
-        await answerCallbackQuery(callbackQueryId, 'Custom date option');
-        await sendTelegramReply(chatId, `<b>Select Custom Enrollment Date:</b>\nStudent will be assigned to Start Today Batch starting from this date.`, { inline_keyboard: keyboard });
+        await answerCallbackQuery(callbackQueryId, 'Custom date options');
+        await sendTelegramReply(
+          chatId,
+          `<b>Select Custom Enrollment Date:</b>\n` +
+          `👤 Student: <b>${escapeHtml(user?.fullName || 'Student')}</b>\n` +
+          `📚 Course: <b>${escapeHtml(course?.title || 'Selected Course')}</b>\n\n` +
+          `Student will be assigned to <b>Start Today Batch</b> starting from this date. All modules unlock according to this timeline.`,
+          { inline_keyboard: keyboard }
+        );
         return NextResponse.json({ ok: true });
       }
     }
@@ -1085,40 +1266,29 @@ export async function POST(request: NextRequest) {
       const courseId = decompressUuid(parts[2]);
       const preset = parts[3];
 
-      const targetDate = new Date();
-      if (preset === 'yesterday') {
-        targetDate.setDate(targetDate.getDate() - 1);
-      } else if (preset === 'month_start') {
-        targetDate.setDate(1);
+      const now = new Date();
+      let targetDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+      if (preset === 'yd' || preset === 'yesterday') {
+        targetDate.setUTCDate(targetDate.getUTCDate() - 1);
+      } else if (preset === '7d') {
+        targetDate.setUTCDate(targetDate.getUTCDate() - 7);
+      } else if (preset === '14d') {
+        targetDate.setUTCDate(targetDate.getUTCDate() - 14);
+      } else if (preset === '21d') {
+        targetDate.setUTCDate(targetDate.getUTCDate() - 21);
+      } else if (preset === '28d') {
+        targetDate.setUTCDate(targetDate.getUTCDate() - 28);
+      } else if (preset === 'm1' || preset === 'month_start') {
+        targetDate.setUTCDate(1);
+      } else if (preset === 'lm') {
+        targetDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
       }
+      // 'td' or 'today' stays as today at UTC midnight
 
-      const isoDate = targetDate.toISOString().split('T')[0];
-      const customBatch = await ensureCustomBatch(supabase, courseId);
-
-      await (supabase.from('Order') as any).update({
-        enrolledAt: targetDate.toISOString(),
-        batchId: customBatch.id,
-        updatedAt: new Date().toISOString(),
-      } as any).eq('courseId', courseId).eq('userId', userId).eq('status', 'approved');
-
-      // Clear node overrides
-      await supabase.from('StudentModuleAvailability').delete().eq('courseId', courseId).eq('userId', userId);
-
-      const [userRes, courseRes] = await Promise.all([
-        supabase.from('User').select('fullName, email').eq('id', userId).limit(1).maybeSingle(),
-        supabase.from('Course').select('title').eq('id', courseId).limit(1).maybeSingle(),
-      ]);
-
-      await answerCallbackQuery(callbackQueryId, `Date set to ${isoDate}`);
-      await sendTelegramReply(
-        chatId,
-        `📆 <b>Custom Enrollment Date Applied</b>\n\n` +
-        `👤 <b>Student:</b> ${escapeHtml(userRes.data?.fullName || 'Student')} (<code>${escapeHtml(userRes.data?.email || '')}</code>)\n` +
-        `📚 <b>Course:</b> ${escapeHtml(courseRes.data?.title || 'Course')}\n` +
-        `🗓 <b>Batch:</b> Start Today Batch\n` +
-        `📅 <b>Custom Date:</b> <code>${isoDate}</code>\n\n` +
-        `<i>Module release schedule calculates starting from this date.</i>`
-      );
+      await answerCallbackQuery(callbackQueryId, 'Applying date...');
+      await applyCustomEnrollmentDate(supabase, chatId, userId, courseId, targetDate);
+      clearPendingCustomDatePrompt(chatId);
       return NextResponse.json({ ok: true });
     }
 
@@ -1127,14 +1297,33 @@ export async function POST(request: NextRequest) {
       const parts = callbackData.split('|');
       const compUserId = parts[1];
       const compCourseId = parts[2];
+      const userId = decompressUuid(compUserId);
+      const courseId = decompressUuid(compCourseId);
 
-      await answerCallbackQuery(callbackQueryId);
+      const [userRes, courseRes] = await Promise.all([
+        supabase.from('User').select('fullName').eq('id', userId).limit(1).maybeSingle(),
+        supabase.from('Course').select('title').eq('id', courseId).limit(1).maybeSingle(),
+      ]);
+
+      // Save pending prompt state for this chatId
+      savePendingCustomDatePrompt(chatId, compUserId, compCourseId);
+
+      await answerCallbackQuery(callbackQueryId, 'Ready for date');
       await sendTelegramReply(
         chatId,
-        `Please reply to this message with the custom enrollment date in <b>DD-MM-YYYY</b> format (e.g. 15-08-2026).\n\n<code>[Context: amcd|${compUserId}|${compCourseId}]</code>`,
+        `✍️ <b>Custom Enrollment Date</b>\n\n` +
+        `👤 <b>Student:</b> ${escapeHtml(userRes.data?.fullName || 'Student')}\n` +
+        `📚 <b>Course:</b> ${escapeHtml(courseRes.data?.title || 'Course')}\n\n` +
+        `Please reply or type the custom start date below.\n\n` +
+        `<b>Accepted Formats:</b>\n` +
+        `• <code>DD-MM-YYYY</code> (e.g. <code>15-08-2026</code>)\n` +
+        `• <code>DD/MM/YYYY</code> (e.g. <code>15/08/2026</code>)\n` +
+        `• <code>YYYY-MM-DD</code> (e.g. <code>2026-08-15</code>)\n` +
+        `• Relative: <code>today</code>, <code>yesterday</code>, <code>10 days ago</code>\n\n` +
+        `<code>[Context: amcd|${compUserId}|${compCourseId}]</code>`,
         {
           force_reply: true,
-          input_field_placeholder: 'DD-MM-YYYY',
+          input_field_placeholder: 'DD-MM-YYYY (e.g. 15-08-2026)',
         }
       );
       return NextResponse.json({ ok: true });
