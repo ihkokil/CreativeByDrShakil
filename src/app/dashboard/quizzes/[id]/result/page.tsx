@@ -381,8 +381,9 @@ export default function QuizResultPage() {
         </header>
 
         <div className={styles.tabContent}>
-              {/* Score Section Banner */}
-              <section id="score-section" className={styles.scoreSection}>
+          <div className={styles.tabPanel}>
+            {/* Score Section Banner */}
+            <section id="score-section" className={styles.scoreSection}>
                 <div className={styles.scoreCard}>
                   <div className={styles.scoreCardTop}>
                     <div className={styles.scoreCardLeft}>
@@ -1025,6 +1026,7 @@ export default function QuizResultPage() {
                 {downloading ? 'Generating...' : 'Download Result (PDF)'}
               </button>
             </div>
+          </div>
         </div>
       </div>
     </div>
