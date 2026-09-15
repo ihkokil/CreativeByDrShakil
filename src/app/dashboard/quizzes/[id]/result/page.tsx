@@ -105,7 +105,7 @@ export default function QuizResultPage() {
   // Leaderboard Windowing, Search, and Filtering
   const [leaderboardSearch, setLeaderboardSearch] = useState('');
   const [leaderboardViewMode, setLeaderboardViewMode] = useState<'top' | 'around_me' | 'all'>('around_me');
-  const [visibleCount, setVisibleCount] = useState(10);
+  const [visibleCount, setVisibleCount] = useState(5);
 
   const handleRetakeQuiz = async () => {
     if (!data) return;
@@ -357,10 +357,11 @@ export default function QuizResultPage() {
     displayedLeaderboard = leaderboard;
     viewTitleNote = `Showing all ${leaderboard.length} participants`;
   } else if (leaderboardViewMode === 'around_me' && userRankIndex >= 0) {
-    let start = Math.max(0, userRankIndex - 4);
-    let end = Math.min(leaderboard.length, start + 10);
-    if (end - start < 10 && start > 0) {
-      start = Math.max(0, end - 10);
+    const windowSize = 5;
+    let start = Math.max(0, userRankIndex - Math.floor(windowSize / 2));
+    let end = Math.min(leaderboard.length, start + windowSize);
+    if (end - start < windowSize && start > 0) {
+      start = Math.max(0, end - windowSize);
     }
     displayedLeaderboard = leaderboard.slice(start, end);
     viewTitleNote = `Showing ${displayedLeaderboard.length} participants around your rank (Rank #${currentUserEntry?.rank} of ${leaderboard.length})`;
@@ -591,164 +592,14 @@ export default function QuizResultPage() {
                     {retaking ? 'Starting...' : 'Retake Quiz'}
                   </button>
                 )}
+                <a href="#answer-review-section" className={styles.secondaryBtn}>
+                  <HelpCircle className={styles.btnIcon} />
+                  Review Answers
+                </a>
                 <button type="button" onClick={handleDownloadPDF} disabled={downloading} className={styles.downloadBtn}>
                   <Download className={styles.btnIcon} />
                   {downloading ? 'Generating...' : 'Download Result (PDF)'}
                 </button>
-              </div>
-
-              {/* Answer Review Section */}
-              <div id="answer-review-section" className={styles.reviewSectionWrapper}>
-                <div id="review-header-section" className={styles.reviewHeader}>
-                  <h2 className={styles.reviewTitle}>Answer Review & Explanations</h2>
-                  <div className={styles.reviewStats}>
-                    <span className={`${styles.reviewStat} ${styles.reviewStatSuccess}`}>
-                      <CheckCircle className={styles.reviewIcon} /> {actualCorrectCount} Correct
-                    </span>
-                    {actualPartialCount > 0 && (
-                      <span className={`${styles.reviewStat} ${styles.reviewStatWarning}`}>
-                        <CheckCircle className={styles.reviewIcon} /> {actualPartialCount} Partial
-                      </span>
-                    )}
-                    <span className={`${styles.reviewStat} ${styles.reviewStatError}`}>
-                      <XCircle className={styles.reviewIcon} /> {actualWrongCount} Wrong
-                    </span>
-                    <span className={`${styles.reviewStat} ${styles.reviewStatMuted}`}>
-                      <HelpCircle className={styles.reviewIcon} /> {actualSkippedCount} Skipped
-                    </span>
-                  </div>
-                </div>
-                
-                <div className={styles.reviewList}>
-                  {questionsReview.map((question, index) => (
-                    <article key={question.questionId} className={`${styles.reviewCard} pdf-question-card ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
-                      <div className={styles.reviewCardHeader}>
-                        <div className={styles.reviewQuestionInfo}>
-                          <span className={styles.reviewNumber}>Q{index + 1}</span>
-                          <span className={`${styles.reviewStatus} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
-                            {question.isSkipped ? '— Skipped' : question.isPartial ? '◐ Partial' : question.isCorrect ? '✓ Correct' : '✗ Incorrect'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
-                      
-                      <div className={styles.reviewOptions}>
-                        {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
-                          question.options.map((option, idx) => {
-                             const studentStr = question.studentAnswer || '-'.repeat(question.options.length || 5);
-                             const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
-                             const originalIdx = option.letter.charCodeAt(0) - 65;
-                             const isT = studentStr[originalIdx] === 'T';
-                             const isF = studentStr[originalIdx] === 'F';
-                             const isCorrectT = correctStr[originalIdx] === 'T';
-                             const isCorrectF = correctStr[originalIdx] === 'F';
-                             const answered = isT || isF;
-                             const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
-                             const displayLetter = String.fromCharCode(65 + idx);
-                             
-                             let rowStatusClass = styles.tfCompactSkipped;
-                             if (answered) {
-                               rowStatusClass = isCorrect ? styles.tfCompactCorrect : styles.tfCompactIncorrect;
-                             }
-                             
-                             return (
-                                <div key={`${question.questionId}-${option.letter}`} className={`${styles.tfCompactRow} ${rowStatusClass}`}>
-                                  {/* Left: Letter Badge + Statement Text */}
-                                  <div className={styles.tfCompactLeft}>
-                                    <span className={styles.optionLetter}>{displayLetter}</span>
-                                    <span className={styles.tfCompactText}>{option.text}</span>
-                                  </div>
-
-                                  {/* Right: User's Choice + Correct Option Badge + Status Chip */}
-                                  <div className={styles.tfCompactRight}>
-                                    {/* User's choice (Lightly highlighted) */}
-                                    {answered ? (
-                                      <div className={isCorrect ? styles.userPillCorrect : styles.userPillWrong} title="Your answered option">
-                                        {isCorrect ? <Check size={13} /> : <X size={13} />}
-                                        <span>You: {isT ? 'True' : 'False'}</span>
-                                      </div>
-                                    ) : (
-                                      <div className={styles.userPillSkipped} title="You skipped this statement">
-                                        <span>You: —</span>
-                                      </div>
-                                    )}
-
-                                    {/* Official Correct Option (Boldly highlighted) */}
-                                    <div className={styles.keyPill} title="Official correct option">
-                                      <Check size={12} />
-                                      <span>Correct: {isCorrectT ? 'True' : 'False'}</span>
-                                    </div>
-
-                                    {/* Outcome Badge */}
-                                    <div className={styles.outcomeBadgeWrapper}>
-                                      {answered && isCorrect && (
-                                        <span className={styles.tfOutcomeSuccess}>
-                                          <Check size={12} /> Correct
-                                        </span>
-                                      )}
-                                      {answered && !isCorrect && (
-                                        <span className={styles.tfOutcomeDanger}>
-                                          <X size={12} /> Wrong
-                                        </span>
-                                      )}
-                                      {!answered && (
-                                        <span className={styles.tfOutcomeMuted}>
-                                          &mdash; Skipped
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                             );
-                          })
-                        ) : (
-                          question.options.map((option, optIdx) => {
-                            const displayLetter = String.fromCharCode(65 + optIdx);
-                            const isStudentAnswer = option.letter === question.studentAnswer;
-                            const isCorrectAnswer = option.letter === question.correctOption;
-                            const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
-                            
-                            let sbaClass = styles.sbaNeutral;
-                            if (isStudentAnswer && isCorrectAnswer) sbaClass = styles.sbaCorrect;
-                            else if (isWrongAnswer) sbaClass = styles.sbaIncorrect;
-                            else if (isCorrectAnswer) sbaClass = styles.sbaKeyHighlight;
-                            
-                            return (
-                              <div key={`${question.questionId}-${option.letter}`} className={`${styles.sbaReviewRow} ${sbaClass}`}>
-                                <div className={styles.sbaRowLeft}>
-                                  <span className={styles.optionLetter}>{displayLetter}</span>
-                                  <span className={styles.optionText}>{option.text}</span>
-                                </div>
-                                <div className={styles.sbaRowRight}>
-                                  {isStudentAnswer && isCorrectAnswer && (
-                                    <span className={styles.sbaBadgeSuccess}><Check size={13} /> Your Answer (Correct)</span>
-                                  )}
-                                  {isWrongAnswer && (
-                                    <span className={styles.sbaBadgeDanger}><X size={13} /> Your Answer (Wrong)</span>
-                                  )}
-                                  {!isStudentAnswer && isCorrectAnswer && (
-                                    <span className={styles.sbaBadgeKey}><Check size={13} /> Correct Option</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                      
-                      {question.explanation && question.explanation.trim() !== '' && (
-                        <div className={styles.explanation}>
-                          <HelpCircle className={styles.explanationIcon} />
-                          <div>
-                            <strong>Medical Explanation:</strong>
-                            <p>{question.explanation}</p>
-                          </div>
-                        </div>
-                      )}
-                    </article>
-                  ))}
-                </div>
               </div>
 
               {/* Embedded Leaderboard Section */}
@@ -819,14 +670,14 @@ export default function QuizResultPage() {
                     )}
                   </div>
 
-                  {!isSearching && leaderboard.length > 10 && (
+                  {!isSearching && leaderboard.length > 5 && (
                     <div className={styles.filterPillsGroup}>
                       <button
                         type="button"
                         className={`${styles.filterPill} ${leaderboardViewMode === 'top' ? styles.filterPillActive : ''}`}
                         onClick={() => {
                           setLeaderboardViewMode('top');
-                          setVisibleCount(10);
+                          setVisibleCount(5);
                         }}
                       >
                         Top 10
@@ -986,14 +837,14 @@ export default function QuizResultPage() {
                       </button>
                     )}
 
-                    {!isSearching && leaderboardViewMode === 'all' && leaderboard.length > 10 && (
+                    {!isSearching && leaderboardViewMode === 'all' && leaderboard.length > 5 && (
                       <button
                         type="button"
                         onClick={() => setLeaderboardViewMode(userRankIndex >= 0 ? 'around_me' : 'top')}
                         className={styles.showCompleteLeaderboardBtn}
                       >
                         <Target size={16} />
-                        <span>{userRankIndex >= 0 ? 'Show Around My Rank' : 'Show Top 10'}</span>
+                        <span>{userRankIndex >= 0 ? 'Show Shorter Version (Around My Rank)' : 'Show Shorter Version (Top 5)'}</span>
                       </button>
                     )}
                   </>
@@ -1004,6 +855,160 @@ export default function QuizResultPage() {
                 </p>
               </div>
             </section>
+
+              {/* Answer Review Section */}
+              <div id="answer-review-section" className={styles.reviewSectionWrapper}>
+                <div id="review-header-section" className={styles.reviewHeader}>
+                  <h2 className={styles.reviewTitle}>Answer Review & Explanations</h2>
+                  <div className={styles.reviewStats}>
+                    <span className={`${styles.reviewStat} ${styles.reviewStatSuccess}`}>
+                      <CheckCircle className={styles.reviewIcon} /> {actualCorrectCount} Correct
+                    </span>
+                    {actualPartialCount > 0 && (
+                      <span className={`${styles.reviewStat} ${styles.reviewStatWarning}`}>
+                        <CheckCircle className={styles.reviewIcon} /> {actualPartialCount} Partial
+                      </span>
+                    )}
+                    <span className={`${styles.reviewStat} ${styles.reviewStatError}`}>
+                      <XCircle className={styles.reviewIcon} /> {actualWrongCount} Wrong
+                    </span>
+                    <span className={`${styles.reviewStat} ${styles.reviewStatMuted}`}>
+                      <HelpCircle className={styles.reviewIcon} /> {actualSkippedCount} Skipped
+                    </span>
+                  </div>
+                </div>
+                
+                <div className={styles.reviewList}>
+                  {questionsReview.map((question, index) => (
+                    <article key={question.questionId} className={`${styles.reviewCard} pdf-question-card ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                      <div className={styles.reviewCardHeader}>
+                        <div className={styles.reviewQuestionInfo}>
+                          <span className={styles.reviewNumber}>Q{index + 1}</span>
+                          <span className={`${styles.reviewStatus} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                            {question.isSkipped ? '— Skipped' : question.isPartial ? '◐ Partial' : question.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
+                      
+                      <div className={styles.reviewOptions}>
+                        {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
+                          question.options.map((option, idx) => {
+                             const studentStr = question.studentAnswer || '-'.repeat(question.options.length || 5);
+                             const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
+                             const originalIdx = option.letter.charCodeAt(0) - 65;
+                             const isT = studentStr[originalIdx] === 'T';
+                             const isF = studentStr[originalIdx] === 'F';
+                             const isCorrectT = correctStr[originalIdx] === 'T';
+                             const isCorrectF = correctStr[originalIdx] === 'F';
+                             const answered = isT || isF;
+                             const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
+                             const displayLetter = String.fromCharCode(65 + idx);
+                             
+                             let rowStatusClass = styles.tfCompactSkipped;
+                             if (answered) {
+                               rowStatusClass = isCorrect ? styles.tfCompactCorrect : styles.tfCompactIncorrect;
+                             }
+                             
+                             return (
+                                <div key={`${question.questionId}-${option.letter}`} className={`${styles.tfCompactRow} ${rowStatusClass}`}>
+                                  {/* Left: Letter Badge + Statement Text */}
+                                  <div className={styles.tfCompactLeft}>
+                                    <span className={styles.optionLetter}>{displayLetter}</span>
+                                    <span className={styles.tfCompactText}>{option.text}</span>
+                                  </div>
+
+                                  {/* Right: User's Choice + Correct Option Badge + Status Chip */}
+                                  <div className={styles.tfCompactRight}>
+                                    {/* User's choice (Lightly highlighted) */}
+                                    {answered ? (
+                                      <div className={isCorrect ? styles.userPillCorrect : styles.userPillWrong} title="Your answered option">
+                                        {isCorrect ? <Check size={13} /> : <X size={13} />}
+                                        <span>You: {isT ? 'True' : 'False'}</span>
+                                      </div>
+                                    ) : (
+                                      <div className={styles.userPillSkipped} title="You skipped this statement">
+                                        <span>You: —</span>
+                                      </div>
+                                    )}
+
+                                    {/* Official Correct Option (Boldly highlighted) */}
+                                    <div className={styles.keyPill} title="Official correct option">
+                                      <Check size={12} />
+                                      <span>Correct: {isCorrectT ? 'True' : 'False'}</span>
+                                    </div>
+
+                                    {/* Outcome Badge */}
+                                    <div className={styles.outcomeBadgeWrapper}>
+                                      {answered && isCorrect && (
+                                        <span className={styles.tfOutcomeSuccess}>
+                                          <Check size={12} /> Correct
+                                        </span>
+                                      )}
+                                      {answered && !isCorrect && (
+                                        <span className={styles.tfOutcomeDanger}>
+                                          <X size={12} /> Wrong
+                                        </span>
+                                      )}
+                                      {!answered && (
+                                        <span className={styles.tfOutcomeMuted}>
+                                          &mdash; Skipped
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                             );
+                          })
+                        ) : (
+                          question.options.map((option, optIdx) => {
+                            const displayLetter = String.fromCharCode(65 + optIdx);
+                            const isStudentAnswer = option.letter === question.studentAnswer;
+                            const isCorrectAnswer = option.letter === question.correctOption;
+                            const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
+                            
+                            let sbaClass = styles.sbaNeutral;
+                            if (isStudentAnswer && isCorrectAnswer) sbaClass = styles.sbaCorrect;
+                            else if (isWrongAnswer) sbaClass = styles.sbaIncorrect;
+                            else if (isCorrectAnswer) sbaClass = styles.sbaKeyHighlight;
+                            
+                            return (
+                              <div key={`${question.questionId}-${option.letter}`} className={`${styles.sbaReviewRow} ${sbaClass}`}>
+                                <div className={styles.sbaRowLeft}>
+                                  <span className={styles.optionLetter}>{displayLetter}</span>
+                                  <span className={styles.optionText}>{option.text}</span>
+                                </div>
+                                <div className={styles.sbaRowRight}>
+                                  {isStudentAnswer && isCorrectAnswer && (
+                                    <span className={styles.sbaBadgeSuccess}><Check size={13} /> Your Answer (Correct)</span>
+                                  )}
+                                  {isWrongAnswer && (
+                                    <span className={styles.sbaBadgeDanger}><X size={13} /> Your Answer (Wrong)</span>
+                                  )}
+                                  {!isStudentAnswer && isCorrectAnswer && (
+                                    <span className={styles.sbaBadgeKey}><Check size={13} /> Correct Option</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                      
+                      {question.explanation && question.explanation.trim() !== '' && (
+                        <div className={styles.explanation}>
+                          <HelpCircle className={styles.explanationIcon} />
+                          <div>
+                            <strong>Medical Explanation:</strong>
+                            <p>{question.explanation}</p>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </div>
 
             {/* Bottom Actions repeated for convenient navigation */}
             <div className={styles.actions} style={{ marginTop: '36px' }}>
