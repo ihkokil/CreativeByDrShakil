@@ -24,7 +24,7 @@ export default function AlertModal({
 }: AlertModalProps) {
   const [isPaused, setIsPaused] = useState(false);
   const remainingTimeRef = useRef(duration);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getIcon = () => {

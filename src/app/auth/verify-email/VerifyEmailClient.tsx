@@ -9,7 +9,45 @@ export default function VerifyEmailClient({ token }: { token: string }) {
     const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
     const [errorMessage, setErrorMessage] = useState("");
     const [countdown, setCountdown] = useState(15);
+    const [resendEmail, setResendEmail] = useState("");
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendMessage, setResendMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
     const hasVerified = useRef(false);
+
+    const handleResend = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!resendEmail.trim()) {
+            setResendMessage({ type: "error", text: "Please enter your email address." });
+            return;
+        }
+
+        setResendLoading(true);
+        setResendMessage(null);
+
+        try {
+            const res = await fetch("/api/auth/resend-verification", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: resendEmail.trim() }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setResendMessage({
+                    type: "success",
+                    text: data.message || "A new verification link has been sent to your email.",
+                });
+            } else {
+                setResendMessage({
+                    type: "error",
+                    text: data.error || "Failed to resend verification email.",
+                });
+            }
+        } catch {
+            setResendMessage({ type: "error", text: "Network error. Please try again later." });
+        } finally {
+            setResendLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (hasVerified.current) return;
@@ -172,6 +210,39 @@ export default function VerifyEmailClient({ token }: { token: string }) {
 
                         <h1 className={styles.title}>Verification Failed</h1>
                         <p className={styles.subtitle}>{errorMessage}</p>
+
+                        <div className={styles.resendBox}>
+                            <span className={styles.resendLabel}>Need a new verification link?</span>
+                            <form onSubmit={handleResend} className={styles.resendForm}>
+                                <input
+                                    type="email"
+                                    placeholder="Enter your registered email"
+                                    value={resendEmail}
+                                    onChange={(e) => setResendEmail(e.target.value)}
+                                    className={styles.resendInput}
+                                    disabled={resendLoading}
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    className={styles.resendBtn}
+                                    disabled={resendLoading}
+                                >
+                                    {resendLoading ? "Sending..." : "Resend Link"}
+                                </button>
+                            </form>
+                            {resendMessage && (
+                                <p
+                                    className={`${styles.resendMessage} ${
+                                        resendMessage.type === "success"
+                                            ? styles.resendMessageSuccess
+                                            : styles.resendMessageError
+                                    }`}
+                                >
+                                    {resendMessage.text}
+                                </p>
+                            )}
+                        </div>
 
                         <button
                             className={styles.homeBtn}

@@ -69,9 +69,13 @@ export default function PaymentsManager() {
       setActingOn(orderId);
       try {
         const token = localStorage.getItem("auth_token");
-        const res = await fetch(`/api/admin/orders/${orderId}/${decision}`, {
+        const res = await fetch(`/api/admin/orders/${orderId}/decision`, {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ decision }),
         });
         const data = await res.json();
         if (!res.ok) {

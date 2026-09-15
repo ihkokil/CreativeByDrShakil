@@ -33,12 +33,9 @@ function TeacherDashboardLayoutContent({
         if (pathname.startsWith("/teacher/dashboard/courses")) return "courses";
         if (pathname.startsWith("/teacher/dashboard/batches")) return "batches";
         if (pathname.startsWith("/teacher/dashboard/library")) return "library";
-        if (pathname.startsWith("/teacher/dashboard/live")) return "live";
-        if (pathname.startsWith("/teacher/dashboard/exams")) return "exams";
         if (pathname.startsWith("/teacher/dashboard/students")) return "students";
         if (pathname.startsWith("/teacher/dashboard/payments")) return "payments";
         if (pathname.startsWith("/teacher/dashboard/users")) return "users";
-        if (pathname.startsWith("/teacher/dashboard/enrollments")) return "enrollments";
         if (pathname.startsWith("/teacher/dashboard/profile")) return "profile";
         if (pathname.startsWith("/teacher/dashboard/security")) return "security";
         if (pathname.startsWith("/teacher/dashboard/quizzes")) return "quizzes";
@@ -62,7 +59,6 @@ function TeacherDashboardLayoutContent({
         if (pathname.startsWith("/teacher/dashboard/students")) return "Student Directory";
         if (pathname.startsWith("/teacher/dashboard/profile")) return "Instructor Profile";
         if (pathname.startsWith("/teacher/dashboard/security")) return "Security & Sessions";
-        if (pathname.startsWith("/teacher/dashboard/enrollments")) return "Student Enrollments";
         if (pathname.startsWith("/teacher/dashboard/payments")) return "Payment History";
         if (pathname.startsWith("/teacher/dashboard/users")) return "User Management";
         return "Instructor Hub";

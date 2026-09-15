@@ -29,16 +29,16 @@ export default function Footer() {
                         <h4>Academy</h4>
                         <ul>
                             <li><Link href="/courses">All Courses</Link></li>
-                            <li><Link href="#">Study Portal</Link></li>
-                            <li><Link href="#">Mock Exams</Link></li>
-                            <li><Link href="#">Success Stories</Link></li>
+                            <li><Link href="/dashboard/courses">Study Portal</Link></li>
+                            <li><Link href="/courses">Mock Exams</Link></li>
+                            <li><Link href="/courses">Success Stories</Link></li>
                         </ul>
                     </div>
                     <div className={styles.linkColumn}>
                         <h4>Support</h4>
                         <ul>
-                            <li><Link href="#">Help Center</Link></li>
-                            <li><Link href="#">Student FAQ</Link></li>
+                            <li><Link href="/contact">Help Center</Link></li>
+                            <li><Link href="/#faq">Student FAQ</Link></li>
                             <li><Link href="/contact">Contact Us</Link></li>
                             <li><Link href="/terms">Terms of Service</Link></li>
                             <li><Link href="/refund">Refund Policy</Link></li>

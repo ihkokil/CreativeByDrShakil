@@ -64,7 +64,6 @@ function AdminDashboardLayoutContent({
         if (pathname.startsWith("/admin/dashboard/settings")) return "Payment & System Settings";
         if (pathname.startsWith("/admin/dashboard/security")) return "Security & Sessions";
         if (pathname.startsWith("/admin/dashboard/profile")) return "Admin Profile";
-        if (pathname.startsWith("/admin/dashboard/enrollments")) return "Enrollment Management";
         return "Control Center";
     })();
 

@@ -160,7 +160,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     setModalLoading(true);
     try {
       const [quizzesRes, courseQuizzesRes] = await Promise.all([
-        fetch("/api/teacher/quizzes", { headers: getAuthHeaders() }),
+        fetch("/api/quiz?limit=100", { headers: getAuthHeaders() }),
         fetch(`/api/teacher/courses/${courseId}/quizzes`, { headers: getAuthHeaders() }),
       ]);
       const quizzesData = await quizzesRes.json();
