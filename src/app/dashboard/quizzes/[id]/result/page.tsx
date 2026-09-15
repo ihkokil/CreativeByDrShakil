@@ -8,7 +8,6 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  HelpCircle,
   ChevronLeft,
   Download,
   BarChart2,
@@ -17,12 +16,10 @@ import {
   Target,
   TrendingUp,
   RotateCcw,
-  Check,
-  X,
-  FileText,
   Search,
   ChevronRight,
   Sparkles,
+  X,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -100,8 +97,8 @@ export default function QuizResultPage() {
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'summary' | 'leaderboard' | 'answers'>(
-    tabParam === 'answers' ? 'answers' : (tabParam === 'leaderboard' ? 'leaderboard' : 'summary')
+  const [activeTab, setActiveTab] = useState<'summary' | 'leaderboard'>(
+    tabParam === 'leaderboard' ? 'leaderboard' : 'summary'
   );
   const [downloading, setDownloading] = useState(false);
   const [retaking, setRetaking] = useState(false);
@@ -241,17 +238,7 @@ export default function QuizResultPage() {
       const summaryGrid = document.getElementById('summary-grid-section');
       if (summaryGrid) await addElementToPdf(summaryGrid);
       
-      // 2. Capture Review Header
-      const reviewHeader = document.getElementById('review-header-section');
-      if (reviewHeader) await addElementToPdf(reviewHeader);
-      
-      // 3. Capture Each Question Card
-      const questionCards = document.querySelectorAll('.pdf-question-card');
-      for (let i = 0; i < questionCards.length; i++) {
-        await addElementToPdf(questionCards[i] as HTMLElement);
-      }
-      
-      pdf.save(`${data.quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_answers.pdf`);
+      pdf.save(`${data.quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_result.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
     } finally {
@@ -393,17 +380,6 @@ export default function QuizResultPage() {
           >
             <BarChart2 className={styles.tabIcon} />
             Attempt Analysis
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'answers'}
-            aria-controls="panel-answers"
-            id="tab-answers"
-            onClick={() => setActiveTab('answers')}
-            className={`${styles.tabBtn} ${activeTab === 'answers' ? styles.tabActive : ''}`}
-          >
-            <FileText className={styles.tabIcon} />
-            Review Answers & Explanations
           </button>
           <button
             role="tab"
@@ -636,304 +612,6 @@ export default function QuizResultPage() {
                   <Download className={styles.btnIcon} />
                   {downloading ? 'Generating...' : 'Download Result (PDF)'}
                 </button>
-              </div>
-
-              {/* Answer Review Section */}
-              <div id="answer-review-section" className={styles.reviewSectionWrapper}>
-                <div id="review-header-section" className={styles.reviewHeader}>
-                  <h2 className={styles.reviewTitle}>Answer Review & Explanations</h2>
-                  <div className={styles.reviewStats}>
-                    <span className={`${styles.reviewStat} ${styles.reviewStatSuccess}`}>
-                      <CheckCircle className={styles.reviewIcon} /> {actualCorrectCount} Correct
-                    </span>
-                    {actualPartialCount > 0 && (
-                      <span className={`${styles.reviewStat} ${styles.reviewStatWarning}`}>
-                        <CheckCircle className={styles.reviewIcon} /> {actualPartialCount} Partial
-                      </span>
-                    )}
-                    <span className={`${styles.reviewStat} ${styles.reviewStatError}`}>
-                      <XCircle className={styles.reviewIcon} /> {actualWrongCount} Wrong
-                    </span>
-                    <span className={`${styles.reviewStat} ${styles.reviewStatMuted}`}>
-                      <HelpCircle className={styles.reviewIcon} /> {actualSkippedCount} Skipped
-                    </span>
-                  </div>
-                </div>
-                
-                <div className={styles.reviewList}>
-                  {questionsReview.map((question, index) => (
-                    <article key={question.questionId} className={`${styles.reviewCard} pdf-question-card ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
-                      <div className={styles.reviewCardHeader}>
-                        <div className={styles.reviewQuestionInfo}>
-                          <span className={styles.reviewNumber}>Q{index + 1}</span>
-                          <span className={`${styles.reviewStatus} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
-                            {question.isSkipped ? '— Skipped' : question.isPartial ? '◐ Partial' : question.isCorrect ? '✓ Correct' : '✗ Incorrect'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
-                                  <div className={styles.reviewOptions}>
-                        {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
-                          question.options.map((option, idx) => {
-                             const studentStr = question.studentAnswer || '-'.repeat(question.options.length || 5);
-                             const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
-                             const originalIdx = option.letter.charCodeAt(0) - 65;
-                             const isT = studentStr[originalIdx] === 'T';
-                             const isF = studentStr[originalIdx] === 'F';
-                             const isCorrectT = correctStr[originalIdx] === 'T';
-                             const isCorrectF = correctStr[originalIdx] === 'F';
-                             const answered = isT || isF;
-                             const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
-                             const displayLetter = String.fromCharCode(65 + idx);
-                             
-                             let rowStatusClass = styles.tfCompactSkipped;
-                             if (answered) {
-                               rowStatusClass = isCorrect ? styles.tfCompactCorrect : styles.tfCompactIncorrect;
-                             }
-                             
-                             return (
-                                <div key={`${question.questionId}-${option.letter}`} className={`${styles.tfCompactRow} ${rowStatusClass}`}>
-                                  {/* Left: Letter Badge + Statement Text */}
-                                  <div className={styles.tfCompactLeft}>
-                                    <span className={styles.optionLetter}>{displayLetter}</span>
-                                    <span className={styles.tfCompactText}>{option.text}</span>
-                                  </div>
-
-                                  {/* Right: User's Choice + Correct Option Badge + Status Chip */}
-                                  <div className={styles.tfCompactRight}>
-                                    {/* User's choice (Lightly highlighted) */}
-                                    {answered ? (
-                                      <div className={isCorrect ? styles.userPillCorrect : styles.userPillWrong} title="Your answered option">
-                                        {isCorrect ? <Check size={13} /> : <X size={13} />}
-                                        <span>You: {isT ? 'True' : 'False'}</span>
-                                      </div>
-                                    ) : (
-                                      <div className={styles.userPillSkipped} title="You skipped this statement">
-                                        <span>You: —</span>
-                                      </div>
-                                    )}
-
-                                    {/* Official Correct Option (Boldly highlighted) */}
-                                    <div className={styles.keyPill} title="Official correct option">
-                                      <Check size={12} />
-                                      <span>Correct: {isCorrectT ? 'True' : 'False'}</span>
-                                    </div>
-
-                                    {/* Outcome Badge */}
-                                    <div className={styles.outcomeBadgeWrapper}>
-                                      {answered && isCorrect && (
-                                        <span className={styles.tfOutcomeSuccess}>
-                                          <Check size={12} /> Correct
-                                        </span>
-                                      )}
-                                      {answered && !isCorrect && (
-                                        <span className={styles.tfOutcomeDanger}>
-                                          <X size={12} /> Wrong
-                                        </span>
-                                      )}
-                                      {!answered && (
-                                        <span className={styles.tfOutcomeMuted}>
-                                          &mdash; Skipped
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                             );
-                          })
-                        ) : (
-                          question.options.map((option, optIdx) => {
-                            const displayLetter = String.fromCharCode(65 + optIdx);
-                            const isStudentAnswer = option.letter === question.studentAnswer;
-                            const isCorrectAnswer = option.letter === question.correctOption;
-                            const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
-                            
-                            let sbaClass = styles.sbaNeutral;
-                            if (isStudentAnswer && isCorrectAnswer) sbaClass = styles.sbaCorrect;
-                            else if (isWrongAnswer) sbaClass = styles.sbaIncorrect;
-                            else if (isCorrectAnswer) sbaClass = styles.sbaKeyHighlight;
-                            
-                            return (
-                              <div key={`${question.questionId}-${option.letter}`} className={`${styles.sbaReviewRow} ${sbaClass}`}>
-                                <div className={styles.sbaRowLeft}>
-                                  <span className={styles.optionLetter}>{displayLetter}</span>
-                                  <span className={styles.optionText}>{option.text}</span>
-                                </div>
-                                <div className={styles.sbaRowRight}>
-                                  {isStudentAnswer && isCorrectAnswer && (
-                                    <span className={styles.sbaBadgeSuccess}><Check size={13} /> Your Answer (Correct)</span>
-                                  )}
-                                  {isWrongAnswer && (
-                                    <span className={styles.sbaBadgeDanger}><X size={13} /> Your Answer (Wrong)</span>
-                                  )}
-                                  {!isStudentAnswer && isCorrectAnswer && (
-                                    <span className={styles.sbaBadgeKey}><Check size={13} /> Correct Option</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                      
-                      {question.explanation && question.explanation.trim() !== '' && (
-                        <div className={styles.explanation}>
-                          <HelpCircle className={styles.explanationIcon} />
-                          <div>
-                            <strong>Medical Explanation:</strong>
-                            <p>{question.explanation}</p>
-                          </div>
-                        </div>
-                      )}
-                    </article>
-                  ))}
-                </div>
-
-                {/* Bottom Actions repeated for convenience */}
-                <div className={styles.actions} style={{ marginTop: '32px' }}>
-                  <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
-                    <ChevronLeft className={styles.btnIcon} />
-                    {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
-                  </Link>
-                  <Link href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} className={styles.secondaryBtn}>
-                    <Trophy className={styles.btnIcon} />
-                    All Attempts
-                  </Link>
-                  {quiz.allowMultipleAttempts && (!quiz.maxAttempts || attempt.attemptNumber < quiz.maxAttempts) && (
-                    <button type="button" onClick={handleRetakeQuiz} disabled={retaking} className={styles.retakeBtn}>
-                      <RotateCcw className={styles.btnIcon} />
-                      {retaking ? 'Starting...' : 'Retake Quiz'}
-                    </button>
-                  )}
-                  <button type="button" onClick={handleDownloadPDF} disabled={downloading} className={styles.downloadBtn}>
-                    <Download className={styles.btnIcon} />
-                    {downloading ? 'Generating...' : 'Download Result (PDF)'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Pure Answer Key & Explanations Tab (No Score/Stats) */}
-          {activeTab === 'answers' && (
-            <div id="panel-answers" className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-answers">
-              <div className={styles.reviewSectionWrapper} style={{ marginTop: 0 }}>
-                <div className={styles.reviewHeader}>
-                  <div>
-                    <h2 className={styles.reviewTitle}>Official Answer Keys & Explanations</h2>
-                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      Pure educational review of all questions, correct answer keys, and medical rationales.
-                    </p>
-                  </div>
-                  <span className={styles.reviewNumber} style={{ fontSize: '13px', padding: '5px 12px' }}>
-                    {questionsReview.length} Questions
-                  </span>
-                </div>
-
-                <div className={styles.reviewList}>
-                  {questionsReview.map((question, index) => (
-                    <article key={`ans-${question.questionId}`} className={styles.reviewCard} style={{ borderLeftColor: '#0284c7' }}>
-                      <div className={styles.reviewCardHeader}>
-                        <div className={styles.reviewQuestionInfo}>
-                          <span className={styles.reviewNumber}>Q{index + 1}</span>
-                          <span style={{ 
-                            fontSize: '11.5px', 
-                            fontWeight: 700, 
-                            padding: '3px 8px', 
-                            borderRadius: '6px', 
-                            background: (question.questionType === 'true_false' || question.questionType === 'mcq') ? 'rgba(59, 130, 246, 0.15)' : 'rgba(168, 85, 247, 0.15)',
-                            color: (question.questionType === 'true_false' || question.questionType === 'mcq') ? '#3b82f6' : '#a855f7',
-                            border: '1px solid currentColor'
-                          }}>
-                            {(question.questionType === 'true_false' || question.questionType === 'mcq') ? 'True / False Matrix' : 'Single Best Answer'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
-
-                      <div className={styles.reviewOptions}>
-                        {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
-                          question.options.map((option, idx) => {
-                            const displayLetter = String.fromCharCode(65 + idx);
-                            const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
-                            const originalIdx = option.letter.charCodeAt(0) - 65;
-                            const isCorrectT = correctStr[originalIdx] === 'T';
-
-                            return (
-                              <div key={`key-${question.questionId}-${option.letter}`} className={styles.tfCompactRow} style={{ borderColor: 'var(--border-color)' }}>
-                                <div className={styles.tfCompactLeft}>
-                                  <span className={styles.optionLetter}>{displayLetter}</span>
-                                  <span className={styles.tfCompactText}>{option.text}</span>
-                                </div>
-                                <div className={styles.tfCompactRight}>
-                                  <div className={isCorrectT ? styles.keyPillTrue : styles.keyPillFalse}>
-                                    <Check size={13} />
-                                    <span>Correct: {isCorrectT ? 'TRUE' : 'FALSE'}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          question.options.map((option, optIdx) => {
-                            const displayLetter = String.fromCharCode(65 + optIdx);
-                            const isCorrectAnswer = option.letter === question.correctOption;
-
-                            return (
-                              <div 
-                                key={`key-${question.questionId}-${option.letter}`} 
-                                className={`${styles.sbaReviewRow} ${isCorrectAnswer ? styles.sbaCorrect : styles.sbaNeutral}`}
-                              >
-                                <div className={styles.sbaRowLeft}>
-                                  <span className={styles.optionLetter}>{displayLetter}</span>
-                                  <span className={styles.optionText} style={{ fontWeight: isCorrectAnswer ? 600 : 400 }}>
-                                    {option.text}
-                                  </span>
-                                </div>
-                                <div className={styles.sbaRowRight}>
-                                  {isCorrectAnswer && (
-                                    <span className={styles.sbaBadgeSuccess}>
-                                      <Check size={13} /> Correct Option
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-
-                      {question.explanation && question.explanation.trim() !== '' && (
-                        <div className={styles.explanation} style={{ marginTop: '14px' }}>
-                          <HelpCircle className={styles.explanationIcon} />
-                          <div>
-                            <strong>Medical Explanation:</strong>
-                            <p>{question.explanation}</p>
-                          </div>
-                        </div>
-                      )}
-                    </article>
-                  ))}
-                </div>
-
-                <div className={styles.actions} style={{ marginTop: '32px' }}>
-                  <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
-                    <ChevronLeft className={styles.btnIcon} />
-                    {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
-                  </Link>
-                  {quiz.allowMultipleAttempts && (!quiz.maxAttempts || attempt.attemptNumber < quiz.maxAttempts) && (
-                    <button type="button" onClick={handleRetakeQuiz} disabled={retaking} className={styles.retakeBtn}>
-                      <RotateCcw className={styles.btnIcon} />
-                      {retaking ? 'Starting...' : 'Retake Quiz'}
-                    </button>
-                  )}
-                  <button type="button" onClick={handleDownloadPDF} disabled={downloading} className={styles.downloadBtn}>
-                    <Download className={styles.btnIcon} />
-                    {downloading ? 'Generating...' : 'Download Result (PDF)'}
-                  </button>
-                </div>
               </div>
             </div>
           )}

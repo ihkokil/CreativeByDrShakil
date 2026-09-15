@@ -592,25 +592,52 @@ export default function QuizzesPage() {
             ))}
           </div>
 
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className={styles.pageBtn}
-              >
-                Previous
-              </button>
-              <span className={styles.pageInfo}>
-                Page {page} of {totalPages} ({totalCount} total)
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className={styles.pageBtn}
-              >
-                Next
-              </button>
+          {totalCount > 0 && (
+            <div className={styles.paginationContainer}>
+              <div className={styles.paginationSummary}>
+                Showing {quizzes.length > 0 ? ((page - 1) * limit + 1) : 0}–{Math.min(page * limit, totalCount)} of {totalCount} quizzes
+              </div>
+
+              {totalPages > 1 && (
+                <div className={styles.pagination}>
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className={styles.pageBtn}
+                  >
+                    Previous
+                  </button>
+
+                  <div className={styles.pageNumbers}>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(pNum => pNum === 1 || pNum === totalPages || Math.abs(pNum - page) <= 2)
+                      .map((pNum, idx, arr) => {
+                        const prev = arr[idx - 1];
+                        const showEllipsis = prev && pNum - prev > 1;
+                        return (
+                          <span key={pNum} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {showEllipsis && <span className={styles.pageEllipsis}>...</span>}
+                            <button
+                              type="button"
+                              onClick={() => setPage(pNum)}
+                              className={`${styles.pageNumBtn} ${pNum === page ? styles.pageNumActive : ''}`}
+                            >
+                              {pNum}
+                            </button>
+                          </span>
+                        );
+                      })}
+                  </div>
+
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className={styles.pageBtn}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>

@@ -558,34 +558,102 @@
   margin-top: 40px;
 }
 
-.pageBtn {
-  padding: 12px 24px;
+.paginationContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 40px;
+  padding: 16px 0;
+}
+
+.paginationSummary {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pageNumbers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pageNumBtn {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--card-bg);
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+}
+
+.pageNumBtn:hover:not(.pageNumActive) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--surface-soft);
+}
+
+.pageNumActive {
+  background: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.pageEllipsis {
+  padding: 0 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  user-select: none;
+}
+
+.pageBtn {
+  padding: 10px 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .pageBtn:hover:not(:disabled) {
   background: var(--primary-color);
   border-color: var(--primary-color);
   color: white;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .pageBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .pageInfo {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
+  margin: 0 6px;
 }
 
 .spinIcon {
