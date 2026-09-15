@@ -13,6 +13,7 @@ import {
   BarChart2,
   Award,
   User,
+  Users,
   Target,
   TrendingUp,
   RotateCcw,
@@ -20,6 +21,8 @@ import {
   ChevronRight,
   Sparkles,
   X,
+  Check,
+  HelpCircle,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -93,19 +96,15 @@ export default function QuizResultPage() {
   const isAutoSubmitted = searchParams ? searchParams.get('auto') === 'true' : false;
   const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
   
-  const tabParam = searchParams ? searchParams.get('tab') : null;
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'summary' | 'leaderboard'>(
-    tabParam === 'leaderboard' ? 'leaderboard' : 'summary'
-  );
   const [downloading, setDownloading] = useState(false);
   const [retaking, setRetaking] = useState(false);
 
   // Leaderboard Windowing, Search, and Filtering
   const [leaderboardSearch, setLeaderboardSearch] = useState('');
-  const [leaderboardViewMode, setLeaderboardViewMode] = useState<'top' | 'around_me' | 'all'>('top');
+  const [leaderboardViewMode, setLeaderboardViewMode] = useState<'top' | 'around_me' | 'all'>('around_me');
   const [visibleCount, setVisibleCount] = useState(10);
 
   const handleRetakeQuiz = async () => {
@@ -238,6 +237,16 @@ export default function QuizResultPage() {
       const summaryGrid = document.getElementById('summary-grid-section');
       if (summaryGrid) await addElementToPdf(summaryGrid);
       
+      // 2. Capture Review Header
+      const reviewHeader = document.getElementById('review-header-section');
+      if (reviewHeader) await addElementToPdf(reviewHeader);
+      
+      // 3. Capture Each Question Card Individually
+      const questionCards = Array.from(document.querySelectorAll('.pdf-question-card')) as HTMLElement[];
+      for (const card of questionCards) {
+        await addElementToPdf(card);
+      }
+      
       pdf.save(`${data.quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_result.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
@@ -348,10 +357,13 @@ export default function QuizResultPage() {
     displayedLeaderboard = leaderboard;
     viewTitleNote = `Showing all ${leaderboard.length} participants`;
   } else if (leaderboardViewMode === 'around_me' && userRankIndex >= 0) {
-    const start = Math.max(0, userRankIndex - 5);
-    const end = Math.min(leaderboard.length, userRankIndex + 6);
+    let start = Math.max(0, userRankIndex - 4);
+    let end = Math.min(leaderboard.length, start + 10);
+    if (end - start < 10 && start > 0) {
+      start = Math.max(0, end - 10);
+    }
     displayedLeaderboard = leaderboard.slice(start, end);
-    viewTitleNote = `Showing entries around your rank (Rank #${currentUserEntry?.rank})`;
+    viewTitleNote = `Showing ${displayedLeaderboard.length} participants around your rank (Rank #${currentUserEntry?.rank} of ${leaderboard.length})`;
   } else {
     // 'top' mode
     displayedLeaderboard = leaderboard.slice(0, visibleCount);
@@ -368,37 +380,7 @@ export default function QuizResultPage() {
           </Link>
         </header>
 
-        {/* Tab Navigation AT THE VERY TOP — Stationary & Zero Layout Shift */}
-        <nav className={styles.tabNav} role="tablist">
-          <button
-            role="tab"
-            aria-selected={activeTab === 'summary'}
-            aria-controls="panel-summary"
-            id="tab-summary"
-            onClick={() => setActiveTab('summary')}
-            className={`${styles.tabBtn} ${activeTab === 'summary' ? styles.tabActive : ''}`}
-          >
-            <BarChart2 className={styles.tabIcon} />
-            Attempt Analysis
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === 'leaderboard'}
-            aria-controls="panel-leaderboard"
-            id="tab-leaderboard"
-            onClick={() => setActiveTab('leaderboard')}
-            className={`${styles.tabBtn} ${activeTab === 'leaderboard' ? styles.tabActive : ''}`}
-          >
-            <Trophy className={styles.tabIcon} />
-            Leaderboard ({leaderboard.length})
-          </button>
-        </nav>
-
-        {/* Tab Panels */}
         <div className={styles.tabContent}>
-          {/* Summary Tab (Attempt Analysis) */}
-          {activeTab === 'summary' && (
-            <div id="panel-summary" className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-summary">
               {/* Score Section Banner */}
               <section id="score-section" className={styles.scoreSection}>
                 <div className={styles.scoreCard}>
@@ -613,13 +595,176 @@ export default function QuizResultPage() {
                   {downloading ? 'Generating...' : 'Download Result (PDF)'}
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Leaderboard Tab */}
-          {activeTab === 'leaderboard' && (
-            <div id="panel-leaderboard" className={styles.tabPanel} role="tabpanel" aria-labelledby="tab-leaderboard">
-              <div className={styles.leaderboardContainer}>
+              {/* Answer Review Section */}
+              <div id="answer-review-section" className={styles.reviewSectionWrapper}>
+                <div id="review-header-section" className={styles.reviewHeader}>
+                  <h2 className={styles.reviewTitle}>Answer Review & Explanations</h2>
+                  <div className={styles.reviewStats}>
+                    <span className={`${styles.reviewStat} ${styles.reviewStatSuccess}`}>
+                      <CheckCircle className={styles.reviewIcon} /> {actualCorrectCount} Correct
+                    </span>
+                    {actualPartialCount > 0 && (
+                      <span className={`${styles.reviewStat} ${styles.reviewStatWarning}`}>
+                        <CheckCircle className={styles.reviewIcon} /> {actualPartialCount} Partial
+                      </span>
+                    )}
+                    <span className={`${styles.reviewStat} ${styles.reviewStatError}`}>
+                      <XCircle className={styles.reviewIcon} /> {actualWrongCount} Wrong
+                    </span>
+                    <span className={`${styles.reviewStat} ${styles.reviewStatMuted}`}>
+                      <HelpCircle className={styles.reviewIcon} /> {actualSkippedCount} Skipped
+                    </span>
+                  </div>
+                </div>
+                
+                <div className={styles.reviewList}>
+                  {questionsReview.map((question, index) => (
+                    <article key={question.questionId} className={`${styles.reviewCard} pdf-question-card ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                      <div className={styles.reviewCardHeader}>
+                        <div className={styles.reviewQuestionInfo}>
+                          <span className={styles.reviewNumber}>Q{index + 1}</span>
+                          <span className={`${styles.reviewStatus} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
+                            {question.isSkipped ? '— Skipped' : question.isPartial ? '◐ Partial' : question.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
+                      
+                      <div className={styles.reviewOptions}>
+                        {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
+                          question.options.map((option, idx) => {
+                             const studentStr = question.studentAnswer || '-'.repeat(question.options.length || 5);
+                             const correctStr = question.correctOption || 'F'.repeat(question.options.length || 5);
+                             const originalIdx = option.letter.charCodeAt(0) - 65;
+                             const isT = studentStr[originalIdx] === 'T';
+                             const isF = studentStr[originalIdx] === 'F';
+                             const isCorrectT = correctStr[originalIdx] === 'T';
+                             const isCorrectF = correctStr[originalIdx] === 'F';
+                             const answered = isT || isF;
+                             const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
+                             const displayLetter = String.fromCharCode(65 + idx);
+                             
+                             let rowStatusClass = styles.tfCompactSkipped;
+                             if (answered) {
+                               rowStatusClass = isCorrect ? styles.tfCompactCorrect : styles.tfCompactIncorrect;
+                             }
+                             
+                             return (
+                                <div key={`${question.questionId}-${option.letter}`} className={`${styles.tfCompactRow} ${rowStatusClass}`}>
+                                  {/* Left: Letter Badge + Statement Text */}
+                                  <div className={styles.tfCompactLeft}>
+                                    <span className={styles.optionLetter}>{displayLetter}</span>
+                                    <span className={styles.tfCompactText}>{option.text}</span>
+                                  </div>
+
+                                  {/* Right: User's Choice + Correct Option Badge + Status Chip */}
+                                  <div className={styles.tfCompactRight}>
+                                    {/* User's choice (Lightly highlighted) */}
+                                    {answered ? (
+                                      <div className={isCorrect ? styles.userPillCorrect : styles.userPillWrong} title="Your answered option">
+                                        {isCorrect ? <Check size={13} /> : <X size={13} />}
+                                        <span>You: {isT ? 'True' : 'False'}</span>
+                                      </div>
+                                    ) : (
+                                      <div className={styles.userPillSkipped} title="You skipped this statement">
+                                        <span>You: —</span>
+                                      </div>
+                                    )}
+
+                                    {/* Official Correct Option (Boldly highlighted) */}
+                                    <div className={styles.keyPill} title="Official correct option">
+                                      <Check size={12} />
+                                      <span>Correct: {isCorrectT ? 'True' : 'False'}</span>
+                                    </div>
+
+                                    {/* Outcome Badge */}
+                                    <div className={styles.outcomeBadgeWrapper}>
+                                      {answered && isCorrect && (
+                                        <span className={styles.tfOutcomeSuccess}>
+                                          <Check size={12} /> Correct
+                                        </span>
+                                      )}
+                                      {answered && !isCorrect && (
+                                        <span className={styles.tfOutcomeDanger}>
+                                          <X size={12} /> Wrong
+                                        </span>
+                                      )}
+                                      {!answered && (
+                                        <span className={styles.tfOutcomeMuted}>
+                                          &mdash; Skipped
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                             );
+                          })
+                        ) : (
+                          question.options.map((option, optIdx) => {
+                            const displayLetter = String.fromCharCode(65 + optIdx);
+                            const isStudentAnswer = option.letter === question.studentAnswer;
+                            const isCorrectAnswer = option.letter === question.correctOption;
+                            const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
+                            
+                            let sbaClass = styles.sbaNeutral;
+                            if (isStudentAnswer && isCorrectAnswer) sbaClass = styles.sbaCorrect;
+                            else if (isWrongAnswer) sbaClass = styles.sbaIncorrect;
+                            else if (isCorrectAnswer) sbaClass = styles.sbaKeyHighlight;
+                            
+                            return (
+                              <div key={`${question.questionId}-${option.letter}`} className={`${styles.sbaReviewRow} ${sbaClass}`}>
+                                <div className={styles.sbaRowLeft}>
+                                  <span className={styles.optionLetter}>{displayLetter}</span>
+                                  <span className={styles.optionText}>{option.text}</span>
+                                </div>
+                                <div className={styles.sbaRowRight}>
+                                  {isStudentAnswer && isCorrectAnswer && (
+                                    <span className={styles.sbaBadgeSuccess}><Check size={13} /> Your Answer (Correct)</span>
+                                  )}
+                                  {isWrongAnswer && (
+                                    <span className={styles.sbaBadgeDanger}><X size={13} /> Your Answer (Wrong)</span>
+                                  )}
+                                  {!isStudentAnswer && isCorrectAnswer && (
+                                    <span className={styles.sbaBadgeKey}><Check size={13} /> Correct Option</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                      
+                      {question.explanation && question.explanation.trim() !== '' && (
+                        <div className={styles.explanation}>
+                          <HelpCircle className={styles.explanationIcon} />
+                          <div>
+                            <strong>Medical Explanation:</strong>
+                            <p>{question.explanation}</p>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              {/* Embedded Leaderboard Section */}
+              <section id="leaderboard-section" className={styles.embeddedLeaderboardSection}>
+                <div className={styles.embeddedLeaderboardHeader}>
+                  <div>
+                    <h2 className={styles.embeddedLeaderboardTitle}>
+                      <Trophy className={styles.leaderboardIcon} />
+                      Leaderboard & Peer Standings
+                    </h2>
+                    <p className={styles.embeddedLeaderboardSubtitle}>
+                      Live rankings for {quiz.title} • Updated in real-time
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.leaderboardContainer}>
                 {/* 1. Current User Standing Banner */}
                 {currentUserEntry && (
                   <div className={styles.standingCard}>
@@ -828,21 +973,27 @@ export default function QuizResultPage() {
                       </div>
                     )}
 
-                    {/* Return to Top 10 link when in around_me or all mode */}
-                    {!isSearching && leaderboardViewMode !== 'top' && leaderboard.length > 10 && (
-                      <div className={styles.loadMoreContainer}>
-                        <button
-                          type="button"
-                          className={styles.loadMoreBtn}
-                          onClick={() => {
-                            setLeaderboardViewMode('top');
-                            setVisibleCount(10);
-                          }}
-                        >
-                          <ChevronLeft size={16} />
-                          <span>Back to Top 10</span>
-                        </button>
-                      </div>
+                    {/* Button to View Complete Leaderboard or Collapse */}
+                    {!isSearching && leaderboard.length > displayedLeaderboard.length && (
+                      <button
+                        type="button"
+                        onClick={() => setLeaderboardViewMode('all')}
+                        className={styles.showCompleteLeaderboardBtn}
+                      >
+                        <Users size={16} />
+                        <span>View Complete Leaderboard ({leaderboard.length} Participants)</span>
+                      </button>
+                    )}
+
+                    {!isSearching && leaderboardViewMode === 'all' && leaderboard.length > 10 && (
+                      <button
+                        type="button"
+                        onClick={() => setLeaderboardViewMode(userRankIndex >= 0 ? 'around_me' : 'top')}
+                        className={styles.showCompleteLeaderboardBtn}
+                      >
+                        <Target size={16} />
+                        <span>{userRankIndex >= 0 ? 'Show Around My Rank' : 'Show Top 10'}</span>
+                      </button>
                     )}
                   </>
                 )}
@@ -851,8 +1002,29 @@ export default function QuizResultPage() {
                   Rankings update in real-time as peers complete attempts. {leaderboard.length > 0 ? `Total participants: ${leaderboard.length}` : ''}
                 </p>
               </div>
+            </section>
+
+            {/* Bottom Actions repeated for convenient navigation */}
+            <div className={styles.actions} style={{ marginTop: '36px' }}>
+              <Link href={returnUrl || "/dashboard/quizzes"} className={styles.secondaryBtn}>
+                <ChevronLeft className={styles.btnIcon} />
+                {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
+              </Link>
+              <Link href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} className={styles.secondaryBtn}>
+                <Trophy className={styles.btnIcon} />
+                All Attempts
+              </Link>
+              {quiz.allowMultipleAttempts && (!quiz.maxAttempts || attempt.attemptNumber < quiz.maxAttempts) && (
+                <button type="button" onClick={handleRetakeQuiz} disabled={retaking} className={styles.retakeBtn}>
+                  <RotateCcw className={styles.btnIcon} />
+                  {retaking ? 'Starting...' : 'Retake Quiz'}
+                </button>
+              )}
+              <button type="button" onClick={handleDownloadPDF} disabled={downloading} className={styles.downloadBtn}>
+                <Download className={styles.btnIcon} />
+                {downloading ? 'Generating...' : 'Download Result (PDF)'}
+              </button>
             </div>
-          )}
         </div>
       </div>
     </div>

@@ -1169,7 +1169,65 @@
   line-height: 1.6;
 }
 
-/* ─── Leaderboard Tab & Components ─── */
+/* ─── Embedded Leaderboard Section ─── */
+.embeddedLeaderboardSection {
+  margin-top: 48px;
+  padding-top: 36px;
+  border-top: 1.5px solid var(--border-color);
+  width: 100%;
+}
+
+.embeddedLeaderboardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.embeddedLeaderboardTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.embeddedLeaderboardSubtitle {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+
+.showCompleteLeaderboardBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  margin-top: 18px;
+}
+
+.showCompleteLeaderboardBtn:hover {
+  background: var(--bg-tertiary);
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
 .leaderboardContainer {
   width: 100%;
   box-sizing: border-box;
