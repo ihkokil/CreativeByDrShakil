@@ -23,6 +23,7 @@ import {
   X,
   Check,
   HelpCircle,
+  ExternalLink,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -128,6 +129,17 @@ export default function QuizResultPage() {
       alert(err.message || 'Failed to start quiz');
     } finally {
       setRetaking(false);
+    }
+  };
+
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+    e.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const yOffset = -24;
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+      window.history.pushState(null, '', `#${sectionId}`);
     }
   };
 
@@ -609,11 +621,19 @@ export default function QuizResultPage() {
                     {retaking ? 'Starting...' : 'Retake Quiz'}
                   </button>
                 )}
-                <a href="#leaderboard-section" className={styles.secondaryBtn}>
+                <a 
+                  href="#leaderboard-section" 
+                  onClick={(e) => scrollToSection(e, 'leaderboard-section')} 
+                  className={styles.secondaryBtn}
+                >
                   <Trophy className={styles.btnIcon} />
                   Leaderboard
                 </a>
-                <a href="#answer-review-section" className={styles.secondaryBtn}>
+                <a 
+                  href="#answer-review-section" 
+                  onClick={(e) => scrollToSection(e, 'answer-review-section')} 
+                  className={styles.secondaryBtn}
+                >
                   <HelpCircle className={styles.btnIcon} />
                   Review Answers
                 </a>
@@ -639,8 +659,19 @@ export default function QuizResultPage() {
                 </p>
               </div>
             </div>
-            <div className={styles.liveIndicatorBadge}>
-              <span className={styles.livePulseDot}></span> Live Standings
+            <div className={styles.sectionHeaderRight}>
+              <div className={styles.liveIndicatorBadge}>
+                <span className={styles.livePulseDot}></span> Live Standings
+              </div>
+              <Link
+                href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                className={styles.fullLeaderboardHeaderBtn}
+                title="Open Dedicated Full Leaderboard Page"
+              >
+                <Trophy size={14} />
+                <span>View Entire Leaderboard</span>
+                <ExternalLink size={13} />
+              </Link>
             </div>
           </div>
 
@@ -659,18 +690,29 @@ export default function QuizResultPage() {
                         </span>
                       </div>
                     </div>
-                    <div className={styles.standingRight}>
-                      <button
-                        type="button"
+                    <div className={styles.standingRight} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {leaderboardViewMode !== 'around_me' && (
+                        <button
+                          type="button"
+                          className={styles.jumpToMeBtn}
+                          onClick={() => {
+                            setLeaderboardSearch('');
+                            setLeaderboardViewMode('around_me');
+                          }}
+                        >
+                          <Target size={15} />
+                          <span>View Around My Rank</span>
+                        </button>
+                      )}
+                      <Link
+                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                         className={styles.jumpToMeBtn}
-                        onClick={() => {
-                          setLeaderboardSearch('');
-                          setLeaderboardViewMode('around_me');
-                        }}
+                        title="View complete leaderboard page"
                       >
-                        <Target size={15} />
-                        <span>View Around My Rank</span>
-                      </button>
+                        <Users size={15} />
+                        <span>Entire Leaderboard</span>
+                        <ChevronRight size={14} />
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -853,28 +895,39 @@ export default function QuizResultPage() {
                       </div>
                     )}
 
-                    {/* Button to View Complete Leaderboard or Collapse */}
-                    {!isSearching && leaderboard.length > displayedLeaderboard.length && (
-                      <button
-                        type="button"
-                        onClick={() => setLeaderboardViewMode('all')}
-                        className={styles.showCompleteLeaderboardBtn}
-                      >
-                        <Users size={16} />
-                        <span>View Complete Leaderboard ({leaderboard.length} Participants)</span>
-                      </button>
-                    )}
+                    {/* Dedicated Actions to View Entire Leaderboard or Expand in place */}
+                    <div className={styles.entireLeaderboardActions}>
+                      {!isSearching && leaderboard.length > displayedLeaderboard.length && (
+                        <button
+                          type="button"
+                          onClick={() => setLeaderboardViewMode('all')}
+                          className={styles.expandEntireLeaderboardBtn}
+                        >
+                          <Users size={16} />
+                          <span>Expand Full Leaderboard on Page ({leaderboard.length} Participants)</span>
+                        </button>
+                      )}
 
-                    {!isSearching && leaderboardViewMode === 'all' && leaderboard.length > 5 && (
-                      <button
-                        type="button"
-                        onClick={() => setLeaderboardViewMode(userRankIndex >= 0 ? 'around_me' : 'top')}
-                        className={styles.showCompleteLeaderboardBtn}
+                      {!isSearching && leaderboardViewMode === 'all' && leaderboard.length > 5 && (
+                        <button
+                          type="button"
+                          onClick={() => setLeaderboardViewMode(userRankIndex >= 0 ? 'around_me' : 'top')}
+                          className={styles.collapseLeaderboardBtn}
+                        >
+                          <Target size={16} />
+                          <span>Show Shorter Summary ({userRankIndex >= 0 ? 'Around My Rank' : 'Top 5'})</span>
+                        </button>
+                      )}
+
+                      <Link
+                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                        className={styles.openDedicatedPageBtn}
                       >
-                        <Target size={16} />
-                        <span>{userRankIndex >= 0 ? 'Show Shorter Version (Around My Rank)' : 'Show Shorter Version (Top 5)'}</span>
-                      </button>
-                    )}
+                        <Trophy size={16} />
+                        <span>Open Complete Leaderboard Page ({leaderboard.length} Total)</span>
+                        <ExternalLink size={15} />
+                      </Link>
+                    </div>
                   </>
                 )}
                 
@@ -1054,11 +1107,19 @@ export default function QuizResultPage() {
                 <ChevronLeft className={styles.btnIcon} />
                 {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
               </Link>
-              <a href="#score-section" className={styles.secondaryBtn}>
+              <a 
+                href="#score-section" 
+                onClick={(e) => scrollToSection(e, 'score-section')} 
+                className={styles.secondaryBtn}
+              >
                 <Award className={styles.btnIcon} />
                 Back to Scorecard
               </a>
-              <a href="#leaderboard-section" className={styles.secondaryBtn}>
+              <a 
+                href="#leaderboard-section" 
+                onClick={(e) => scrollToSection(e, 'leaderboard-section')} 
+                className={styles.secondaryBtn}
+              >
                 <Trophy className={styles.btnIcon} />
                 Back to Leaderboard
               </a>
