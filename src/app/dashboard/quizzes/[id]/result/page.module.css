@@ -1737,6 +1737,32 @@
   color: #0284c7;
 }
 
+.showFullLeaderboardBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+  white-space: nowrap;
+}
+
+.showFullLeaderboardBtn:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
 /* Leaderboard Controls Toolbar */
 .leaderboardToolbar {
   display: flex;
@@ -2223,7 +2249,8 @@
     min-width: 100%;
   }
 
-  .jumpToMeBtn {
+  .jumpToMeBtn,
+  .showFullLeaderboardBtn {
     width: 100%;
     justify-content: center;
   }

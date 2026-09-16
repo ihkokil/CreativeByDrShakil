@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -80,6 +80,75 @@ export default function ReviewAttemptsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+
+  // Full Leaderboard: Infinite Scrolling & Smooth Scroll to Rank
+  const [leaderboardVisibleCount, setLeaderboardVisibleCount] = useState<number>(30);
+  const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const hasAutoScrolledRef = useRef(false);
+
+  const currentUserRankIndex = useMemo(() => {
+    return leaderboard.findIndex(e => e.isCurrentUser);
+  }, [leaderboard]);
+
+  const scrollToMyRank = useCallback((manualClick = false) => {
+    if (currentUserRankIndex < 0) return;
+    const currentStudent = leaderboard[currentUserRankIndex];
+    if (!currentStudent) return;
+
+    // Expand visible count if student is beyond current batch
+    if (currentUserRankIndex >= leaderboardVisibleCount) {
+      setLeaderboardVisibleCount(Math.min(leaderboard.length, currentUserRankIndex + 20));
+    }
+
+    setTimeout(() => {
+      const rowEl = document.getElementById(`leaderboard-row-${currentStudent.studentId}`);
+      if (rowEl) {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedStudentId(currentStudent.studentId);
+        setTimeout(() => {
+          setHighlightedStudentId(null);
+        }, 3500);
+      }
+    }, 100);
+  }, [currentUserRankIndex, leaderboard, leaderboardVisibleCount]);
+
+  // Handle auto-scroll if redirected with ?tab=leaderboard&scrollToRank=true
+  useEffect(() => {
+    const shouldScroll = searchParams ? searchParams.get('scrollToRank') === 'true' : false;
+    if (shouldScroll && activeTab === 'leaderboard' && leaderboard.length > 0 && !hasAutoScrolledRef.current) {
+      hasAutoScrolledRef.current = true;
+      setTimeout(() => {
+        scrollToMyRank(false);
+      }, 250);
+    }
+  }, [activeTab, leaderboard, searchParams, scrollToMyRank]);
+
+  // Infinite Scroll IntersectionObserver
+  useEffect(() => {
+    if (activeTab !== 'leaderboard') return;
+    if (leaderboardVisibleCount >= leaderboard.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setLeaderboardVisibleCount((prev) => Math.min(leaderboard.length, prev + 30));
+        }
+      },
+      { threshold: 0.1, rootMargin: '250px' }
+    );
+
+    const currentSentinel = sentinelRef.current;
+    if (currentSentinel) {
+      observer.observe(currentSentinel);
+    }
+
+    return () => {
+      if (currentSentinel) {
+        observer.unobserve(currentSentinel);
+      }
+    };
+  }, [activeTab, leaderboardVisibleCount, leaderboard.length]);
 
   useEffect(() => {
     const fetchQuizAndAttempts = async () => {
@@ -383,15 +452,28 @@ export default function ReviewAttemptsPage() {
             <div className={styles.policyBadge}>
               <Award size={16} style={{ color: '#f59e0b' }} />
               <span>
-                Ranking Policy: <strong>{quiz.positionType === 'first_attempt' ? 'First Attempt Score' : 'Highest Score Across All Attempts'}</strong>
+                Ranking Policy: <strong>{quiz?.positionType === 'first_attempt' ? 'First Attempt Score' : 'Highest Score Across All Attempts'}</strong>
               </span>
             </div>
-            {userRank !== null && (
-              <div className={styles.userRankHighlight}>
-                <Trophy size={15} />
-                <span>Your Rank: #{userRank} of {totalParticipants}</span>
-              </div>
-            )}
+            <div className={styles.bannerActions}>
+              {userRank !== null && (
+                <div className={styles.userRankHighlight}>
+                  <Trophy size={15} />
+                  <span>Your Rank: #{userRank} of {totalParticipants}</span>
+                </div>
+              )}
+              {currentUserRankIndex >= 0 && (
+                <button
+                  type="button"
+                  className={styles.showAroundMyRankBtn}
+                  onClick={() => scrollToMyRank(true)}
+                  title="Smooth scroll to your rank in the leaderboard"
+                >
+                  <Target size={14} />
+                  <span>Show around my rank</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {leaderboard.length === 0 ? (
@@ -416,16 +498,18 @@ export default function ReviewAttemptsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {leaderboard.map((entry) => {
+                  {leaderboard.slice(0, leaderboardVisibleCount).map((entry) => {
                     const isRank1 = entry.rank === 1;
                     const isRank2 = entry.rank === 2;
                     const isRank3 = entry.rank === 3;
                     const rankClass = isRank1 ? styles.rank1 : isRank2 ? styles.rank2 : isRank3 ? styles.rank3 : '';
+                    const isHighlighted = highlightedStudentId === entry.studentId;
 
                     return (
                       <tr 
                         key={entry.studentId}
-                        className={`${styles.leaderboardRow} ${entry.isCurrentUser ? styles.currentUserRow : ''}`}
+                        id={`leaderboard-row-${entry.studentId}`}
+                        className={`${styles.leaderboardRow} ${entry.isCurrentUser ? styles.currentUserRow : ''} ${isHighlighted ? styles.highlightedRow : ''}`}
                       >
                         <td className={styles.rankCell}>
                           <span className={`${styles.rankBadge} ${rankClass}`}>
@@ -470,6 +554,15 @@ export default function ReviewAttemptsPage() {
                   })}
                 </tbody>
               </table>
+              {leaderboard.length > 0 && (
+                <div ref={sentinelRef} className={styles.infiniteScrollSentinel}>
+                  {leaderboardVisibleCount < leaderboard.length ? (
+                    <span>Loading more participants ({leaderboardVisibleCount} of {leaderboard.length})...</span>
+                  ) : (
+                    <span>All {leaderboard.length} participants displayed</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

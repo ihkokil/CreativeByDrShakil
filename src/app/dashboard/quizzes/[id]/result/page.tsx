@@ -103,10 +103,8 @@ export default function QuizResultPage() {
   const [downloading, setDownloading] = useState(false);
   const [retaking, setRetaking] = useState(false);
 
-  // Leaderboard Windowing, Search, and Filtering
+  // Leaderboard Search
   const [leaderboardSearch, setLeaderboardSearch] = useState('');
-  const [leaderboardViewMode, setLeaderboardViewMode] = useState<'top' | 'around_me' | 'all'>('around_me');
-  const [visibleCount, setVisibleCount] = useState(5);
 
   const handleRetakeQuiz = async () => {
     if (!data) return;
@@ -350,7 +348,7 @@ export default function QuizResultPage() {
     ? attempt.percentageScore 
     : Math.min(100, Math.max(0, ((netScore || 0) / totalMarks) * 100));
 
-  // Leaderboard Windowing Calculations
+  // Leaderboard Windowing Calculations: Always display 10 ranks around the student (5 before, student, 4 after)
   const userRankIndex = leaderboard.findIndex(e => e.isCurrentUser);
   const currentUserEntry = userRankIndex >= 0 ? leaderboard[userRankIndex] : null;
 
@@ -359,29 +357,39 @@ export default function QuizResultPage() {
     ? leaderboard.filter(e => e.studentName.toLowerCase().includes(leaderboardSearch.toLowerCase().trim()))
     : leaderboard;
 
-  let displayedLeaderboard: LeaderboardEntry[] = [];
-  let viewTitleNote = '';
+  const TARGET_WINDOW = 10;
+  let windowStart = 0;
+  let windowEnd = leaderboard.length;
 
-  if (isSearching) {
-    displayedLeaderboard = searchFilteredList;
-    viewTitleNote = `Showing ${displayedLeaderboard.length} of ${leaderboard.length} participants matching "${leaderboardSearch.trim()}"`;
-  } else if (leaderboardViewMode === 'all') {
-    displayedLeaderboard = leaderboard;
-    viewTitleNote = `Showing all ${leaderboard.length} participants`;
-  } else if (leaderboardViewMode === 'around_me' && userRankIndex >= 0) {
-    const windowSize = 5;
-    let start = Math.max(0, userRankIndex - Math.floor(windowSize / 2));
-    let end = Math.min(leaderboard.length, start + windowSize);
-    if (end - start < windowSize && start > 0) {
-      start = Math.max(0, end - windowSize);
+  if (leaderboard.length > TARGET_WINDOW) {
+    if (userRankIndex >= 0) {
+      // 5 before, the student themselves, and 4 after (total = 10)
+      windowStart = userRankIndex - 5;
+      windowEnd = windowStart + TARGET_WINDOW;
+
+      if (windowStart < 0) {
+        // Workaround for rank 1, 2, etc. (where 5 before is not possible: clamp to start)
+        windowStart = 0;
+        windowEnd = TARGET_WINDOW;
+      } else if (windowEnd > leaderboard.length) {
+        // Workaround when student is near the end: clamp to end
+        windowEnd = leaderboard.length;
+        windowStart = Math.max(0, windowEnd - TARGET_WINDOW);
+      }
+    } else {
+      // Fallback if student not in leaderboard
+      windowStart = 0;
+      windowEnd = TARGET_WINDOW;
     }
-    displayedLeaderboard = leaderboard.slice(start, end);
-    viewTitleNote = `Showing ${displayedLeaderboard.length} participants around your rank (Rank #${currentUserEntry?.rank} of ${leaderboard.length})`;
-  } else {
-    // 'top' mode
-    displayedLeaderboard = leaderboard.slice(0, visibleCount);
-    viewTitleNote = `Showing top ${Math.min(visibleCount, leaderboard.length)} of ${leaderboard.length} participants`;
   }
+
+  const displayedLeaderboard = isSearching 
+    ? searchFilteredList 
+    : leaderboard.slice(windowStart, windowEnd);
+
+  const viewTitleNote = isSearching
+    ? `Showing ${displayedLeaderboard.length} of ${leaderboard.length} participants matching "${leaderboardSearch.trim()}"`
+    : `Showing ${displayedLeaderboard.length} participants around your rank (Rank #${currentUserEntry?.rank || attempt.rank || '—'} of ${leaderboard.length})`;
 
   return (
     <div className={styles.container}>
@@ -664,12 +672,12 @@ export default function QuizResultPage() {
                 <span className={styles.livePulseDot}></span> Live Standings
               </div>
               <Link
-                href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard&scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                 className={styles.fullLeaderboardHeaderBtn}
-                title="Open Dedicated Full Leaderboard Page"
+                title="Show full leaderboard with infinite scrolling"
               >
                 <Trophy size={14} />
-                <span>View Entire Leaderboard</span>
+                <span>Show Full Leaderboard</span>
                 <ExternalLink size={13} />
               </Link>
             </div>
@@ -690,27 +698,14 @@ export default function QuizResultPage() {
                         </span>
                       </div>
                     </div>
-                    <div className={styles.standingRight} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {leaderboardViewMode !== 'around_me' && (
-                        <button
-                          type="button"
-                          className={styles.jumpToMeBtn}
-                          onClick={() => {
-                            setLeaderboardSearch('');
-                            setLeaderboardViewMode('around_me');
-                          }}
-                        >
-                          <Target size={15} />
-                          <span>View Around My Rank</span>
-                        </button>
-                      )}
+                    <div className={styles.standingRight}>
                       <Link
-                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
-                        className={styles.jumpToMeBtn}
-                        title="View complete leaderboard page"
+                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard&scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                        className={styles.showFullLeaderboardBtn}
+                        title="Show full leaderboard with infinite scrolling"
                       >
-                        <Users size={15} />
-                        <span>Entire Leaderboard</span>
+                        <Trophy size={15} />
+                        <span>Show Full Leaderboard</span>
                         <ChevronRight size={14} />
                       </Link>
                     </div>
@@ -739,37 +734,6 @@ export default function QuizResultPage() {
                       </button>
                     )}
                   </div>
-
-                  {!isSearching && leaderboard.length > 5 && (
-                    <div className={styles.filterPillsGroup}>
-                      <button
-                        type="button"
-                        className={`${styles.filterPill} ${leaderboardViewMode === 'top' ? styles.filterPillActive : ''}`}
-                        onClick={() => {
-                          setLeaderboardViewMode('top');
-                          setVisibleCount(5);
-                        }}
-                      >
-                        Top 10
-                      </button>
-                      {userRankIndex >= 0 && (
-                        <button
-                          type="button"
-                          className={`${styles.filterPill} ${leaderboardViewMode === 'around_me' ? styles.filterPillActive : ''}`}
-                          onClick={() => setLeaderboardViewMode('around_me')}
-                        >
-                          Around Me (#{currentUserEntry?.rank})
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className={`${styles.filterPill} ${leaderboardViewMode === 'all' ? styles.filterPillActive : ''}`}
-                        onClick={() => setLeaderboardViewMode('all')}
-                      >
-                        Show All ({leaderboard.length})
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 <div className={styles.leaderboardSubHeader}>
@@ -874,57 +838,14 @@ export default function QuizResultPage() {
                       })}
                     </div>
 
-                    {/* Load More Controls for 'top' mode */}
-                    {!isSearching && leaderboardViewMode === 'top' && visibleCount < leaderboard.length && (
-                      <div className={styles.loadMoreContainer}>
-                        <button
-                          type="button"
-                          className={styles.loadMoreBtn}
-                          onClick={() => setVisibleCount(prev => Math.min(leaderboard.length, prev + 10))}
-                        >
-                          <span>Load Next 10 Participants</span>
-                          <span className={styles.loadMoreCount}>({visibleCount} of {leaderboard.length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.showAllLinkBtn}
-                          onClick={() => setLeaderboardViewMode('all')}
-                        >
-                          Show All {leaderboard.length}
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Dedicated Actions to View Entire Leaderboard or Expand in place */}
+                    {/* Dedicated Action to View Entire Leaderboard Page */}
                     <div className={styles.entireLeaderboardActions}>
-                      {!isSearching && leaderboard.length > displayedLeaderboard.length && (
-                        <button
-                          type="button"
-                          onClick={() => setLeaderboardViewMode('all')}
-                          className={styles.expandEntireLeaderboardBtn}
-                        >
-                          <Users size={16} />
-                          <span>Expand Full Leaderboard on Page ({leaderboard.length} Participants)</span>
-                        </button>
-                      )}
-
-                      {!isSearching && leaderboardViewMode === 'all' && leaderboard.length > 5 && (
-                        <button
-                          type="button"
-                          onClick={() => setLeaderboardViewMode(userRankIndex >= 0 ? 'around_me' : 'top')}
-                          className={styles.collapseLeaderboardBtn}
-                        >
-                          <Target size={16} />
-                          <span>Show Shorter Summary ({userRankIndex >= 0 ? 'Around My Rank' : 'Top 5'})</span>
-                        </button>
-                      )}
-
                       <Link
-                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard&scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                         className={styles.openDedicatedPageBtn}
                       >
                         <Trophy size={16} />
-                        <span>Open Complete Leaderboard Page ({leaderboard.length} Total)</span>
+                        <span>Show Full Leaderboard ({leaderboard.length} Total Participants)</span>
                         <ExternalLink size={15} />
                       </Link>
                     </div>
