@@ -381,11 +381,29 @@ export default function QuizResultPage() {
           </Link>
         </header>
 
-        <div className={styles.tabContent}>
-          <div className={styles.tabPanel}>
-            {/* Score Section Banner */}
-            <section id="score-section" className={styles.scoreSection}>
-                <div className={styles.scoreCard}>
+        {/* ─── SECTION 1: Performance Overview & Scorecard ─── */}
+        <section id="score-section" className={`${styles.sectionCard} ${styles.sectionCardOverview}`}>
+          <div className={styles.sectionCardHeader}>
+            <div className={styles.sectionHeaderLeft}>
+              <div className={`${styles.sectionIconBadge} ${styles.sectionIconBadgeScore}`}>
+                <Award size={20} />
+              </div>
+              <div>
+                <span className={`${styles.sectionPreTitle} ${styles.preTitleScore}`}>Section 1 of 3 • Scorecard</span>
+                <h2 className={styles.sectionCardTitle}>Performance Overview</h2>
+                <p className={styles.sectionCardSubtitle}>
+                  Attempt #{attempt.attemptNumber} summary, score analytics, and efficiency breakdown
+                </p>
+              </div>
+            </div>
+            <div className={styles.sectionHeaderRight}>
+              <span className={styles.scorePill}>
+                <Target size={14} />
+                {percentageScore.toFixed(1)}% Accuracy
+              </span>
+            </div>
+          </div>
+          <div className={styles.scoreCard}>
                   <div className={styles.scoreCardTop}>
                     <div className={styles.scoreCardLeft}>
                       <div className={styles.quizHeader}>
@@ -468,7 +486,6 @@ export default function QuizResultPage() {
                     )}
                   </div>
                 </div>
-              </section>
 
               <div id="summary-grid-section" className={styles.summaryGrid}>
                 {/* Card 1: Score Breakdown (Top-Left) */}
@@ -592,6 +609,10 @@ export default function QuizResultPage() {
                     {retaking ? 'Starting...' : 'Retake Quiz'}
                   </button>
                 )}
+                <a href="#leaderboard-section" className={styles.secondaryBtn}>
+                  <Trophy className={styles.btnIcon} />
+                  Leaderboard
+                </a>
                 <a href="#answer-review-section" className={styles.secondaryBtn}>
                   <HelpCircle className={styles.btnIcon} />
                   Review Answers
@@ -601,20 +622,27 @@ export default function QuizResultPage() {
                   {downloading ? 'Generating...' : 'Download Result (PDF)'}
                 </button>
               </div>
+        </section>
 
-              {/* Embedded Leaderboard Section */}
-              <section id="leaderboard-section" className={styles.embeddedLeaderboardSection}>
-                <div className={styles.embeddedLeaderboardHeader}>
-                  <div>
-                    <h2 className={styles.embeddedLeaderboardTitle}>
-                      <Trophy className={styles.leaderboardIcon} />
-                      Leaderboard & Peer Standings
-                    </h2>
-                    <p className={styles.embeddedLeaderboardSubtitle}>
-                      Live rankings for {quiz.title} • Updated in real-time
-                    </p>
-                  </div>
-                </div>
+        {/* ─── SECTION 2: Live Leaderboard & Standings ─── */}
+        <section id="leaderboard-section" className={`${styles.sectionCard} ${styles.sectionCardLeaderboard}`}>
+          <div className={styles.sectionCardHeader}>
+            <div className={styles.sectionHeaderLeft}>
+              <div className={`${styles.sectionIconBadge} ${styles.sectionIconBadgeLeaderboard}`}>
+                <Trophy size={20} />
+              </div>
+              <div>
+                <span className={`${styles.sectionPreTitle} ${styles.preTitleLeaderboard}`}>Section 2 of 3 • Rankings</span>
+                <h2 className={styles.sectionCardTitle}>Leaderboard & Peer Standings</h2>
+                <p className={styles.sectionCardSubtitle}>
+                  Live rankings for {quiz.title} • Updated in real-time
+                </p>
+              </div>
+            </div>
+            <div className={styles.liveIndicatorBadge}>
+              <span className={styles.livePulseDot}></span> Live Standings
+            </div>
+          </div>
 
                 <div className={styles.leaderboardContainer}>
                 {/* 1. Current User Standing Banner */}
@@ -854,13 +882,24 @@ export default function QuizResultPage() {
                   Rankings update in real-time as peers complete attempts. {leaderboard.length > 0 ? `Total participants: ${leaderboard.length}` : ''}
                 </p>
               </div>
-            </section>
+        </section>
 
-              {/* Answer Review Section */}
-              <div id="answer-review-section" className={styles.reviewSectionWrapper}>
-                <div id="review-header-section" className={styles.reviewHeader}>
-                  <h2 className={styles.reviewTitle}>Answer Review & Explanations</h2>
-                  <div className={styles.reviewStats}>
+        {/* ─── SECTION 3: Answer Review & Explanations ─── */}
+        <section id="answer-review-section" className={`${styles.sectionCard} ${styles.sectionCardReview}`}>
+          <div id="review-header-section" className={styles.sectionCardHeader}>
+            <div className={styles.sectionHeaderLeft}>
+              <div className={`${styles.sectionIconBadge} ${styles.sectionIconBadgeReview}`}>
+                <CheckCircle size={20} />
+              </div>
+              <div>
+                <span className={`${styles.sectionPreTitle} ${styles.preTitleReview}`}>Section 3 of 3 • Medical Rationales</span>
+                <h2 className={styles.sectionCardTitle}>Answer Review & Explanations</h2>
+                <p className={styles.sectionCardSubtitle}>
+                  Detailed breakdown of questions, your selections, and medical rationales
+                </p>
+              </div>
+            </div>
+            <div className={styles.reviewStats}>
                     <span className={`${styles.reviewStat} ${styles.reviewStatSuccess}`}>
                       <CheckCircle className={styles.reviewIcon} /> {actualCorrectCount} Correct
                     </span>
@@ -1008,7 +1047,6 @@ export default function QuizResultPage() {
                     </article>
                   ))}
                 </div>
-              </div>
 
             {/* Bottom Actions repeated for convenient navigation */}
             <div className={styles.actions} style={{ marginTop: '36px' }}>
@@ -1016,10 +1054,14 @@ export default function QuizResultPage() {
                 <ChevronLeft className={styles.btnIcon} />
                 {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
               </Link>
-              <Link href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} className={styles.secondaryBtn}>
+              <a href="#score-section" className={styles.secondaryBtn}>
+                <Award className={styles.btnIcon} />
+                Back to Scorecard
+              </a>
+              <a href="#leaderboard-section" className={styles.secondaryBtn}>
                 <Trophy className={styles.btnIcon} />
-                All Attempts
-              </Link>
+                Back to Leaderboard
+              </a>
               {quiz.allowMultipleAttempts && (!quiz.maxAttempts || attempt.attemptNumber < quiz.maxAttempts) && (
                 <button type="button" onClick={handleRetakeQuiz} disabled={retaking} className={styles.retakeBtn}>
                   <RotateCcw className={styles.btnIcon} />
@@ -1031,8 +1073,7 @@ export default function QuizResultPage() {
                 {downloading ? 'Generating...' : 'Download Result (PDF)'}
               </button>
             </div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );
