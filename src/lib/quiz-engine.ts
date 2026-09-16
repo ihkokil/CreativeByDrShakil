@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/db';
 export const DEFAULT_SBA_MARKS = 2;
 export const DEFAULT_SBA_NEGATIVE = 0;
 export const DEFAULT_TF_MARKS = 2; // per correct option
-export const DEFAULT_TF_NEGATIVE = 0.5; // per wrong option (subtracted as penalty)
+export const DEFAULT_TF_NEGATIVE = 0; // per wrong option (subtracted as penalty)
 
 export type QuestionType = 'sba' | 'true_false' | 'mcq';
 

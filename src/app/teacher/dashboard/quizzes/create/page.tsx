@@ -115,7 +115,7 @@ export default function QuizBuilderPage() {
     sbaMarks: 2,
     sbaNegative: 0,
     tfMarks: 2,
-    tfNegative: 0.5,
+    tfNegative: 0,
     startDatetime: '',
     endDatetime: '',
     shuffleQuestions: true,
@@ -164,7 +164,7 @@ export default function QuizBuilderPage() {
           } else if (key === 'tfMarks') {
             (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 2;
           } else if (key === 'tfNegative') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0.5;
+            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
           } else {
             (newFormData as any)[key] = data.quiz[key];
           }
@@ -337,11 +337,19 @@ export default function QuizBuilderPage() {
       };
     });
     
+    const totalCount = questions.length + newQuestions.length;
     setQuestions(prev => [...prev, ...newQuestions]);
     setQuestionCounter(prev => prev + newQuestions.length);
+    if (newQuestions.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        durationMinutes: totalCount,
+        numQuestionsToServe: totalCount,
+      }));
+    }
     setShowImportModal(false);
     setImportPreview(null);
-    setSuccess(`Successfully imported ${newQuestions.length} questions`);
+    setSuccess(`Successfully imported ${newQuestions.length} questions. Time set to ${totalCount} minutes (${totalCount} questions).`);
   };
 
   const validateForm = () => {
@@ -537,7 +545,7 @@ export default function QuizBuilderPage() {
               <input
                 type="number"
                 min="1"
-                max="180"
+                max="1440"
                 value={formData.durationMinutes}
                 onChange={e => updateFormData('durationMinutes', parseInt(e.target.value) || 1)}
                 className={styles.input}
@@ -622,7 +630,7 @@ export default function QuizBuilderPage() {
                     value={formData.sbaNegative}
                     onChange={e => updateFormData('sbaNegative', parseFloat(e.target.value) || 0)}
                     className={styles.input}
-                    placeholder="e.g. 0.25"
+                    placeholder="0"
                   />
                   <span style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '13px' }}>marks</span>
                 </div>
@@ -658,7 +666,7 @@ export default function QuizBuilderPage() {
                     value={formData.tfNegative}
                     onChange={e => updateFormData('tfNegative', parseFloat(e.target.value) || 0)}
                     className={styles.input}
-                    placeholder="e.g. 0.25"
+                    placeholder="0"
                   />
                   <span style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '13px' }}>marks</span>
                 </div>

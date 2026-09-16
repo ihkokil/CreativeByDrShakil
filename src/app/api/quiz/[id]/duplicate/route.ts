@@ -57,7 +57,7 @@ export async function POST(
       sbaMarks: original.sbaMarks !== undefined ? original.sbaMarks : (original.marksPerCorrect || 2),
       sbaNegative: original.sbaNegative !== undefined ? original.sbaNegative : (original.allowNegativeMarking ? (original.negativeValue || 0) : 0),
       tfMarks: original.tfMarks !== undefined ? original.tfMarks : 2,
-      tfNegative: original.tfNegative !== undefined ? original.tfNegative : (original.allowNegativeMarking ? 0.5 : 0),
+      tfNegative: original.tfNegative !== undefined ? original.tfNegative : (original.allowNegativeMarking ? (original.negativeValue || 0) : 0),
       shuffleQuestions: original.shuffleQuestions,
       shuffleOptions: original.shuffleOptions,
       status: 'draft',

@@ -142,11 +142,19 @@ function ReviewAttemptsContent() {
   };
 
   const inProgressAttempt = useMemo(() => {
-    return attempts.find(a => a.status === 'in_progress');
+    return attempts.find(a => (a.status || '').toLowerCase().trim() === 'in_progress');
   }, [attempts]);
 
   const completedAttempts = useMemo(() => {
-    return attempts.filter(a => a.status === 'completed');
+    return attempts.filter(a => {
+      const s = (a.status || '').toLowerCase().trim();
+      return (
+        s === 'submitted' ||
+        s === 'auto_submitted' ||
+        s === 'completed' ||
+        (s !== 'in_progress' && (a.submittedAt !== null || (a.netScore !== null && a.netScore !== undefined)))
+      );
+    });
   }, [attempts]);
 
   const stats = useMemo(() => {
@@ -172,14 +180,19 @@ function ReviewAttemptsContent() {
         bestAttemptId = att.id;
       }
       totalScore += score;
-      if (att.timeTakenSeconds && att.timeTakenSeconds < bestTimeSeconds) {
+      if (att.timeTakenSeconds && att.timeTakenSeconds > 0 && att.timeTakenSeconds < bestTimeSeconds) {
         bestTimeSeconds = att.timeTakenSeconds;
       }
     }
 
     const avgScore = totalScore / completedAttempts.length;
-    const sortedByNumber = [...completedAttempts].sort((a, b) => (a.attemptNumber || 0) - (b.attemptNumber || 0));
-    const firstAttemptScore = sortedByNumber[0] ? Number(sortedByNumber[0].netScore || 0) : null;
+    const sortedAttempts = [...completedAttempts].sort((a, b) => {
+      if (a.attemptNumber && b.attemptNumber && a.attemptNumber !== b.attemptNumber) {
+        return a.attemptNumber - b.attemptNumber;
+      }
+      return new Date(a.startedAt || 0).getTime() - new Date(b.startedAt || 0).getTime();
+    });
+    const firstAttemptScore = sortedAttempts[0] ? Number(sortedAttempts[0].netScore || 0) : null;
 
     return {
       bestScore,
@@ -193,11 +206,9 @@ function ReviewAttemptsContent() {
   const totalQuizMarks = quiz?.totalMarks || (quiz ? quiz.numQuestionsToServe * 2 : 0);
 
   const canRetake = !inProgressAttempt && quiz && (
-    quiz.allowMultipleAttempts && (
-      !quiz.maxAttempts || 
-      quiz.maxAttempts === 0 || 
-      completedAttempts.length < quiz.maxAttempts
-    )
+    quiz.allowMultipleAttempts
+      ? (!quiz.maxAttempts || quiz.maxAttempts === 0 || completedAttempts.length < quiz.maxAttempts)
+      : (completedAttempts.length === 0)
   );
 
   if (loading) {
@@ -271,7 +282,7 @@ function ReviewAttemptsContent() {
                 className={`${styles.actionBtn} ${styles.primaryBtn}`}
               >
                 <RotateCcw size={16} />
-                {starting ? 'Starting...' : 'Take New Attempt'}
+                {starting ? 'Starting...' : completedAttempts.length > 0 ? 'Take New Attempt' : 'Start Quiz'}
               </button>
             ) : null}
 

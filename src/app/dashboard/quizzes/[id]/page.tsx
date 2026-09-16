@@ -195,7 +195,7 @@ export default function QuizDetailPage() {
 
   const tfNegative = (quiz as any).tfNegative !== undefined && (quiz as any).tfNegative !== null
     ? Number((quiz as any).tfNegative)
-    : (quiz.allowNegativeMarking === false && (quiz as any).tfNegative === undefined ? 0 : 0.5);
+    : (quiz.allowNegativeMarking && quiz.negativeValue ? Number(quiz.negativeValue) : 0);
 
   const totalMarks = (quiz as any).totalMarks !== undefined ? (quiz as any).totalMarks : (quiz.numQuestionsToServe * (quiz.marksPerCorrect || 1));
 

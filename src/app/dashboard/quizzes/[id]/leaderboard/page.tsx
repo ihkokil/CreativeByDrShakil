@@ -215,22 +215,32 @@ function LeaderboardContent() {
   };
 
   const inProgressAttempt = useMemo(() => {
-    return attempts.find(a => a.status === 'in_progress');
+    return attempts.find(a => (a.status || '').toLowerCase().trim() === 'in_progress');
   }, [attempts]);
 
   const completedAttempts = useMemo(() => {
-    return attempts.filter(a => a.status === 'completed');
+    return attempts.filter(a => {
+      const s = (a.status || '').toLowerCase().trim();
+      return (
+        s === 'submitted' ||
+        s === 'auto_submitted' ||
+        s === 'completed' ||
+        (s !== 'in_progress' && ((a as any).submittedAt !== null || (a as any).netScore !== null))
+      );
+    });
   }, [attempts]);
+
+  const totalQuizMarks = quiz?.totalMarks || (quiz ? quiz.numQuestionsToServe * 2 : 0);
 
   const canRetake = useMemo(() => {
     if (!quiz) return false;
     if (inProgressAttempt) return false;
-    if (!quiz.allowMultipleAttempts) return attempts.length === 0;
-    if (quiz.maxAttempts !== null && quiz.maxAttempts !== undefined) {
-      return attempts.length < quiz.maxAttempts;
+    if (!quiz.allowMultipleAttempts) return completedAttempts.length === 0;
+    if (quiz.maxAttempts !== null && quiz.maxAttempts !== undefined && quiz.maxAttempts > 0) {
+      return completedAttempts.length < quiz.maxAttempts;
     }
     return true;
-  }, [quiz, attempts, inProgressAttempt]);
+  }, [quiz, completedAttempts, inProgressAttempt]);
 
   if (loading) {
     return (
@@ -408,7 +418,7 @@ function LeaderboardContent() {
                 <tr>
                   <th style={{ width: '80px', textAlign: 'center' }}>Rank</th>
                   <th>Student</th>
-                  <th>Score</th>
+                  <th>Net Score</th>
                   <th>Attempt</th>
                   <th>Time Taken</th>
                   <th>Submitted</th>
@@ -448,7 +458,7 @@ function LeaderboardContent() {
                       </td>
                       <td className={styles.scoreCell}>
                         <div className={styles.scorePrimary}>
-                          <span>{Number(entry.score).toFixed(1)}</span>
+                          <span>{Number(entry.score).toFixed(1)}{totalQuizMarks > 0 ? ` / ${totalQuizMarks.toFixed(1)}` : ''}</span>
                           <span className={styles.scorePct}>
                             ({entry.percentageScore}%)
                           </span>

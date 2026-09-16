@@ -686,7 +686,7 @@ export default function QuizResultPage() {
                       <div className={styles.standingInfo}>
                         <span className={styles.standingName}>{currentUserEntry.studentName} (You)</span>
                         <span className={styles.standingMeta}>
-                          Score: <strong>{currentUserEntry.netScore.toFixed(1)} Marks</strong> • Time: <strong>{currentUserEntry.timeTakenSeconds ? formatTime(currentUserEntry.timeTakenSeconds) : '—'}</strong> • Attempt: <strong>#{currentUserEntry.attemptNumber || 1}</strong>
+                          Score: <strong>{currentUserEntry.netScore.toFixed(1)}{totalMarks > 0 ? ` / ${totalMarks.toFixed(1)}` : ' Marks'}</strong> • Time: <strong>{currentUserEntry.timeTakenSeconds ? formatTime(currentUserEntry.timeTakenSeconds) : '—'}</strong> • Attempt: <strong>#{currentUserEntry.attemptNumber || 1}</strong>
                         </span>
                       </div>
                     </div>
@@ -770,7 +770,7 @@ export default function QuizResultPage() {
                                 </td>
                                 <td className={styles.scoreCell}>
                                   <span className={getScoreColorClass(entryPercentage)}>
-                                    {entry.netScore.toFixed(1)} Marks
+                                    {entry.netScore.toFixed(1)}{totalMarks > 0 ? ` / ${totalMarks.toFixed(1)}` : ' Marks'}
                                   </span>
                                 </td>
                                 <td className={styles.timeCell}>
@@ -809,7 +809,7 @@ export default function QuizResultPage() {
                               </div>
                               <div className={styles.mobileScoreBadge}>
                                 <span className={getScoreColorClass(entryPercentage)}>
-                                  {entry.netScore.toFixed(1)} Marks
+                                  {entry.netScore.toFixed(1)}{totalMarks > 0 ? ` / ${totalMarks.toFixed(1)}` : ' Marks'}
                                 </span>
                               </div>
                             </div>

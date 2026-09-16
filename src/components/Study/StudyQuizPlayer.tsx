@@ -229,7 +229,7 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
 
   const tfNegative = (quiz as any).tfNegative !== undefined && (quiz as any).tfNegative !== null
     ? Number((quiz as any).tfNegative)
-    : (quiz.allowNegativeMarking === false && (quiz as any).tfNegative === undefined ? 0 : 0.5);
+    : (quiz.allowNegativeMarking && (quiz as any).negativeValue ? Number((quiz as any).negativeValue) : 0);
 
   const totalMarks = (quiz as any).totalMarks !== undefined ? (quiz as any).totalMarks : (quiz.numQuestionsToServe * (quiz.marksPerCorrect || 1));
 

@@ -630,7 +630,7 @@ export async function POST(request: NextRequest) {
       sbaMarks: sbaMarks !== undefined ? sbaMarks : (marksPerCorrect || 2),
       sbaNegative: sbaNegative !== undefined ? sbaNegative : (allowNegativeMarking ? (negativeValue || 0) : 0),
       tfMarks: tfMarks !== undefined ? tfMarks : 2,
-      tfNegative: tfNegative !== undefined ? tfNegative : (allowNegativeMarking ? 0.5 : 0),
+      tfNegative: tfNegative !== undefined ? tfNegative : (allowNegativeMarking ? (negativeValue || 0) : 0),
       marksPerCorrect: sbaMarks !== undefined ? sbaMarks : (marksPerCorrect || 2),
       negativeValue: sbaNegative !== undefined ? sbaNegative : (negativeValue || 0),
       startDatetime: startDatetime ? new Date(startDatetime).toISOString() : null,

@@ -447,6 +447,7 @@
   display: flex;
   align-items: baseline;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .scorePct {

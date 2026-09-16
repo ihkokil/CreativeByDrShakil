@@ -887,7 +887,7 @@ export default function TeacherQuizResultsPage() {
                                     </td>
                                     <td className={styles.scoreCell}>
                                       <span className={`${styles.scoreValue} ${getScoreColor(st.bestScore)}`}>
-                                        {st.bestScore.toFixed(1)} Marks
+                                        {st.bestScore.toFixed(1)}{totalMarks > 0 ? ` / ${totalMarks.toFixed(1)}` : ' Marks'}
                                       </span>
                                     </td>
                                     <td>
@@ -1043,7 +1043,7 @@ export default function TeacherQuizResultsPage() {
                             </td>
                             <td className={styles.scoreCell}>
                               <span className={`${styles.scoreValue} ${getScoreColor(entry.netScore)}`}>
-                                {entry.netScore.toFixed(1)} Marks
+                                {entry.netScore.toFixed(1)}{totalMarks > 0 ? ` / ${totalMarks.toFixed(1)}` : ' Marks'}
                               </span>
                             </td>
                             <td className={styles.detailCell}>
