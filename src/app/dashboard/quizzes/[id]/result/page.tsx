@@ -664,12 +664,12 @@ export default function QuizResultPage() {
                 <span className={styles.livePulseDot}></span> Live Standings
               </div>
               <Link
-                href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard&scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                href={`/dashboard/quizzes/${quizId}/leaderboard?scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                 className={styles.fullLeaderboardHeaderBtn}
                 title="Show full leaderboard with infinite scrolling"
               >
                 <Trophy size={14} />
-                <span>Show Full Leaderboard</span>
+                <span>Full Leaderboard</span>
                 <ExternalLink size={13} />
               </Link>
             </div>
@@ -691,15 +691,10 @@ export default function QuizResultPage() {
                       </div>
                     </div>
                     <div className={styles.standingRight}>
-                      <Link
-                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard&scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
-                        className={styles.showFullLeaderboardBtn}
-                        title="Show full leaderboard with infinite scrolling"
-                      >
-                        <Trophy size={15} />
-                        <span>Show Full Leaderboard</span>
-                        <ChevronRight size={14} />
-                      </Link>
+                      <div className={styles.standingRankPill}>
+                        <Target size={14} />
+                        <span>Rank #{currentUserEntry.rank} of {leaderboard.length}</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -830,17 +825,19 @@ export default function QuizResultPage() {
                       })}
                     </div>
 
-                    {/* Dedicated Action to View Entire Leaderboard Page */}
-                    <div className={styles.entireLeaderboardActions}>
-                      <Link
-                        href={`/dashboard/quizzes/${quizId}/attempts?tab=leaderboard&scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
-                        className={styles.openDedicatedPageBtn}
-                      >
-                        <Trophy size={16} />
-                        <span>Show Full Leaderboard ({leaderboard.length} Total Participants)</span>
-                        <ExternalLink size={15} />
-                      </Link>
-                    </div>
+                    {/* Dedicated Action to View Entire Leaderboard Page (only shown if leaderboard has more participants than displayed) */}
+                    {leaderboard.length > displayedLeaderboard.length && (
+                      <div className={styles.entireLeaderboardActions}>
+                        <Link
+                          href={`/dashboard/quizzes/${quizId}/leaderboard?scrollToRank=true${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                          className={styles.openDedicatedPageBtn}
+                        >
+                          <Trophy size={16} />
+                          <span>View All {leaderboard.length} Participants on Full Leaderboard</span>
+                          <ExternalLink size={15} />
+                        </Link>
+                      </div>
+                    )}
                   </>
                 )}
                 

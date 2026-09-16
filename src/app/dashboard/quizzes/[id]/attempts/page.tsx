@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -16,7 +16,6 @@ import {
   FileText,
   TrendingUp,
   Award,
-  Zap,
   Target,
 } from 'lucide-react';
 import styles from './page.module.css';
@@ -36,18 +35,6 @@ interface AttemptItem {
   negativeMarks?: number | null;
 }
 
-interface LeaderboardEntry {
-  rank: number;
-  studentId: string;
-  studentName: string;
-  score: number;
-  percentageScore: number;
-  timeTakenSeconds: number;
-  attemptNumber: number;
-  submittedAt: string;
-  isCurrentUser: boolean;
-}
-
 interface Quiz {
   id: string;
   title: string;
@@ -61,94 +48,31 @@ interface Quiz {
   positionType: string;
 }
 
-export default function ReviewAttemptsPage() {
+function ReviewAttemptsContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const quizId = params.id as string;
   const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
-  const initialTab = searchParams ? searchParams.get('tab') : null;
 
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [attempts, setAttempts] = useState<AttemptItem[]>([]);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [userRank, setUserRank] = useState<number | null>(null);
-  const [totalParticipants, setTotalParticipants] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'attempts' | 'leaderboard'>(
-    initialTab === 'leaderboard' ? 'leaderboard' : 'attempts'
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
 
-  // Full Leaderboard: Infinite Scrolling & Smooth Scroll to Rank
-  const [leaderboardVisibleCount, setLeaderboardVisibleCount] = useState<number>(30);
-  const [highlightedStudentId, setHighlightedStudentId] = useState<string | null>(null);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const hasAutoScrolledRef = useRef(false);
-
-  const currentUserRankIndex = useMemo(() => {
-    return leaderboard.findIndex(e => e.isCurrentUser);
-  }, [leaderboard]);
-
-  const scrollToMyRank = useCallback((manualClick = false) => {
-    if (currentUserRankIndex < 0) return;
-    const currentStudent = leaderboard[currentUserRankIndex];
-    if (!currentStudent) return;
-
-    // Expand visible count if student is beyond current batch
-    if (currentUserRankIndex >= leaderboardVisibleCount) {
-      setLeaderboardVisibleCount(Math.min(leaderboard.length, currentUserRankIndex + 20));
-    }
-
-    setTimeout(() => {
-      const rowEl = document.getElementById(`leaderboard-row-${currentStudent.studentId}`);
-      if (rowEl) {
-        rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setHighlightedStudentId(currentStudent.studentId);
-        setTimeout(() => {
-          setHighlightedStudentId(null);
-        }, 3500);
-      }
-    }, 100);
-  }, [currentUserRankIndex, leaderboard, leaderboardVisibleCount]);
-
-  // Handle auto-scroll if redirected with ?tab=leaderboard&scrollToRank=true
+  // Seamless redirect if legacy link or bookmark has ?tab=leaderboard
   useEffect(() => {
-    const shouldScroll = searchParams ? searchParams.get('scrollToRank') === 'true' : false;
-    if (shouldScroll && activeTab === 'leaderboard' && leaderboard.length > 0 && !hasAutoScrolledRef.current) {
-      hasAutoScrolledRef.current = true;
-      setTimeout(() => {
-        scrollToMyRank(false);
-      }, 250);
+    const tab = searchParams ? searchParams.get('tab') : null;
+    if (tab === 'leaderboard') {
+      const query = new URLSearchParams();
+      const scrollToRank = searchParams?.get('scrollToRank');
+      if (scrollToRank) query.set('scrollToRank', scrollToRank);
+      if (returnUrl) query.set('returnUrl', returnUrl);
+      const queryString = query.toString() ? `?${query.toString()}` : '';
+      router.replace(`/dashboard/quizzes/${quizId}/leaderboard${queryString}`);
     }
-  }, [activeTab, leaderboard, searchParams, scrollToMyRank]);
-
-  // Infinite Scroll IntersectionObserver
-  useEffect(() => {
-    if (activeTab !== 'leaderboard') return;
-    if (leaderboardVisibleCount >= leaderboard.length) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setLeaderboardVisibleCount((prev) => Math.min(leaderboard.length, prev + 30));
-        }
-      },
-      { threshold: 0.1, rootMargin: '250px' }
-    );
-
-    const currentSentinel = sentinelRef.current;
-    if (currentSentinel) {
-      observer.observe(currentSentinel);
-    }
-
-    return () => {
-      if (currentSentinel) {
-        observer.unobserve(currentSentinel);
-      }
-    };
-  }, [activeTab, leaderboardVisibleCount, leaderboard.length]);
+  }, [searchParams, router, quizId, returnUrl]);
 
   useEffect(() => {
     const fetchQuizAndAttempts = async () => {
@@ -166,9 +90,6 @@ export default function ReviewAttemptsPage() {
 
         setQuiz(data.quiz);
         setAttempts(data.allAttempts || []);
-        setLeaderboard(data.leaderboard || []);
-        setUserRank(data.userRank || null);
-        setTotalParticipants(data.totalParticipants || 0);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -204,13 +125,13 @@ export default function ReviewAttemptsPage() {
   };
 
   const formatDuration = (minutes: number) => {
-    if (!minutes || minutes === 0) return 'Unlimited';
+    if (!minutes) return '0 mins';
     if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins} mins` : `${hours}h`;
+      const hrs = Math.floor(minutes / 60);
+      const remMins = minutes % 60;
+      return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs} hr${hrs > 1 ? 's' : ''}`;
     }
-    return `${minutes} mins`;
+    return `${minutes} min${minutes > 1 ? 's' : ''}`;
   };
 
   const formatTime = (seconds: number | null | undefined) => {
@@ -220,13 +141,12 @@ export default function ReviewAttemptsPage() {
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
   };
 
-  // Completed attempts only for metrics
-  const completedAttempts = useMemo(() => {
-    return attempts.filter(a => a.status === 'submitted' || a.status === 'auto_submitted');
-  }, [attempts]);
-
   const inProgressAttempt = useMemo(() => {
     return attempts.find(a => a.status === 'in_progress');
+  }, [attempts]);
+
+  const completedAttempts = useMemo(() => {
+    return attempts.filter(a => a.status === 'completed');
   }, [attempts]);
 
   const stats = useMemo(() => {
@@ -240,28 +160,33 @@ export default function ReviewAttemptsPage() {
       };
     }
 
-    const scores = completedAttempts
-      .map(a => (a.netScore !== null && a.netScore !== undefined ? Number(a.netScore) : NaN))
-      .filter(s => !isNaN(s));
+    let bestScore = -Infinity;
+    let bestAttemptId: string | null = null;
+    let totalScore = 0;
+    let bestTimeSeconds = Infinity;
 
-    const bestScore = scores.length > 0 ? Math.max(...scores) : null;
-    const bestAttempt = completedAttempts.find(a => Number(a.netScore) === bestScore);
-    const avgScore = scores.length > 0 ? Number((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)) : null;
+    for (const att of completedAttempts) {
+      const score = Number(att.netScore || 0);
+      if (score > bestScore) {
+        bestScore = score;
+        bestAttemptId = att.id;
+      }
+      totalScore += score;
+      if (att.timeTakenSeconds && att.timeTakenSeconds < bestTimeSeconds) {
+        bestTimeSeconds = att.timeTakenSeconds;
+      }
+    }
 
-    const firstAtt = completedAttempts.find(a => a.attemptNumber === 1);
-    const firstAttemptScore = firstAtt && firstAtt.netScore !== null && firstAtt.netScore !== undefined ? Number(firstAtt.netScore) : null;
-
-    const times = completedAttempts
-      .map(a => Number(a.timeTakenSeconds || 0))
-      .filter(t => t > 0);
-    const bestTimeSeconds = times.length > 0 ? Math.min(...times) : null;
+    const avgScore = totalScore / completedAttempts.length;
+    const sortedByNumber = [...completedAttempts].sort((a, b) => (a.attemptNumber || 0) - (b.attemptNumber || 0));
+    const firstAttemptScore = sortedByNumber[0] ? Number(sortedByNumber[0].netScore || 0) : null;
 
     return {
       bestScore,
-      bestScoreAttemptId: bestAttempt?.id || null,
+      bestScoreAttemptId: bestAttemptId,
       avgScore,
       firstAttemptScore,
-      bestTimeSeconds,
+      bestTimeSeconds: bestTimeSeconds === Infinity ? null : bestTimeSeconds,
     };
   }, [completedAttempts]);
 
@@ -322,6 +247,15 @@ export default function ReviewAttemptsPage() {
           </div>
 
           <div className={styles.headerActions}>
+            <Link
+              href={`/dashboard/quizzes/${quizId}/leaderboard${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+              className={`${styles.actionBtn} ${styles.secondaryBtn}`}
+              title="View the dedicated live leaderboard and rankings"
+            >
+              <Trophy size={16} />
+              <span>View Leaderboard</span>
+            </Link>
+
             {inProgressAttempt ? (
               <Link
                 href={`/dashboard/quizzes/${quizId}/attempt/${inProgressAttempt.id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
@@ -430,310 +364,187 @@ export default function ReviewAttemptsPage() {
         </div>
       </section>
 
-      {/* Tabs Switcher */}
-      <div className={styles.tabsContainer}>
-        <button
-          onClick={() => setActiveTab('attempts')}
-          className={`${styles.tabBtn} ${activeTab === 'attempts' ? styles.activeTabBtn : ''}`}
-        >
-          <RotateCcw size={16} /> Past Attempts ({attempts.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('leaderboard')}
-          className={`${styles.tabBtn} ${activeTab === 'leaderboard' ? styles.activeTabBtn : ''}`}
-        >
-          <Trophy size={16} /> Leaderboard & Rankings ({leaderboard.length})
-        </button>
+      {/* Attempts List */}
+      <div className={styles.sectionTitleRow}>
+        <h2 className={styles.sectionTitle}>
+          <FileText size={20} style={{ color: 'var(--primary-color)' }} />
+          Past Attempts History ({attempts.length})
+        </h2>
+        <span className={styles.sectionHint}>
+          Click <strong>View Details</strong> to review question answers, explanations, and score analysis.
+        </span>
       </div>
 
-      {activeTab === 'leaderboard' ? (
-        <div className={styles.leaderboardCard}>
-          <div className={styles.leaderboardTopBanner}>
-            <div className={styles.policyBadge}>
-              <Award size={16} style={{ color: '#f59e0b' }} />
-              <span>
-                Ranking Policy: <strong>{quiz?.positionType === 'first_attempt' ? 'First Attempt Score' : 'Highest Score Across All Attempts'}</strong>
-              </span>
-            </div>
-            <div className={styles.bannerActions}>
-              {userRank !== null && (
-                <div className={styles.userRankHighlight}>
-                  <Trophy size={15} />
-                  <span>Your Rank: #{userRank} of {totalParticipants}</span>
-                </div>
-              )}
-              {currentUserRankIndex >= 0 && (
-                <button
-                  type="button"
-                  className={styles.showAroundMyRankBtn}
-                  onClick={() => scrollToMyRank(true)}
-                  title="Smooth scroll to your rank in the leaderboard"
-                >
-                  <Target size={14} />
-                  <span>Show around my rank</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {leaderboard.length === 0 ? (
-            <div className={styles.emptyState}>
-              <Trophy className={styles.emptyIcon} />
-              <h3>No Leaderboard Entries Yet</h3>
-              <p style={{ color: 'var(--text-secondary)' }}>
-                Be the first student to complete this quiz and claim the top rank!
-              </p>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className={styles.leaderboardTable}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '80px', textAlign: 'center' }}>Rank</th>
-                    <th>Student</th>
-                    <th>Score</th>
-                    <th>Attempt</th>
-                    <th>Time Taken</th>
-                    <th>Submitted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.slice(0, leaderboardVisibleCount).map((entry) => {
-                    const isRank1 = entry.rank === 1;
-                    const isRank2 = entry.rank === 2;
-                    const isRank3 = entry.rank === 3;
-                    const rankClass = isRank1 ? styles.rank1 : isRank2 ? styles.rank2 : isRank3 ? styles.rank3 : '';
-                    const isHighlighted = highlightedStudentId === entry.studentId;
-
-                    return (
-                      <tr 
-                        key={entry.studentId}
-                        id={`leaderboard-row-${entry.studentId}`}
-                        className={`${styles.leaderboardRow} ${entry.isCurrentUser ? styles.currentUserRow : ''} ${isHighlighted ? styles.highlightedRow : ''}`}
-                      >
-                        <td className={styles.rankCell}>
-                          <span className={`${styles.rankBadge} ${rankClass}`}>
-                            {isRank1 ? '🥇' : isRank2 ? '🥈' : isRank3 ? '🥉' : `#${entry.rank}`}
-                          </span>
-                        </td>
-                        <td className={styles.studentCell}>
-                          <div className={styles.studentInfo}>
-                            <div className={styles.studentAvatar}>
-                              {entry.studentName.charAt(0).toUpperCase()}
-                            </div>
-                            <div className={styles.studentName}>
-                              <span>{entry.studentName}</span>
-                              {entry.isCurrentUser && (
-                                <span className={styles.youBadge}>You</span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className={styles.scoreCell}>
-                          <div className={styles.scorePrimary}>
-                            <span>{Number(entry.score).toFixed(1)}</span>
-                            <span className={styles.scorePct}>
-                              ({entry.percentageScore}%)
-                            </span>
-                          </div>
-                        </td>
-                        <td className={styles.attemptCell}>
-                          Attempt #{entry.attemptNumber}
-                        </td>
-                        <td className={styles.timeCell}>
-                          {formatTime(entry.timeTakenSeconds)}
-                        </td>
-                        <td className={styles.dateCell}>
-                          {entry.submittedAt ? new Date(entry.submittedAt).toLocaleDateString([], {
-                            month: 'short',
-                            day: 'numeric'
-                          }) : '—'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {leaderboard.length > 0 && (
-                <div ref={sentinelRef} className={styles.infiniteScrollSentinel}>
-                  {leaderboardVisibleCount < leaderboard.length ? (
-                    <span>Loading more participants ({leaderboardVisibleCount} of {leaderboard.length})...</span>
-                  ) : (
-                    <span>All {leaderboard.length} participants displayed</span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+      {attempts.length === 0 ? (
+        <div className={styles.emptyState}>
+          <Trophy className={styles.emptyIcon} />
+          <h3>No attempts recorded yet</h3>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+            You haven&apos;t completed any attempts for this quiz yet. Start now to test your medical knowledge!
+          </p>
+          <button onClick={handleStartQuiz} disabled={starting} className={`${styles.actionBtn} ${styles.primaryBtn}`}>
+            <Play size={16} /> Start Quiz Now
+          </button>
         </div>
       ) : (
-        <>
-          {/* Attempts List */}
-          <div className={styles.sectionTitleRow}>
-            <h2 className={styles.sectionTitle}>
-              <FileText size={20} style={{ color: 'var(--primary-color)' }} />
-              Past Attempts History ({attempts.length})
-            </h2>
-            <span className={styles.sectionHint}>
-              Click <strong>View Details</strong> to review question answers, explanations, and score analysis.
-            </span>
-          </div>
+        <div className={styles.attemptsList}>
+          {attempts.map((attempt, idx) => {
+            const attemptNum = attempt.attemptNumber || (attempts.length - idx);
+            const isBest = stats.bestScoreAttemptId === attempt.id && completedAttempts.length > 1;
+            const isLatest = idx === 0;
+            const isInProg = attempt.status === 'in_progress';
+            const netScore = Number(attempt.netScore || 0);
+            const timeStr = formatTime(attempt.timeTakenSeconds);
+            const percentage = attempt.percentageScore !== null && attempt.percentageScore !== undefined
+              ? attempt.percentageScore
+              : (totalQuizMarks > 0 ? Math.round((netScore / totalQuizMarks) * 100) : 0);
 
-          {attempts.length === 0 ? (
-            <div className={styles.emptyState}>
-              <Trophy className={styles.emptyIcon} />
-              <h3>No attempts recorded yet</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                You haven't completed any attempts for this quiz yet. Start now to test your medical knowledge!
-              </p>
-              <button onClick={handleStartQuiz} disabled={starting} className={`${styles.actionBtn} ${styles.primaryBtn}`}>
-                <Play size={16} /> Start Quiz Now
-              </button>
-            </div>
-          ) : (
-            <div className={styles.attemptsList}>
-              {attempts.map((attempt, idx) => {
-                const attemptNum = attempt.attemptNumber || (attempts.length - idx);
-                const isBest = stats.bestScoreAttemptId === attempt.id && completedAttempts.length > 1;
-                const isLatest = idx === 0;
-                const isInProg = attempt.status === 'in_progress';
-                const netScore = Number(attempt.netScore || 0);
-                const timeStr = formatTime(attempt.timeTakenSeconds);
-                const percentage = attempt.percentageScore !== null && attempt.percentageScore !== undefined
-                  ? attempt.percentageScore
-                  : (totalQuizMarks > 0 ? Math.round((netScore / totalQuizMarks) * 100) : 0);
+            const resultUrl = `/dashboard/quizzes/${quizId}/result?attempt=${attempt.id}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`;
 
-                const resultUrl = `/dashboard/quizzes/${quizId}/result?attempt=${attempt.id}${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`;
+            return (
+              <article key={attempt.id} className={styles.attemptCard}>
+                <div className={styles.attemptCardTop}>
+                  <div className={styles.attemptMeta}>
+                    <span className={styles.attemptBadge}>
+                      Attempt #{attemptNum}
+                    </span>
 
-                return (
-                  <article key={attempt.id} className={styles.attemptCard}>
-                    <div className={styles.attemptCardTop}>
-                      <div className={styles.attemptMeta}>
-                        <span className={styles.attemptBadge}>
-                          Attempt #{attemptNum}
-                        </span>
+                    {isBest && (
+                      <span className={styles.bestBadge}>
+                        <Trophy size={13} /> Best Score
+                      </span>
+                    )}
 
-                        {isBest && (
-                          <span className={styles.bestBadge}>
-                            <Trophy size={13} /> Best Score
-                          </span>
-                        )}
+                    {isLatest && !isBest && (
+                      <span className={styles.latestBadge}>
+                        Latest Attempt
+                      </span>
+                    )}
 
-                        {isLatest && !isBest && (
-                          <span className={styles.latestBadge}>
-                            Latest Attempt
-                          </span>
-                        )}
+                    {isInProg && (
+                      <span style={{ 
+                        padding: '4px 10px', 
+                        background: 'rgba(245, 158, 11, 0.15)', 
+                        color: '#f59e0b', 
+                        borderRadius: '6px', 
+                        fontSize: '12px', 
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f59e0b' }}></span>
+                        In Progress
+                      </span>
+                    )}
 
-                        {isInProg && (
-                          <span style={{ 
-                            padding: '4px 10px', 
-                            background: 'rgba(245, 158, 11, 0.15)', 
-                            color: '#f59e0b', 
-                            borderRadius: '6px', 
-                            fontSize: '12px', 
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}>
-                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#f59e0b' }}></span>
-                            In Progress
-                          </span>
-                        )}
+                    <span className={styles.attemptDate}>
+                      <Clock size={14} />
+                      {new Date(attempt.submittedAt || attempt.startedAt).toLocaleString([], {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
 
-                        <span className={styles.attemptDate}>
-                          <Clock size={14} />
-                          {new Date(attempt.submittedAt || attempt.startedAt).toLocaleString([], {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </span>
-                      </div>
-
-                      {!isInProg && (
-                        <div className={styles.attemptScoreWrap}>
-                          <span className={styles.scoreNumber}>
-                            {netScore.toFixed(2)}
-                          </span>
-                          <span className={styles.totalMarks}>
-                            / {totalQuizMarks.toFixed(1)} Marks
-                          </span>
-                          <span className={styles.percentageBadge}>
-                            {percentage}%
-                          </span>
-                        </div>
-                      )}
+                  {!isInProg && (
+                    <div className={styles.attemptScoreWrap}>
+                      <span className={styles.scoreNumber}>
+                        {netScore.toFixed(2)}
+                      </span>
+                      <span className={styles.totalMarks}>
+                        / {totalQuizMarks.toFixed(1)} Marks
+                      </span>
+                      <span className={styles.percentageBadge}>
+                        {percentage}%
+                      </span>
                     </div>
+                  )}
+                </div>
 
-                    <div className={styles.attemptDetailsRow}>
-                      <div className={styles.chipsList}>
-                        {!isInProg ? (
-                          <>
-                            {attempt.correctCount !== undefined && attempt.correctCount !== null && (
-                              <span className={`${styles.chip} ${styles.chipCorrect}`}>
-                                <CheckCircle size={14} /> {attempt.correctCount} Correct
-                              </span>
-                            )}
-
-                            {attempt.wrongCount !== undefined && attempt.wrongCount !== null && attempt.wrongCount > 0 && (
-                              <span className={`${styles.chip} ${styles.chipWrong}`}>
-                                <XCircle size={14} /> {attempt.wrongCount} Wrong
-                              </span>
-                            )}
-
-                            {attempt.skippedCount !== undefined && attempt.skippedCount !== null && attempt.skippedCount > 0 && (
-                              <span className={styles.chip}>
-                                <AlertCircle size={14} /> {attempt.skippedCount} Skipped
-                              </span>
-                            )}
-
-                            {attempt.negativeMarks !== undefined && attempt.negativeMarks !== null && attempt.negativeMarks > 0 && (
-                              <span className={`${styles.chip} ${styles.chipPenalty}`}>
-                                -{attempt.negativeMarks.toFixed(2)} Negative Marks
-                              </span>
-                            )}
-
-                            <span className={`${styles.chip} ${styles.chipTime}`}>
-                              <Clock size={14} /> Time: {timeStr}
-                            </span>
-                          </>
-                        ) : (
-                          <span style={{ fontSize: '13.5px', color: '#f59e0b' }}>
-                            This attempt is still active and has not been submitted yet.
+                <div className={styles.attemptDetailsRow}>
+                  <div className={styles.chipsList}>
+                    {!isInProg ? (
+                      <>
+                        {attempt.correctCount !== undefined && attempt.correctCount !== null && (
+                          <span className={`${styles.chip} ${styles.chipCorrect}`}>
+                            <CheckCircle size={14} /> {attempt.correctCount} Correct
                           </span>
                         )}
-                      </div>
 
-                      <div>
-                        {isInProg ? (
-                          <Link
-                            href={`/dashboard/quizzes/${quizId}/attempt/${attempt.id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
-                            className={styles.viewDetailsBtn}
-                            style={{ background: '#f59e0b', color: '#ffffff', borderColor: '#f59e0b' }}
-                          >
-                            <Play size={15} /> Continue Attempt <ChevronRight size={16} />
-                          </Link>
-                        ) : (
-                          <Link
-                            href={resultUrl}
-                            className={styles.viewDetailsBtn}
-                          >
-                            View Details <ChevronRight size={16} />
-                          </Link>
+                        {attempt.wrongCount !== undefined && attempt.wrongCount !== null && attempt.wrongCount > 0 && (
+                          <span className={`${styles.chip} ${styles.chipWrong}`}>
+                            <XCircle size={14} /> {attempt.wrongCount} Wrong
+                          </span>
                         )}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </>
+
+                        {attempt.skippedCount !== undefined && attempt.skippedCount !== null && attempt.skippedCount > 0 && (
+                          <span className={styles.chip}>
+                            <AlertCircle size={14} /> {attempt.skippedCount} Skipped
+                          </span>
+                        )}
+
+                        {attempt.negativeMarks !== undefined && attempt.negativeMarks !== null && attempt.negativeMarks > 0 && (
+                          <span className={`${styles.chip} ${styles.chipPenalty}`}>
+                            -{attempt.negativeMarks.toFixed(2)} Negative Marks
+                          </span>
+                        )}
+
+                        <span className={`${styles.chip} ${styles.chipTime}`}>
+                          <Clock size={14} /> Time: {timeStr}
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '13.5px', color: '#f59e0b' }}>
+                        This attempt is still active and has not been submitted yet.
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    {isInProg ? (
+                      <Link
+                        href={`/dashboard/quizzes/${quizId}/attempt/${attempt.id}${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                        className={styles.viewDetailsBtn}
+                        style={{ background: '#f59e0b', color: '#ffffff', borderColor: '#f59e0b' }}
+                      >
+                        <Play size={15} /> Continue Attempt <ChevronRight size={16} />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={resultUrl}
+                        className={styles.viewDetailsBtn}
+                      >
+                        View Details <ChevronRight size={16} />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       )}
     </div>
+  );
+}
+
+export default function ReviewAttemptsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className={styles.container}>
+          <div className={styles.loading}>
+            <div className={styles.spinner}></div>
+            <p>Loading your past attempts...</p>
+          </div>
+        </div>
+      }
+    >
+      <ReviewAttemptsContent />
+    </Suspense>
   );
 }

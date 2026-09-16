@@ -262,9 +262,6 @@
   height: 14px;
 }
 
-:global(html) {
-  scroll-behavior: smooth;
-}
 
 /* ─── Distinct Visual Section Cards (Dividing Overview, Leaderboard, and Review) ─── */
 .sectionCard {
@@ -1713,6 +1710,19 @@
 
 .standingRight {
   flex-shrink: 0;
+}
+
+.standingRankPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: var(--primary-light);
+  border: 1px solid rgba(237, 28, 40, 0.3);
+  color: var(--primary-color);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .jumpToMeBtn {

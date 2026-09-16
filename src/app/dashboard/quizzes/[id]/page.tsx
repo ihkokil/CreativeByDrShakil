@@ -366,11 +366,20 @@ export default function QuizDetailPage() {
               </Link>
 
               <Link 
+                href={`/dashboard/quizzes/${quizId}/leaderboard${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
+                className={styles.secondaryBtn}
+                title="View quiz leaderboard and student rankings"
+              >
+                <Trophy className={styles.btnIcon} />
+                Leaderboard
+              </Link>
+
+              <Link 
                 href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                 className={styles.secondaryBtn}
                 title="View all your past attempts"
               >
-                <Trophy className={styles.btnIcon} />
+                <RotateCcw className={styles.btnIcon} />
                 Review Attempts ({quiz.allAttempts?.length || 0})
               </Link>
             </>

@@ -1,0 +1,526 @@
+.container {
+  --primary-color: var(--primary, #ed1c28);
+  --primary-light: rgba(237, 28, 40, 0.1);
+  --bg-primary: var(--background, #0a0a0a);
+  --bg-secondary: rgba(26, 26, 32, 0.88);
+  --card-bg: rgba(18, 18, 22, 0.90);
+  --border-color: var(--glass-border);
+  --text-color: var(--foreground, #ffffff);
+  --text-secondary: var(--text-muted, #a1a1aa);
+  --text-muted: #a0a0a0;
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+  color: var(--text-color);
+  font-family: inherit;
+}
+
+:global([data-theme='light']) .container {
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --bg-secondary: rgba(241, 245, 249, 0.90);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-muted: #475569;
+  --text-secondary: #334155;
+}
+
+.header {
+  margin-bottom: 28px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.backLink:hover {
+  color: var(--primary-color);
+  transform: translateX(-3px);
+}
+
+.backIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.quizInfo {
+  flex: 1;
+  min-width: 280px;
+}
+
+.quizTitleRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.quizTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-color);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.categoryBadge {
+  padding: 4px 12px;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.primaryBtn {
+  background: var(--primary-color);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(237, 28, 40, 0.3);
+}
+
+.primaryBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.secondaryBtn {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.secondaryBtn:hover {
+  background: var(--bg-secondary);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Leaderboard Card */
+.leaderboardCard {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.leaderboardTopBanner {
+  padding: 16px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.policyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.policyBadge strong {
+  color: var(--text-color);
+}
+
+.bannerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.userRankHighlight {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: 1px solid rgba(237, 28, 40, 0.3);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.showAroundMyRankBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  color: #ffffff;
+  border: 1px solid rgba(2, 132, 199, 0.4);
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+}
+
+.showAroundMyRankBtn:hover {
+  background: linear-gradient(135deg, #0369a1, #075985);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+}
+
+/* Search Toolbar */
+.toolbarRow {
+  padding: 14px 20px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.searchBox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+  max-width: 420px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 36px 8px 36px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--text-color);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.clearSearchBtn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.clearSearchBtn:hover {
+  color: var(--text-color);
+}
+
+.searchCountText {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.infiniteScrollSentinel {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 14px 0;
+}
+
+.highlightedRow {
+  animation: rowGlow 3.5s ease-out forwards;
+}
+
+@keyframes rowGlow {
+  0% {
+    background-color: rgba(2, 132, 199, 0.4) !important;
+    box-shadow: inset 0 0 0 2px #0284c7;
+  }
+  50% {
+    background-color: rgba(2, 132, 199, 0.2) !important;
+    box-shadow: inset 0 0 0 2px rgba(2, 132, 199, 0.5);
+  }
+  100% {
+    background-color: rgba(237, 28, 40, 0.06) !important;
+    box-shadow: none;
+  }
+}
+
+.leaderboardTable {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.leaderboardTable th {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.leaderboardRow {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s ease;
+}
+
+.leaderboardRow:last-child {
+  border-bottom: none;
+}
+
+.leaderboardRow:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.currentUserRow {
+  background: rgba(237, 28, 40, 0.05);
+  border-left: 3px solid var(--primary-color);
+}
+
+.rankCell {
+  padding: 14px 18px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.rankBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 13.5px;
+  font-weight: 800;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.rank1 {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.rank2 {
+  background: rgba(156, 163, 175, 0.2);
+  color: #9ca3af;
+}
+
+.rank3 {
+  background: rgba(180, 83, 9, 0.2);
+  color: #d97706;
+}
+
+.studentCell {
+  padding: 14px 18px;
+}
+
+.studentInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studentAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-color);
+  flex-shrink: 0;
+}
+
+.studentName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.youBadge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border: 1px solid rgba(237, 28, 40, 0.3);
+}
+
+.scoreCell {
+  padding: 14px 18px;
+  font-weight: 700;
+}
+
+.scorePrimary {
+  font-size: 14.5px;
+  color: #10b981;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.scorePct {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.timeCell, .attemptCell, .dateCell {
+  padding: 14px 18px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Empty & Loading states */
+.emptyState {
+  text-align: center;
+  padding: 64px 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+}
+
+.emptyIcon {
+  width: 56px;
+  height: 56px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .leaderboardTable, .leaderboardTable tbody, .leaderboardTable tr, .leaderboardTable td {
+    display: block;
+  }
+  .leaderboardTable thead {
+    display: none;
+  }
+  .leaderboardRow {
+    padding: 16px;
+    position: relative;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .rankCell {
+    width: auto;
+    text-align: left;
+    padding: 0 0 10px 0;
+  }
+  .studentCell {
+    padding: 0 0 10px 0;
+  }
+  .scoreCell, .timeCell, .attemptCell, .dateCell {
+    padding: 4px 0;
+    font-size: 12.5px;
+  }
+}

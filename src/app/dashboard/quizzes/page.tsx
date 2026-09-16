@@ -545,7 +545,7 @@ export default function QuizzesPage() {
                             {/* 2. Leaderboard (Available ONLY after at least one attempt) */}
                             {hasCompletedAttempt && (
                               <Link
-                                href={`/dashboard/quizzes/${quiz.id}/attempts?tab=leaderboard`}
+                                href={`/dashboard/quizzes/${quiz.id}/leaderboard`}
                                 className={`${styles.actionBtn} ${styles.leaderboardBtn}`}
                                 title="View Quiz Leaderboard and Student Rankings"
                               >
