@@ -239,19 +239,11 @@ export default function QuizResultPage() {
         currentY += imgHeight + 15; // 15px spacing between elements
       };
 
-      // 1. Capture Score Section
-      const scoreElement = document.getElementById('score-section');
-      if (scoreElement) await addElementToPdf(scoreElement);
-      
-      // 1.5 Capture Summary Grid
-      const summaryGrid = document.getElementById('summary-grid-section');
-      if (summaryGrid) await addElementToPdf(summaryGrid);
-      
-      // 2. Capture Review Header
+      // 1. Capture Review Header (Quiz Title, Attempt, Score, Accuracy, and Stats)
       const reviewHeader = document.getElementById('review-header-section');
       if (reviewHeader) await addElementToPdf(reviewHeader);
       
-      // 3. Capture Each Question Card Individually
+      // 2. Capture Each Question Card Individually
       const questionCards = Array.from(document.querySelectorAll('.pdf-question-card')) as HTMLElement[];
       for (const card of questionCards) {
         await addElementToPdf(card);
@@ -866,10 +858,10 @@ export default function QuizResultPage() {
                 <CheckCircle size={20} />
               </div>
               <div>
-                <span className={`${styles.sectionPreTitle} ${styles.preTitleReview}`}>Section 3 of 3 • Medical Rationales</span>
-                <h2 className={styles.sectionCardTitle}>Answer Review & Explanations</h2>
+                <span className={`${styles.sectionPreTitle} ${styles.preTitleReview}`}>Answer Review & Explanations</span>
+                <h2 className={styles.sectionCardTitle}>{quiz.title}</h2>
                 <p className={styles.sectionCardSubtitle}>
-                  Detailed breakdown of questions, your selections, and medical rationales
+                  Attempt #{attempt.attemptNumber} • Score: {Number(attempt.netScore || 0).toFixed(1)} / {totalMarks.toFixed(1)} Marks ({percentageScore.toFixed(1)}% Accuracy)
                 </p>
               </div>
             </div>

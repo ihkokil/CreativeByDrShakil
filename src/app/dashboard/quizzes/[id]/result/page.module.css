@@ -2419,7 +2419,7 @@
 }
 
 @media print {
-  .header, .tabNav, .actions, .backLink {
+  .header, .tabNav, .actions, .backLink, .sectionCardOverview, .sectionCardLeaderboard {
     display: none !important;
   }
   
