@@ -1386,6 +1386,78 @@
     border: 1px solid rgba(139, 92, 246, 0.2);
 }
 
+.hlsBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: monospace;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    padding: 2px 7px;
+    border-radius: 6px;
+    margin-left: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.transcodingBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: monospace;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    padding: 2px 7px;
+    border-radius: 6px;
+    margin-left: 8px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    animation: pulseBadge 2s infinite ease-in-out;
+}
+
+@keyframes pulseBadge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.previewModal {
+    max-width: 900px !important;
+    width: min(95vw, 900px) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 16px !important;
+    background: #09090b !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.previewModalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background: #111114;
+}
+
+.previewModalHeader h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f4f4f5;
+}
+
+.previewModalBody {
+    padding: 16px;
+    aspect-ratio: 16 / 9;
+    max-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
 .quizModal {
     max-width: 820px !important;
     width: min(95vw, 820px) !important;

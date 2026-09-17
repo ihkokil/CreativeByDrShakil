@@ -36,6 +36,8 @@ build/
 # TypeScript
 *.tsbuildinfo
 /public/uploads/contact-submissions
+/public/streams
+/uploads
 
 # Agent Architecture
 .tmp/

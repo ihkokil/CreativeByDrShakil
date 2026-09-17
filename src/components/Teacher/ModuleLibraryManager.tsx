@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import AlertModal from "@/components/UI/AlertModal";
 import ConfirmModal from "@/components/UI/ConfirmModal";
 import { useModal } from "@/hooks/useModal";
+import VideoJsPlayer from "@/components/VideoPlayer/VideoJsPlayer";
 
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document' | 'quiz';
@@ -109,9 +110,10 @@ interface NodeProps {
     onDragOver: (targetId: string, e: React.DragEvent) => void;
     onDragLeave: (targetId: string) => void;
     onDrop: (draggedId: string, targetId: string, position: 'above' | 'below', siblingIds: string[]) => void;
+    onPreview?: (node: CurriculumNode) => void;
 }
 
-const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNodeId, dragOverNodeId, dragOverPosition, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop }: NodeProps) => {
+const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNodeId, dragOverNodeId, dragOverPosition, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onPreview }: NodeProps) => {
     const [isOpen, setIsOpen] = useState(true);
     const isFolder = node.type === 'folder';
 
@@ -142,6 +144,9 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
         const position: 'above' | 'below' = y < rect.height / 2 ? 'above' : 'below';
         onDrop(dragNodeId, node.id, position, siblingIds);
     };
+
+    const isHlsReady = Boolean(node.url && (node.url.includes('.m3u8') || (node.attachments as any)?.transcodeStatus === 'ready'));
+    const isTranscoding = Boolean(node.url && (node.url.includes('/source.mp4') || (node.attachments as any)?.transcodeStatus === 'transcoding'));
 
     return (
         <div className={styles.nodeContainer}>
@@ -189,6 +194,12 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                             {node.type === 'quiz' && (
                                 <span className={styles.quizBadge}>Quiz{node.duration ? ` • ${node.duration}` : ''}</span>
                             )}
+                            {isHlsReady && (
+                                <span className={styles.hlsBadge} title="Adaptive multi-bitrate HLS ready">HLS Ready</span>
+                            )}
+                            {isTranscoding && (
+                                <span className={styles.transcodingBadge} title="Transcoding to multi-bitrate HLS in background...">Transcoding HLS...</span>
+                            )}
                             {isThisDragging && <span className={styles.draggingBadge}>Moving</span>}
                         </>
                     )}
@@ -196,6 +207,15 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                 </div>
 
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
+                    {!isFolder && node.url && (
+                        <button
+                            className={styles.actionBtn}
+                            onClick={() => onPreview?.(node)}
+                            title="Preview Video Stream"
+                        >
+                            <PlayCircle size={14} style={{ color: '#10b981' }} />
+                        </button>
+                    )}
                     <button className={styles.actionBtn} onClick={() => onMove(node.id, 'up')} title="Move Up"><ArrowUp size={14} /></button>
                     <button className={styles.actionBtn} onClick={() => onMove(node.id, 'down')} title="Move Down"><ArrowDown size={14} /></button>
                     <button className={styles.actionBtn} title="Edit" onClick={() => onEdit(node)}>
@@ -238,6 +258,7 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                                 onDragOver={onDragOver}
                                 onDragLeave={onDragLeave}
                                 onDrop={onDrop}
+                                onPreview={onPreview}
                             />
                         ))}
                     </motion.div>
@@ -271,6 +292,8 @@ export default function ModuleLibraryManager() {
     useModal(isDocModalOpen, () => setIsDocModalOpen(false));
     useModal(isEditModalOpen, () => setIsEditModalOpen(false));
     useModal(isQuizModalOpen, () => setIsQuizModalOpen(false));
+    const [previewNode, setPreviewNode] = useState<CurriculumNode | null>(null);
+    useModal(Boolean(previewNode), () => setPreviewNode(null));
     const [editingNode, setEditingNode] = useState<CurriculumNode | null>(null);
     const [activeParentId, setActiveParentId] = useState<string | null>(null);
 
@@ -538,6 +561,55 @@ export default function ModuleLibraryManager() {
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
+    const uploadVideoToServer = async (file: File, title: string, parentId?: string | null, nodeId?: string | null, token?: string | null): Promise<any> => {
+        return new Promise((resolve, reject) => {
+            const formData = new FormData();
+            formData.append('video', file);
+            if (title) formData.append('title', title);
+            if (parentId) formData.append('parentId', parentId);
+            if (nodeId) formData.append('nodeId', nodeId);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/teacher/video-upload');
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    setUploadProgress(percent);
+                }
+            };
+
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        if (res.success) {
+                            resolve(res);
+                        } else {
+                            resolve({ error: res.error || 'Upload failed on server.' });
+                        }
+                    } catch {
+                        resolve({ error: 'Invalid response from server.' });
+                    }
+                } else {
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        resolve({ error: res.error || `Upload failed with status ${xhr.status}.` });
+                    } catch {
+                        resolve({ error: xhr.responseText?.trim() || `Upload failed with status ${xhr.status}.` });
+                    }
+                }
+            };
+
+            xhr.onerror = () => reject(new Error('Unable to connect to upload server.'));
+            xhr.onabort = () => reject(new Error('Upload was cancelled.'));
+            xhr.send(formData);
+        });
+    };
+
     const uploadFileWithProgress = async (file: File, token: string | null): Promise<any> => {
         const contentType = getUploadContentType(file);
 
@@ -746,9 +818,13 @@ export default function ModuleLibraryManager() {
                 setUploadingVideo(true);
                 setUploadProgress(0);
                 const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-                const uploadData = await uploadFileWithProgress(videoFile, token);
-                if (uploadData.error) throw new Error(uploadData.error);
-                resolvedVideoUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
+                const uploadRes = await uploadVideoToServer(videoFile, videoTitle.trim(), activeParentId, null, token);
+                if (uploadRes.error) throw new Error(uploadRes.error);
+
+                setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setDocAttachments([]); setIsVideoModalOpen(false); setIsDocModalOpen(false); 
+                showAlert('Video uploaded! Instant MP4 playback is available, HLS transcoding running in background.', 'success');
+                await fetchLibrary();
+                return;
             }
 
             if (videoType === 'document' && finalAttachments) {
@@ -798,9 +874,9 @@ export default function ModuleLibraryManager() {
                 setUploadingVideo(true);
                 setUploadProgress(0);
                 const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-                const uploadData = await uploadFileWithProgress(videoFile, token);
-                if (uploadData.error) throw new Error(uploadData.error);
-                finalUrl = typeof uploadData.url === 'string' ? uploadData.url : null;
+                const uploadRes = await uploadVideoToServer(videoFile, title.trim(), editingNode.parentId, editingNode.id, token);
+                if (uploadRes.error) throw new Error(uploadRes.error);
+                finalUrl = uploadRes.url;
             }
 
             if (!isFolder && videoType === 'document' && finalAttachments) {
@@ -1181,6 +1257,7 @@ export default function ModuleLibraryManager() {
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
                                 onDrop={handleDrop}
+                                onPreview={setPreviewNode}
                             />
                         ))
                     )}
@@ -1764,6 +1841,36 @@ export default function ModuleLibraryManager() {
                         </div>
                     );
                 })()}
+            </AnimatePresence>
+
+            {/* Video.js Stream Preview Modal */}
+            <AnimatePresence>
+                {previewNode && (
+                    <div className={styles.modalOverlay} onClick={() => setPreviewNode(null)}>
+                        <motion.div
+                            className={styles.previewModal}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className={styles.previewModalHeader}>
+                                <h3>{previewNode.title}</h3>
+                                <button className={styles.closeBtn} onClick={() => setPreviewNode(null)}>
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className={styles.previewModalBody}>
+                                <VideoJsPlayer
+                                    key={previewNode.url}
+                                    src={previewNode.url || ''}
+                                    title={previewNode.title}
+                                    autoplay={true}
+                                />
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
             </AnimatePresence>
 
             {/* Reusable Confirmation Modal */}

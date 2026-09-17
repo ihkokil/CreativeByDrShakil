@@ -3,6 +3,7 @@
 import { Lock, FileText, Video as VideoIcon } from "lucide-react";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import VidstackPlayer from "./VidstackPlayer";
+import VideoJsPlayer from "@/components/VideoPlayer/VideoJsPlayer";
 import StudyQuizPlayer from "./StudyQuizPlayer";
 import styles from "./LessonPlayer.module.css";
 
@@ -230,13 +231,23 @@ export default function LessonPlayer({
       className={styles.playerContainer}
       onContextMenu={handleContextMenu}
     >
-      <VidstackPlayer
-        src={playerSrc}
-        type={isYoutube ? 'youtube' : undefined}
-        title={lesson.title}
-        poster={posterUrl}
-        autoplay={!isYoutube}
-      />
+      {isYoutube ? (
+        <VidstackPlayer
+          src={playerSrc}
+          type="youtube"
+          title={lesson.title}
+          poster={posterUrl}
+          autoplay={false}
+        />
+      ) : (
+        <VideoJsPlayer
+          src={playerSrc}
+          title={lesson.title}
+          poster={posterUrl}
+          autoplay={true}
+          onEnded={onComplete}
+        />
+      )}
 
       {/* ── Watermark — topmost, no pointer events ─────────────── */}
       <div className={styles.watermarkWrapper}>
