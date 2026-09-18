@@ -195,10 +195,16 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                                 <span className={styles.quizBadge}>Quiz{node.duration ? ` • ${node.duration}` : ''}</span>
                             )}
                             {isHlsReady && (
-                                <span className={styles.hlsBadge} title="Adaptive multi-bitrate HLS ready">HLS Ready</span>
+                                <span className={styles.hlsBadge} title="Adaptive multi-bitrate HLS ready">
+                                    <span className={styles.hlsDot} />
+                                    HLS Ready
+                                </span>
                             )}
                             {isTranscoding && (
-                                <span className={styles.transcodingBadge} title="Transcoding to multi-bitrate HLS in background...">Transcoding HLS...</span>
+                                <span className={styles.transcodingBadge} title="Transcoding to multi-bitrate HLS in background...">
+                                    <span className={styles.transcodingDot} />
+                                    Transcoding HLS...
+                                </span>
                             )}
                             {isThisDragging && <span className={styles.draggingBadge}>Moving</span>}
                         </>
@@ -1865,6 +1871,7 @@ export default function ModuleLibraryManager() {
                                     key={previewNode.url}
                                     src={previewNode.url || ''}
                                     title={previewNode.title}
+                                    poster={(previewNode as any)?.attachments?.thumbnailUrl || `/streams/${previewNode.id}/thumbnail.jpg`}
                                     autoplay={true}
                                 />
                             </div>

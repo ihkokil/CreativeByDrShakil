@@ -1389,72 +1389,110 @@
 .hlsBadge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.7rem;
+    gap: 5px;
+    font-size: 0.72rem;
     font-weight: 600;
-    font-family: monospace;
+    font-family: inherit;
+    letter-spacing: 0.02em;
     color: #10b981;
-    background: rgba(16, 185, 129, 0.12);
-    padding: 2px 7px;
-    border-radius: 6px;
+    background: rgba(16, 185, 129, 0.1);
+    padding: 2px 8px;
+    border-radius: 9999px;
     margin-left: 8px;
     border: 1px solid rgba(16, 185, 129, 0.25);
+    line-height: 1.4;
+}
+
+.hlsDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 
 .transcodingBadge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.7rem;
+    gap: 5px;
+    font-size: 0.72rem;
     font-weight: 600;
-    font-family: monospace;
+    font-family: inherit;
+    letter-spacing: 0.02em;
     color: #f59e0b;
-    background: rgba(245, 158, 11, 0.12);
-    padding: 2px 7px;
-    border-radius: 6px;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 2px 8px;
+    border-radius: 9999px;
     margin-left: 8px;
     border: 1px solid rgba(245, 158, 11, 0.3);
-    animation: pulseBadge 2s infinite ease-in-out;
+    line-height: 1.4;
 }
 
-@keyframes pulseBadge {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+.transcodingDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+    animation: pulseDot 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+    0%, 100% {
+        transform: scale(0.9);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
 }
 
 .previewModal {
-    max-width: 900px !important;
-    width: min(95vw, 900px) !important;
+    max-width: 960px !important;
+    width: min(95vw, 960px) !important;
     padding: 0 !important;
     overflow: hidden !important;
     border-radius: 16px !important;
     background: #09090b !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 0, 0, 0.5) !important;
 }
 
 .previewModalHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 20px;
+    padding: 12px 18px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: #111114;
+    background: #121216;
 }
 
 .previewModalHeader h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: #f4f4f5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .previewModalBody {
-    padding: 16px;
+    padding: 0 !important;
+    width: 100%;
     aspect-ratio: 16 / 9;
-    max-height: 70vh;
+    background: #000000;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    --media-border-radius: 0;
+}
+
+.previewModalBody :global(.video-player-container) {
+    border-radius: 0;
+    box-shadow: none;
 }
 
 

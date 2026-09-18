@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import '@videojs/react/video/skin.css';
 import { VideoPlayer, VideoSkin, Video } from '@videojs/react/video';
 import { HlsJsVideo } from '@videojs/react/media/hlsjs-video';
-import { useMedia } from '@videojs/react';
-import Hls from 'hls.js';
+import { SeekButton } from '@videojs/react';
+import { SeekIcon } from '@videojs/react/icons';
 import './VideoJsPlayer.css';
 
 export interface VideoJsPlayerProps {
@@ -17,155 +19,236 @@ export interface VideoJsPlayerProps {
   style?: React.CSSProperties;
 }
 
-/**
- * Bridge component rendered inside <VideoPlayer> to interface with Hls.js engine and video element:
- * 1. Handles quality selection from the gear menu and maps it to Hls.js level switching.
- * 2. Connects native video events (ended, timeupdate).
- */
-function HlsEngineBridge({
-  videoRef,
-  onEnded,
-}: {
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  onEnded?: () => void;
-}) {
-  const media = useMedia();
-
-  useEffect(() => {
-    if (!media) return;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const engine = (media as any).engine as Hls | null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const renditions = (media as any).videoRenditions;
-
-    // Handle manual vs auto quality selection from player menu
-    const handleRenditionChange = () => {
-      if (!renditions || !engine) return;
-      const selectedIndex = renditions.selectedIndex;
-
-      if (selectedIndex === -1) {
-        // Auto (ABR) selected
-        if (engine.manualLevel !== -1) {
-          engine.currentLevel = -1;
-        }
-      } else if (selectedIndex >= 0 && selectedIndex < engine.levels.length) {
-        // Specific manual rendition selected
-        if (engine.currentLevel !== selectedIndex) {
-          engine.currentLevel = selectedIndex;
-        }
-      }
-    };
-
-    if (renditions) {
-      renditions.addEventListener('change', handleRenditionChange);
-    }
-
-    const video = videoRef.current;
-    const handleEnded = () => {
-      if (onEnded) onEnded();
-    };
-
-    if (video) {
-      video.addEventListener('ended', handleEnded);
-    }
-
-    return () => {
-      if (renditions) {
-        renditions.removeEventListener('change', handleRenditionChange);
-      }
-      if (video) {
-        video.removeEventListener('ended', handleEnded);
-      }
-    };
-  }, [media, videoRef, onEnded]);
-
-  return null;
-}
-
 export default function VideoJsPlayer({
   src,
   poster,
   title,
-  autoplay = false,
+  autoplay = true,
   onEnded,
   className = '',
   style = {},
 }: VideoJsPlayerProps) {
-  const [resolvedSrc, setResolvedSrc] = useState(src);
-  const [resolvedPoster, setResolvedPoster] = useState(poster);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const wasAutoMutedRef = useRef(false);
+  const [controlsEl, setControlsEl] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const absSrc = src?.startsWith('/') ? `${window.location.origin}${src}` : src;
-      setResolvedSrc(absSrc);
+    if (!containerRef.current) return;
 
-      if (poster) {
-        const absPoster = poster.startsWith('/') ? `${window.location.origin}${poster}` : poster;
-        setResolvedPoster(absPoster);
-      } else {
-        setResolvedPoster(undefined);
+    const findControls = () => {
+      const el = containerRef.current?.querySelector('.video-controls-primary') as HTMLElement | null;
+      if (el) {
+        setControlsEl(el);
+        return true;
       }
-    }
-  }, [src, poster]);
-
-  const isHls = Boolean(src && (src.includes('.m3u8') || src.includes('/master')));
-
-  // Source configuration for HlsJsVideo
-  const hlsSource = useMemo(() => {
-    if (!isHls) return null;
-    return {
-      src: resolvedSrc,
-      preferPlayback: 'mse' as const,
-      capRenditionToPlayerSize: false,
-      engine: {
-        hlsJs: {
-          maxBufferLength: 8,
-          maxMaxBufferLength: 16,
-          backBufferLength: 0,
-        },
-      },
+      return false;
     };
-  }, [isHls, resolvedSrc]);
+
+    if (!findControls()) {
+      const observer = new MutationObserver(() => {
+        if (findControls()) {
+          observer.disconnect();
+        }
+      });
+      observer.observe(containerRef.current, { childList: true, subtree: true });
+      return () => observer.disconnect();
+    }
+  }, []);
+
+  // Resolve relative URLs to absolute (SSR safe)
+  const resolvedSrc = useMemo(() => {
+    if (!src) return '';
+    if (src.startsWith('/') && typeof window !== 'undefined') {
+      return `${window.location.origin}${src}`;
+    }
+    return src;
+  }, [src]);
+
+  const resolvedPoster = useMemo(() => {
+    if (!poster) return undefined;
+    if (poster.startsWith('/') && typeof window !== 'undefined') {
+      return `${window.location.origin}${poster}`;
+    }
+    return poster;
+  }, [poster]);
+
+  const isHls = useMemo(() => {
+    if (!resolvedSrc) return false;
+    return (
+      resolvedSrc.includes('.m3u8') ||
+      resolvedSrc.includes('/master') ||
+      resolvedSrc.includes('/streams/')
+    );
+  }, [resolvedSrc]);
+
+  // Attempt autoplay safely with browser policy fallback
+  const attemptAutoplay = useCallback((video: HTMLVideoElement | null) => {
+    if (!autoplay || !video) return;
+    if (!video.paused) return;
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error: any) => {
+        // Browser blocked unmuted autoplay due to policy
+        if (error?.name === 'NotAllowedError' || error?.name === 'AbortError') {
+          video.muted = true;
+          wasAutoMutedRef.current = true;
+          video.play().catch(() => {
+            // Both blocked (e.g. low-power mode)
+          });
+        }
+      });
+    }
+  }, [autoplay]);
+
+  const handleCanPlay = useCallback(() => {
+    const video = videoRef.current || containerRef.current?.querySelector('video');
+    if (video && video.paused) {
+      attemptAutoplay(video);
+    }
+  }, [attemptAutoplay]);
+
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current || containerRef.current?.querySelector('video');
+    if (video && video.paused) {
+      attemptAutoplay(video);
+    }
+  }, [attemptAutoplay]);
+
+  // Hook into video element events and src changes for autoplay
+  useEffect(() => {
+    if (!autoplay || !resolvedSrc) return;
+
+    const video = videoRef.current || containerRef.current?.querySelector('video');
+    if (!video) return;
+
+    if (video.readyState >= 2 && video.paused) {
+      attemptAutoplay(video);
+    }
+
+    const onCanPlay = () => {
+      if (video.paused) attemptAutoplay(video);
+    };
+
+    const onLoadedMetadata = () => {
+      if (video.paused) attemptAutoplay(video);
+    };
+
+    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('loadedmetadata', onLoadedMetadata);
+
+    return () => {
+      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+    };
+  }, [resolvedSrc, autoplay, attemptAutoplay]);
+
+  // If video was auto-muted due to browser restrictions, restore unmuted on first user interaction
+  useEffect(() => {
+    const handleInteraction = () => {
+      if (wasAutoMutedRef.current) {
+        wasAutoMutedRef.current = false;
+        const video = videoRef.current || containerRef.current?.querySelector('video');
+        if (video && video.muted) {
+          try {
+            video.muted = false;
+          } catch {
+            // Ignore any restriction
+          }
+        }
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('pointerdown', handleInteraction, { capture: true, once: true });
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('pointerdown', handleInteraction, { capture: true });
+      }
+    };
+  }, [resolvedSrc]);
+
+  if (!resolvedSrc) {
+    return (
+      <div className={`video-player-container ${className}`} style={style}>
+        <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
+          No video stream specified
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
-      className={`vjs-player-wrapper ${className}`}
+      ref={containerRef}
+      className={`video-player-container ${className}`}
       style={style}
       onContextMenu={(e) => e.preventDefault()}
+      title={title}
     >
-      <VideoPlayer title={title} poster={resolvedPoster}>
-        {isHls && (
-          <HlsEngineBridge
-            videoRef={videoRef}
-            onEnded={onEnded}
-          />
-        )}
-        <VideoSkin>
+      <VideoPlayer>
+        <VideoSkin className="absolute inset-0">
           {isHls ? (
             <HlsJsVideo
-              ref={videoRef}
               key={resolvedSrc}
+              ref={videoRef}
               src={resolvedSrc}
-              source={hlsSource}
               poster={resolvedPoster}
-              autoPlay={autoplay}
               playsInline
+              autoPlay={autoplay}
               crossOrigin="anonymous"
+              preload="auto"
+              onCanPlay={handleCanPlay}
+              onLoadedMetadata={handleLoadedMetadata}
+              onEnded={onEnded}
             />
           ) : (
             <Video
-              ref={videoRef}
               key={resolvedSrc}
+              ref={videoRef}
               src={resolvedSrc}
               poster={resolvedPoster}
-              autoPlay={autoplay}
               playsInline
+              autoPlay={autoplay}
               crossOrigin="anonymous"
+              preload="auto"
+              onCanPlay={handleCanPlay}
+              onLoadedMetadata={handleLoadedMetadata}
               onEnded={onEnded}
             />
           )}
+          {controlsEl &&
+            createPortal(
+              <>
+                <SeekButton
+                  seconds={-10}
+                  className="media-button media-seek-button media-seek-backward-button"
+                  title="Rewind 10 seconds"
+                  aria-label="Seek backward 10 seconds"
+                >
+                  <div className="media-seek-button-content">
+                    <SeekIcon className="media-button-icon media-seek-button-backward-icon" />
+                    <span className="media-seek-button-label media-seek-button-backward-label">10</span>
+                  </div>
+                </SeekButton>
+                <SeekButton
+                  seconds={10}
+                  className="media-button media-seek-button media-seek-forward-button"
+                  title="Forward 10 seconds"
+                  aria-label="Seek forward 10 seconds"
+                >
+                  <div className="media-seek-button-content">
+                    <SeekIcon className="media-button-icon media-seek-button-forward-icon" />
+                    <span className="media-seek-button-label media-seek-button-forward-label">10</span>
+                  </div>
+                </SeekButton>
+              </>,
+              controlsEl
+            )}
         </VideoSkin>
       </VideoPlayer>
     </div>

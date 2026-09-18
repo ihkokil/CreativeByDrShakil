@@ -13,7 +13,7 @@ const nextConfig = {
         'vidstack',
         '@videojs/react',
         '@videojs/hlsjs-video',
-        'video.js',
+
         '@supabase/supabase-js',
         'jose',
         'zod',

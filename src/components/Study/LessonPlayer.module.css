@@ -1,12 +1,18 @@
 /* ─── Container ──────────────────────────────────────────── */
 .playerContainer {
+    --media-border-radius: 28px;
     position: relative;
     width: 100%;
     aspect-ratio: 16 / 9;
     background: #000;
-    border-radius: 12px;
+    border-radius: 28px;
     overflow: hidden;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.playerContainer :global(.video-player-container) {
+    border-radius: inherit;
+    box-shadow: none;
 }
 
 /* ─── Mock Video (empty / locked state) ───────────────────── */
