@@ -217,14 +217,14 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
                     {!isFolder && (node.type === 'youtube' || node.type === 'self-hosted' || Boolean(node.url)) && (
                         <button
-                            className={styles.actionBtn}
+                            className={`${styles.actionBtn} ${node.type === 'youtube' || isYoutubeSource(node.url) ? styles.youtubeActionBtn : styles.streamActionBtn}`}
                             onClick={() => onPreview?.(node)}
                             title={node.type === 'youtube' || isYoutubeSource(node.url) ? "Preview YouTube Video" : "Preview Video Stream"}
                         >
                             {node.type === 'youtube' || isYoutubeSource(node.url) ? (
-                                <Youtube size={14} style={{ color: '#ef4444' }} />
+                                <Youtube size={14} />
                             ) : (
-                                <PlayCircle size={14} style={{ color: '#10b981' }} />
+                                <PlayCircle size={14} />
                             )}
                         </button>
                     )}

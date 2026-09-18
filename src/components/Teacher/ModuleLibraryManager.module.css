@@ -442,6 +442,51 @@
     border-color: var(--primary);
 }
 
+.actionBtn:hover svg {
+    color: white !important;
+    stroke: white !important;
+}
+
+.youtubeActionBtn {
+    color: #ef4444;
+}
+
+.youtubeActionBtn svg {
+    color: #ef4444;
+    transition: color 0.2s ease, stroke 0.2s ease;
+}
+
+.youtubeActionBtn:hover {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+    color: #ffffff !important;
+}
+
+.youtubeActionBtn:hover svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
+.streamActionBtn {
+    color: #10b981;
+}
+
+.streamActionBtn svg {
+    color: #10b981;
+    transition: color 0.2s ease, stroke 0.2s ease;
+}
+
+.streamActionBtn:hover {
+    background: #10b981 !important;
+    border-color: #10b981 !important;
+    color: #ffffff !important;
+}
+
+.streamActionBtn:hover svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
 .deleteBtn:hover {
     background: #ef4444;
     border-color: #ef4444;
