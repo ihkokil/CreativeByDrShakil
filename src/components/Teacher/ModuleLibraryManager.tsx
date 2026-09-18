@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Loader from "@/components/UI/Loader";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud, ClipboardList, Search, CheckSquare, PlusCircle, ArrowLeft, ExternalLink, AlertCircle, Check } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud, ClipboardList, Search, CheckSquare, PlusCircle, ArrowLeft, ExternalLink, AlertCircle, Check, Youtube } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import AlertModal from "@/components/UI/AlertModal";
 import ConfirmModal from "@/components/UI/ConfirmModal";
 import { useModal } from "@/hooks/useModal";
 import VideoJsPlayer from "@/components/VideoPlayer/VideoJsPlayer";
+import VidstackPlayer from "@/components/Study/VidstackPlayer";
+import { extractYoutubeId, isYoutubeSource, getYoutubeThumbnail } from "@/utils/youtube";
 
 
 export type ContentType = 'youtube' | 'self-hosted' | 'document' | 'quiz';
@@ -213,13 +215,17 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                 </div>
 
                 <div className={styles.actions} onClick={e => e.stopPropagation()}>
-                    {!isFolder && node.url && (
+                    {!isFolder && (node.type === 'youtube' || node.type === 'self-hosted' || Boolean(node.url)) && (
                         <button
                             className={styles.actionBtn}
                             onClick={() => onPreview?.(node)}
-                            title="Preview Video Stream"
+                            title={node.type === 'youtube' || isYoutubeSource(node.url) ? "Preview YouTube Video" : "Preview Video Stream"}
                         >
-                            <PlayCircle size={14} style={{ color: '#10b981' }} />
+                            {node.type === 'youtube' || isYoutubeSource(node.url) ? (
+                                <Youtube size={14} style={{ color: '#ef4444' }} />
+                            ) : (
+                                <PlayCircle size={14} style={{ color: '#10b981' }} />
+                            )}
                         </button>
                     )}
                     <button className={styles.actionBtn} onClick={() => onMove(node.id, 'up')} title="Move Up"><ArrowUp size={14} /></button>
@@ -1849,35 +1855,88 @@ export default function ModuleLibraryManager() {
                 })()}
             </AnimatePresence>
 
-            {/* Video.js Stream Preview Modal */}
+            {/* Video Stream & YouTube Preview Modal */}
             <AnimatePresence>
-                {previewNode && (
-                    <div className={styles.modalOverlay} onClick={() => setPreviewNode(null)}>
-                        <motion.div
-                            className={styles.previewModal}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className={styles.previewModalHeader}>
-                                <h3>{previewNode.title}</h3>
-                                <button className={styles.closeBtn} onClick={() => setPreviewNode(null)}>
-                                    <X size={20} />
-                                </button>
-                            </div>
-                            <div className={styles.previewModalBody}>
-                                <VideoJsPlayer
-                                    key={previewNode.url}
-                                    src={previewNode.url || ''}
-                                    title={previewNode.title}
-                                    poster={(previewNode as any)?.attachments?.thumbnailUrl || `/streams/${previewNode.id}/thumbnail.jpg`}
-                                    autoplay={true}
-                                />
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
+                {previewNode && (() => {
+                    const isYt = previewNode.type === 'youtube' || isYoutubeSource(previewNode.url);
+                    const ytId = isYt ? extractYoutubeId(previewNode.url) : null;
+                    const poster = (previewNode as any)?.attachments?.thumbnailUrl || 
+                                   (isYt ? (getYoutubeThumbnail(previewNode.url, 'maxres') || getYoutubeThumbnail(previewNode.url, 'hq')) : `/streams/${previewNode.id}/thumbnail.jpg`);
+                    const hasUrl = Boolean(previewNode.url && previewNode.url.trim());
+
+                    return (
+                        <div className={styles.modalOverlay} onClick={() => setPreviewNode(null)}>
+                            <motion.div
+                                className={styles.previewModal}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className={styles.previewModalHeader}>
+                                    <div className={styles.previewHeaderLeft}>
+                                        <div className={styles.previewHeaderIcon}>
+                                            {isYt ? (
+                                                <Youtube size={18} color="#ef4444" />
+                                            ) : (
+                                                <PlayCircle size={18} color="#34d399" />
+                                            )}
+                                        </div>
+                                        <div className={styles.previewHeaderText}>
+                                            <h3>{previewNode.title}</h3>
+                                            <div className={styles.previewMetaRow}>
+                                                {isYt ? (
+                                                    <span className={styles.previewYoutubeBadge}>YouTube</span>
+                                                ) : (
+                                                    <span className={styles.previewStreamBadge}>
+                                                        {previewNode.url?.includes('.m3u8') ? 'HLS Adaptive Stream' : 'Self-Hosted Video'}
+                                                    </span>
+                                                )}
+                                                {previewNode.duration && (
+                                                    <span className={styles.previewDurationText}>• {previewNode.duration}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        className={styles.previewCloseBtn} 
+                                        onClick={() => setPreviewNode(null)}
+                                        title="Close Preview"
+                                        aria-label="Close Preview"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                                <div className={styles.previewModalBody}>
+                                    {!hasUrl ? (
+                                        <div className={styles.previewEmptyState}>
+                                            <AlertCircle size={42} className={styles.previewEmptyIcon} />
+                                            <h4>No Video Stream Available</h4>
+                                            <p>This module element does not have a video stream or URL configured yet.</p>
+                                        </div>
+                                    ) : isYt ? (
+                                        <VidstackPlayer
+                                            key={previewNode.url || previewNode.id}
+                                            src={ytId || previewNode.url || ''}
+                                            type="youtube"
+                                            title={previewNode.title}
+                                            poster={poster}
+                                            autoplay={true}
+                                        />
+                                    ) : (
+                                        <VideoJsPlayer
+                                            key={previewNode.url || previewNode.id}
+                                            src={previewNode.url || ''}
+                                            title={previewNode.title}
+                                            poster={poster}
+                                            autoplay={true}
+                                        />
+                                    )}
+                                </div>
+                            </motion.div>
+                        </div>
+                    );
+                })()}
             </AnimatePresence>
 
             {/* Reusable Confirmation Modal */}

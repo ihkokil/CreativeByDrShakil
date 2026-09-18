@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { MediaPlayer, MediaProvider, type MediaPlayerInstance, SeekButton } from '@vidstack/react';
 import { defaultLayoutIcons, DefaultVideoLayout } from '@vidstack/react/player/layouts/default';
+import { extractYoutubeId, isYoutubeSource, getYoutubeThumbnail } from '@/utils/youtube';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 import './VidstackPlayer.css';
@@ -18,7 +19,7 @@ export interface VidstackPlayerProps {
 /**
  * Vidstack-based video player with built-in YouTube support.
  *
- * For YouTube videos, pass the video ID as `src` and set `type` to "youtube".
+ * For YouTube videos, pass the video ID or full YouTube URL as `src` and set `type` to "youtube" (or let it auto-detect).
  * For self-hosted videos, pass the direct URL as `src`.
  */
 export default function VidstackPlayer({
@@ -44,12 +45,31 @@ export default function VidstackPlayer({
     checkMobile();
   }, []);
 
+  const isYoutube = useMemo(() => {
+    return type === 'youtube' || isYoutubeSource(src);
+  }, [type, src]);
+
   // YouTube embeds block unmuted autoplay on both desktop and mobile browsers on initial load.
   // Setting autoPlay=true on YouTube embeds causes Vidstack state desync (shows pause icon while YT stays paused).
-  const shouldAutoPlay = type === 'youtube' ? false : (isMobile ? false : autoplay);
+  const shouldAutoPlay = isYoutube ? false : (isMobile ? false : autoplay);
 
   // For YouTube sources, Vidstack expects "youtube/{videoId}" format
-  const resolvedSrc = type === 'youtube' ? `youtube/${src}` : src;
+  const resolvedSrc = useMemo(() => {
+    if (!src) return '';
+    if (isYoutube) {
+      const ytId = extractYoutubeId(src) || src.replace(/^youtube\//, '').trim();
+      return `youtube/${ytId}`;
+    }
+    return src;
+  }, [src, isYoutube]);
+
+  const resolvedPoster = useMemo(() => {
+    if (poster) return poster;
+    if (isYoutube) {
+      return getYoutubeThumbnail(src, 'maxres') || getYoutubeThumbnail(src, 'hq');
+    }
+    return undefined;
+  }, [poster, isYoutube, src]);
 
   const handleAutoPlayFail = () => {
     // If autoplay fails, force player state back to paused so UI syncs with iframe
@@ -68,7 +88,7 @@ export default function VidstackPlayer({
         key={resolvedSrc}
         src={resolvedSrc}
         title={title}
-        poster={poster}
+        poster={resolvedPoster}
         autoPlay={shouldAutoPlay}
         onAutoPlayFail={handleAutoPlayFail}
         playsInline

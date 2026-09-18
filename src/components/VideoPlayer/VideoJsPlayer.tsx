@@ -7,7 +7,11 @@ import { VideoPlayer, VideoSkin, Video } from '@videojs/react/video';
 import { HlsJsVideo } from '@videojs/react/media/hlsjs-video';
 import { SeekButton } from '@videojs/react';
 import { SeekIcon } from '@videojs/react/icons';
+import VidstackPlayer from '@/components/Study/VidstackPlayer';
+import { extractYoutubeId, isYoutubeSource, getYoutubeThumbnail } from '@/utils/youtube';
 import './VideoJsPlayer.css';
+
+export { extractYoutubeId, isYoutubeSource, getYoutubeThumbnail };
 
 export interface VideoJsPlayerProps {
   src: string;
@@ -73,14 +77,22 @@ export default function VideoJsPlayer({
     return poster;
   }, [poster]);
 
-  const isHls = useMemo(() => {
-    if (!resolvedSrc) return false;
-    return (
-      resolvedSrc.includes('.m3u8') ||
-      resolvedSrc.includes('/master') ||
-      resolvedSrc.includes('/streams/')
-    );
+  const isYoutube = useMemo(() => {
+    return isYoutubeSource(resolvedSrc);
   }, [resolvedSrc]);
+
+  const isHls = useMemo(() => {
+    if (!resolvedSrc || isYoutube) return false;
+    const clean = resolvedSrc.split('?')[0].toLowerCase();
+    if (clean.endsWith('.mp4') || clean.endsWith('.webm') || clean.endsWith('.ogg')) {
+      return false;
+    }
+    return (
+      clean.endsWith('.m3u8') ||
+      clean.includes('.m3u8') ||
+      clean.includes('/master')
+    );
+  }, [resolvedSrc, isYoutube]);
 
   // Attempt autoplay safely with browser policy fallback
   const attemptAutoplay = useCallback((video: HTMLVideoElement | null) => {
@@ -178,6 +190,27 @@ export default function VideoJsPlayer({
         <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>
           No video stream specified
         </div>
+      </div>
+    );
+  }
+
+  if (isYoutube) {
+    const ytId = extractYoutubeId(resolvedSrc) || resolvedSrc;
+    const ytPoster = resolvedPoster || getYoutubeThumbnail(ytId, 'maxres') || getYoutubeThumbnail(ytId, 'hq');
+    return (
+      <div
+        className={`video-player-container ${className}`}
+        style={style}
+        onContextMenu={(e) => e.preventDefault()}
+        title={title}
+      >
+        <VidstackPlayer
+          src={ytId}
+          type="youtube"
+          title={title}
+          poster={ytPoster}
+          autoplay={autoplay}
+        />
       </div>
     );
   }
