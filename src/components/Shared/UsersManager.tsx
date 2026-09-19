@@ -636,7 +636,7 @@ export default function UsersManager() {
             ? 'rgba(34, 197, 94, 0.08)'
             : isLoggedOut
             ? 'var(--surface-soft)'
-            : 'rgba(56, 189, 248, 0.04)',
+            : 'color-mix(in srgb, #38bdf8 10%, var(--card-bg))',
           boxShadow: isOnlineNow ? '0 0 10px rgba(34, 197, 94, 0.15)' : 'none',
           cursor: 'pointer',
           minWidth: '145px',
@@ -695,7 +695,7 @@ export default function UsersManager() {
             width: '100%',
             marginTop: '2px',
             paddingTop: '4px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+            borderTop: '1px solid var(--glass-border)',
           }}
         >
           {isLocked ? (
@@ -838,7 +838,7 @@ export default function UsersManager() {
       {/* 2. Collapsible Global Policy Card */}
       <div className={styles.policyCard}>
         {/* Policy Header Bar */}
-        <div className={styles.policyHeader} style={{ background: isPolicyPanelOpen ? 'rgba(255, 255, 255, 0.02)' : 'transparent' }}>
+        <div className={styles.policyHeader} style={{ background: isPolicyPanelOpen ? 'var(--surface-soft)' : 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
               display: 'flex',
@@ -939,11 +939,11 @@ export default function UsersManager() {
                     onChange={(e) => handleUpdateGlobalSetting({ maxConcurrentSessions: parseInt(e.target.value) })}
                     className={styles.customSelect}
                   >
-                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Session (Strict 1-Device)</option>
-                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Simultaneous Devices</option>
-                    <option value={3} style={{ background: '#18181b', color: '#fff' }}>3 Simultaneous Devices</option>
-                    <option value={4} style={{ background: '#18181b', color: '#fff' }}>4 Simultaneous Devices</option>
-                    <option value={5} style={{ background: '#18181b', color: '#fff' }}>5 Simultaneous Devices</option>
+                    <option value={1}>1 Session (Strict 1-Device)</option>
+                    <option value={2}>2 Simultaneous Devices</option>
+                    <option value={3}>3 Simultaneous Devices</option>
+                    <option value={4}>4 Simultaneous Devices</option>
+                    <option value={5}>5 Simultaneous Devices</option>
                   </select>
                   <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
                     <ChevronDown size={14} />
@@ -1018,9 +1018,9 @@ export default function UsersManager() {
                     onChange={(e) => handleUpdateGlobalSetting({ maxDesktopSessions: parseInt(e.target.value) })}
                     className={styles.customSelect}
                   >
-                    <option value={0} style={{ background: '#18181b', color: '#fff' }}>0 - Disabled</option>
-                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Desktop Slot</option>
-                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Desktop Slots (Max)</option>
+                    <option value={0}>0 - Disabled</option>
+                    <option value={1}>1 Desktop Slot</option>
+                    <option value={2}>2 Desktop Slots (Max)</option>
                   </select>
                   <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
                     <ChevronDown size={14} />
@@ -1056,9 +1056,9 @@ export default function UsersManager() {
                     onChange={(e) => handleUpdateGlobalSetting({ maxTabletSessions: parseInt(e.target.value) })}
                     className={styles.customSelect}
                   >
-                    <option value={0} style={{ background: '#18181b', color: '#fff' }}>0 - Disabled</option>
-                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Tablet Slot</option>
-                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Tablet Slots (Max)</option>
+                    <option value={0}>0 - Disabled</option>
+                    <option value={1}>1 Tablet Slot</option>
+                    <option value={2}>2 Tablet Slots (Max)</option>
                   </select>
                   <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
                     <ChevronDown size={14} />
@@ -1094,9 +1094,9 @@ export default function UsersManager() {
                     onChange={(e) => handleUpdateGlobalSetting({ maxMobileSessions: parseInt(e.target.value) })}
                     className={styles.customSelect}
                   >
-                    <option value={0} style={{ background: '#18181b', color: '#fff' }}>0 - Disabled</option>
-                    <option value={1} style={{ background: '#18181b', color: '#fff' }}>1 Mobile Slot</option>
-                    <option value={2} style={{ background: '#18181b', color: '#fff' }}>2 Mobile Slots (Max)</option>
+                    <option value={0}>0 - Disabled</option>
+                    <option value={1}>1 Mobile Slot</option>
+                    <option value={2}>2 Mobile Slots (Max)</option>
                   </select>
                   <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
                     <ChevronDown size={14} />
@@ -1184,11 +1184,11 @@ export default function UsersManager() {
                 }}
                 className={styles.customSelect}
               >
-                <option value="lastActive" style={{ background: '#18181b', color: '#fff' }}>Sort: Last Active</option>
-                <option value="newest" style={{ background: '#18181b', color: '#fff' }}>Sort: Newest First</option>
-                <option value="oldest" style={{ background: '#18181b', color: '#fff' }}>Sort: Oldest First</option>
-                <option value="name_asc" style={{ background: '#18181b', color: '#fff' }}>Sort: Name (A-Z)</option>
-                <option value="name_desc" style={{ background: '#18181b', color: '#fff' }}>Sort: Name (Z-A)</option>
+                <option value="lastActive">Sort: Last Active</option>
+                <option value="newest">Sort: Newest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+                <option value="name_asc">Sort: Name (A-Z)</option>
+                <option value="name_desc">Sort: Name (Z-A)</option>
               </select>
               <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
                 <ChevronDown size={14} />
@@ -1359,7 +1359,8 @@ export default function UsersManager() {
                           fontWeight: 700,
                           padding: '1px 6px',
                           borderRadius: '6px',
-                          background: 'rgba(255, 255, 255, 0.05)',
+                          background: 'var(--surface-soft)',
+                          border: '1px solid var(--glass-border)',
                           color: 'var(--text-muted)',
                         }}>
                           {userObj.role}

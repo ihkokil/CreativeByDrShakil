@@ -110,13 +110,14 @@ export default function ConfirmModal({
             style={{
               width: '100%',
               maxWidth: '440px',
-              background: '#0f172a',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
+              background: 'var(--card-bg, #18181b)',
+              border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.12))',
               borderRadius: '18px',
               padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              boxShadow: 'var(--shadow-premium, 0 25px 50px -12px rgba(0, 0, 0, 0.5))',
               position: 'relative',
               overflow: 'hidden',
+              color: 'var(--foreground, #ffffff)',
             }}
           >
             {/* Ambient Background Glow */}
@@ -146,7 +147,7 @@ export default function ConfirmModal({
                 right: '16px',
                 background: 'transparent',
                 border: 'none',
-                color: '#94a3b8',
+                color: 'var(--text-muted, #94a3b8)',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 padding: '8px',
                 borderRadius: '8px',
@@ -159,10 +160,16 @@ export default function ConfirmModal({
                 touchAction: 'manipulation',
               }}
               onMouseEnter={(e) => {
-                if (!loading) e.currentTarget.style.color = '#fff';
+                if (!loading) {
+                  e.currentTarget.style.color = 'var(--foreground, #fff)';
+                  e.currentTarget.style.background = 'var(--surface-soft, rgba(255, 255, 255, 0.06))';
+                }
               }}
               onMouseLeave={(e) => {
-                if (!loading) e.currentTarget.style.color = '#94a3b8';
+                if (!loading) {
+                  e.currentTarget.style.color = 'var(--text-muted, #94a3b8)';
+                  e.currentTarget.style.background = 'transparent';
+                }
               }}
             >
               <X size={18} />
@@ -193,7 +200,7 @@ export default function ConfirmModal({
                     margin: '0 0 6px 0',
                     fontSize: '1.15rem',
                     fontWeight: 700,
-                    color: '#f8fafc',
+                    color: 'var(--foreground, #f8fafc)',
                     letterSpacing: '-0.01em',
                   }}
                 >
@@ -203,7 +210,7 @@ export default function ConfirmModal({
                   style={{
                     margin: 0,
                     fontSize: '0.88rem',
-                    color: '#94a3b8',
+                    color: 'var(--text-muted, #94a3b8)',
                     lineHeight: 1.5,
                   }}
                 >
@@ -221,7 +228,7 @@ export default function ConfirmModal({
                 gap: '10px',
                 marginTop: '24px',
                 paddingTop: '16px',
-                borderTop: '1px solid rgba(255, 255, 255, 0.07)',
+                borderTop: '1px solid var(--glass-border, rgba(255, 255, 255, 0.07))',
                 flexWrap: 'wrap',
               }}
             >
@@ -233,23 +240,23 @@ export default function ConfirmModal({
                   padding: '10px 18px',
                   minHeight: '44px',
                   borderRadius: '10px',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#cbd5e1',
+                  background: 'var(--surface-soft, rgba(255, 255, 255, 0.06))',
+                  border: '1px solid var(--glass-border, rgba(255, 255, 255, 0.1))',
+                  color: 'var(--foreground, #cbd5e1)',
                   fontWeight: 600,
                   fontSize: '0.88rem',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background 0.15s ease',
+                  transition: 'all 0.15s ease',
                   touchAction: 'manipulation',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  if (!loading) e.currentTarget.style.background = 'var(--surface-strong, rgba(255, 255, 255, 0.12))';
                 }}
                 onMouseLeave={(e) => {
-                  if (!loading) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                  if (!loading) e.currentTarget.style.background = 'var(--surface-soft, rgba(255, 255, 255, 0.06))';
                 }}
               >
                 {cancelLabel}
