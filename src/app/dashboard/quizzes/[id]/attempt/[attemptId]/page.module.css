@@ -337,7 +337,7 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .topBar {
     top: max(8px, env(safe-area-inset-top, 8px));
     height: 44px;
@@ -501,13 +501,10 @@
 }
 
 .mainContent {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 24px;
-  align-items: start;
+  position: relative;
   max-width: 1260px;
   margin: 0 auto;
-  padding: 72px 4px 60px;
+  padding: 72px 12px 60px;
   min-height: calc(100vh - 100px);
   width: 100%;
   box-sizing: border-box;
@@ -515,7 +512,8 @@
 
 /* Question Content */
 .questionContent {
-  width: 100%;
+  width: calc(100% - 240px);
+  max-width: 990px;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -760,17 +758,15 @@
   height: 22px;
 }
 
-/* MCQ Matrix (True / False) Vertical Styles */
-/* MCQ Matrix (True / False) Responsive Styles */
+/* MCQ Matrix (True / False) Vertical Stack Layout */
 .mcqMatrixRow {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 18px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px 18px;
   border: 1.5px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--bg-secondary);
   transition: all 0.15s ease;
   text-align: left;
@@ -796,20 +792,19 @@
 
 .mcqMatrixLabel {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .mcqMatrixLabel .optionLetter {
-  margin-top: 0;
+  margin-top: 2px;
   flex-shrink: 0;
 }
 
 .mcqMatrixLabel .optionText {
-  font-size: 14.5px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.55;
   color: var(--text-color);
   word-break: break-word;
   flex: 1;
@@ -817,25 +812,23 @@
 
 .mcqMatrixBottomRow {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  border-top: none;
-  padding-top: 0;
-  width: auto;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding-top: 4px;
 }
 
 .mcqMatrixButtons {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  width: auto;
-  max-width: none;
+  width: 100%;
 }
 
 .mcqBtn {
-  min-height: 38px;
-  padding: 6px 18px;
+  min-height: 40px;
+  width: 100%;
+  padding: 8px 14px;
   border-radius: 8px;
   border: 1.5px solid var(--border-color);
   background: var(--bg-tertiary);
@@ -849,10 +842,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   font-family: inherit;
-  min-width: 85px;
-  width: auto;
   box-sizing: border-box;
 }
 
@@ -1250,32 +1241,28 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Question Palette / Tracker Sidebar (Compact & Pixel-Perfect)
+   Question Palette / Tracker Sidebar (Slim & Compact)
    ═══════════════════════════════════════════════════════════════ */
-.paletteSidebarWrapper {
-  position: relative;
-  height: 100%;
-  width: 100%;
-  min-width: 0;
-}
-
 .paletteSidebar {
+  position: fixed;
+  top: 76px;
+  right: max(16px, calc(50% - 630px + 16px));
+  width: 220px;
+  max-height: calc(100vh - 96px);
   background: var(--card-bg, #16161a);
   border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  border-radius: 14px;
+  padding: 12px 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  position: sticky;
-  top: 76px;
-  width: 100%;
+  gap: 8px;
   box-sizing: border-box;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  z-index: 50;
-  overflow: visible;
+  z-index: 90;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 :global([data-theme='light']) .paletteSidebar {
@@ -1288,11 +1275,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  padding: 0 2px;
 }
 
 .paletteMainTitle {
-  font-size: 0.92rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-color);
   margin: 0;
@@ -1300,12 +1288,12 @@
 }
 
 .paletteTotalBadge {
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 700;
   background: var(--bg-tertiary);
   color: var(--text-color);
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
   border: 1px solid var(--border-color);
   white-space: nowrap;
 }
@@ -1314,16 +1302,16 @@
 .paletteStatsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 
 .paletteStatCardAnswered,
 .paletteStatCardUnanswered {
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   box-sizing: border-box;
 }
 
@@ -1333,14 +1321,14 @@
 }
 
 .paletteStatCardAnswered .paletteStatLabel {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 700;
   color: #2563eb;
   letter-spacing: 0.04em;
 }
 
 .paletteStatCardAnswered .paletteStatValue {
-  font-size: 1.18rem;
+  font-size: 1.05rem;
   font-weight: 800;
   line-height: 1.15;
   color: #2563eb;
@@ -1352,14 +1340,14 @@
 }
 
 .paletteStatCardUnanswered .paletteStatLabel {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 0.04em;
 }
 
 .paletteStatCardUnanswered .paletteStatValue {
-  font-size: 1.18rem;
+  font-size: 1.05rem;
   font-weight: 800;
   line-height: 1.15;
   color: var(--text-color);
@@ -1369,16 +1357,17 @@
 .paletteMatrixSection {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .paletteMatrixHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  font-size: 0.72rem;
+  gap: 4px;
+  font-size: 0.68rem;
   flex-wrap: wrap;
+  padding: 0 2px;
 }
 
 .paletteMatrixTitle {
@@ -1389,15 +1378,15 @@
 .paletteLegend {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   color: #2563eb;
   font-weight: 600;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
 }
 
 .paletteLegendDot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   background: #2563eb;
   border-radius: 50%;
   flex-shrink: 0;
@@ -1406,11 +1395,10 @@
 .paletteMatrixGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  max-height: 250px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 3px;
+  gap: 4px;
+  max-height: none;
+  overflow: visible;
+  padding: 1px;
   box-sizing: border-box;
 }
 
@@ -1425,13 +1413,13 @@
 
 /* ─── Question Number Tiles ─── */
 .paletteNumBtn {
-  height: 32px;
+  height: 27px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  border-radius: 7px;
+  border-radius: 5px;
   cursor: pointer;
   border: 1px solid transparent;
   transition: all 0.15s ease;
@@ -1473,15 +1461,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 8px 10px;
   background: #2563eb;
   color: #ffffff;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 700;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
@@ -1500,8 +1488,8 @@
   cursor: not-allowed;
 }
 
-/* ─── Responsive Adjustments (Mobile & Tablet) ─── */
-@media (max-width: 1023px) {
+/* ─── Responsive Adjustments (Mobile Only) ─── */
+@media (max-width: 960px) {
   .mainContent {
     display: flex;
     flex-direction: column;
@@ -1512,24 +1500,22 @@
   .questionContent {
     order: 1;
     width: 100%;
-  }
-
-  .paletteSidebarWrapper {
-    order: 2;
-    position: static;
-    width: 100%;
-    margin-top: 6px;
-    height: auto;
+    max-width: 100%;
   }
 
   .paletteSidebar {
+    order: 2;
     position: static;
     top: auto;
+    right: auto;
     width: 100%;
+    max-height: none;
+    margin-top: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
 
   .paletteMatrixGrid {
     grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
-    max-height: 300px;
+    max-height: none;
   }
 }

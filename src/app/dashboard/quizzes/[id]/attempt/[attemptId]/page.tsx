@@ -861,9 +861,8 @@ export default function QuizTakePage() {
 
         {/* Sidebar Question Palette / Tracker */}
         {!showResults && (
-          <aside className={styles.paletteSidebarWrapper} aria-label="Question Navigation Column">
-            <div className={styles.paletteSidebar}>
-              {/* Header */}
+          <aside className={styles.paletteSidebar} aria-label="Question Navigation Column">
+            {/* Header */}
               <div className={styles.paletteHeader}>
                 <h3 className={styles.paletteMainTitle}>Question Palette</h3>
                 <span className={styles.paletteTotalBadge}>{totalQuestions} Qs</span>
@@ -928,7 +927,6 @@ export default function QuizTakePage() {
                 <Send size={16} />
                 <span>{submitting ? 'Submitting...' : 'Submit Online Exam'}</span>
               </button>
-            </div>
           </aside>
         )}
       </main>
