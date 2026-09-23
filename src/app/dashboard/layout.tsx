@@ -40,6 +40,10 @@ function StudentDashboardLayoutContent({
         if (pathname === "/dashboard") return "Learning Dashboard";
         if (pathname.startsWith("/dashboard/courses")) return "Enrolled Courses";
         if (pathname.startsWith("/dashboard/purchases") || pathname.startsWith("/dashboard/orders")) return "Orders & Receipts";
+        if (pathname.includes("/quizzes/") && pathname.endsWith("/leaderboard")) return "Quiz Leaderboard";
+        if (pathname.includes("/quizzes/") && pathname.endsWith("/attempts")) return "Quiz Attempts History";
+        if (pathname.includes("/quizzes/") && pathname.endsWith("/result")) return "Quiz Results & Review";
+        if (pathname.startsWith("/dashboard/quizzes/")) return "Quiz Overview";
         if (pathname.startsWith("/dashboard/quizzes")) return "My Quizzes & Exams";
         if (pathname.startsWith("/dashboard/profile")) return "Profile Settings";
         if (pathname.startsWith("/dashboard/security")) return "Security & Sessions";
@@ -65,10 +69,9 @@ function StudentDashboardLayoutContent({
         return <Loader text="Entering Learning Hub..." />;
     }
 
-    const isStandaloneQuizPage = 
-        pathname.startsWith('/dashboard/quizzes/') && pathname !== '/dashboard/quizzes';
+    const isLiveAttemptPage = pathname.includes('/attempt/');
 
-    if (isStandaloneQuizPage) {
+    if (isLiveAttemptPage) {
         return <>{children}</>;
     }
 
