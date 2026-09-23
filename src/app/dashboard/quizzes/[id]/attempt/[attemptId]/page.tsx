@@ -16,6 +16,7 @@ import {
   Shuffle,
   Check,
   X,
+  Send,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -302,6 +303,40 @@ export default function QuizTakePage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showSubmitConfirm]);
+
+  // Track currently active question in viewport
+  useEffect(() => {
+    if (questions.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = Number(entry.target.getAttribute('data-index'));
+            if (!isNaN(index)) {
+              setCurrentQuestionIndex(index);
+            }
+          }
+        });
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: 0 }
+    );
+
+    questions.forEach((q) => {
+      const el = document.getElementById(`question-${q.id}`);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [questions]);
+
+  const scrollToQuestion = (questionId: string, index: number) => {
+    setCurrentQuestionIndex(index);
+    const element = document.getElementById(`question-${questionId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
   const handleAnswerSelect = (questionId: string, optionLetter: string, mcqSelection?: 'T' | 'F') => {
     if (showResults) return;
@@ -823,6 +858,79 @@ export default function QuizTakePage() {
             </div>
           )}
         </section>
+
+        {/* Sidebar Question Palette / Tracker */}
+        {!showResults && (
+          <aside className={styles.paletteSidebarWrapper} aria-label="Question Navigation Column">
+            <div className={styles.paletteSidebar}>
+              {/* Header */}
+              <div className={styles.paletteHeader}>
+                <h3 className={styles.paletteMainTitle}>Question Palette</h3>
+                <span className={styles.paletteTotalBadge}>{totalQuestions} Qs</span>
+              </div>
+
+              {/* Stats Counter Cards */}
+              <div className={styles.paletteStatsGrid}>
+                <div className={styles.paletteStatCardAnswered}>
+                  <span className={styles.paletteStatLabel}>ANSWERED</span>
+                  <span className={styles.paletteStatValue}>{answeredCount}</span>
+                </div>
+                <div className={styles.paletteStatCardUnanswered}>
+                  <span className={styles.paletteStatLabel}>UNANSWERED</span>
+                  <span className={styles.paletteStatValue}>{unansweredCount}</span>
+                </div>
+              </div>
+
+              {/* Legend & Number Matrix */}
+              <div className={styles.paletteMatrixSection}>
+                <div className={styles.paletteMatrixHeader}>
+                  <span className={styles.paletteMatrixTitle}>Jump to Question:</span>
+                  <span className={styles.paletteLegend}>
+                    <span className={styles.paletteLegendDot} /> Answered
+                  </span>
+                </div>
+
+                <div className={styles.paletteMatrixGrid}>
+                  {questions.map((q, idx) => {
+                    const isTF = q.questionType === 'true_false' || q.questionType === 'mcq';
+                    const currentAns = answers[q.id]?.selectedOption;
+                    const isAnswered = isTF
+                      ? Boolean(currentAns && currentAns.length === 5 && !currentAns.includes('-'))
+                      : Boolean(currentAns);
+                    const isCurrent = currentQuestionIndex === idx;
+
+                    return (
+                      <button
+                        key={`palette-${q.id}`}
+                        type="button"
+                        onClick={() => scrollToQuestion(q.id, idx)}
+                        className={`
+                          ${styles.paletteNumBtn} 
+                          ${isAnswered ? styles.paletteNumAnswered : styles.paletteNumUnanswered}
+                          ${isCurrent ? styles.paletteNumCurrent : ''}
+                        `}
+                        aria-label={`Jump to Question ${idx + 1}`}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sidebar Submit Button */}
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(true)}
+                disabled={submitting}
+                className={styles.paletteSubmitBtn}
+              >
+                <Send size={16} />
+                <span>{submitting ? 'Submitting...' : 'Submit Online Exam'}</span>
+              </button>
+            </div>
+          </aside>
+        )}
       </main>
     </div>
   );

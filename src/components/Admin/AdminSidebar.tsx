@@ -1,33 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from 'next/link';
 import Image from 'next/image';
 import {
     LayoutDashboard,
     Users,
-    Smartphone,
     CreditCard,
-    ChevronLeft,
     LogOut,
     GraduationCap,
-    ChevronRight,
-    LayoutGrid,
     Inbox,
-    BookOpen,
-    Shield,
     ShieldCheck,
     Settings,
     UserCog,
-    X,
     ClipboardList,
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
-import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-
-type TabType = 'overview' | 'users' | 'students' | 'teachers' | 'quizzes' | 'payments' | 'support' | 'settings' | 'security' | 'profile';
 
 interface AdminSidebarProps {
     activeTab: string;
@@ -42,7 +31,6 @@ export default function AdminSidebar({
     setActiveTab,
     isExpanded,
     onToggleExpand,
-    adminName
 }: AdminSidebarProps) {
     const { signOut } = useAuth();
     const router = useRouter();
@@ -59,19 +47,16 @@ export default function AdminSidebar({
     };
 
     const menuItems = [
-        { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-        { id: 'students', label: 'Students', icon: <GraduationCap size={20} /> },
-        { id: 'users', label: 'Users', icon: <Users size={20} /> },
-        { id: 'teachers', label: 'Teachers', icon: <UserCog size={20} /> },
-        { id: 'quizzes', label: 'Quizzes', icon: <ClipboardList size={20} /> },
-        { id: 'payments', label: 'Payments', icon: <CreditCard size={20} /> },
-        { id: 'support', label: 'Contact Help', icon: <Inbox size={20} /> },
-    ];
-
-    const sysItems = [
-        { id: 'profile', label: 'My Profile', icon: <UserCog size={20} /> },
-        { id: 'settings', label: 'Financials', icon: <Settings size={20} /> },
-        { id: 'security', label: 'Security', icon: <ShieldCheck size={20} /> },
+        { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={19} /> },
+        { id: 'students', label: 'Students', icon: <GraduationCap size={19} /> },
+        { id: 'users', label: 'Users', icon: <Users size={19} /> },
+        { id: 'teachers', label: 'Teachers', icon: <UserCog size={19} /> },
+        { id: 'quizzes', label: 'Quizzes', icon: <ClipboardList size={19} /> },
+        { id: 'payments', label: 'Payments', icon: <CreditCard size={19} /> },
+        { id: 'support', label: 'Help Desk', icon: <Inbox size={19} /> },
+        { id: 'profile', label: 'My Profile', icon: <UserCog size={19} /> },
+        { id: 'settings', label: 'Financials', icon: <Settings size={19} /> },
+        { id: 'security', label: 'Security', icon: <ShieldCheck size={19} /> },
     ];
 
     const handleLogout = async () => {
@@ -82,59 +67,38 @@ export default function AdminSidebar({
     return (
         <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
             <div className={styles.sidebarHeader}>
-                <Link href="/" className={styles.logoWrapper}>
-                    {isExpanded ? (
-                        <Image src="https://files.creativebydrshakil.com/logo/creative-by-dr-shakil-logo.svg" alt="Admin Dashboard" width={140} height={40} style={{ objectFit: 'contain' }} priority unoptimized />
-                    ) : (
-                        <Image src="/favicon.webp" alt="Admin Dashboard" width={32} height={32} style={{ objectFit: 'contain' }} priority />
-                    )}
+                <Link href="/" className={styles.logoWrapper} title="Creative by Dr. Shakil">
+                    <Image src="/favicon.webp" alt="Logo" width={32} height={32} style={{ objectFit: 'contain' }} priority />
                 </Link>
-                <button className={styles.toggleBtn} onClick={onToggleExpand}>
-                    {isExpanded ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
-                </button>
             </div>
 
             <div className={styles.navContainer}>
                 <div className={styles.navSection}>
-                    {isExpanded && <span className={styles.sectionLabel}>Management</span>}
-                    {menuItems.map((item) => (
-                        <button
-                            key={item.id}
-                            className={`${styles.navItem} ${activeTab === item.id ? styles.active : ""}`}
-                            onClick={() => handleAction(item)}
-                        >
-                            <span className={styles.icon}>{item.icon}</span>
-                            {isExpanded && <span className={styles.label}>{item.label}</span>}
-                            {activeTab === item.id && (
-                                <motion.div layoutId="activeIndicatorAdmin" className={styles.activeIndicator} />
-                            )}
-                        </button>
-                    ))}
-                </div>
-
-                <div className={styles.navSection}>
-                    {isExpanded && <span className={styles.sectionLabel}>System</span>}
-                    {sysItems.map((item) => (
-                        <button
-                            key={item.id}
-                            className={`${styles.navItem} ${activeTab === item.id ? styles.active : ""}`}
-                            onClick={() => handleAction(item)}
-                        >
-                            <span className={styles.icon}>{item.icon}</span>
-                            {isExpanded && <span className={styles.label}>{item.label}</span>}
-                            {activeTab === item.id && (
-                                <motion.div layoutId="activeIndicatorAdmin" className={styles.activeIndicator} />
-                            )}
-                        </button>
-                    ))}
+                    {menuItems.map((item) => {
+                        const isActive = activeTab === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                className={`${styles.navItem} ${isActive ? styles.active : ""}`}
+                                onClick={() => handleAction(item)}
+                                title={item.label}
+                            >
+                                <div className={styles.iconBadge}>
+                                    {item.icon}
+                                </div>
+                                <span className={styles.label}>{item.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             <div className={styles.footer}>
-
-                <button className={styles.logoutButtonFull} onClick={handleLogout} title="Sign Out">
-                    <LogOut size={18} />
-                    {isExpanded && <span>Sign Out</span>}
+                <button className={styles.logoutBtn} onClick={handleLogout} title="Sign Out">
+                    <div className={styles.iconBadge}>
+                        <LogOut size={17} />
+                    </div>
+                    <span className={styles.label}>Sign Out</span>
                 </button>
             </div>
         </aside>

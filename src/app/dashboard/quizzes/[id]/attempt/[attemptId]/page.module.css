@@ -35,11 +35,11 @@
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0;
+  padding: 0 16px;
   min-height: 100vh;
   background: transparent;
   position: relative;
-  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .loading {
@@ -501,19 +501,22 @@
 }
 
 .mainContent {
-  display: flex;
-  justify-content: center;
-  padding: 76px 16px 60px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+  max-width: 1260px;
+  margin: 0 auto;
+  padding: 72px 4px 60px;
   min-height: calc(100vh - 100px);
   width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
 }
 
 /* Question Content */
 .questionContent {
   width: 100%;
-  max-width: 1150px;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -1243,5 +1246,290 @@
   .modalConfirm {
     width: 100%;
     min-height: 44px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Question Palette / Tracker Sidebar (Compact & Pixel-Perfect)
+   ═══════════════════════════════════════════════════════════════ */
+.paletteSidebarWrapper {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.paletteSidebar {
+  background: var(--card-bg, #16161a);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 76px;
+  width: 100%;
+  box-sizing: border-box;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 50;
+  overflow: visible;
+}
+
+:global([data-theme='light']) .paletteSidebar {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.paletteHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.paletteMainTitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.paletteTotalBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--bg-tertiary);
+  color: var(--text-color);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+/* ─── Stats Cards (Answered vs Unanswered) ─── */
+.paletteStatsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.paletteStatCardAnswered,
+.paletteStatCardUnanswered {
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+.paletteStatCardAnswered {
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+}
+
+.paletteStatCardAnswered .paletteStatLabel {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #2563eb;
+  letter-spacing: 0.04em;
+}
+
+.paletteStatCardAnswered .paletteStatValue {
+  font-size: 1.18rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #2563eb;
+}
+
+.paletteStatCardUnanswered {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.paletteStatCardUnanswered .paletteStatLabel {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.paletteStatCardUnanswered .paletteStatValue {
+  font-size: 1.18rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--text-color);
+}
+
+/* ─── Question Matrix / Number Grid ─── */
+.paletteMatrixSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.paletteMatrixHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+}
+
+.paletteMatrixTitle {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.paletteLegend {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.paletteLegendDot {
+  width: 6px;
+  height: 6px;
+  background: #2563eb;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.paletteMatrixGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+.paletteMatrixGrid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.paletteMatrixGrid::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+/* ─── Question Number Tiles ─── */
+.paletteNumBtn {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  padding: 0;
+  touch-action: manipulation;
+  box-sizing: border-box;
+}
+
+.paletteNumUnanswered {
+  background: var(--bg-tertiary);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.paletteNumUnanswered:hover {
+  background: var(--bg-secondary);
+  filter: brightness(0.95);
+}
+
+.paletteNumAnswered {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+}
+
+.paletteNumAnswered:hover {
+  background: #1d4ed8;
+}
+
+/* Fix active indicator clipping by using box-shadow & relative index */
+.paletteNumCurrent {
+  box-shadow: 0 0 0 2px #0284c7;
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Submit Button inside Palette ─── */
+.paletteSubmitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 14px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  margin-top: 2px;
+  touch-action: manipulation;
+}
+
+.paletteSubmitBtn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.paletteSubmitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Responsive Adjustments (Mobile & Tablet) ─── */
+@media (max-width: 1023px) {
+  .mainContent {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 68px 4px 36px;
+  }
+
+  .questionContent {
+    order: 1;
+    width: 100%;
+  }
+
+  .paletteSidebarWrapper {
+    order: 2;
+    position: static;
+    width: 100%;
+    margin-top: 6px;
+    height: auto;
+  }
+
+  .paletteSidebar {
+    position: static;
+    top: auto;
+    width: 100%;
+  }
+
+  .paletteMatrixGrid {
+    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    max-height: 300px;
   }
 }
