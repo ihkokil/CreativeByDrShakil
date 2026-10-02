@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -10,6 +11,7 @@ import {
     LogOut,
     ShieldCheck,
     ClipboardList,
+    X,
 } from 'lucide-react';
 import styles from "@/components/Teacher/TeacherSidebar.module.css";
 import { useAuth } from "@/context/AuthContext";
@@ -32,6 +34,16 @@ export default function StudentSidebar({
     const { signOut } = useAuth();
     const router = useRouter();
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && isExpanded) {
+                onToggleExpand();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isExpanded, onToggleExpand]);
+
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={19} /> },
         { id: 'courses', label: 'My Courses', icon: <BookOpen size={19} /> },
@@ -43,6 +55,9 @@ export default function StudentSidebar({
     ];
 
     const handleLogout = async () => {
+        if (typeof window !== "undefined" && window.innerWidth <= 768 && isExpanded) {
+            onToggleExpand();
+        }
         await signOut();
         router.push("/");
     };
@@ -63,7 +78,20 @@ export default function StudentSidebar({
             <div className={styles.sidebarHeader}>
                 <Link href="/" className={styles.logoWrapper} title="Creative by Dr. Shakil">
                     <Image src="/favicon.webp" alt="Logo" width={32} height={32} style={{ objectFit: 'contain' }} priority />
+                    <div className={styles.brandText}>
+                        <span className={styles.brandTitle}>Creative</span>
+                        <span className={styles.brandSubtitle}>Student Portal</span>
+                    </div>
                 </Link>
+                <button
+                    type="button"
+                    className={styles.closeBtn}
+                    onClick={onToggleExpand}
+                    aria-label="Close sidebar"
+                    title="Close sidebar"
+                >
+                    <X size={20} />
+                </button>
             </div>
 
             <div className={styles.navContainer}>

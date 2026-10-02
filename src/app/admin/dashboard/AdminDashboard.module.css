@@ -15,7 +15,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-left: 280px;
+    margin-left: 80px;
     transition: var(--transition);
     height: 100vh;
     overflow: hidden;
@@ -142,9 +142,12 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.4);
-        backdrop-filter: blur(4px);
-        z-index: 999;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        z-index: 1040;
+        cursor: pointer;
+        touch-action: manipulation;
     }
 }
 

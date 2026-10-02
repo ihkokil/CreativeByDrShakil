@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import { LayoutDashboard, BookOpen, ClipboardList, CreditCard, MoreHorizontal } from "lucide-react";
 import StudentSidebar from "@/components/Student/StudentSidebar";
 import StudentHeader from "@/components/Student/StudentHeader";
 import styles from "./StudentDashboard.module.css";
@@ -75,6 +76,13 @@ function StudentDashboardLayoutContent({
         return <>{children}</>;
     }
 
+    const mobileNavItems = [
+        { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+        { id: 'courses', label: 'Courses', icon: BookOpen },
+        { id: 'quizzes', label: 'Quizzes', icon: ClipboardList },
+        { id: 'purchases', label: 'Payments', icon: CreditCard },
+    ];
+
     return (
         <div className={styles.dashboardContainer}>
             <StudentSidebar
@@ -101,6 +109,24 @@ function StudentDashboardLayoutContent({
                     {children}
                 </div>
 
+                {/* Mobile Bottom Nav */}
+                <nav className={styles.mobileBottomNav}>
+                    {mobileNavItems.map((item) => (
+                        <button
+                            key={item.id}
+                            className={`${styles.mobileTab} ${activeTab === item.id ? styles.mobileTabActive : ""}`}
+                            onClick={() => setActiveTab(item.id)}
+                        >
+                            <item.icon size={20} />
+                            <span>{item.label}</span>
+                        </button>
+                    ))}
+
+                    <button className={styles.mobileTab} onClick={() => setIsSidebarExpanded(true)}>
+                        <MoreHorizontal size={20} />
+                        <span>Menu</span>
+                    </button>
+                </nav>
             </main>
         </div>
     );

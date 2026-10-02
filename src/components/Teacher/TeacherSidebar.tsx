@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import styles from "./TeacherSidebar.module.css";
 import {
     LayoutDashboard,
@@ -13,11 +14,12 @@ import {
     FileQuestion,
     Layers,
     CreditCard,
+    X,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 type TabType = 'overview' | 'enrollments' | 'courses' | 'batches' | 'quizzes' | 'library' | 'security' | 'profile' | 'payments' | 'users' | 'students';
 
@@ -41,6 +43,17 @@ export default function TeacherSidebar({
 }: TeacherSidebarProps) {
     const { signOut, user } = useAuth();
     const pathname = usePathname();
+    const router = useRouter();
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && isExpanded) {
+                onToggleExpand();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isExpanded, onToggleExpand]);
 
     const menuItems = [
         { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={19} /> },
@@ -58,12 +71,33 @@ export default function TeacherSidebar({
         menuItems.splice(3, 0, { id: 'payments', label: 'Payments', icon: <CreditCard size={19} /> });
     }
 
+    const handleLogout = async () => {
+        if (typeof window !== "undefined" && window.innerWidth <= 768 && isExpanded) {
+            onToggleExpand();
+        }
+        await signOut();
+        router.push("/");
+    };
+
     return (
         <aside className={`${styles.sidebar} ${isExpanded ? styles.expanded : styles.collapsed}`}>
             <div className={styles.sidebarHeader}>
                 <Link href="/" className={styles.logoWrapper} title="Creative by Dr. Shakil">
                     <Image src="/favicon.webp" alt="Logo" width={32} height={32} style={{ objectFit: 'contain' }} priority />
+                    <div className={styles.brandText}>
+                        <span className={styles.brandTitle}>Creative</span>
+                        <span className={styles.brandSubtitle}>Instructor Hub</span>
+                    </div>
                 </Link>
+                <button
+                    type="button"
+                    className={styles.closeBtn}
+                    onClick={onToggleExpand}
+                    aria-label="Close sidebar"
+                    title="Close sidebar"
+                >
+                    <X size={20} />
+                </button>
             </div>
 
             <div className={styles.navContainer}>
@@ -118,7 +152,7 @@ export default function TeacherSidebar({
             </div>
 
             <div className={styles.footer}>
-                <button className={styles.logoutBtn} onClick={signOut} title="Sign Out">
+                <button className={styles.logoutBtn} onClick={handleLogout} title="Sign Out">
                     <div className={styles.iconBadge}>
                         <LogOut size={17} />
                     </div>

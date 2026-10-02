@@ -17,12 +17,12 @@ export default function MobileBottomNavWrapper() {
 
     const cleanPath = pathname?.replace(/\/+$/, "") || "";
 
-    // Suppress on study mode, inside quiz attempts (distraction-free), and management routes
+    // Suppress on study mode, inside dashboard, and management routes which provide their own navigation
     if (
         cleanPath.startsWith("/study") ||
         cleanPath.startsWith("/admin") ||
         cleanPath.startsWith("/teacher") ||
-        cleanPath.startsWith("/dashboard/quizzes/")
+        cleanPath.startsWith("/dashboard")
     ) {
         return null;
     }
