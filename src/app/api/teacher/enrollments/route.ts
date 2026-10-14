@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
       enrolledStudents = foundStudents;
     }
 
-    const successfulEnrollments = [];
+    const successfulEnrollments: any[] = [];
 
     for (const student of enrolledStudents) {
       const { data: existingOrder } = await supabase

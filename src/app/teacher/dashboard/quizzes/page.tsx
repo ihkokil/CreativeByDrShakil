@@ -1,7 +1,7 @@
 'use client';
 
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -86,7 +86,7 @@ export default function TeacherQuizzesPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
+  const [_activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [pdfQuizInfo, setPdfQuizInfo] = useState<{ quiz: Quiz, questions: any[] } | null>(null);
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
 
@@ -164,21 +164,6 @@ export default function TeacherQuizzesPage() {
     }
   }, [page, searchParams]);
 
-  useEffect(() => {
-    setActiveDropdownId(null);
-    fetchQuizzes();
-  }, [search, statusFilter, courseFilter, page, fetchQuizzes]);
-
-  useEffect(() => {
-    const handleOutsideClick = () => {
-      setActiveDropdownId(null);
-    };
-    document.addEventListener('click', handleOutsideClick);
-    return () => {
-      document.removeEventListener('click', handleOutsideClick);
-    };
-  }, []);
-
   const fetchQuizzes = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -207,7 +192,22 @@ export default function TeacherQuizzesPage() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [page, limit, search, statusFilter, courseFilter]);
+
+  useEffect(() => {
+    setActiveDropdownId(null);
+    fetchQuizzes();
+  }, [fetchQuizzes]);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveDropdownId(null);
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === page) return;
@@ -454,7 +454,7 @@ export default function TeacherQuizzesPage() {
       .then(() => {
         showAlert('Share link copied to clipboard!', 'success');
       })
-      .catch(err => {
+      .catch(() => {
         showAlert('Failed to copy share link.', 'error');
       });
   };
@@ -561,14 +561,7 @@ export default function TeacherQuizzesPage() {
   };
 
 
-  const formatDuration = (minutes: number) => {
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      return mins > 0 ? `${hours}h ${mins} mins` : `${hours}h`;
-    }
-    return `${minutes} mins`;
-  };
+
 
   const getStatusBadge = (status: string) => {
     const configs: Record<string, { class: string; label: string; icon: React.ReactNode }> = {

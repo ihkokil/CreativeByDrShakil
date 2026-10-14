@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import styles from "./CourseCurriculum.module.css";
 import { ChevronDown, ChevronRight, Lock, PlayCircle, FolderOpen, Folder, CheckCircle2, FileText, ClipboardList } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,10 +27,7 @@ interface NodeProps {
     activeNodeId?: string;
 }
 
-const formatAvailability = (dateValue?: string | null) => {
-    if (!dateValue) return "";
-    return `${formatDisplayDate(dateValue)} - 10:00 PM`;
-};
+
 
 const areAllChildrenCompleted = (item: CurriculumNode): boolean => {
     if (!item.children || item.children.length === 0) return false;
@@ -51,7 +47,6 @@ const areAllChildrenCompleted = (item: CurriculumNode): boolean => {
 };
 
 const CurriculumItem = ({ node, depth, onVideoSelect, activeNodeId }: NodeProps) => {
-    const router = useRouter();
     const [isOpen, setIsOpen] = useState(!node.locked);
     const isFolder = node.type === 'folder';
     const isQuiz = node.type === 'quiz';

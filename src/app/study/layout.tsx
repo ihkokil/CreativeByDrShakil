@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import StudentSidebar from "@/components/Student/StudentSidebar";
 import StudentHeader from "@/components/Student/StudentHeader";
@@ -19,11 +19,11 @@ function StudyLayoutContent({
 
     useEffect(() => {
         if (typeof window !== "undefined" && window.innerWidth <= 768) {
-            setIsSidebarExpanded(false);
+            setTimeout(() => {
+                setIsSidebarExpanded(false);
+            }, 0);
         }
     }, []);
-
-    const pathname = usePathname();
 
     useEffect(() => {
         if (!loading && (!user || (role !== "student" && role !== "teacher" && role !== "admin"))) {

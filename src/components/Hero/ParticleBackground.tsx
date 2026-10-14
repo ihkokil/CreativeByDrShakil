@@ -3,6 +3,38 @@
 import { useEffect, useRef } from "react";
 import styles from "./Hero.module.css";
 
+class Particle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    radius: number;
+
+    constructor(width: number, height: number) {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = (Math.random() - 0.5) * 0.4;
+        this.radius = Math.random() * 3 + 1.5;
+    }
+
+    update(width: number, height: number) {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Bounce off edges
+        if (this.x < 0 || this.x > width) this.vx *= -1;
+        if (this.y < 0 || this.y > height) this.vy *= -1;
+    }
+
+    draw(context: CanvasRenderingContext2D, color: string) {
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        context.fillStyle = color;
+        context.fill();
+    }
+}
+
 export default function ParticleBackground() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -25,44 +57,11 @@ export default function ParticleBackground() {
 
         window.addEventListener("resize", handleResize);
 
-        // Particle class
-        class Particle {
-            x: number;
-            y: number;
-            vx: number;
-            vy: number;
-            radius: number;
-
-            constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 0.4;
-                this.vy = (Math.random() - 0.5) * 0.4;
-                this.radius = Math.random() * 3 + 1.5;
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-
-                // Bounce off edges
-                if (this.x < 0 || this.x > width) this.vx *= -1;
-                if (this.y < 0 || this.y > height) this.vy *= -1;
-            }
-
-            draw(context: CanvasRenderingContext2D, color: string) {
-                context.beginPath();
-                context.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                context.fillStyle = color;
-                context.fill();
-            }
-        }
-
         // Initialize particles based on screen size
         const particleCount = Math.min(Math.floor((width * height) / 16000), 80);
         const particles: Particle[] = [];
         for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle());
+            particles.push(new Particle(width, height));
         }
 
         // Mouse tracking
@@ -106,7 +105,7 @@ export default function ParticleBackground() {
             ctx.clearRect(0, 0, width, height);
 
             particles.forEach((p) => {
-                p.update();
+                p.update(width, height);
                 p.draw(ctx, particleColor);
             });
 

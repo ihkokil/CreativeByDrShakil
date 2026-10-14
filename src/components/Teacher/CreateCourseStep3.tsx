@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useMemo } from "react";
+import { useEffect, useState, Suspense, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, X, Settings2, Repeat, LayoutList, ClipboardList, Check } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
@@ -153,7 +153,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     } catch (e) {
       console.error("Failed to fetch linked quizzes", e);
     }
-  });
+  }, [courseId]);
 
   const handleOpenQuizModal = async (targetNodeId: string | null, targetTitle: string) => {
     setQuizModal({ open: true, targetNodeId, targetTitle });
@@ -231,7 +231,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     });
   };
 
-  const collectItemsRecursively = (nodes: LibraryNode[], parentId: string): StarterItem[] => {
+  const collectItemsRecursively = useCallback((nodes: LibraryNode[], parentId: string): StarterItem[] => {
     const children = nodes.filter(n => n.parentId === parentId);
     return children.map(child => {
       if (child.type === "folder") {
@@ -251,9 +251,9 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         };
       }
     });
-  };
+  }, []);
 
-  const buildHierarchyFromLibraryNodes = (nodes: LibraryNode[], courseTitle?: string): StarterMainTopic[] => {
+  const buildHierarchyFromLibraryNodes = useCallback((nodes: LibraryNode[], courseTitle?: string): StarterMainTopic[] => {
     let topLevelFolders: LibraryNode[] = [];
 
     if (courseTitle) {
@@ -276,7 +276,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         source: "library",
       };
     });
-  };
+  }, [collectItemsRecursively]);
 
   useEffect(() => {
     if (!courseId) return;

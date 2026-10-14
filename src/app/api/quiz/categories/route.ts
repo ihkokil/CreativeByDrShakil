@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabase } from '@/lib/db';
 import { extractCookieToken } from '@/lib/auth-server';
-import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
+import { requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const payload = await getAuthPayload(request);
     
     const token = await extractCookieToken();
 

@@ -15,7 +15,7 @@
  * const query = scopedToUser(supabase.from('Order').select('*'), payload.userId);
  * const { data } = await query;
  */
-export function scopedToUser<T>(queryBuilder: any, userId: string) {
+export function scopedToUser(queryBuilder: any, userId: string) {
   if (!userId) throw new Error("scopedToUser requires a valid userId");
   return queryBuilder.eq('userId', userId);
 }
@@ -28,7 +28,7 @@ export function scopedToUser<T>(queryBuilder: any, userId: string) {
  * const query = scopedToStudent(supabase.from('QuizAttempt').select('*'), payload.userId);
  * const { data } = await query;
  */
-export function scopedToStudent<T>(queryBuilder: any, studentId: string) {
+export function scopedToStudent(queryBuilder: any, studentId: string) {
   if (!studentId) throw new Error("scopedToStudent requires a valid studentId");
   return queryBuilder.eq('studentId', studentId);
 }
@@ -37,7 +37,7 @@ export function scopedToStudent<T>(queryBuilder: any, studentId: string) {
  * Scopes a Supabase query builder to only return PUBLISHED content.
  * Assumes the table has a `status` column matching CoursePublishStatus or similar.
  */
-export function publishedOnly<T>(queryBuilder: any) {
+export function publishedOnly(queryBuilder: any) {
   return queryBuilder.eq('status', 'PUBLISHED');
 }
 

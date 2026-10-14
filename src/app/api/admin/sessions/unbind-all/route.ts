@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 import { unbindAllDevices } from '@/lib/session-manager';
 
@@ -7,7 +7,7 @@ import { unbindAllDevices } from '@/lib/session-manager';
  * Unbinds and resets all registered device hardware slots globally for all students.
  * Accessible by: Admin, Teacher
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const auth = await getSession();
 

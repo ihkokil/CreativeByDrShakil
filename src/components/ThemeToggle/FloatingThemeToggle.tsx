@@ -14,9 +14,11 @@ export default function FloatingThemeToggle() {
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme");
         const resolvedTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
-        setTheme(resolvedTheme);
         document.documentElement.setAttribute("data-theme", resolvedTheme);
-        setMounted(true);
+        setTimeout(() => {
+            setTheme(resolvedTheme);
+            setMounted(true);
+        }, 0);
     }, []);
 
     useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { X, Search, Users, UserPlus } from "lucide-react";
 import Loader from "@/components/UI/Loader";
 import Image from "next/image";
@@ -77,11 +77,11 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
         } finally {
             setLoading(false);
         }
-    });
+    }, [courseId]);
 
     useEffect(() => {
         fetchStudents();
-    }, [courseId, fetchStudents]);
+    }, [fetchStudents]);
 
     const filteredStudents = useMemo(() => {
         if (!searchQuery.trim()) return students;

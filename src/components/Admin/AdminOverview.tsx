@@ -29,7 +29,7 @@ export default function AdminOverview({
     studentCount,
     courseCount,
     totalEnrollments,
-    totalLessonsCompleted,
+    totalLessonsCompleted: _totalLessonsCompleted,
     onTabChange
 }: AdminOverviewProps) {
     return (

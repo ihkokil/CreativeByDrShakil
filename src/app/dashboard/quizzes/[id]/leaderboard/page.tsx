@@ -119,7 +119,7 @@ function LeaderboardContent() {
     return leaderboard.slice(0, leaderboardVisibleCount);
   }, [filteredLeaderboard, leaderboard, leaderboardVisibleCount, searchQuery]);
 
-  const scrollToMyRank = useCallback((manualClick = false) => {
+  const scrollToMyRank = useCallback((_manualClick = false) => {
     if (currentUserRankIndex < 0) return;
     const currentStudent = leaderboard[currentUserRankIndex];
     if (!currentStudent) return;

@@ -84,7 +84,6 @@ export async function POST(request: NextRequest) {
     const user = userRes.data as any;
 
     const studentName = user?.fullName || payload.name || payload.email || 'Student';
-    const studentEmail = user?.email || payload.email || '';
     const courseTitle = course?.title || 'Course';
     const finalAmount = order.totalAmount || order.amount || 0;
     const finalPhone = phoneNumber.trim() || user?.phone || 'N/A';

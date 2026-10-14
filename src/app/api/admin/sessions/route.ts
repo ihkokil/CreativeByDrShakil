@@ -71,7 +71,7 @@ export async function GET() {
 
     const globalAutoLockSetting = await getGlobalAutoLockSetting();
 
-    const { getGlobalSessionSettings, setGlobalSessionSettings } = await import('@/lib/session-manager');
+    const { getGlobalSessionSettings } = await import('@/lib/session-manager');
     const globalSettings = await getGlobalSessionSettings();
 
     // Format response

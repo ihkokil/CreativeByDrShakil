@@ -23,7 +23,7 @@ export default function PrivacyPolicy() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>1. Introduction</h2>
                         <p className={styles.text}>
-                            Welcome to <span className={styles.highlight}>Creative By Dr. Shakil</span> (&quot;we,&quot; "our," or "us"). We are committed to protecting your personal data and respecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website (creativebydrshakil.com) and use our medical education platform and services.
+                            Welcome to <span className={styles.highlight}>Creative By Dr. Shakil</span> (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your personal data and respecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website (creativebydrshakil.com) and use our medical education platform and services.
                         </p>
                         <p className={styles.text}>
                             By accessing or using our platform, you signify that you have read, understood, and agree to our collection, storage, use, and disclosure of your personal information as described in this Privacy Policy.

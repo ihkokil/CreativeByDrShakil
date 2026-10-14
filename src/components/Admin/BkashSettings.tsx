@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Loader from "@/components/UI/Loader"
-import {  CheckCircle2 } from "lucide-react";
 import styles from './BkashSettings.module.css'
 
 interface BkashConfig {

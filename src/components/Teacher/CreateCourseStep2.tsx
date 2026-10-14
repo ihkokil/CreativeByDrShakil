@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Check } from "lucide-react";
 import Image from "next/image";
 import styles from "./CreateCourseStep2.module.css";
@@ -23,7 +23,6 @@ interface SessionUser {
 
 function CreateCourseStep2Content({ courseId }: { courseId?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(!courseId);
   const [submitting, setSubmitting] = useState(false);

@@ -101,7 +101,7 @@ export default function StudyOutlineHub({
     onSelectLesson,
     activeLessonId,
     lastVisitedLessonId,
-    courseSlug,
+    courseSlug: _courseSlug,
 }: Props) {
     const [filter, setFilter] = useState<FilterType>('all');
     const [expandedModuleIds, setExpandedModuleIds] = useState<Set<string>>(new Set());
@@ -383,7 +383,7 @@ export default function StudyOutlineHub({
 
             {/* Collapsed by Default Accordion Modules List */}
             <div className={styles.modulesList}>
-                {modules.map((mod, modIdx) => {
+                {modules.map((mod) => {
                     const isExpanded = expandedModuleIds.has(mod.id);
                     const moduleCompletedItems = mod.breakdown.items.filter(item => completedSet.has(item.id)).length;
                     const isModuleComplete = mod.breakdown.total > 0 && moduleCompletedItems === mod.breakdown.total;

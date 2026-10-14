@@ -51,7 +51,7 @@ const AuthContext = createContext<AuthContextType>({
     showBannedModal: () => { },
     hideBannedModal: () => { },
     signOut: async () => { },
-    refreshSession: async (silent?: boolean) => { },
+    refreshSession: async (_silent?: boolean) => { },
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {

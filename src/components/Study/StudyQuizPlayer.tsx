@@ -52,7 +52,7 @@ interface Quiz {
   } | null;
 }
 
-export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerProps) {
+export default function StudyQuizPlayer({ lesson, onComplete: _onComplete }: StudyQuizPlayerProps) {
   const router = useRouter();
   const params = useParams<{ slug: string }>();
   const slug = params?.slug || "";

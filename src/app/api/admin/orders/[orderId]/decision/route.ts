@@ -61,7 +61,7 @@ export async function POST(
 
     const { orderId } = await params;
     const body = await request.json();
-    const { decision, reason } = body;
+    const { decision } = body;
 
     if (!decision || !['approve', 'reject'].includes(decision)) {
       return NextResponse.json({ error: 'Invalid decision. Must be "approve" or "reject".' }, { status: 400 });

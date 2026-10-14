@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Navbar from '@/components/Navbar/Navbar';
 import Footer from '@/components/Footer/Footer';
 import styles from './Contact.module.css';
@@ -207,7 +208,7 @@ export default function ContactPage() {
                 <div className={styles.previewGrid}>
                   {images.map((entry, index) => (
                     <div key={`${entry.file.name}-${index}`} className={styles.previewItem}>
-                      <img src={entry.previewUrl} alt={`Attachment ${index + 1}`} />
+                      <Image src={entry.previewUrl} alt={`Attachment ${index + 1}`} fill unoptimized style={{ objectFit: 'cover' }} />
                       <button type="button" onClick={() => removeImage(index)} aria-label={`Remove image ${index + 1}`}>
                         <X size={14} />
                       </button>

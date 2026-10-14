@@ -35,7 +35,7 @@ export default function DashboardShell({
     subtitle,
     roleLabel,
     userName,
-    userEmail,
+    userEmail: _userEmail,
     userAvatarUrl,
     items,
     activeKey,
@@ -45,18 +45,13 @@ export default function DashboardShell({
 }: DashboardShellProps) {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-    const primaryMobileItems = useMemo(() => {
+    const { primaryMobileItems, secondaryMobileItems } = useMemo(() => {
         const explicit = items.filter((item) => item.mobilePrimary);
-        if (explicit.length > 0) {
-            return explicit.slice(0, 3);
-        }
-        return items.slice(0, 3);
+        const primary = explicit.length > 0 ? explicit.slice(0, 3) : items.slice(0, 3);
+        const primaryKeys = new Set(primary.map((item) => item.key));
+        const secondary = items.filter((item) => !primaryKeys.has(item.key));
+        return { primaryMobileItems: primary, secondaryMobileItems: secondary };
     }, [items]);
-
-    const secondaryMobileItems = useMemo(() => {
-        const primaryKeys = new Set(primaryMobileItems.map((item) => item.key));
-        return items.filter((item) => !primaryKeys.has(item.key));
-    }, [items, primaryMobileItems]);
 
     const getInitials = (name: string) => {
         if (!name) return 'US';

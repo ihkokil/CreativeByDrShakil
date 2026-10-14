@@ -307,7 +307,6 @@ export default function QuizResultPage() {
   // Calculate raw scores from question reviews
   let rawCorrectScore = 0;
   let rawWrongScore = 0;
-  let rawSkippedCount = 0;
 
   questionsReview.forEach(q => {
     if (!q) return;
@@ -315,8 +314,6 @@ export default function QuizResultPage() {
       rawCorrectScore += marksPerCorrect;
     } else if (q.isPartial) {
       rawCorrectScore += marksPerCorrect * 0.5; // approximate partial
-    } else if (q.isSkipped) {
-      rawSkippedCount++;
     } else if (q.isCorrect === false) {
       rawWrongScore += negativeValue;
     }
@@ -326,8 +323,6 @@ export default function QuizResultPage() {
   const netScore = attempt.netScore !== undefined && attempt.netScore !== null
     ? attempt.netScore
     : rawCorrectScore + rawWrongScore;
-  const grossScore = netScore - rawWrongScore; // net already subtracted negatives, so gross = net + wrongs
-  const partialMarksEarned = Math.max(0, rawCorrectScore - marksPerCorrect * actualCorrectCount);
 
   // Recalculate: total possible marks
   const totalMarks = attempt.totalMarks || quiz.totalMarks || (totalQs * marksPerCorrect) || 1;

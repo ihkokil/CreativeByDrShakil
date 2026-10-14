@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, User, Send, Building2, Briefcase, GraduationCap, ImagePlus } from "lucide-react";
@@ -27,25 +28,25 @@ interface Props {
 export default function EditTeacherModal({ isOpen, onClose, onSuccess, teacher }: Props) {
     useModal(isOpen, onClose);
     const { session } = useAuth();
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [designation, setDesignation] = useState("");
-    const [institution, setInstitution] = useState("");
-    const [degrees, setDegrees] = useState("");
-    const [profileImage, setProfileImage] = useState("");
+    const [prevTeacherId, setPrevTeacherId] = useState<string | null>(teacher?.id || null);
+    const [fullName, setFullName] = useState(teacher?.full_name || "");
+    const [email, setEmail] = useState(teacher?.email || "");
+    const [designation, setDesignation] = useState(teacher?.designation || "");
+    const [institution, setInstitution] = useState(teacher?.institution || "");
+    const [degrees, setDegrees] = useState(teacher?.degrees || "");
+    const [profileImage, setProfileImage] = useState(teacher?.profile_image || "");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    useEffect(() => {
-        if (teacher) {
-            setFullName(teacher.full_name || "");
-            setEmail(teacher.email || "");
-            setDesignation(teacher.designation || "");
-            setInstitution(teacher.institution || "");
-            setDegrees(teacher.degrees || "");
-            setProfileImage(teacher.profile_image || "");
-        }
-    }, [teacher]);
+    if (teacher && teacher.id !== prevTeacherId) {
+        setPrevTeacherId(teacher.id);
+        setFullName(teacher.full_name || "");
+        setEmail(teacher.email || "");
+        setDesignation(teacher.designation || "");
+        setInstitution(teacher.institution || "");
+        setDegrees(teacher.degrees || "");
+        setProfileImage(teacher.profile_image || "");
+    }
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -133,7 +134,7 @@ export default function EditTeacherModal({ isOpen, onClose, onSuccess, teacher }
                             <div className={styles.imageUploadWrapper}>
                                 <label className={styles.imageLabel}>
                                     {profileImage ? (
-                                        <img src={profileImage} alt="Profile preview" className={styles.imagePreview} />
+                                        <Image src={profileImage} alt="Profile preview" width={100} height={100} unoptimized className={styles.imagePreview} />
                                     ) : (
                                         <div className={styles.imagePlaceholder}>
                                             <ImagePlus size={24} style={{ marginBottom: "5px" }} />

@@ -51,39 +51,42 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-    const fetchData = async () => {
-        setLoadingData(true);
-        try {
-            const token = localStorage.getItem("auth_token");
-
-            const apiPrefix = role === "admin" ? "/api/admin" : "/api/teacher";
-            // Fetch students
-            const studentsRes = await fetch(`${apiPrefix}/students`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
-            if (studentsRes.ok) {
-                const studentsData = await studentsRes.json();
-                setStudents(studentsData.students || []);
-            }
-
-            // Fetch courses
-            const coursesRes = await fetch("/api/courses/dynamic");
-            if (coursesRes.ok) {
-                const coursesData = await coursesRes.json();
-                setCourses(coursesData.courses || []);
-            }
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-        }
-        setLoadingData(false);
-    };
-
     // Fetch students and courses when modal opens
     useEffect(() => {
-        if (isOpen && session) {
-            fetchData();
-        }
-    }, [fetchData, isOpen, session]);
+        if (!isOpen || !session) return;
+        let cancelled = false;
+
+        const fetchData = async () => {
+            setLoadingData(true);
+            try {
+                const token = localStorage.getItem("auth_token");
+                const apiPrefix = role === "admin" ? "/api/admin" : "/api/teacher";
+
+                // Fetch students
+                const studentsRes = await fetch(`${apiPrefix}/students`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+                if (studentsRes.ok) {
+                    const studentsData = await studentsRes.json();
+                    if (!cancelled) setStudents(studentsData.students || []);
+                }
+
+                // Fetch courses
+                const coursesRes = await fetch("/api/courses/dynamic");
+                if (coursesRes.ok) {
+                    const coursesData = await coursesRes.json();
+                    if (!cancelled) setCourses(coursesData.courses || []);
+                }
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+            } finally {
+                if (!cancelled) setLoadingData(false);
+            }
+        };
+
+        fetchData();
+        return () => { cancelled = true; };
+    }, [isOpen, session, role]);
 
     const showMessage = (msg: { type: 'success' | 'error'; text: string }) => {
         setMessage(msg);
@@ -188,7 +191,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                     setTimeout(() => onSuccess(), 2000);
                 }
             }
-        } catch (err: any) {
+        } catch {
             showMessage({ type: 'error', text: "Network error. Please try again." });
         }
 

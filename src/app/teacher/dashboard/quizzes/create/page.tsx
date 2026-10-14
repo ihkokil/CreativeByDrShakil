@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Plus,
@@ -80,7 +80,6 @@ interface Category {
 export default function QuizBuilderPage() {
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
   const isEditing = !!params.id;
   const quizId = isEditing ? (params.id as string) : null;
 
@@ -93,7 +92,7 @@ export default function QuizBuilderPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importPreview, setImportPreview] = useState<any>(null);
   const [importing, setImporting] = useState(false);
-  const [questionCounter, setQuestionCounter] = useState(0);
+  const [_questionCounter, setQuestionCounter] = useState(0);
 
   const [formData, setFormData] = useState<QuizFormData>({
     title: '',
@@ -125,14 +124,28 @@ export default function QuizBuilderPage() {
 
   // Categories no longer loaded in UI
 
-  // Load existing quiz data if editing
-  useEffect(() => {
-    if (isEditing && quizId) {
-      fetchQuizData();
-    }
-  }, [fetchQuizData, isEditing, quizId]);
-
-  // fetchCategories removed — no longer needed in the builder UI
+  const addQuestion = useCallback((type: 'sba' | 'true_false' = 'sba') => {
+    const newId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setQuestions(prev => [
+      ...prev,
+      {
+        id: newId,
+        tempId: newId,
+        questionText: '',
+        questionType: type,
+        optionA: '',
+        optionB: '',
+        optionC: '',
+        optionD: '',
+        optionE: '',
+        correctOption: type === 'true_false' ? 'TTTTT' : 'A',
+        explanation: '',
+        collapsed: false,
+        displayOrder: prev.length + 1,
+      }
+    ]);
+    setQuestionCounter(prev => prev + 1);
+  }, []);
 
   const fetchQuizData = useCallback(async () => {
     setLoading(true);
@@ -143,30 +156,32 @@ export default function QuizBuilderPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to load quiz');
 
       // Populate form data
-      const newFormData = { ...formData };
-      Object.keys(newFormData).forEach(k => {
-        const key = k as keyof QuizFormData;
-        if (data.quiz[key] !== undefined) {
-          if (key === 'startDatetime' || key === 'endDatetime') {
-            (newFormData as any)[key] = data.quiz[key] ? new Date(data.quiz[key]).toISOString().slice(0, 16) : '';
-          } else if (key === 'maxAttempts' && data.quiz[key] === null) {
-            (newFormData as any)[key] = 0;
-          } else if (key === 'negativeValue') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
-          } else if (key === 'sbaMarks') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 2;
-          } else if (key === 'sbaNegative') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
-          } else if (key === 'tfMarks') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 2;
-          } else if (key === 'tfNegative') {
-            (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
-          } else {
-            (newFormData as any)[key] = data.quiz[key];
+      setFormData(prev => {
+        const newFormData = { ...prev };
+        Object.keys(newFormData).forEach(k => {
+          const key = k as keyof QuizFormData;
+          if (data.quiz[key] !== undefined) {
+            if (key === 'startDatetime' || key === 'endDatetime') {
+              (newFormData as any)[key] = data.quiz[key] ? new Date(data.quiz[key]).toISOString().slice(0, 16) : '';
+            } else if (key === 'maxAttempts' && data.quiz[key] === null) {
+              (newFormData as any)[key] = 0;
+            } else if (key === 'negativeValue') {
+              (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
+            } else if (key === 'sbaMarks') {
+              (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 2;
+            } else if (key === 'sbaNegative') {
+              (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
+            } else if (key === 'tfMarks') {
+              (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 2;
+            } else if (key === 'tfNegative') {
+              (newFormData as any)[key] = data.quiz[key] !== undefined && data.quiz[key] !== null ? data.quiz[key] : 0;
+            } else {
+              (newFormData as any)[key] = data.quiz[key];
+            }
           }
-        }
+        });
+        return newFormData;
       });
-      setFormData(newFormData);
 
       // Populate questions
       if (data.quiz.questions && data.quiz.questions.length > 0) {
@@ -194,28 +209,14 @@ export default function QuizBuilderPage() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [quizId, addQuestion]);
 
-  const addQuestion = (type: 'sba' | 'true_false' = 'sba') => {
-    const newId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const newQuestion: Question = {
-      id: newId,
-      tempId: newId,
-      questionText: '',
-      questionType: type,
-      optionA: '',
-      optionB: '',
-      optionC: '',
-      optionD: '',
-      optionE: '',
-      correctOption: type === 'true_false' ? 'TTTTT' : 'A',
-      explanation: '',
-      collapsed: false,
-      displayOrder: questions.length + 1,
-    };
-    setQuestions(prev => [...prev, newQuestion]);
-    setQuestionCounter(prev => prev + 1);
-  };
+  // Load existing quiz data if editing
+  useEffect(() => {
+    if (isEditing && quizId) {
+      fetchQuizData();
+    }
+  }, [fetchQuizData, isEditing, quizId]);
 
   const updateQuestion = (id: string, field: keyof Question, value: any) => {
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, [field]: value } : q));
@@ -956,12 +957,10 @@ export default function QuizBuilderPage() {
 function QuestionCard({
   question,
   index,
-  total,
   onUpdate,
   onDelete,
   onDuplicate,
   onToggleCollapse,
-  onReorder,
 }: any) {
   const [dragging, setDragging] = useState(false);
 

@@ -18,6 +18,14 @@ export default function Navbar() {
     const { user, role, loading: authLoading, signOut } = useAuth();
     const [hasStoredToken, setHasStoredToken] = useState(false);
     const router = useRouter();
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            setTimeout(() => {
+                setHasStoredToken(Boolean(localStorage.getItem("auth_token")));
+            }, 0);
+        }
+    }, [user]);
     const pathname = usePathname();
     const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
     const navMenuRef = useRef<HTMLDivElement>(null);
@@ -37,11 +45,6 @@ export default function Navbar() {
 
     const initials = getInitials(user?.user_metadata?.full_name, "US");
 
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            setHasStoredToken(Boolean(localStorage.getItem("auth_token")));
-        }
-    }, [user]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -69,8 +72,10 @@ export default function Navbar() {
         if (authParam === "login" || authParam === "register") {
             const token = localStorage.getItem("auth_token");
             if (!user && !token) {
-                setAuthMode(authParam);
-                setIsAuthOpen(true);
+                setTimeout(() => {
+                    setAuthMode(authParam);
+                    setIsAuthOpen(true);
+                }, 0);
             } else if (user || token) {
                 // User is authenticated, clean up query parameter without re-rendering or router replace
                 const url = new URL(window.location.href);
@@ -78,14 +83,18 @@ export default function Navbar() {
                 url.searchParams.delete("error");
                 url.searchParams.delete("message");
                 window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
-                setIsAuthOpen(false);
+                setTimeout(() => {
+                    setIsAuthOpen(false);
+                }, 0);
             }
         }
     }, [pathname, user]);
 
     useEffect(() => {
         if (isAuthOpen && (user || (typeof window !== "undefined" && localStorage.getItem("auth_token")))) {
-            setIsAuthOpen(false);
+            setTimeout(() => {
+                setIsAuthOpen(false);
+            }, 0);
         }
     }, [isAuthOpen, user]);
 

@@ -76,7 +76,8 @@ export async function POST(request: NextRequest) {
       }
 
       if (action === 'batch_change' || action === 'change_batch') {
-        let { batchId, startDate } = body;
+        const { startDate } = body;
+        let { batchId } = body;
         if (!batchId) {
           const customBatch = await ensureCustomBatch(supabase, courseId);
           batchId = customBatch.id;

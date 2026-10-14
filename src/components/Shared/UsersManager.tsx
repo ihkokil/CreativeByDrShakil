@@ -544,12 +544,6 @@ export default function UsersManager() {
     });
   };
 
-  const getSessionStatus = (session: SessionData) => {
-    if (session.isLocked) return 'locked';
-    if (session.loggedOutAt) return 'loggedout';
-    return 'active';
-  };
-
   // Filter loaded users based on active category/status tab
   const filteredUsers = useMemo(() => {
     if (activeFilterTab === 'all') return users;

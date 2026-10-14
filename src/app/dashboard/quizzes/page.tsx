@@ -92,8 +92,45 @@ export default function QuizzesPage() {
   }, [search]);
 
   useEffect(() => {
+    let cancelled = false;
+    const fetchQuizzes = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+          search: debouncedSearch,
+          sortBy: sortBy === 'newest' ? 'createdAt' : sortBy === 'oldest' ? 'createdAt' : sortBy === 'duration' ? 'durationMinutes' : 'title',
+          sortOrder: sortBy === 'oldest' ? 'asc' : 'desc',
+        });
+
+        if (statusFilter) params.set('status', statusFilter);
+        if (courseFilter) params.set('courseId', courseFilter);
+
+        const res = await fetch(`/api/quiz?${params.toString()}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Failed to fetch quizzes');
+
+        if (!cancelled) {
+          setQuizzes(data.quizzes || []);
+          if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) {
+            setAvailableCourses(data.courses);
+          }
+          setTotalCount(data.pagination?.total || 0);
+          setTotalPages(data.pagination?.totalPages || 1);
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || 'Failed to load quizzes');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
     fetchQuizzes();
-  }, [debouncedSearch, statusFilter, courseFilter, sortBy, page, fetchQuizzes]);
+    return () => { cancelled = true; };
+  }, [debouncedSearch, statusFilter, courseFilter, sortBy, page, limit]);
 
   // PDF Generation Hook
   useEffect(() => {
@@ -181,38 +218,7 @@ export default function QuizzesPage() {
     }
   };
 
-  const fetchQuizzes = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        search: debouncedSearch,
-        sortBy: sortBy === 'newest' ? 'createdAt' : sortBy === 'oldest' ? 'createdAt' : sortBy === 'duration' ? 'durationMinutes' : 'title',
-        sortOrder: sortBy === 'oldest' ? 'asc' : 'desc',
-      });
 
-      if (statusFilter) params.set('status', statusFilter);
-      if (courseFilter) params.set('courseId', courseFilter);
-
-      const res = await fetch(`/api/quiz?${params.toString()}`);
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch quizzes');
-
-      setQuizzes(data.quizzes || []);
-      if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) {
-        setAvailableCourses(data.courses);
-      }
-      setTotalCount(data.pagination?.total || 0);
-      setTotalPages(data.pagination?.totalPages || 1);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load quizzes');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusBadge = (quiz: Quiz) => {
     if (quiz.isLocked) {

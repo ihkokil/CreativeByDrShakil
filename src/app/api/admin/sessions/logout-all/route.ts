@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth-server';
 import { terminateAllSessions } from '@/lib/session-manager';
 
@@ -7,7 +7,7 @@ import { terminateAllSessions } from '@/lib/session-manager';
  * Logs out all active user sessions globally.
  * Accessible by: Admin, Teacher
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const auth = await getSession();
 

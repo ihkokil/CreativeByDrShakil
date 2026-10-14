@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import styles from "./AdminModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, User, Send, Building2, Briefcase, GraduationCap, ImagePlus } from "lucide-react";
@@ -129,7 +130,7 @@ export default function AddTeacherModal({ isOpen, onClose, onSuccess }: Props) {
                             <div className={styles.imageUploadWrapper}>
                                 <label className={styles.imageLabel}>
                                     {profileImage ? (
-                                        <img src={profileImage} alt="Profile preview" className={styles.imagePreview} />
+                                        <Image src={profileImage} alt="Profile preview" width={100} height={100} unoptimized className={styles.imagePreview} />
                                     ) : (
                                         <div className={styles.imagePlaceholder}>
                                             <ImagePlus size={24} style={{ marginBottom: "5px" }} />

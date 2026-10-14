@@ -145,9 +145,9 @@ export default function TeacherCourseBuilder() {
     const [nodeOverrideDrafts, setNodeOverrideDrafts] = useState<Record<string, string>>({});
 
     const [releaseMode, setReleaseMode] = useState<CourseReleaseModeValue>("fixed_interval");
-    const [releaseStartAt, setReleaseStartAt] = useState("");
-    const [intervalDays, setIntervalDays] = useState("7");
-    const [groupsPerWeek, setGroupsPerWeek] = useState("2");
+    const [_releaseStartAt, setReleaseStartAt] = useState("");
+    const [_intervalDays, setIntervalDays] = useState("7");
+    const [_groupsPerWeek, setGroupsPerWeek] = useState("2");
     const [selectedDays, setSelectedDays] = useState<number[]>([0]);
     const [courseStatus, setCourseStatus] = useState<"draft" | "scheduled" | "published" | "archived">("draft");
 

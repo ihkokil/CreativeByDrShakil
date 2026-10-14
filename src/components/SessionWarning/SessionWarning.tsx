@@ -25,8 +25,10 @@ export default function SessionWarningToast() {
 
     shownRef.current = true;
     sessionStorage.setItem(SESSION_TOAST_KEY, "1");
-    setVisible(true);
-    setClosing(false);
+    setTimeout(() => {
+      setVisible(true);
+      setClosing(false);
+    }, 0);
   }, [hasSessionTerminated]);
 
   const dismiss = useCallback(() => {

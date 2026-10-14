@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import Loader from "@/components/UI/Loader";
 import {  ArrowRight, CheckCircle2, Send, X, Mail, Phone, Clock, ExternalLink } from 'lucide-react';
 import styles from './ContactRequestsManager.module.css';
@@ -56,15 +57,15 @@ export default function ContactRequestModal({
   isSaving,
 }: ContactRequestModalProps) {
   useModal(isOpen, onClose);
-  const [statusDraft, setStatusDraft] = useState<ContactStatus>('open');
-  const [replyDraft, setReplyDraft] = useState('');
+  const [prevSubmissionId, setPrevSubmissionId] = useState<string | null>(submission?.id || null);
+  const [statusDraft, setStatusDraft] = useState<ContactStatus>(submission?.status || 'open');
+  const [replyDraft, setReplyDraft] = useState(submission?.adminReply || '');
 
-  useEffect(() => {
-    if (submission) {
-      setStatusDraft(submission.status);
-      setReplyDraft(submission.adminReply || '');
-    }
-  }, [submission.id, submission.updatedAt, submission.adminReply, submission.adminReplySentAt, submission.status, submission]);
+  if (submission && submission.id !== prevSubmissionId) {
+    setPrevSubmissionId(submission.id);
+    setStatusDraft(submission.status);
+    setReplyDraft(submission.adminReply || '');
+  }
 
   if (!isOpen || !submission) {
     return null;
@@ -150,7 +151,7 @@ export default function ContactRequestModal({
                     className={styles.attachmentCard}
                     title="Click to view full image"
                   >
-                    <img src={url} alt={`Attachment ${idx + 1}`} />
+                    <Image src={url} alt={`Attachment ${idx + 1}`} fill unoptimized style={{ objectFit: 'cover' }} />
                     <span className={styles.attachmentOverlay}>
                       <ExternalLink size={14} /> Open
                     </span>

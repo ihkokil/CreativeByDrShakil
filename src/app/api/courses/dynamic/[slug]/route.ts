@@ -22,12 +22,14 @@ export async function GET(
     const token = await extractCookieToken();
     const supabase = getSupabase(token);
 
-    let { data: course, error: courseError } = await supabase
+    let course;
+    const { data: initialCourse, error: courseError } = await supabase
       .from('Course')
       .select('*')
       .eq('slug', slug)
       .limit(1)
       .maybeSingle();
+    course = initialCourse;
 
     if (!course) {
       const { data: courseByIlike } = await supabase

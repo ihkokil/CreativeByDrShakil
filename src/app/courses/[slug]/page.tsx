@@ -18,12 +18,14 @@ async function getCourseData(rawSlug: string) {
   const slug = decodeURIComponent(rawSlug).trim();
 
   // Try matching slug first
-  let { data: course, error: courseError } = await supabase
+  let course;
+  const { data: initialCourse, error: courseError } = await supabase
     .from('Course')
     .select('*')
     .eq('slug', slug)
     .limit(1)
     .maybeSingle();
+  course = initialCourse;
 
   // If not found by slug, try matching case-insensitively or by ID
   if (!course) {

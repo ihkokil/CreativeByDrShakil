@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import LoaderComponent from "@/components/UI/Loader";
@@ -24,7 +24,6 @@ interface CourseData {
 
 function CreateCourseStep4Content({ courseId }: { courseId?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [course, setCourse] = useState<CourseData | null>(null);
   const [loading, setLoading] = useState(true);

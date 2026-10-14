@@ -150,45 +150,10 @@ export default function QuizTakePage() {
     fetchData();
   }, [quizId, attemptId]);
 
-  // Timer
-  useEffect(() => {
-    if (showResults || timeRemaining === null || timeRemaining === Infinity || timeRemaining <= 0) return;
-
-    timerRef.current = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev === null || prev === Infinity) return prev;
-        const newTime = prev - 1;
-        if (newTime <= 0) {
-          handleAutoSubmit();
-          return 0;
-        }
-        return newTime;
-      });
-    }, 1000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [timeRemaining, showResults, handleAutoSubmit]);
-
-  // Warn before unload
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!showResults && !autoSubmitted) {
-        e.preventDefault();
-        e.returnValue = 'You have an active quiz in progress. Leaving will auto-submit your quiz.';
-        return e.returnValue;
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [showResults, autoSubmitted]);
-
   // Save answers to server
   const saveAnswers = useCallback(async () => {
     const unsavedAnswers = Object.entries(answers)
-      .filter(([_, ans]) => ans.selectedOption && !ans.saved)
+      .filter(([, ans]) => ans.selectedOption && !ans.saved)
       .map(([questionId, ans]) => ({ questionId, selectedOption: ans.selectedOption }));
 
     if (unsavedAnswers.length === 0) return;
@@ -224,6 +189,85 @@ export default function QuizTakePage() {
       console.error('Failed to save answers:', err);
     }
   }, [answers, attemptId]);
+
+  const handleAutoSubmit = useCallback(async () => {
+    if (showResults) return;
+    setSubmitting(true);
+    setAutoSubmitted(true);
+
+    try {
+      await saveAnswers();
+      const res = await fetch(`/api/quiz/attempt/${attemptId}/auto-submit`, { method: 'POST' });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Auto-submit failed');
+
+      setShowResults(true);
+      const resultsMap = data.results?.questionResults || data.results?.answers;
+      if (resultsMap) {
+        setAnswers(prev => {
+          const updated = { ...prev };
+          Object.entries(resultsMap).forEach(([qId, result]: [string, any]) => {
+            if (updated[qId]) {
+              updated[qId] = {
+                ...updated[qId],
+                isCorrect: result.isCorrect,
+              };
+            }
+          });
+          return updated;
+        });
+      }
+
+      // Redirect to full results page after a brief delay
+      setTimeout(() => {
+        const targetUrl = returnUrl
+          ? `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}&returnUrl=${encodeURIComponent(returnUrl)}`
+          : `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}`;
+        router.push(targetUrl);
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [showResults, attemptId, saveAnswers, quizId, returnUrl, router]);
+
+  // Timer
+  useEffect(() => {
+    if (showResults || timeRemaining === null || timeRemaining === Infinity || timeRemaining <= 0) return;
+
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev === null || prev === Infinity) return prev;
+        const newTime = prev - 1;
+        if (newTime <= 0) {
+          handleAutoSubmit();
+          return 0;
+        }
+        return newTime;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [timeRemaining, showResults, handleAutoSubmit]);
+
+  // Warn before unload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!showResults && !autoSubmitted) {
+        e.preventDefault();
+        e.returnValue = 'You have an active quiz in progress. Leaving will auto-submit your quiz.';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [showResults, autoSubmitted]);
+
 
   // Detect tab visibility change & auto-dismiss warning after 3s on return
   useEffect(() => {
@@ -389,48 +433,6 @@ export default function QuizTakePage() {
     }, 0);
   };
 
-  const handleAutoSubmit = useCallback(async () => {
-    if (showResults) return;
-    setSubmitting(true);
-    setAutoSubmitted(true);
-
-    try {
-      await saveAnswers();
-      const res = await fetch(`/api/quiz/attempt/${attemptId}/auto-submit`, { method: 'POST' });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Auto-submit failed');
-
-      setShowResults(true);
-      const resultsMap = data.results?.questionResults || data.results?.answers;
-      if (resultsMap) {
-        setAnswers(prev => {
-          const updated = { ...prev };
-          Object.entries(resultsMap).forEach(([qId, result]: [string, any]) => {
-            if (updated[qId]) {
-              updated[qId] = {
-                ...updated[qId],
-                isCorrect: result.isCorrect,
-              };
-            }
-          });
-          return updated;
-        });
-      }
-
-      // Redirect to full results page after a brief delay
-      setTimeout(() => {
-        const targetUrl = returnUrl
-          ? `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}&returnUrl=${encodeURIComponent(returnUrl)}`
-          : `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}`;
-        router.push(targetUrl);
-      }, 1500);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }, [showResults, attemptId, saveAnswers, quizId, returnUrl, router]);
 
   // Auto-submit if time expires while tab was closed or when timer hits zero
   useEffect(() => {

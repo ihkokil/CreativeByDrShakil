@@ -35,9 +35,8 @@ interface Props {
 export default function CourseDetailClient({ initialCourse, initialTeachers, initialCurriculum, slug }: Props) {
     const router = useRouter();
     const [course, setCourse] = useState<Course | null>(initialCourse);
-    const [teachers, setTeachers] = useState<PublicTeacher[]>(initialTeachers);
+    const [teachers] = useState<PublicTeacher[]>(initialTeachers);
     const [dynamicCurriculum, setDynamicCurriculum] = useState<CurriculumNode[]>(initialCurriculum);
-    const [activeDynamicNode, setActiveDynamicNode] = useState<CurriculumNode | null>(null);
     const [loadingCourse, setLoadingCourse] = useState(false);
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);

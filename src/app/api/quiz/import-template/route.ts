@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const csvContent = `Question,Option A,Option B,Option C,Option D,Option E,Correct Option,Explanation
 "Which of the following is the most common cause of community-acquired pneumonia in adults?","Streptococcus pneumoniae","Mycoplasma pneumoniae","Legionella pneumophila","Haemophilus influenzae","Klebsiella pneumoniae",A,"Streptococcus pneumoniae remains the most common etiology of community-acquired pneumonia in adults worldwide."

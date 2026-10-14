@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { LayoutDashboard, BookOpen, ClipboardList, CreditCard, MoreHorizontal } from "lucide-react";
 import StudentSidebar from "@/components/Student/StudentSidebar";
@@ -16,12 +16,13 @@ function StudentDashboardLayoutContent({
 }) {
     const { user, loading, role } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
     useEffect(() => {
         if (typeof window !== "undefined" && window.innerWidth <= 768) {
-            setIsSidebarExpanded(false);
+            setTimeout(() => {
+                setIsSidebarExpanded(false);
+            }, 0);
         }
     }, []);
 

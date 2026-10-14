@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import styles from "../../batches.module.css";
@@ -76,10 +76,6 @@ export default function BatchStudentsPage() {
     });
   };
 
-  useEffect(() => {
-    fetchBatchStudents();
-  }, [courseId, batchId, fetchBatchStudents]);
-
   const fetchBatchStudents = useCallback(async () => {
     try {
       setLoading(true);
@@ -95,7 +91,11 @@ export default function BatchStudentsPage() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [courseId, batchId]);
+
+  useEffect(() => {
+    fetchBatchStudents();
+  }, [fetchBatchStudents]);
 
   const handleRemoveStudent = (orderId: string, studentName: string) => {
     showConfirm({

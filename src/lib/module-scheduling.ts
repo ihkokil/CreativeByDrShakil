@@ -72,8 +72,8 @@ export function generateModuleSchedule(modules: Module[], baseDate: Date, target
  */
 export function getStudentModuleView(
   schedule: ScheduledModule[],
-  enrollmentDate: Date,
-  today: Date
+  _enrollmentDate: Date,
+  _today: Date
 ): StudentModuleView {
   const sorted = [...schedule].sort((a, b) => {
     const dateA = new Date(a.releaseAt || 0).getTime();

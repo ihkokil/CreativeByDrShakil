@@ -25,16 +25,7 @@ function updateNodeById(nodes: BuilderCurriculumNode[], nodeId: string, updater:
   });
 }
 
-function removeNodeById(nodes: BuilderCurriculumNode[], nodeId: string): BuilderCurriculumNode[] {
-  return nodes
-    .filter(node => node.id !== nodeId)
-    .map(node => {
-      if (node.children) {
-        return { ...node, children: removeNodeById(node.children, nodeId) };
-      }
-      return node;
-    });
-}
+
 
 export async function GET(
   request: NextRequest,

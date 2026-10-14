@@ -34,13 +34,14 @@ export async function GET(request: NextRequest) {
 
         const supabase = getSupabaseAdmin();
 
-        let { data: nodes = [], error } = await supabase
+        const { data: initialNodes = [], error } = await supabase
             .from('VideoLibraryNode')
             .select('id, title, type, url, duration, parentId, attachments, sortOrder')
             .order('sortOrder', { ascending: true })
             .order('createdAt', { ascending: true });
 
         if (error) throw error;
+        let nodes = initialNodes;
 
         // Auto-repair / Migration logic:
         // 1. Ensure every root course folder has an "All Resources" folder at sortOrder: -2

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import Loader from "@/components/UI/Loader";
 import { useAuth } from '@/context/AuthContext';
 import styles from './ContactRequestsManager.module.css';
@@ -85,7 +85,7 @@ export default function ContactRequestsManager() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [token]);
 
   useEffect(() => {
     if (token) {

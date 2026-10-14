@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import styles from "../batches.module.css";
@@ -55,10 +55,6 @@ export default function CourseBatchesPage() {
     setBatchToDelete(null);
   });
 
-  useEffect(() => {
-    fetchBatches();
-  }, [courseId, fetchBatches]);
-
   const fetchBatches = useCallback(async () => {
     try {
       setLoading(true);
@@ -74,7 +70,11 @@ export default function CourseBatchesPage() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [courseId]);
+
+  useEffect(() => {
+    fetchBatches();
+  }, [fetchBatches]);
 
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();

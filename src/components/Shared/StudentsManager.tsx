@@ -144,7 +144,6 @@ export default function StudentsManager() {
   const [showRemovePanel, setShowRemovePanel] = useState(false);
   const [removeCourseId, setRemoveCourseId] = useState('');
   const [showDatePanel, setShowDatePanel] = useState(false);
-  const [datePanelCourseId, setDatePanelCourseId] = useState('');
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -633,7 +632,7 @@ export default function StudentsManager() {
       } else {
         showAlert(data.error || 'Failed to update enrollment date.', 'error');
       }
-    } catch (err: any) {
+    } catch {
       showAlert('Network error while updating enrollment date.', 'error');
     } finally {
       setIsSubmitting(false);
@@ -1581,7 +1580,7 @@ export default function StudentsManager() {
               <div className={styles.imageUploadWrapper}>
                 <label className={styles.imageLabel}>
                   {formData.profileImage ? (
-                    <img src={formData.profileImage} alt="Preview" className={styles.imagePreview} />
+                    <Image src={formData.profileImage} alt="Preview" width={100} height={100} unoptimized className={styles.imagePreview} />
                   ) : (
                     <div className={styles.imagePlaceholder}>
                       <ImagePlus size={20} />
@@ -1650,7 +1649,7 @@ export default function StudentsManager() {
               <div className={styles.imageUploadWrapper}>
                 <label className={styles.imageLabel}>
                   {formData.profileImage ? (
-                    <img src={formData.profileImage} alt="Preview" className={styles.imagePreview} />
+                    <Image src={formData.profileImage} alt="Preview" width={100} height={100} unoptimized className={styles.imagePreview} />
                   ) : (
                     <div className={styles.imagePlaceholder}>
                       <ImagePlus size={20} />

@@ -114,7 +114,6 @@ async function applyCustomEnrollmentDate(
 
   const expDate = new Date(targetDate);
   expDate.setUTCFullYear(expDate.getUTCFullYear() + 1);
-  const expiresIso = expDate.toISOString();
 
   const { data: courseInfo } = await supabase
     .from('Course')
@@ -803,7 +802,6 @@ export async function POST(request: NextRequest) {
       const parts = callbackData.split('|');
       const userId = decompressUuid(parts[1]);
       const batchId = decompressUuid(parts[2]);
-      const subMode = parts[3] || 'bat';
 
       const [userRes, batchRes] = await Promise.all([
         supabase.from('User').select('id, fullName, email').eq('id', userId).limit(1).maybeSingle(),

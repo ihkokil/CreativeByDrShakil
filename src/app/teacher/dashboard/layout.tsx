@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import TeacherSidebar from "@/components/Teacher/TeacherSidebar";
 import TeacherHeader from "../../../components/Teacher/TeacherHeader";
@@ -17,12 +17,13 @@ function TeacherDashboardLayoutContent({
 }) {
     const { user, loading, role } = useAuth();
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
     useEffect(() => {
         if (typeof window !== "undefined" && window.innerWidth <= 768) {
-            setIsSidebarExpanded(false);
+            setTimeout(() => {
+                setIsSidebarExpanded(false);
+            }, 0);
         }
     }, []);
 

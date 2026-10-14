@@ -81,14 +81,13 @@ function AdminDashboardContent() {
     };
 
     const [isAddStudentToCourseOpen, setIsAddStudentToCourseOpen] = useState(false);
-    const [enrollments, setEnrollments] = useState<any[]>([]);
-    const [coursesList, setCoursesList] = useState<any[]>([]);
-    const [enrollmentsLoading, setEnrollmentsLoading] = useState(true);
+    const [_enrollments, setEnrollments] = useState<any[]>([]);
+    const [_coursesList, setCoursesList] = useState<any[]>([]);
+    const [_enrollmentsLoading, setEnrollmentsLoading] = useState(true);
 
-    const [orders, setOrders] = useState<any[]>([]);
-    const [ordersLoading, setOrdersLoading] = useState(false);
-    const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
-
+    const [_orders, setOrders] = useState<any[]>([]);
+    const [_ordersLoading, setOrdersLoading] = useState(false);
+    const [paymentStatus, _setPaymentStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
     const [stats, setStats] = useState<AdminStats | null>(null);
@@ -207,28 +206,6 @@ function AdminDashboardContent() {
         } finally {
             setIsSendingReset(false);
             setResetConfirmTarget(null);
-        }
-    };
-
-    const handleOrderDecision = async (orderId: string, decision: 'approve' | 'reject') => {
-        if (!confirm(`Are you sure you want to ${decision} this payment?`)) return;
-
-        try {
-            const token = localStorage.getItem("auth_token");
-            const response = await fetch(`/api/admin/orders/${orderId}/decision`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ decision }),
-            });
-            if (response.ok) {
-                fetchOrders(paymentStatus);
-                fetchStats();
-            } else {
-                const d = (await response.json()) as any;
-                alert(d?.error || `Failed to ${decision} payment.`);
-            }
-        } catch {
-            alert("Network error.");
         }
     };
 

@@ -266,7 +266,7 @@ export default function StudentsList() {
                             <div className={localStyles.imageUploadWrapper}>
                                 <label className={localStyles.imageLabel}>
                                     {formData.profileImage ? (
-                                        <img src={formData.profileImage} alt="Preview" className={localStyles.imagePreview} />
+                                        <Image src={formData.profileImage} alt="Preview" width={100} height={100} unoptimized className={localStyles.imagePreview} />
                                     ) : (
                                         <div className={localStyles.imagePlaceholder}>
                                             <ImagePlus size={20} />
@@ -338,7 +338,7 @@ export default function StudentsList() {
                             <div className={localStyles.imageUploadWrapper}>
                                 <label className={localStyles.imageLabel}>
                                     {formData.profileImage ? (
-                                        <img src={formData.profileImage} alt="Preview" className={localStyles.imagePreview} />
+                                        <Image src={formData.profileImage} alt="Preview" width={100} height={100} unoptimized className={localStyles.imagePreview} />
                                     ) : (
                                         <div className={localStyles.imagePlaceholder}>
                                             <ImagePlus size={20} />

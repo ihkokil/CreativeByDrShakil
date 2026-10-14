@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import styles from './SessionsManager.module.css';
 import { Smartphone, Monitor, Lock, LogOut, Settings2, AlertCircle } from 'lucide-react';
 import SessionDetailsModal from './SessionDetailsModal';
@@ -55,7 +55,7 @@ export default function SessionsManager() {
     } finally {
       setLoading(false);
     }
-  });
+  }, [token]);
 
   useEffect(() => {
     fetchSessions();
@@ -110,10 +110,7 @@ export default function SessionsManager() {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB') + ' ' + date.toLocaleTimeString('en-GB');
-  };
+
 
   const getSessionStatus = (session: SessionData) => {
     if (session.isLocked) return 'locked';

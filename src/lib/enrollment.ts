@@ -15,7 +15,7 @@ export async function ensureCourseEnrollment(
   courseId: string,
   courseTitle: string,
   courseSlug: string | null,
-  enrolledByAdmin: boolean = false,
+  _enrolledByAdmin: boolean = false,
   enrolledAt?: Date,
   expiresAt?: Date,
   batchId?: string | null

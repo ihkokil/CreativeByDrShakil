@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Loader from "@/components/UI/Loader";
 import {
@@ -158,7 +159,7 @@ export default function SingleCourseProgressModal({
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             {student.profileImage ? (
-              <img src={student.profileImage} alt={student.fullName} className={styles.studentAvatar} />
+              <Image src={student.profileImage} alt={student.fullName} width={72} height={72} unoptimized className={styles.studentAvatar} />
             ) : (
               <div className={styles.studentAvatar}>{getInitials(student.fullName)}</div>
             )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -145,26 +145,22 @@ export default function TeacherQuizResultsPage() {
   const [loadingAttemptData, setLoadingAttemptData] = useState<boolean>(false);
   const [studentSearch, setStudentSearch] = useState<string>('');
 
-  useEffect(() => {
-    fetchResults();
-  }, [quizId, attemptParam, fetchResults]);
-
-  useEffect(() => {
-    if (studentParam !== selectedStudentId) {
-      setSelectedStudentId(studentParam);
-    }
-    if (attemptParam !== selectedAttemptId) {
-      setSelectedAttemptId(attemptParam || null);
-      if (attemptParam) {
-        loadStudentAttemptDetails(attemptParam);
+  const loadStudentAttemptDetails = useCallback(async (attId: string) => {
+    setLoadingAttemptData(true);
+    try {
+      const res = await fetch(`/api/quiz/${quizId}/results?attempt=${attId}`);
+      const result = await res.json();
+      if (res.ok && result.attempt) {
+        setSelectedAttemptData(result.attempt);
       }
+    } catch (err) {
+      console.error('Failed to load student attempt details', err);
+    } finally {
+      setLoadingAttemptData(false);
     }
-    if (tabParam && tabParam !== activeTab) {
-      setActiveTab(tabParam as any);
-    }
-  }, [studentParam, attemptParam, tabParam, selectedStudentId, selectedAttemptId, activeTab, loadStudentAttemptDetails]);
+  }, [quizId]);
 
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     try {
       const p = new URLSearchParams();
       p.set('view', 'teacher');
@@ -197,22 +193,26 @@ export default function TeacherQuizResultsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId, attemptParam, router]);
 
-  const loadStudentAttemptDetails = useCallback(async (attId: string) => {
-    setLoadingAttemptData(true);
-    try {
-      const res = await fetch(`/api/quiz/${quizId}/results?attempt=${attId}`);
-      const result = await res.json();
-      if (res.ok && result.attempt) {
-        setSelectedAttemptData(result.attempt);
-      }
-    } catch (err) {
-      console.error('Failed to load student attempt details', err);
-    } finally {
-      setLoadingAttemptData(false);
+  useEffect(() => {
+    fetchResults();
+  }, [fetchResults]);
+
+  useEffect(() => {
+    if (studentParam !== selectedStudentId) {
+      setSelectedStudentId(studentParam);
     }
-  });
+    if (attemptParam !== selectedAttemptId) {
+      setSelectedAttemptId(attemptParam || null);
+      if (attemptParam) {
+        loadStudentAttemptDetails(attemptParam);
+      }
+    }
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam as any);
+    }
+  }, [studentParam, attemptParam, tabParam, selectedStudentId, selectedAttemptId, activeTab, loadStudentAttemptDetails]);
 
   const formatTime = (seconds: number | null) => {
     if (!seconds && seconds !== 0) return 'N/A';
@@ -1019,7 +1019,7 @@ export default function TeacherQuizResultsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredLeaderboard?.map((entry, index) => (
+                        {filteredLeaderboard?.map((entry) => (
                           <tr key={entry.attemptId} className={entry.isCurrentUser ? styles.currentUser : ''}>
                             <td className={styles.rankCell}>
                               {entry.rank <= 3 ? (
