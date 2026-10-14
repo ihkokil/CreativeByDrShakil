@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import styles from "./Auth.module.css";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { User, LogOut, Layout, BookOpen, Mail, Menu, X, Home, Lock, ArrowRight, ArrowLeft, Phone, FileText, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { User, Mail, X, Lock, ArrowRight, ArrowLeft, Phone, FileText, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useModalLock } from "@/hooks/useModalLock";
 import { normalizeLoginIdentifier } from "@/lib/login-validator";
@@ -103,7 +103,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 }
             }
         }
-    }, [defaultMode, isOpen]);
+    }, [defaultMode, isOpen, onClose, showBannedModal]);
 
     // Resend countdown timer
     useEffect(() => {
@@ -183,7 +183,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                     }, 100);
                 }
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -254,11 +254,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                     url.searchParams.delete("message");
                     window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
                 }
-                
+
                 onClose();
                 if (onSuccess) onSuccess(data.user?.role || 'student');
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -291,7 +291,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 setMessage({ type: 'success', text: 'Email verified! Please complete registration.' });
                 setStep("register");
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -322,7 +322,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                     otpInputsRef.current[0]?.focus();
                 }, 100);
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -394,7 +394,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 onClose();
                 if (onSuccess) onSuccess(data.user?.role || 'student');
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -433,7 +433,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                     otpInputsRef.current[0]?.focus();
                 }, 100);
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -467,7 +467,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 setPassword("");
                 setConfirmPassword("");
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -525,7 +525,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                 onClose();
                 if (onSuccess) onSuccess(data.user?.role || 'student');
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: 'error', text: 'Connection error. Please try again.' });
         } finally {
             setLoading(false);
@@ -658,9 +658,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                         {/* Step 1 & 2a: Combined Login Form */}
                         {(step === "email" || step === "password") && (
                             <>
-                                <form 
-                                    className={styles.form} 
-                                    onSubmit={step === "email" ? handleEmailSubmit : handlePasswordSubmit} 
+                                <form
+                                    className={styles.form}
+                                    onSubmit={step === "email" ? handleEmailSubmit : handlePasswordSubmit}
                                     noValidate
                                 >
                                     {/* Email Input Group - always in DOM, toggle visibility */}
@@ -742,9 +742,9 @@ export default function AuthModal({ isOpen, onClose, onSuccess, defaultMode = "l
                                         </div>
 
                                         <div className={styles.socialBar}>
-                                            <button 
-                                                type="button" 
-                                                className={styles.socialBtn} 
+                                            <button
+                                                type="button"
+                                                className={styles.socialBtn}
                                                 onClick={() => { window.location.href = '/api/auth/nextauth'; }}
                                             >
                                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ marginRight: '10px' }}>

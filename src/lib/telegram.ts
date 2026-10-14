@@ -1,5 +1,3 @@
-import { signVerificationToken } from './token-utils';
-import { getAppUrl } from './email';
 
 // Read env variables dynamically to ensure compatibility with Cloudflare Workers / Serverless edge
 function getTelegramToken() {
@@ -50,7 +48,7 @@ export function decompressUuid(compressed: string): string {
           return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
         }
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
   }

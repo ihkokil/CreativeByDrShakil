@@ -2,10 +2,9 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Upload, Calendar } from "lucide-react";
+import { ArrowRight, Upload } from "lucide-react";
 import Image from "next/image";
 import styles from "./CreateCourseStep1.module.css";
-import { formatDisplayDate, parseDisplayDateToIso } from "@/lib/date-format";
 
 function CreateCourseStep1Content({ courseId }: { courseId?: string }) {
   const router = useRouter();

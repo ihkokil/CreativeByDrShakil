@@ -19,8 +19,7 @@ import {
   AlertTriangle,
   Sparkles,
   Wallet,
-  BookOpen,
-  ArrowUpRight
+  BookOpen
 } from "lucide-react";
 import Link from "next/link";
 import { formatDateTextGMT6, formatDateTimeGMT6 } from "@/lib/date-format";

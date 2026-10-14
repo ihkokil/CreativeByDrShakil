@@ -18,7 +18,7 @@ export default function TermsOfService() {
                     <h1 className={styles.title}>Terms of Service</h1>
                     <p className={styles.subtitle}>Effective Date: {new Date().toLocaleDateString()}</p>
                 </div>
-                
+
                 <div className={styles.content}>
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>1. Acceptance of Terms</h2>
@@ -76,7 +76,7 @@ export default function TermsOfService() {
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>7. Changes to Terms</h2>
                         <p className={styles.text}>
-                            We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will attempt to provide at least 15 days' notice prior to any new terms taking effect. Your continued use of the platform following the posting of any changes constitutes acceptance of those changes.
+                            We reserve the right, at our sole discretion, to modify or replace these Terms at any time. We will attempt to provide at least 15 days&apos; notice prior to any new terms taking effect. Your continued use of the platform following the posting of any changes constitutes acceptance of those changes.
                         </p>
                     </section>
                 </div>

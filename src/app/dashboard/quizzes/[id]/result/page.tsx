@@ -10,16 +10,11 @@ import {
   XCircle,
   ChevronLeft,
   Download,
-  BarChart2,
   Award,
-  User,
-  Users,
   Target,
   TrendingUp,
   RotateCcw,
   Search,
-  ChevronRight,
-  Sparkles,
   X,
   Check,
   HelpCircle,
@@ -96,7 +91,7 @@ export default function QuizResultPage() {
   const attemptId = searchParams ? searchParams.get('attempt') || '' : '';
   const isAutoSubmitted = searchParams ? searchParams.get('auto') === 'true' : false;
   const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
-  
+
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,11 +109,11 @@ export default function QuizResultPage() {
         method: 'POST',
       });
       const resData = await res.json();
-      
+
       if (!res.ok) {
         throw new Error(resData.error || 'Failed to start quiz');
       }
-      
+
       const targetUrl = returnUrl
         ? `/dashboard/quizzes/${quizId}/attempt/${resData.attemptId}?returnUrl=${encodeURIComponent(returnUrl)}`
         : `/dashboard/quizzes/${quizId}/attempt/${resData.attemptId}`;
@@ -146,7 +141,7 @@ export default function QuizResultPage() {
       try {
         const res = await fetch(`/api/quiz/${quizId}/results?attempt=${attemptId}`);
         const result = await res.json();
-        
+
         if (!res.ok) {
           if (res.status === 403 || res.status === 404) {
             router.push(returnUrl || '/dashboard/quizzes');
@@ -154,7 +149,7 @@ export default function QuizResultPage() {
           }
           throw new Error(result.error || 'Failed to load results');
         }
-        
+
         setData(result);
       } catch (err: any) {
         setError(err.message);
@@ -162,9 +157,9 @@ export default function QuizResultPage() {
         setLoading(false);
       }
     };
-    
+
     fetchResults();
-  }, [quizId, attemptId, router]);
+  }, [quizId, attemptId, router, returnUrl]);
 
   const formatTime = (seconds: number) => {
     if (!seconds && seconds !== 0) return 'N/A';
@@ -186,7 +181,7 @@ export default function QuizResultPage() {
   const handleDownloadPDF = async () => {
     if (!data) return;
     setDownloading(true);
-    
+
     try {
       const { jsPDF } = await import('jspdf');
       const html2canvas = (await import('html2canvas')).default;
@@ -196,22 +191,22 @@ export default function QuizResultPage() {
         unit: 'px',
         format: 'a4'
       });
-      
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
       const paddingX = 20;
       const usableWidth = pdfWidth - (paddingX * 2);
       let currentY = 20;
-      
+
       // Detect current theme background color
       const bodyBgStyle = window.getComputedStyle(document.body).backgroundColor;
       const rgbMatch = bodyBgStyle.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
       const bgColor = rgbMatch ? [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])] : [255, 255, 255];
-      
+
       // Fill the first page background
       pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
       pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
-      
+
       const addElementToPdf = async (el: HTMLElement) => {
         const canvas = await html2canvas(el, {
           scale: 2,
@@ -223,10 +218,10 @@ export default function QuizResultPage() {
           scrollX: -window.scrollX,
           scrollY: -window.scrollY
         });
-        
+
         const imgData = canvas.toDataURL('image/png');
         const imgHeight = (canvas.height * usableWidth) / canvas.width;
-        
+
         // Add new page if element doesn't fit (and it's not the very top of the page)
         if (currentY + imgHeight > pdfHeight - 20 && currentY > 20) {
           pdf.addPage();
@@ -234,7 +229,7 @@ export default function QuizResultPage() {
           pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
           currentY = 20;
         }
-        
+
         pdf.addImage(imgData, 'PNG', paddingX, currentY, usableWidth, imgHeight);
         currentY += imgHeight + 15; // 15px spacing between elements
       };
@@ -242,13 +237,13 @@ export default function QuizResultPage() {
       // 1. Capture Review Header (Quiz Title, Attempt, Score, Accuracy, and Stats)
       const reviewHeader = document.getElementById('review-header-section');
       if (reviewHeader) await addElementToPdf(reviewHeader);
-      
+
       // 2. Capture Each Question Card Individually
       const questionCards = Array.from(document.querySelectorAll('.pdf-question-card')) as HTMLElement[];
       for (const card of questionCards) {
         await addElementToPdf(card);
       }
-      
+
       pdf.save(`${data.quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_result.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
@@ -286,8 +281,8 @@ export default function QuizResultPage() {
 
   const attempt = data?.attempt || ({} as any);
   const quiz = data?.quiz || ({} as any);
-  const questionsReview = Array.isArray(data?.questionsReview) 
-    ? [...data.questionsReview] 
+  const questionsReview = Array.isArray(data?.questionsReview)
+    ? [...data.questionsReview]
     : (Array.isArray(attempt?.questionsReview) ? [...attempt.questionsReview] : []);
   const leaderboard = Array.isArray(data?.leaderboard) ? data.leaderboard : [];
 
@@ -304,16 +299,16 @@ export default function QuizResultPage() {
     ? attempt.wrongCount
     : questionsReview.filter(q => q && !q.isCorrect && !q.isPartial && !q.isSkipped).length;
   const totalQs = quiz.numQuestionsToServe || questionsReview.length || (actualCorrectCount + actualPartialCount + actualWrongCount + actualSkippedCount) || 1;
-  
+
   // Calculate scores based on question types (SBA: 2 correct/-1 wrong, True_False: 2 correct/-0.5 per wrong option)
   const marksPerCorrect = quiz.marksPerCorrect || 1;
   const negativeValue = quiz.negativeValue || 0;
-  
+
   // Calculate raw scores from question reviews
   let rawCorrectScore = 0;
   let rawWrongScore = 0;
   let rawSkippedCount = 0;
-  
+
   questionsReview.forEach(q => {
     if (!q) return;
     if (q.isCorrect) {
@@ -326,18 +321,18 @@ export default function QuizResultPage() {
       rawWrongScore += negativeValue;
     }
   });
-  
+
   // Net score = correct - wrong (netScore from attempt should already reflect this)
-  const netScore = attempt.netScore !== undefined && attempt.netScore !== null 
-    ? attempt.netScore 
+  const netScore = attempt.netScore !== undefined && attempt.netScore !== null
+    ? attempt.netScore
     : rawCorrectScore + rawWrongScore;
   const grossScore = netScore - rawWrongScore; // net already subtracted negatives, so gross = net + wrongs
   const partialMarksEarned = Math.max(0, rawCorrectScore - marksPerCorrect * actualCorrectCount);
-  
+
   // Recalculate: total possible marks
   const totalMarks = attempt.totalMarks || quiz.totalMarks || (totalQs * marksPerCorrect) || 1;
-  const percentageScore = attempt.percentageScore !== undefined && attempt.percentageScore !== null 
-    ? attempt.percentageScore 
+  const percentageScore = attempt.percentageScore !== undefined && attempt.percentageScore !== null
+    ? attempt.percentageScore
     : Math.min(100, Math.max(0, ((netScore || 0) / totalMarks) * 100));
 
   // Leaderboard Windowing Calculations: Always display 10 ranks around the student (5 before, student, 4 after)
@@ -375,8 +370,8 @@ export default function QuizResultPage() {
     }
   }
 
-  const displayedLeaderboard = isSearching 
-    ? searchFilteredList 
+  const displayedLeaderboard = isSearching
+    ? searchFilteredList
     : leaderboard.slice(windowStart, windowEnd);
 
   const viewTitleNote = isSearching
@@ -433,7 +428,7 @@ export default function QuizResultPage() {
                             </span>
                           )}
                         </div>
-                        
+
                         {isAutoSubmitted && (
                           <div className={styles.autoSubmitBadge}>
                             <Clock className={styles.badgeIcon} />
@@ -442,9 +437,9 @@ export default function QuizResultPage() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className={styles.scoreCardRight}>
-                      <div 
+                      <div
                         className={styles.scoreCircle}
                         style={{
                           background: `conic-gradient(var(--success-color) 0% ${actualCorrectCount / totalQs * 100}%, var(--info-color) ${actualCorrectCount / totalQs * 100}% ${(actualCorrectCount + actualPartialCount) / totalQs * 100}%, var(--error-color) ${(actualCorrectCount + actualPartialCount) / totalQs * 100}% ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}%, var(--border-color) ${(actualCorrectCount + actualPartialCount + actualWrongCount) / totalQs * 100}% 100%)`
@@ -462,7 +457,7 @@ export default function QuizResultPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className={styles.scoreDetails}>
                     <div className={styles.detailRow}>
                       <div className={styles.detailItem}>
@@ -489,7 +484,7 @@ export default function QuizResultPage() {
                         <div className={styles.detailLabel}>Skipped</div>
                       </div>
                     </div>
-                    
+
                     {Number(attempt.negativeMarks || 0) > 0 && (
                       <div className={styles.negativeMarks}>
                         <XCircle className={styles.negativeIcon} />
@@ -574,7 +569,7 @@ export default function QuizResultPage() {
                     <div className={styles.timeItem}>
                       <span className={styles.timeLabel}>Pace</span>
                       <span className={styles.timeValue}>
-                        {totalQs > 0 
+                        {totalQs > 0
                           ? `${(attempt.timeTakenSeconds / totalQs).toFixed(0)}s per question`
                           : 'N/A'}
                       </span>
@@ -595,9 +590,9 @@ export default function QuizResultPage() {
                     </div>
                     <div className={styles.rankLabel}>out of {leaderboard.length} participant{leaderboard.length !== 1 ? 's' : ''}</div>
                     <div className={styles.rankMethod}>
-                      Ranking: {quiz.positionType ? 
-                        (quiz.positionType === 'first_attempt' ? 'First Attempt' : 
-                         quiz.positionType === 'last_attempt' ? 'Last Attempt' : 
+                      Ranking: {quiz.positionType ?
+                        (quiz.positionType === 'first_attempt' ? 'First Attempt' :
+                         quiz.positionType === 'last_attempt' ? 'Last Attempt' :
                          quiz.positionType === 'average_attempt' ? 'Average Attempt' : 'Best Attempt')
                         : (attempt.attemptNumber === 1 ? 'First Attempt' : 'Best Attempt')} • Tie-breaker: Time taken
                     </div>
@@ -621,17 +616,17 @@ export default function QuizResultPage() {
                     {retaking ? 'Starting...' : 'Retake Quiz'}
                   </button>
                 )}
-                <a 
-                  href="#leaderboard-section" 
-                  onClick={(e) => scrollToSection(e, 'leaderboard-section')} 
+                <a
+                  href="#leaderboard-section"
+                  onClick={(e) => scrollToSection(e, 'leaderboard-section')}
                   className={styles.secondaryBtn}
                 >
                   <Trophy className={styles.btnIcon} />
                   Leaderboard
                 </a>
-                <a 
-                  href="#answer-review-section" 
-                  onClick={(e) => scrollToSection(e, 'answer-review-section')} 
+                <a
+                  href="#answer-review-section"
+                  onClick={(e) => scrollToSection(e, 'answer-review-section')}
                   className={styles.secondaryBtn}
                 >
                   <HelpCircle className={styles.btnIcon} />
@@ -729,7 +724,7 @@ export default function QuizResultPage() {
                     {viewTitleNote}
                   </h2>
                 </div>
-                
+
                 {displayedLeaderboard.length === 0 ? (
                   <div className={styles.emptyLeaderboard}>
                     <Trophy className={styles.emptyIcon} />
@@ -840,7 +835,7 @@ export default function QuizResultPage() {
                     )}
                   </>
                 )}
-                
+
                 <p className={styles.leaderboardNote}>
                   Rankings update in real-time as peers complete attempts. {leaderboard.length > 0 ? `Total participants: ${leaderboard.length}` : ''}
                 </p>
@@ -879,7 +874,7 @@ export default function QuizResultPage() {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className={styles.reviewList}>
                   {questionsReview.map((question, index) => (
                     <article key={question.questionId} className={`${styles.reviewCard} pdf-question-card ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
@@ -891,9 +886,9 @@ export default function QuizResultPage() {
                           </span>
                         </div>
                       </div>
-                      
+
                       <h3 className={styles.reviewQuestionText}>{question.questionText}</h3>
-                      
+
                       <div className={styles.reviewOptions}>
                         {(question.questionType === 'true_false' || question.questionType === 'mcq') ? (
                           question.options.map((option, idx) => {
@@ -907,12 +902,12 @@ export default function QuizResultPage() {
                              const answered = isT || isF;
                              const isCorrect = (isT && isCorrectT) || (isF && isCorrectF);
                              const displayLetter = String.fromCharCode(65 + idx);
-                             
+
                              let rowStatusClass = styles.tfCompactSkipped;
                              if (answered) {
                                rowStatusClass = isCorrect ? styles.tfCompactCorrect : styles.tfCompactIncorrect;
                              }
-                             
+
                              return (
                                 <div key={`${question.questionId}-${option.letter}`} className={`${styles.tfCompactRow} ${rowStatusClass}`}>
                                   {/* Left: Letter Badge + Statement Text */}
@@ -969,12 +964,12 @@ export default function QuizResultPage() {
                             const isStudentAnswer = option.letter === question.studentAnswer;
                             const isCorrectAnswer = option.letter === question.correctOption;
                             const isWrongAnswer = isStudentAnswer && !isCorrectAnswer;
-                            
+
                             let sbaClass = styles.sbaNeutral;
                             if (isStudentAnswer && isCorrectAnswer) sbaClass = styles.sbaCorrect;
                             else if (isWrongAnswer) sbaClass = styles.sbaIncorrect;
                             else if (isCorrectAnswer) sbaClass = styles.sbaKeyHighlight;
-                            
+
                             return (
                               <div key={`${question.questionId}-${option.letter}`} className={`${styles.sbaReviewRow} ${sbaClass}`}>
                                 <div className={styles.sbaRowLeft}>
@@ -997,7 +992,7 @@ export default function QuizResultPage() {
                           })
                         )}
                       </div>
-                      
+
                       {question.explanation && question.explanation.trim() !== '' && (
                         <div className={styles.explanation}>
                           <HelpCircle className={styles.explanationIcon} />
@@ -1017,17 +1012,17 @@ export default function QuizResultPage() {
                 <ChevronLeft className={styles.btnIcon} />
                 {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
               </Link>
-              <a 
-                href="#score-section" 
-                onClick={(e) => scrollToSection(e, 'score-section')} 
+              <a
+                href="#score-section"
+                onClick={(e) => scrollToSection(e, 'score-section')}
                 className={styles.secondaryBtn}
               >
                 <Award className={styles.btnIcon} />
                 Back to Scorecard
               </a>
-              <a 
-                href="#leaderboard-section" 
-                onClick={(e) => scrollToSection(e, 'leaderboard-section')} 
+              <a
+                href="#leaderboard-section"
+                onClick={(e) => scrollToSection(e, 'leaderboard-section')}
                 className={styles.secondaryBtn}
               >
                 <Trophy className={styles.btnIcon} />

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, AlertTriangle, Info, AlertCircle, Trash2 } from 'lucide-react';
+import { X, AlertTriangle, Info, Trash2 } from 'lucide-react';
 import Loader from '@/components/UI/Loader';
 import styles from './ConfirmModal.module.css';
 

@@ -40,10 +40,10 @@ export async function GET(request: NextRequest) {
     // Supabase RPC or custom sorting is tricky with joins unless we have a view.
     // For now, if sorting by lastActive, we fetch all matching users and sort in memory,
     // otherwise we let Supabase handle pagination. This is a compromise for migrating.
-    
-    // We will do a generic approach: fetch base users first. 
+
+    // We will do a generic approach: fetch base users first.
     // Supabase can't sort by an aggregate subquery on a different table easily without a view or RPC.
-    
+
     // If it's not lastActive, we can do it directly.
     if (sortBy === 'name_asc') {
       query = query.order('fullName', { ascending: true });
@@ -63,18 +63,18 @@ export async function GET(request: NextRequest) {
     } else {
       // For lastActive, fetch all matching (this might be slow for large datasets but required without RPC)
       const { data: allDbUsers, count: countResult } = await query;
-      let allUsers = allDbUsers || [];
+      const allUsers = allDbUsers || [];
       totalCount = countResult || 0;
-      
+
       const allUserIds = allUsers.map((u: any) => u.id);
-      
+
       const { data: latestSessions = [] } = allUserIds.length > 0
         ? await supabase
             .from('DeviceSession')
             .select('userId, lastActivityAt')
             .in('userId', allUserIds)
         : { data: [] };
-        
+
       const latestActivityMap = new Map<string, string>();
       for (const session of (latestSessions as any[] || [])) {
         const existing = latestActivityMap.get(session.userId);
@@ -82,22 +82,22 @@ export async function GET(request: NextRequest) {
           latestActivityMap.set(session.userId, session.lastActivityAt);
         }
       }
-      
+
       allUsers.sort((a: any, b: any) => {
         const aDate = new Date(latestActivityMap.get(a.id) || a.createdAt).getTime();
         const bDate = new Date(latestActivityMap.get(b.id) || b.createdAt).getTime();
         return bDate - aDate;
       });
-      
+
       users = allUsers.slice(offset, offset + limit);
     }
-    
+
     const globalSettings = await getGlobalSessionSettings();
 
     const totalPages = Math.ceil(totalCount / limit);
 
     const userIds = users.map((u: any) => u.id);
-    
+
     const [{ data: deviceSessions = [] }, { data: orders = [] }] = await Promise.all([
       userIds.length > 0
         ? supabase.from('DeviceSession').select('*').in('userId', userIds).order('createdAt', { ascending: false })
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     const { data: courses = [] } = orderCourseIds.length > 0
       ? await supabase.from('Course').select('id, title, slug').in('id', orderCourseIds)
       : { data: [] };
-      
+
     const courseMap = new Map((courses || []).map((c: any) => [c.id, c]));
 
     const deviceSessionsMap = new Map<string, any[]>();

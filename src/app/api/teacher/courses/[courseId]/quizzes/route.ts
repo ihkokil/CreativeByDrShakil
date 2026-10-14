@@ -28,8 +28,8 @@ export async function GET(
     if (cqError) throw cqError;
 
     const quizIds = (courseQuizzes || []).map((cq: any) => cq.quizId);
-    let quizzesMap = new Map<string, any>();
-    let questionCountsMap = new Map<string, number>();
+    const quizzesMap = new Map<string, any>();
+    const questionCountsMap = new Map<string, number>();
 
     if (quizIds.length > 0) {
       const [{ data: quizzes = [] }, { data: questions = [] }] = await Promise.all([

@@ -95,12 +95,12 @@ async function getCourseData(rawSlug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  
+
   try {
     const data = await getCourseData(slug);
     if (!data) return { title: 'Course Not Found | Creative By Dr. Shakil' };
     const course = data.course;
-    
+
     return {
       title: `${course?.title || 'Course'} | Creative By Dr. Shakil`,
       description: course?.description || 'Course details',
@@ -117,14 +117,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: [course?.image || '/placeholder.svg'],
       }
     };
-  } catch (e) {
+  } catch {
     return { title: 'Course | Creative By Dr. Shakil' };
   }
 }
 
 export default async function CourseDetailPage({ params }: Props) {
   const { slug } = await params;
-  
+
   let initialCourse: Course | null = null;
   let initialCurriculum: any[] = [];
   let initialTeachers: PublicTeacher[] = [];
@@ -159,9 +159,9 @@ export default async function CourseDetailPage({ params }: Props) {
   }
 
   return (
-    <CourseDetailClient 
-      initialCourse={initialCourse} 
-      initialTeachers={initialTeachers} 
+    <CourseDetailClient
+      initialCourse={initialCourse}
+      initialTeachers={initialTeachers}
       initialCurriculum={initialCurriculum}
       slug={slug}
     />

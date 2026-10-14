@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 function normalizeSubmission(submission: any) {
   let parsedImageUrls = [];
   if (typeof submission.imageUrls === 'string') {
-    try { parsedImageUrls = JSON.parse(submission.imageUrls); } catch (e) {}
+    try { parsedImageUrls = JSON.parse(submission.imageUrls); } catch {}
   } else if (Array.isArray(submission.imageUrls)) {
     parsedImageUrls = submission.imageUrls;
   }
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     const adminIds = [...new Set((submissions || []).map((s: any) => s.repliedByAdminId).filter(Boolean))] as string[];
-    
+
     if (adminIds.length > 0) {
       const { data: admins = [] } = await supabase.from('User').select('id, fullName, email').in('id', adminIds);
       const adminMap = new Map((admins || []).map((a: any) => [a.id, a]));

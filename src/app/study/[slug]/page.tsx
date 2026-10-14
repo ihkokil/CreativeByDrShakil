@@ -141,7 +141,7 @@ export default function StudyCoursePage() {
         return () => {
             cancelled = true;
         };
-    }, [slug]);
+    }, [lessonParam, slug]);
 
     // Keep activeLesson in sync with URL searchParams if slug is already loaded
     useEffect(() => {

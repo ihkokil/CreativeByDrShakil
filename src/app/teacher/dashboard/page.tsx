@@ -4,16 +4,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useCallback, useState, Suspense } from "react";
 import TeacherOverview from "@/components/Teacher/TeacherOverview";
-import ModuleLibraryManager from "@/components/Teacher/ModuleLibraryManager";
-import CoursesTab from "@/components/Teacher/CoursesTab";
-import ProfileTab from "@/components/Shared/ProfileTab";
 import styles from "./TeacherDashboard.module.css";
-import { Loader2 } from "lucide-react";
-import PasswordManager from "@/components/Shared/PasswordManager";
-import PaymentsManager from "@/components/Admin/PaymentsManager";
 import Loader from "@/components/UI/Loader";
-import UsersManager from "@/components/Shared/UsersManager";
-import StudentsManager from "@/components/Shared/StudentsManager";
 
 interface TeacherStats {
     totalCourses: number;
@@ -89,7 +81,7 @@ function TeacherDashboardContent() {
             {statsLoading ? (
                 <Loader text="Syncing performance data..." fullScreen={false} />
             ) : (
-                <TeacherOverview 
+                <TeacherOverview
                     totalCourses={stats?.totalCourses || 0}
                     totalStudents={stats?.totalStudents || 0}
                     totalEnrollments={stats?.totalEnrollments || 0}

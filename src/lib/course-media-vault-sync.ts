@@ -1,4 +1,3 @@
-import { getSupabaseAdmin } from './db';
 
 /**
  * Finds the root VideoLibraryNode folder for a given Course.

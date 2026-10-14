@@ -7,20 +7,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Plus,
   Search,
-  Filter,
   Edit,
   Trash2,
   Copy,
-  Eye,
   ExternalLink,
-  MoreVertical,
   Loader2,
-  AlertCircle,
   CheckCircle,
   Clock,
   FileText,
   Download,
-  Upload,
   BarChart2,
   Link as LinkIcon,
   Check,
@@ -94,7 +89,7 @@ export default function TeacherQuizzesPage() {
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [pdfQuizInfo, setPdfQuizInfo] = useState<{ quiz: Quiz, questions: any[] } | null>(null);
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
-  
+
   // Link to Course modal state
   const [linkModalQuiz, setLinkModalQuiz] = useState<Quiz | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
@@ -167,12 +162,12 @@ export default function TeacherQuizzesPage() {
     if (!isNaN(pageParam) && pageParam !== page) {
       setPage(pageParam);
     }
-  }, [searchParams]);
+  }, [page, searchParams]);
 
   useEffect(() => {
     setActiveDropdownId(null);
     fetchQuizzes();
-  }, [search, statusFilter, courseFilter, page]);
+  }, [search, statusFilter, courseFilter, page, fetchQuizzes]);
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -184,7 +179,7 @@ export default function TeacherQuizzesPage() {
     };
   }, []);
 
-  const fetchQuizzes = async () => {
+  const fetchQuizzes = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -195,15 +190,15 @@ export default function TeacherQuizzesPage() {
         sortBy: 'createdAt',
         sortOrder: 'desc',
       });
-      
+
       if (statusFilter) params.set('status', statusFilter);
       if (courseFilter) params.set('courseId', courseFilter);
 
       const res = await fetch(`/api/quiz?${params.toString()}`);
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Failed to load quizzes');
-      
+
       setQuizzes(data.quizzes || []);
       setTotalCount(data.pagination?.total || 0);
       setTotalPages(data.pagination?.totalPages || 1);
@@ -212,7 +207,7 @@ export default function TeacherQuizzesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === page) return;
@@ -488,28 +483,28 @@ export default function TeacherQuizzesPage() {
         try {
           const { quiz } = pdfQuizInfo;
           const container = pdfContainerRef.current!;
-          
+
           const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'px',
             format: 'a4'
           });
-          
+
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const paddingX = 20;
           const usableWidth = pdfWidth - (paddingX * 2);
           let currentY = 20;
-          
+
           const bodyBgStyle = window.getComputedStyle(document.body).backgroundColor;
           const rgbMatch = bodyBgStyle.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
           const bgColor = rgbMatch ? [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])] : [255, 255, 255];
-          
+
           pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
           pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
-          
+
           const cards = container.querySelectorAll('.pdf-question-card');
-          
+
           for (let i = 0; i < cards.length; i++) {
             const el = cards[i] as HTMLElement;
             const canvas = await html2canvas(el, {
@@ -522,21 +517,21 @@ export default function TeacherQuizzesPage() {
               scrollX: -window.scrollX,
               scrollY: -window.scrollY
             });
-            
+
             const imgData = canvas.toDataURL('image/png');
             const imgHeight = (canvas.height * usableWidth) / canvas.width;
-            
+
             if (currentY + imgHeight > pdfHeight - 20 && currentY > 20) {
               pdf.addPage();
               pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
               pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
               currentY = 20;
             }
-            
+
             pdf.addImage(imgData, 'PNG', paddingX, currentY, usableWidth, imgHeight);
             currentY += imgHeight + 15;
           }
-          
+
           const safeTitle = quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
           pdf.save(`quiz_${safeTitle}_questions.pdf`);
           showAlert('Quiz PDF downloaded successfully!', 'success');
@@ -557,7 +552,7 @@ export default function TeacherQuizzesPage() {
       const res = await fetch(`/api/quiz/${quiz.id}/questions`, { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch questions');
-      
+
       setPdfQuizInfo({ quiz, questions: data.questions });
     } catch (err: any) {
       showAlert('Error generating PDF: ' + err.message, 'error');
@@ -819,7 +814,7 @@ export default function TeacherQuizzesPage() {
           <div className={styles.paginationInfo}>
             Showing <span className={styles.highlightText}>{((page - 1) * limit) + 1}</span>–<span className={styles.highlightText}>{Math.min(page * limit, totalCount)}</span> of <span className={styles.highlightText}>{totalCount}</span> quizzes
           </div>
-          
+
           {totalPages > 1 && (
             <div className={styles.paginationControls}>
               <button
@@ -955,7 +950,7 @@ export default function TeacherQuizzesPage() {
                     ))}
                   </select>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    Quizzes in "All Quizzes" are immediately available. Quizzes attached to a module unlock when that module becomes available.
+                    Quizzes in &quot;All Quizzes&quot; are immediately available. Quizzes attached to a module unlock when that module becomes available.
                   </p>
                 </div>
               )}
@@ -1017,12 +1012,12 @@ export default function TeacherQuizzesPage() {
       )}
 
       {/* Hidden container for PDF rendering */}
-      <div 
-        ref={pdfContainerRef} 
-        style={{ 
-          position: 'absolute', 
-          top: '-9999px', 
-          left: '-9999px', 
+      <div
+        ref={pdfContainerRef}
+        style={{
+          position: 'absolute',
+          top: '-9999px',
+          left: '-9999px',
           width: '800px',
           opacity: 0,
           pointerEvents: 'none'
@@ -1053,7 +1048,7 @@ export default function TeacherQuizzesPage() {
                       const originalIdx = option.letter.charCodeAt(0) - 65;
                       const isCorrectT = correctStr[originalIdx] === 'T';
                       const isCorrectF = correctStr[originalIdx] === 'F';
-                      
+
                       return (
                         <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                           <span style={{ fontSize: '15px' }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>

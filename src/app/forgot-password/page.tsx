@@ -124,7 +124,7 @@ export default function ForgotPasswordPage() {
                     setMessage({ type: "error", text: data.error || "Unable to send verification code." });
                 }
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);
@@ -158,7 +158,7 @@ export default function ForgotPasswordPage() {
             } else {
                 setMessage({ type: "error", text: data.error || "Incorrect verification code." });
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);
@@ -193,7 +193,7 @@ export default function ForgotPasswordPage() {
                 }
                 await refreshSession();
                 setMessage({ type: "success", text: "Password reset and logged in successfully!" });
-                
+
                 const userRole = data.user?.role || "student";
                 setTimeout(() => {
                     if (userRole === "admin") {
@@ -207,7 +207,7 @@ export default function ForgotPasswordPage() {
             } else {
                 setMessage({ type: "error", text: data.error || "Failed to reset password." });
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);
@@ -332,7 +332,7 @@ export default function ForgotPasswordPage() {
                         {step === "reset" && "Enter your new password below."}
                     </p>
                 </div>
-                
+
                 {step === "email" && (
                     <form className={styles.form} onSubmit={handleEmailSubmit} noValidate>
                         <div className={styles.inputGroup}>

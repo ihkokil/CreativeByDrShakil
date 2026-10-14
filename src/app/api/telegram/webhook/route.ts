@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { decompressUuid, compressUuid, sendTelegramEnrollmentNotification, editTelegramMessage, sanitizeTelegramReplyMarkup } from '@/lib/telegram';
-import { ensureCourseEnrollment, ensureCustomBatch, ensureDefaultBatches, ensureAllUnlockedBatch, applyStudentScheduleRule } from '@/lib/enrollment';
+import { ensureCourseEnrollment, ensureDefaultBatches, ensureAllUnlockedBatch, applyStudentScheduleRule } from '@/lib/enrollment';
 
 function getTelegramToken() {
   const raw = process.env.TELEGRAM_BOT_TOKEN;
@@ -615,8 +615,8 @@ export async function POST(request: NextRequest) {
         `🆔 <b>Order ID:</b> <code>${escapeHtml(order.id)}</code>`,
         `🕒 <b>Approved At:</b> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' })}`,
         '',
-        isAllUnlocked 
-          ? '<i>⚡ All modules are unlocked immediately for full instant access.</i>' 
+        isAllUnlocked
+          ? '<i>⚡ All modules are unlocked immediately for full instant access.</i>'
           : '<i>🗓 Modules will unlock following this batch schedule.</i>'
       ].join('\n');
 

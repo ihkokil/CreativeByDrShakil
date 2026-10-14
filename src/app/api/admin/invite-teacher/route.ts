@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { nanoid } from '@/lib/nanoid';
-import { createTokenPair, hashToken } from '@/lib/token-utils';
+import { createTokenPair } from '@/lib/token-utils';
 import { sendPasswordSetupEmail } from '@/lib/auth-emails';
 
 export async function POST(request: NextRequest) {

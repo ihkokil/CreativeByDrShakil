@@ -137,7 +137,7 @@ function RegisterContent() {
                     }, 100);
                 }
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);
@@ -167,7 +167,7 @@ function RegisterContent() {
                     otpInputsRef.current[0]?.focus();
                 }, 100);
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);
@@ -199,7 +199,7 @@ function RegisterContent() {
             } else {
                 setMessage({ type: "error", text: data.error || "Incorrect verification code." });
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);
@@ -261,7 +261,7 @@ function RegisterContent() {
                     }
                 }, 1000);
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);

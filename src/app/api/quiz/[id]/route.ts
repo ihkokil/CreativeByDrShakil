@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload, requireTeacherPayload } from '@/lib/route-auth';
 import { nanoid } from '@/lib/nanoid';
-import { recalculateQuizResults, computeMaxMarksForQuestions, getScoringRules, calculateDynamicLeaderboard } from '@/lib/quiz-engine';
+import { recalculateQuizResults, computeMaxMarksForQuestions, calculateDynamicLeaderboard } from '@/lib/quiz-engine';
 import { cleanupDeletedQuiz } from '@/lib/curriculum-cleanup';
 
 export async function GET(
@@ -13,7 +13,7 @@ export async function GET(
     const { id } = await params;
     const payload = await getAuthPayload(request);
     const isTeacher = payload && (payload.role === 'teacher' || payload.role === 'admin');
-    
+
     const supabase = getSupabaseAdmin();
 
     const { data: quizRow } = await supabase
@@ -37,7 +37,7 @@ export async function GET(
           .maybeSingle();
         quizCategoryData = category;
       }
-      
+
       const { data: creator } = await supabase
         .from('User')
         .select('id, fullName')
@@ -53,13 +53,13 @@ export async function GET(
         .order('createdAt', { ascending: true });
       quizQuestionsData = questions || [];
     }
-    
+
     const quizData = quizRow ? { ...(quizRow as any), category: quizCategoryData || null, creator: quizCreatorData || null, questions: quizQuestionsData } : null;
-    
+
     if (!quizData) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
     }
-    
+
     if (!isTeacher) {
       if (quizData.status !== 'published') {
         return NextResponse.json({ error: 'Quiz not available.' }, { status: 404 });
@@ -91,7 +91,7 @@ export async function GET(
       if (!order) {
         return NextResponse.json({ error: 'You must be enrolled in the course to access this quiz.' }, { status: 403 });
       }
-      
+
       const now = new Date();
       if (quizData.startDatetime && new Date(quizData.startDatetime) > now) {
         return NextResponse.json({ error: 'Quiz has not started yet.' }, { status: 403 });
@@ -102,7 +102,7 @@ export async function GET(
     } else if (payload?.role === 'teacher' && quizData.createdBy !== payload.sub) {
       return NextResponse.json({ error: 'Not authorized to view this quiz.' }, { status: 403 });
     }
-    
+
     let allAttemptsData: any[] = [];
     let attempt = null;
     if (payload && payload.sub) {
@@ -132,7 +132,7 @@ export async function GET(
         attemptMappingsData = mappings || [];
       }
       attempt = attemptRow ? { ...(attemptRow as any), answers: attemptAnswersData, questionMappings: attemptMappingsData } : null;
-      
+
       const { data: attemptsRows } = await supabase
         .from('QuizAttempt')
         .select('*')
@@ -141,7 +141,7 @@ export async function GET(
         .order('startedAt', { ascending: false });
       allAttemptsData = attemptsRows || [];
     }
-    
+
     const questionsWithOptions = quizData.questions.map((q: any) => ({
       ...q,
       options: [
@@ -152,7 +152,7 @@ export async function GET(
         { letter: 'E', text: q.optionE },
       ].filter(o => o.text !== null && o.text !== undefined && o.text !== ''),
     }));
-    
+
     const totalMarks = computeMaxMarksForQuestions(quizData.questions, quizData);
 
     // Calculate dynamic leaderboard across all completed attempts
@@ -184,7 +184,7 @@ export async function GET(
       attemptsWithUsers,
       payload?.sub || null
     );
-    
+
     return NextResponse.json({
       quiz: {
         ...quizData,
@@ -223,7 +223,7 @@ export async function PUT(
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
-    
+
     const supabase = getSupabaseAdmin();
 
     const { data: existingQuiz } = await supabase
@@ -236,11 +236,11 @@ export async function PUT(
     if (!existingQuiz) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
     }
-    
+
     if (payload.role === 'teacher' && (existingQuiz as any).createdBy !== payload.sub) {
       return NextResponse.json({ error: 'Not authorized to edit this quiz.' }, { status: 403 });
     }
-    
+
     const body = await request.json();
     const {
       title,
@@ -266,11 +266,11 @@ export async function PUT(
       status,
       questions,
     } = body;
-    
+
     if (title !== undefined && !title) {
       return NextResponse.json({ error: 'Title cannot be empty.' }, { status: 400 });
     }
-    
+
     if (categoryId !== undefined && categoryId) {
       const { data: category } = await supabase
         .from('QuizCategory')
@@ -282,11 +282,11 @@ export async function PUT(
         return NextResponse.json({ error: 'Invalid category.' }, { status: 400 });
       }
     }
-    
+
     const updateData: any = {
       updatedAt: new Date().toISOString(),
     };
-    
+
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (instructions !== undefined) updateData.instructions = instructions;
@@ -313,7 +313,7 @@ export async function PUT(
         updateData.publishedAt = new Date().toISOString();
       }
     }
-    
+
     const { error: updateError } = await supabase
       .from('Quiz')
       // @ts-ignore
@@ -321,7 +321,7 @@ export async function PUT(
       .eq('id', id);
 
     if (updateError) throw updateError;
-      
+
     if (questions && Array.isArray(questions)) {
       const { data: existingQuestions = [] } = await supabase
         .from('Question')
@@ -392,7 +392,7 @@ export async function PUT(
     } catch (recalcErr) {
       console.warn('Error during recalculateQuizResults on quiz update:', recalcErr);
     }
-    
+
     const { data: updatedQuiz } = await supabase
       .from('Quiz')
       .select('*')
@@ -417,7 +417,7 @@ export async function DELETE(
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized. Teacher or admin access required.' }, { status: 401 });
     }
-    
+
     const supabase = getSupabaseAdmin();
 
     const { data: existingQuiz } = await supabase
@@ -430,11 +430,11 @@ export async function DELETE(
     if (!existingQuiz) {
       return NextResponse.json({ error: 'Quiz not found.' }, { status: 404 });
     }
-    
+
     if (payload.role === 'teacher' && (existingQuiz as any).createdBy !== payload.sub) {
       return NextResponse.json({ error: 'Not authorized to delete this quiz.' }, { status: 403 });
     }
-    
+
     // Cascade delete related records across CourseQuiz, VideoLibraryNode, Course curriculumJson, and progress
     await cleanupDeletedQuiz(supabase, id);
 
@@ -444,7 +444,7 @@ export async function DELETE(
       .eq('id', id);
 
     if (deleteError) throw deleteError;
-    
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('DELETE /api/quiz/[id] error:', error);

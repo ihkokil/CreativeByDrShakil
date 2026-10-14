@@ -2,8 +2,7 @@
 
 import { motion } from "framer-motion";
 import styles from "./Hero.module.css";
-import { ArrowRight, MessageCircle, GraduationCap, BookOpen, Award, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowRight, MessageCircle, BookOpen, Award, Users } from "lucide-react";
 import Link from "next/link";
 import ParticleBackground from "./ParticleBackground";
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useDashboardData } from "@/hooks/useDashboardData";
-import Loader from "@/components/UI/Loader";
 import styles from "../Dashboard.module.css";
 import { GraduationCap, Sparkles, CalendarDays, Timer, BookOpen, ArrowRight, Play, AlertTriangle } from "lucide-react";
 import Image from "next/image";

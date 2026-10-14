@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Node not found among siblings.' }, { status: 404 });
       }
 
-      let newSiblingIds = [...siblingIds];
+      const newSiblingIds = [...siblingIds];
 
       if (typeof targetIndex === 'number') {
         newSiblingIds.splice(currentIndex, 1);
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, orderedIds: newSiblingIds });
     }
 
-    return NextResponse.json({ 
-      error: 'Invalid payload. Provide orderedIds array, or id with targetIndex / direction.' 
+    return NextResponse.json({
+      error: 'Invalid payload. Provide orderedIds array, or id with targetIndex / direction.'
     }, { status: 400 });
   } catch (error: any) {
     console.error('[teacher/video-library/reorder] error:', error);

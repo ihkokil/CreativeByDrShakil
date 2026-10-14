@@ -2,20 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-    BookOpen, 
-    Plus, 
-    MoreHorizontal, 
-    Trash2, 
-    Edit2, 
-    Search, 
-    Filter, 
+import {
+    BookOpen,
+    Plus,
+    Trash2,
+    Edit2,
+    Search,
+    Filter,
     ExternalLink,
     Users,
-    Settings,
-    MoreVertical,
-    ChevronRight,
-    Eye,
     Copy,
     Archive,
     PlayCircle
@@ -141,7 +136,7 @@ export default function CoursesTab() {
                     setConfirmConfig(prev => ({ ...prev, isOpen: false }));
                     setCourses(prev => prev.filter(c => c.id !== courseId));
                     showAlert(`"${title}" deleted successfully.`, "success");
-                } catch (err) {
+                } catch {
                     showAlert("An error occurred while deleting the course.", "error");
                 }
             }
@@ -165,7 +160,7 @@ export default function CoursesTab() {
             // Refresh list
             fetchCourses();
             showAlert("Course duplicated successfully as draft.", "success");
-        } catch (err) {
+        } catch {
             showAlert("An error occurred while duplicating the course.", "error");
         }
     };
@@ -197,7 +192,7 @@ export default function CoursesTab() {
                     setConfirmConfig(prev => ({ ...prev, isOpen: false }));
                     setCourses(prev => prev.map(c => c.id === courseId ? { ...c, status: "archived" } : c));
                     showAlert("Course archived successfully.", "success");
-                } catch (err) {
+                } catch {
                     showAlert("An error occurred while archiving the course.", "error");
                 }
             }
@@ -247,9 +242,9 @@ export default function CoursesTab() {
             <div className={styles.topBar}>
                 <div className={styles.searchBox}>
                     <Search size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Filter courses..." 
+                    <input
+                        type="text"
+                        placeholder="Filter courses..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -260,12 +255,12 @@ export default function CoursesTab() {
                             <Filter size={18} /> Filters
                             {statusFilter !== "all" && <span className={styles.filterBadge} />}
                         </button>
-                        
+
                         <AnimatePresence>
                             {isFilterOpen && (
                                 <>
                                     <div className={styles.backdrop} onClick={() => setIsFilterOpen(false)} />
-                                    <motion.div 
+                                    <motion.div
                                         className={styles.filterDropdown}
                                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -275,7 +270,7 @@ export default function CoursesTab() {
                                             <span className={styles.filterLabel}>Course Status</span>
                                             <div className={styles.filterOptions}>
                                                 {["all", "published", "draft", "archived"].map((status) => (
-                                                    <button 
+                                                    <button
                                                         key={status}
                                                         className={`${styles.filterChip} ${statusFilter === status ? styles.active : ""}`}
                                                         onClick={() => {
@@ -294,7 +289,7 @@ export default function CoursesTab() {
                         </AnimatePresence>
                     </div>
 
-                    <button 
+                    <button
                         className={styles.createBtn}
                         onClick={() => router.push("/teacher/dashboard/courses/create")}
                     >
@@ -309,17 +304,17 @@ export default function CoursesTab() {
                         <div className={styles.cardMain}>
                             <div className={styles.thumbWrapper}>
                                 <Image
-                                    src={course.imageUrl || "/placeholder.svg"} 
+                                    src={course.imageUrl || "/placeholder.svg"}
                                     alt={course.title}
-                                    fill 
+                                    fill
                                     style={{ objectFit: 'cover' }}
-                                    unoptimized 
+                                    unoptimized
                                 />
                                 {course.duration && (
                                     <span className={styles.durationTag}>{course.duration}</span>
                                 )}
                             </div>
-                            
+
                             <div className={styles.cardDetails}>
                                 <div className={styles.cardTitleRow}>
                                     <h3 className={styles.courseTitle}>{course.title}</h3>
@@ -367,53 +362,53 @@ export default function CoursesTab() {
                         </div>
 
                         <div className={styles.cardActionsRow}>
-                            <button 
-                                className={`${styles.actionBtnIcon} ${styles.enrollAction}`} 
-                                onClick={() => handleEnrollAndStart(course)} 
+                            <button
+                                className={`${styles.actionBtnIcon} ${styles.enrollAction}`}
+                                onClick={() => handleEnrollAndStart(course)}
                                 disabled={enrollingCourseId === course.id}
                                 title="Enroll and Start Course (Study View)"
                             >
                                 <PlayCircle size={15} /> <span>{enrollingCourseId === course.id ? "Enrolling..." : "Enroll & Start"}</span>
                             </button>
-                            <button 
-                                className={styles.primaryActionButton} 
-                                onClick={() => setSelectedCourseForStudents({ id: course.id, title: course.title })} 
+                            <button
+                                className={styles.primaryActionButton}
+                                onClick={() => setSelectedCourseForStudents({ id: course.id, title: course.title })}
                                 title="Students"
                             >
                                 <Users size={15} /> <span>Students</span>
                             </button>
-                            <button 
-                                className={styles.actionBtnIcon} 
-                                onClick={() => window.open(`/courses/${course.slug}`, '_blank')} 
+                            <button
+                                className={styles.actionBtnIcon}
+                                onClick={() => window.open(`/courses/${course.slug}`, '_blank')}
                                 title="View on Student Site"
                             >
                                 <ExternalLink size={15} /> <span>Preview</span>
                             </button>
-                            <button 
-                                className={styles.actionBtnIcon} 
-                                onClick={() => router.push(`/teacher/dashboard/courses/${course.id}/edit`)} 
+                            <button
+                                className={styles.actionBtnIcon}
+                                onClick={() => router.push(`/teacher/dashboard/courses/${course.id}/edit`)}
                                 title="Edit Course"
                             >
                                 <Edit2 size={15} /> <span>Edit</span>
                             </button>
-                            <button 
-                                className={styles.actionBtnIcon} 
-                                onClick={() => handleDuplicate(course.id)} 
+                            <button
+                                className={styles.actionBtnIcon}
+                                onClick={() => handleDuplicate(course.id)}
                                 title="Duplicate Course"
                             >
                                 <Copy size={15} /> <span>Duplicate</span>
                             </button>
                             {course.status !== "archived" && (
-                                <button 
-                                    className={styles.actionBtnIcon} 
-                                    onClick={() => handleArchive(course.id, course.title)} 
+                                <button
+                                    className={styles.actionBtnIcon}
+                                    onClick={() => handleArchive(course.id, course.title)}
                                     title="Archive Course"
                                 >
                                     <Archive size={15} /> <span>Archive</span>
                                 </button>
                             )}
-                            <button 
-                                className={`${styles.actionBtnIcon} ${styles.deleteAction}`} 
+                            <button
+                                className={`${styles.actionBtnIcon} ${styles.deleteAction}`}
                                 onClick={() => handleDelete(course.id, course.title)}
                                 title="Delete Course"
                             >
@@ -423,7 +418,7 @@ export default function CoursesTab() {
                     </div>
                 ))}
             </div>
-            
+
             {filteredCourses.length === 0 && (
                 <div className={styles.empty}>
                     <BookOpen size={48} />
@@ -434,7 +429,7 @@ export default function CoursesTab() {
 
             <AnimatePresence>
                 {selectedCourseForStudents && (
-                    <CourseStudentsModal 
+                    <CourseStudentsModal
                         courseId={selectedCourseForStudents.id}
                         courseTitle={selectedCourseForStudents.title}
                         onClose={() => setSelectedCourseForStudents(null)}

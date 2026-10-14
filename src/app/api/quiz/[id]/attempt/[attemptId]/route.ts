@@ -10,14 +10,14 @@ export async function GET(
   try {
     const { id: quizId, attemptId } = await params;
     const payload = await getAuthPayload(request);
-    
+
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
-    
+
     const studentId = payload.sub;
     const supabase = getSupabaseAdmin();
-    
+
     const { data: attemptRow } = await supabase
       .from('QuizAttempt')
       .select('*')
@@ -39,14 +39,14 @@ export async function GET(
       .maybeSingle();
 
     const attempt = { ...(attemptRow as any), quiz: quizRow || {} };
-    
+
     const { data: mappings = [] } = await supabase
       .from('QuizQuestionMapping')
       .select('*')
       .eq('attemptId', attemptId)
       .order('displayOrder', { ascending: true });
 
-    let questionIds = (mappings || []).map((m: any) => m.questionId);
+    const questionIds = (mappings || []).map((m: any) => m.questionId);
     let mappingQuestions: any[] = [];
 
     if (questionIds.length > 0) {
@@ -71,14 +71,14 @@ export async function GET(
     const mappingsWithQuestions = (mappings && mappings.length > 0)
       ? mappings.map((m: any) => ({ ...m, question: questionMap.get(m.questionId) })).filter((m: any) => m.question)
       : mappingQuestions.map((q: any, idx: number) => ({ displayOrder: idx + 1, question: q, optionOrder: null }));
-    
+
     const { data: existingAnswers = [] } = await supabase
       .from('AttemptAnswer')
       .select('*')
       .eq('attemptId', attemptId);
 
     const isInProgress = attempt.status === 'in_progress';
-    
+
     const mappedQuestions = mappingsWithQuestions.map((m: any) => {
       const q = m.question;
       const normalizedType = normalizeQuestionType(q.questionType);
@@ -89,7 +89,7 @@ export async function GET(
         { letter: 'D', text: q.optionD || '' },
         { letter: 'E', text: q.optionE || '' },
       ];
-      
+
       let orderedOptions = originalOptions;
       if (normalizedType === 'sba' && m.optionOrder) {
         let orderKeys = m.optionOrder;
@@ -115,7 +115,7 @@ export async function GET(
           });
         }
       }
-      
+
       return {
         id: q.id,
         questionText: q.questionText,
@@ -126,18 +126,18 @@ export async function GET(
         explanation: isInProgress ? undefined : q.explanation,
       };
     });
-    
+
     const nowServer = new Date();
     const startedAtStr = attempt.startedAt || new Date().toISOString();
     const startedAt = new Date(
-      startedAtStr.endsWith('Z') || startedAtStr.includes('+') 
-        ? startedAtStr 
+      startedAtStr.endsWith('Z') || startedAtStr.includes('+')
+        ? startedAtStr
         : startedAtStr + 'Z'
     );
     const elapsedSeconds = Math.max(0, Math.floor((nowServer.getTime() - startedAt.getTime()) / 1000));
     const durationMins = Number(attempt.quiz?.durationMinutes || 0);
-    const timeRemaining = durationMins === 0 
-      ? null 
+    const timeRemaining = durationMins === 0
+      ? null
       : Math.max(0, (durationMins * 60) - elapsedSeconds);
 
     return NextResponse.json({

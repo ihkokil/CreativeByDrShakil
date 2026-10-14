@@ -118,7 +118,7 @@ function LoginContent() {
                     }, 1500);
                 }
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);
@@ -189,7 +189,7 @@ function LoginContent() {
                     router.push("/dashboard/courses");
                 }
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Connection error. Please try again." });
         } finally {
             setLoading(false);

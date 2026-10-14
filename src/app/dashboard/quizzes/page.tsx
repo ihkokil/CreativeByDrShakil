@@ -5,9 +5,6 @@ import Loader from "@/components/UI/Loader";
 import Link from 'next/link';
 import {
   Search,
-  Filter,
-  ArrowUpDown,
-  Clock,
   Trophy,
   AlertCircle,
   CheckCircle,
@@ -16,7 +13,6 @@ import {
   Target,
   Play,
   RotateCcw,
-  FileText,
   Lock,
   BookOpen,
   Folder,
@@ -24,7 +20,6 @@ import {
   Loader2,
   Check,
 } from 'lucide-react';
-import { formatDisplayDate } from '@/lib/date-format';
 import styles from './QuizzesPage.module.css';
 
 interface Quiz {
@@ -98,7 +93,7 @@ export default function QuizzesPage() {
 
   useEffect(() => {
     fetchQuizzes();
-  }, [debouncedSearch, statusFilter, courseFilter, sortBy, page]);
+  }, [debouncedSearch, statusFilter, courseFilter, sortBy, page, fetchQuizzes]);
 
   // PDF Generation Hook
   useEffect(() => {
@@ -107,7 +102,7 @@ export default function QuizzesPage() {
         try {
           const { quiz } = pdfQuizInfo;
           const container = pdfContainerRef.current!;
-          
+
           const { jsPDF } = await import('jspdf');
           const html2canvas = (await import('html2canvas')).default;
 
@@ -116,22 +111,22 @@ export default function QuizzesPage() {
             unit: 'px',
             format: 'a4'
           });
-          
+
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const paddingX = 20;
           const usableWidth = pdfWidth - (paddingX * 2);
           let currentY = 20;
-          
+
           const bodyBgStyle = window.getComputedStyle(document.body).backgroundColor;
           const rgbMatch = bodyBgStyle.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
           const bgColor = rgbMatch ? [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])] : [255, 255, 255];
-          
+
           pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
           pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
-          
+
           const cards = container.querySelectorAll('.pdf-question-card');
-          
+
           for (let i = 0; i < cards.length; i++) {
             const el = cards[i] as HTMLElement;
             const canvas = await html2canvas(el, {
@@ -144,21 +139,21 @@ export default function QuizzesPage() {
               scrollX: -window.scrollX,
               scrollY: -window.scrollY
             });
-            
+
             const imgData = canvas.toDataURL('image/png');
             const imgHeight = (canvas.height * usableWidth) / canvas.width;
-            
+
             if (currentY + imgHeight > pdfHeight - 20 && currentY > 20) {
               pdf.addPage();
               pdf.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
               pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
               currentY = 20;
             }
-            
+
             pdf.addImage(imgData, 'PNG', paddingX, currentY, usableWidth, imgHeight);
             currentY += imgHeight + 15;
           }
-          
+
           const safeTitle = quiz.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
           pdf.save(`quiz_${safeTitle}_answers.pdf`);
         } catch (err: any) {
@@ -178,7 +173,7 @@ export default function QuizzesPage() {
       const res = await fetch(`/api/quiz/${quiz.id}/questions`, { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch questions');
-      
+
       setPdfQuizInfo({ quiz, questions: data.questions || [] });
     } catch (err: any) {
       alert('Error generating PDF: ' + err.message);
@@ -197,15 +192,15 @@ export default function QuizzesPage() {
         sortBy: sortBy === 'newest' ? 'createdAt' : sortBy === 'oldest' ? 'createdAt' : sortBy === 'duration' ? 'durationMinutes' : 'title',
         sortOrder: sortBy === 'oldest' ? 'asc' : 'desc',
       });
-      
+
       if (statusFilter) params.set('status', statusFilter);
       if (courseFilter) params.set('courseId', courseFilter);
 
       const res = await fetch(`/api/quiz?${params.toString()}`);
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Failed to fetch quizzes');
-      
+
       setQuizzes(data.quizzes || []);
       if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) {
         setAvailableCourses(data.courses);
@@ -253,8 +248,8 @@ export default function QuizzesPage() {
   const formatUnlockDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      return date.toLocaleDateString(undefined, { 
-        month: 'short', 
+      return date.toLocaleDateString(undefined, {
+        month: 'short',
         day: 'numeric',
         year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
         hour: 'numeric',
@@ -268,11 +263,11 @@ export default function QuizzesPage() {
   // Group quizzes by course
   const courseGroups = useMemo(() => {
     const groups: { [key: string]: { name: string; id: string; quizzes: Quiz[] } } = {};
-    
+
     quizzes.forEach(quiz => {
       const courseId = quiz.courseId || 'unassigned';
       const courseName = quiz.courseName || 'General Practice Quizzes';
-      
+
       if (!groups[courseId]) {
         groups[courseId] = {
           id: courseId,
@@ -282,7 +277,7 @@ export default function QuizzesPage() {
       }
       groups[courseId].quizzes.push(quiz);
     });
-    
+
     return Object.values(groups);
   }, [quizzes]);
 
@@ -325,7 +320,7 @@ export default function QuizzesPage() {
             aria-label="Search quizzes"
           />
         </div>
-        
+
         <div className={styles.filters}>
           {uniqueCourses.length >= 1 && (
             <select
@@ -397,17 +392,17 @@ export default function QuizzesPage() {
                     (quiz.attemptsCount && quiz.attemptsCount > 0) ||
                     (quiz.attempt && (quiz.attempt.status === 'submitted' || quiz.attempt.status === 'auto_submitted' || quiz.attempt.status === 'completed'))
                   );
-                  
+
                   const canStart = !isLocked && !isInProgress && (
                     !quiz.attempt || (
                       quiz.allowMultipleAttempts && (
-                        !quiz.maxAttempts || 
-                        quiz.maxAttempts === 0 || 
+                        !quiz.maxAttempts ||
+                        quiz.maxAttempts === 0 ||
                         (quiz.attemptsCount ?? 0) < quiz.maxAttempts
                       )
                     )
                   );
-                  
+
                   return (
                     <div key={quiz.id} className={`${styles.quizCard} ${isLocked ? styles.cardLocked : ''}`}>
                       <div className={styles.quizInfo}>
@@ -452,7 +447,7 @@ export default function QuizzesPage() {
                             <span className={styles.statValue}>{quiz.numQuestionsToServe}</span>
                           </div>
                         </div>
-                        
+
                         <div className={styles.statItem}>
                           <div className={styles.statIconWrapper}>
                             <ClockIcon className={styles.statIcon} />
@@ -462,7 +457,7 @@ export default function QuizzesPage() {
                             <span className={styles.statValue}>{quiz.durationMinutes === 0 ? 'Unlimited' : formatDuration(quiz.durationMinutes)}</span>
                           </div>
                         </div>
-                        
+
                         <div className={styles.statItem}>
                           <div className={styles.statIconWrapper}>
                             <Target className={styles.statIcon} />
@@ -644,13 +639,13 @@ export default function QuizzesPage() {
       )}
 
       {/* Hidden printable container for student PDF answer download */}
-      <div 
-        ref={pdfContainerRef} 
-        style={{ 
-          position: 'fixed', 
-          left: '-9999px', 
-          top: '0', 
-          width: '800px', 
+      <div
+        ref={pdfContainerRef}
+        style={{
+          position: 'fixed',
+          left: '-9999px',
+          top: '0',
+          width: '800px',
           zIndex: -1,
           opacity: 0,
           pointerEvents: 'none'
@@ -681,7 +676,7 @@ export default function QuizzesPage() {
                       const originalIdx = option.letter.charCodeAt(0) - 65;
                       const isCorrectT = correctStr[originalIdx] === 'T';
                       const isCorrectF = correctStr[originalIdx] === 'F';
-                      
+
                       return (
                         <div key={`${question.id}-${option.letter}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                           <span style={{ fontSize: '15px' }}><strong style={{ marginRight: '8px' }}>{option.letter}.</strong> {option.text}</span>

@@ -58,7 +58,7 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
     const [allOverrides, setAllOverrides] = useState<any[]>([]);
     const [computedDatesMap, setComputedDatesMap] = useState<Record<string, Record<string, string>>>({});
 
-    const fetchStudents = async () => {
+    const fetchStudents = useCallback(async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem("auth_token");
@@ -77,17 +77,17 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
         } finally {
             setLoading(false);
         }
-    };
+    });
 
     useEffect(() => {
         fetchStudents();
-    }, [courseId]);
+    }, [courseId, fetchStudents]);
 
     const filteredStudents = useMemo(() => {
         if (!searchQuery.trim()) return students;
         const lowerQ = searchQuery.toLowerCase();
-        return students.filter(s => 
-            s.fullName.toLowerCase().includes(lowerQ) || 
+        return students.filter(s =>
+            s.fullName.toLowerCase().includes(lowerQ) ||
             s.email.toLowerCase().includes(lowerQ)
         );
     }, [students, searchQuery]);
@@ -103,15 +103,15 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
     }, [searchQuery]);
 
     return (
-        <motion.div 
-            className={styles.overlay} 
+        <motion.div
+            className={styles.overlay}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
         >
-            <motion.div 
-                className={styles.modal} 
+            <motion.div
+                className={styles.modal}
                 onClick={e => e.stopPropagation()}
                 initial={{ opacity: 0, y: 30, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -128,15 +128,15 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                 <div className={styles.toolbar}>
                     <div className={styles.searchBox}>
                         <Search size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Search by name or email..." 
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <button 
-                        className={styles.pageBtn} 
+                    <button
+                        className={styles.pageBtn}
                         style={{ background: 'var(--primary)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '0 16px', height: '44px' }}
                         onClick={() => setIsEnrollModalOpen(true)}
                     >
@@ -159,8 +159,8 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                     ) : (
                         <div className={styles.studentGrid}>
                             {paginatedStudents.map(student => (
-                                <button 
-                                    key={student.id} 
+                                <button
+                                    key={student.id}
                                     className={styles.studentCard}
                                     onClick={() => setSelectedStudent(student)}
                                 >
@@ -193,15 +193,15 @@ export default function CourseStudentsModal({ courseId, courseTitle, onClose }: 
                             Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, filteredStudents.length)} of {filteredStudents.length}
                         </span>
                         <div className={styles.pageControls}>
-                            <button 
-                                className={styles.pageBtn} 
+                            <button
+                                className={styles.pageBtn}
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             >
                                 Previous
                             </button>
-                            <button 
-                                className={styles.pageBtn} 
+                            <button
+                                className={styles.pageBtn}
                                 disabled={currentPage === totalPages}
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             >

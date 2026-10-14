@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             let os = '';
             let category: "mobile" | "tablet" | "desktop" | "" = '';
             let label = '';
-            
+
             try {
                 hash = await getDeviceHash();
                 const userAgent = navigator.userAgent;
@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     window.screen ? window.screen.height : 768
                 ) as "mobile" | "tablet" | "desktop";
                 label = getDeviceLabel(userAgent, category);
-            } catch (fpErr) {
+            } catch {
                 // Proceed without device headers if fingerprinting fails
             }
 
@@ -158,13 +158,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     if (token && !headers.has('Authorization')) {
                         headers.set('Authorization', `Bearer ${token}`);
                     }
-                    
+
                     const clonedRequest = new Request(input, { headers });
                     response = await originalFetch(clonedRequest, init);
                 } else {
                     try {
                         response = await originalFetch(input, init);
-                    } catch (err) {
+                    } catch {
                         return new Response(null, { status: 500, statusText: 'Fetch Failed' });
                     }
                 }
@@ -183,7 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     if (token && !headers.has('Authorization')) {
                         headers.set('Authorization', `Bearer ${token}`);
                     }
-                    
+
                     response = await originalFetch(input, {
                         ...init,
                         headers
@@ -191,7 +191,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 } else {
                     try {
                         response = await originalFetch(input, init);
-                    } catch (err) {
+                    } catch {
                         return new Response(null, { status: 500, statusText: 'Fetch Failed' });
                     }
                 }

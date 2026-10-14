@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractBearerToken, extractCookieToken, verifyAuthToken, AUTH_COOKIE_NAME } from '@/lib/auth-server';
+import { extractBearerToken, extractCookieToken, verifyAuthToken } from '@/lib/auth-server';
 import { updateSessionActivity, checkSessionValidity } from '@/lib/session-manager';
 
 export async function POST(request: NextRequest) {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (payload.sessionId) {
       const xDeviceHash = request.headers.get('x-device-hash');
       const result = await checkSessionValidity(payload.sessionId, payload.sub, xDeviceHash);
-      
+
       if (result.status === 'error') {
         // Transient database error: return 500 so heartbeat skips this ping without terminating session
         return NextResponse.json({ ok: false, error: 'Transient database error' }, { status: 500 });

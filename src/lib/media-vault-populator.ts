@@ -52,7 +52,7 @@ export async function populateMediaVaultNodes(nodes: any[], customSupabase?: any
   // Recursively inject children from media vault and update folder titles
   const populate = (items: any[]): any[] => {
     return items.map(item => {
-      let updatedItem = { ...item };
+      const updatedItem = { ...item };
 
       if (updatedItem.mediaVaultFolderId) {
         // Sync the folder title if it was found

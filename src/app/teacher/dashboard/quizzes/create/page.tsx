@@ -21,15 +21,11 @@ import {
   XCircle,
   HelpCircle,
   Settings,
-  Shuffle,
-  RotateCcw,
-  Search,
   Clock,
   Trophy,
   TrendingUp,
   Infinity,
   Hash,
-  ChevronRight,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -87,7 +83,7 @@ export default function QuizBuilderPage() {
   const searchParams = useSearchParams();
   const isEditing = !!params.id;
   const quizId = isEditing ? (params.id as string) : null;
-  
+
   // Categories removed from UI but kept in data model for backward compat
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
@@ -134,18 +130,18 @@ export default function QuizBuilderPage() {
     if (isEditing && quizId) {
       fetchQuizData();
     }
-  }, [isEditing, quizId]);
+  }, [fetchQuizData, isEditing, quizId]);
 
   // fetchCategories removed — no longer needed in the builder UI
 
-  const fetchQuizData = async () => {
+  const fetchQuizData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/quiz/${quizId}`);
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Failed to load quiz');
-      
+
       // Populate form data
       const newFormData = { ...formData };
       Object.keys(newFormData).forEach(k => {
@@ -171,7 +167,7 @@ export default function QuizBuilderPage() {
         }
       });
       setFormData(newFormData);
-      
+
       // Populate questions
       if (data.quiz.questions && data.quiz.questions.length > 0) {
         const loadedQuestions = data.quiz.questions.map((q: any, index: number) => ({
@@ -198,7 +194,7 @@ export default function QuizBuilderPage() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   const addQuestion = (type: 'sba' | 'true_false' = 'sba') => {
     const newId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -235,7 +231,7 @@ export default function QuizBuilderPage() {
   const duplicateQuestion = (id: string) => {
     const question = questions.find(q => q.id === id);
     if (!question) return;
-    
+
     const newId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newQuestion: Question = {
       ...question,
@@ -266,15 +262,15 @@ export default function QuizBuilderPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const res = await fetch(`/api/quiz/${quizId || 'new'}/import?preview=true`, {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Import failed');
-      
+
       const mappedValid = (data.validRows || []).map((r: any) => ({
         questionType: r.questionType || 'sba',
         questionText: r.questionText,
@@ -301,7 +297,7 @@ export default function QuizBuilderPage() {
         valid: false,
         errors: r.errors || [],
       }));
-      
+
       setImportPreview({
         rows: [...mappedValid, ...mappedInvalid],
         validRows: data.validCount || 0,
@@ -317,7 +313,7 @@ export default function QuizBuilderPage() {
   const handleConfirmImport = () => {
     if (!importPreview) return;
     const validQuestionsOnly = importPreview.rows.filter((r: any) => r.valid);
-    
+
     const newQuestions = validQuestionsOnly.map((q: any, idx: number) => {
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       return {
@@ -336,7 +332,7 @@ export default function QuizBuilderPage() {
         displayOrder: questions.length + idx + 1,
       };
     });
-    
+
     const totalCount = questions.length + newQuestions.length;
     setQuestions(prev => [...prev, ...newQuestions]);
     setQuestionCounter(prev => prev + newQuestions.length);
@@ -369,7 +365,7 @@ export default function QuizBuilderPage() {
       setError('Number of questions to serve cannot exceed total questions in the bank');
       return false;
     }
-    
+
     const validQuestions = questions.filter(q => q.questionText.trim());
     if (validQuestions.length === 0) {
       setError('Please add at least one question to the quiz.');
@@ -404,16 +400,16 @@ export default function QuizBuilderPage() {
         }
       }
     }
-    
+
     return true;
   };
 
   const saveQuiz = async (publish = false) => {
     if (!validateForm()) return;
-    
+
     setSaving(true);
     setError(null);
-    
+
     try {
       const validQuestions = questions.filter(q => q.questionText.trim());
       const payload = {
@@ -433,22 +429,22 @@ export default function QuizBuilderPage() {
           displayOrder: index + 1,
         })),
       };
-      
+
       const url = isEditing ? `/api/quiz/${quizId}` : '/api/quiz';
       const method = isEditing ? 'PUT' : 'POST';
-      
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      
+
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Failed to save quiz');
-      
+
       setSuccess(publish ? 'Quiz published successfully!' : 'Quiz saved as draft');
-      
+
       if (!isEditing) {
         router.push(`/teacher/dashboard/quizzes/${data.quiz.id}/edit`);
       } else {
@@ -607,7 +603,7 @@ export default function QuizBuilderPage() {
                 <CheckCircle className={styles.miniCardIcon} />
                 SBA Marking Scheme
               </div>
-              
+
               <div style={{ marginBottom: '16px' }}>
                 <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>SBA Marks Per Question</label>
                 <input
@@ -643,7 +639,7 @@ export default function QuizBuilderPage() {
                 <CheckCircle className={styles.miniCardIcon} />
                 T/F Marking Scheme
               </div>
-              
+
               <div style={{ marginBottom: '16px' }}>
                 <label className={styles.label} style={{ display: 'block', marginBottom: '6px' }}>T/F Marks Per Option</label>
                 <input
@@ -675,11 +671,11 @@ export default function QuizBuilderPage() {
           </div>
 
           {/* Live Total Marks Summary Box */}
-          <div style={{ 
-            marginTop: '16px', 
-            padding: '16px 20px', 
-            borderRadius: '12px', 
-            background: 'rgba(59, 130, 246, 0.08)', 
+          <div style={{
+            marginTop: '16px',
+            padding: '16px 20px',
+            borderRadius: '12px',
+            background: 'rgba(59, 130, 246, 0.08)',
             border: '1px solid rgba(59, 130, 246, 0.3)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -692,7 +688,7 @@ export default function QuizBuilderPage() {
                 <Trophy size={18} style={{ color: '#3b82f6' }} />
                 <span>Calculated Total Marks: </span>
                 <span style={{ color: '#3b82f6', fontSize: '18px' }}>
-                  {Number(((questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length * (formData.sbaMarks || 0)) + 
+                  {Number(((questions.filter(q => q.questionType === 'sba' && q.questionText.trim()).length * (formData.sbaMarks || 0)) +
                     (questions.filter(q => (q.questionType === 'true_false' || q.questionType === 'mcq') && q.questionText.trim()).length * 5 * (formData.tfMarks || 0))).toFixed(2))} Marks
                 </span>
               </div>
@@ -726,7 +722,7 @@ export default function QuizBuilderPage() {
             {formData.allowMultipleAttempts && (
               <div style={{ animation: 'slideDown 0.2s ease-out' }}>
                 <div className={styles.radioCardGrid}>
-                  <div 
+                  <div
                     className={`${styles.radioCard} ${formData.maxAttempts === 0 ? styles.radioCardSelected : ''}`}
                     onClick={() => updateFormData('maxAttempts', 0)}
                   >
@@ -739,7 +735,7 @@ export default function QuizBuilderPage() {
                     </div>
                   </div>
 
-                  <div 
+                  <div
                     className={`${styles.radioCard} ${formData.maxAttempts !== 0 ? styles.radioCardSelected : ''}`}
                     onClick={() => updateFormData('maxAttempts', formData.maxAttempts === 0 ? 5 : formData.maxAttempts)}
                   >
@@ -810,7 +806,7 @@ export default function QuizBuilderPage() {
               </button>
             </div>
           </div>
-          
+
           {questions.length === 0 ? (
             <div className={styles.emptyQuestions}>
               <FileText className={styles.emptyIcon} />
@@ -874,7 +870,7 @@ export default function QuizBuilderPage() {
             </div>
             <div className={styles.modalBody}>
               <p>Upload a CSV file with your questions. <button onClick={handleDownloadTemplate} className={styles.inlineLink}>Download template</button> to see the required format.</p>
-              
+
               <div className={styles.dropZone}>
                 <input
                   type="file"
@@ -890,7 +886,7 @@ export default function QuizBuilderPage() {
                   <span className={styles.dropHint}>Supports .csv files</span>
                 </label>
               </div>
-              
+
                {importPreview && (
                 <div className={styles.importPreview}>
                   <h4>Preview ({importPreview.validRows} valid, {importPreview.invalidRows} invalid)</h4>
@@ -957,24 +953,24 @@ export default function QuizBuilderPage() {
   );
 }
 // Question Card Component
-function QuestionCard({ 
-  question, 
-  index, 
-  total, 
-  onUpdate, 
-  onDelete, 
-  onDuplicate, 
+function QuestionCard({
+  question,
+  index,
+  total,
+  onUpdate,
+  onDelete,
+  onDuplicate,
   onToggleCollapse,
   onReorder,
 }: any) {
   const [dragging, setDragging] = useState(false);
-  
+
   const isTF = question.questionType === 'true_false' || question.questionType === 'mcq';
   const typeLabel = isTF ? 'True / False Matrix [T_F]' : 'Single Best Answer [SBA]';
   const correctStr = (question.correctOption || (isTF ? 'TTTTT' : 'A')).toUpperCase().padEnd(5, 'T');
 
   return (
-    <article 
+    <article
       className={`${styles.questionCard} ${question.collapsed ? styles.collapsed : ''} ${dragging ? styles.dragging : ''}`}
       draggable
       onDragStart={e => { setDragging(true); e.dataTransfer.effectAllowed = 'move'; }}
@@ -985,14 +981,14 @@ function QuestionCard({
         <div className={styles.dragHandle} title="Drag to reorder">
           <GripVertical className={styles.dragIcon} />
         </div>
-        
+
         <div className={styles.questionInfo}>
           <span className={styles.questionNumber}>Q{index + 1}</span>
           <span className={`${styles.questionTypeBadge} ${isTF ? styles.badgeTF : styles.badgeSBA}`}>
             {typeLabel}
           </span>
         </div>
-        
+
         <div className={styles.questionActions}>
           <button type="button" onClick={() => onToggleCollapse(question.id)} className={styles.actionBtn} title={question.collapsed ? 'Expand' : 'Collapse'}>
             {question.collapsed ? <ChevronDown className={styles.actionIcon} /> : <ChevronUp className={styles.actionIcon} />}
@@ -1005,7 +1001,7 @@ function QuestionCard({
           </button>
         </div>
       </div>
-      
+
       {!question.collapsed && (
         <div className={styles.questionBody}>
           <div className={styles.formGroup}>
@@ -1018,7 +1014,7 @@ function QuestionCard({
               rows={3}
             />
           </div>
-          
+
           <div className={styles.formGroup}>
             <label className={styles.label}>Question Type</label>
             <select
@@ -1052,13 +1048,13 @@ function QuestionCard({
               {isTF ? 'Options / Statements (A to E) & Correct T/F Answers:' : 'Options (A to E) & Select Single Best Answer:'}
             </label>
           </div>
-          
+
           <div className={styles.optionsGrid}>
             {['A', 'B', 'C', 'D', 'E'].map((letter, idx) => {
               const optionVal = question[`option${letter}` as keyof typeof question] as string || '';
               const isSelectedSBA = !isTF && question.correctOption === letter;
               const tfStatus = correctStr[idx] === 'F' ? 'F' : 'T';
-              
+
               return (
                 <div key={letter} className={`${styles.optionRow} ${isSelectedSBA ? styles.correctOption : ''}`}>
                   {!isTF ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart, Clock, Award, Users } from "lucide-react";
+import {  Clock, Award, Users } from "lucide-react";
 import styles from "./CourseStats.module.css";
 import { Course } from "@/constants/courses";
 

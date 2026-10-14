@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireAdmin } from '@/lib/admin-auth';
 import { sendMail } from '@/lib/email';
-import { type ContactIssueType } from '@/lib/contact-emails';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +10,7 @@ function normalizeSubmission(submission: any) {
   if (typeof submission.imageUrls === 'string') {
     try {
       parsedImageUrls = JSON.parse(submission.imageUrls);
-    } catch (e) {}
+    } catch {}
   } else if (Array.isArray(submission.imageUrls)) {
     parsedImageUrls = submission.imageUrls;
   }
@@ -163,7 +162,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
                           <p style="margin:0 0 20px 0;font-size:14px;line-height:1.7;color:#334155;">
                             Our team has reviewed your message / complain and provided the following response:
                           </p>
-                          
+
                           <div style="margin-bottom:24px;padding:18px 20px;background-color:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;border-radius:10px;">
                             <div style="font-size:12px;font-weight:700;color:#166534;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Admin Response</div>
                             <div style="font-size:14px;line-height:1.7;color:#14532d;white-space:pre-wrap;">${adminReply.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')}</div>

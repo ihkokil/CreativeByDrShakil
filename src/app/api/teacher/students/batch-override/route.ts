@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { ensureCustomBatch, ensureAllUnlockedBatch, applyStudentScheduleRule } from '@/lib/enrollment';
+import { ensureCustomBatch, applyStudentScheduleRule } from '@/lib/enrollment';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const { action, userId, userIds, startDate } = body;
 
     // Determine target users
-    let targets: string[] = [];
+    const targets: string[] = [];
     if (userId) targets.push(userId);
     if (userIds && Array.isArray(userIds)) targets.push(...userIds);
     if (targets.length === 0) {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(result);
       }
-      
+
       if (action === 'instant' || action === 'unlock_all') {
         const result = await applyStudentScheduleRule({
           supabase,
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(result);
       }
-      
+
       if (action === 'batch_change' || action === 'change_batch') {
         let { batchId, startDate } = body;
         if (!batchId) {
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json(result);
       }
-      
+
       // Fallback for unsupported actions
       return NextResponse.json({ error: 'Unsupported action type.' }, { status: 400 });
     }

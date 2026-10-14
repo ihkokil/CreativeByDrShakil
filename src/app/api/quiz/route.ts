@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       }
 
       const allEnrolledCourseIds = Array.from(new Set((orders || []).map((o: any) => o.courseId)));
-      
+
       // Fetch all courses the student is enrolled in (for the course filter dropdown)
       const { data: allStudentCourseRows = [] } = await supabase
         .from('Course')
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
         const groups = collectSecondChildGroups(curriculum);
         const releaseGroupDates = parseReleaseGroupDateMap(c.releaseGroupDates);
 
-        let enrolledAt = (order as any).enrolledAt || (order as any).updatedAt;
+        const enrolledAt = (order as any).enrolledAt || (order as any).updatedAt;
         const studentBatch = (order as any).batchId ? batchMap.get((order as any).batchId) : null;
         let effectiveReleaseMode = c.releaseMode || 'custom_batch';
         let releaseStart = enrolledAt || c.releaseStartAt || c.courseStartDate || new Date().toISOString();
@@ -309,7 +309,7 @@ export async function GET(request: NextRequest) {
 
         const topScore = scores.length > 0 ? Math.max(...scores) : null;
         const avgScore = scores.length > 0 ? (scores.reduce((sum: number, val: number) => sum + val, 0) / scores.length) : null;
-        
+
         // Find 1st attempt score
         const firstAttempt = userAttempts.find((a: any) => Number(a.attemptNumber) === 1) || (userAttempts.length > 0 ? userAttempts[userAttempts.length - 1] : null);
         const firstAttemptScore = firstAttempt && (firstAttempt.netScore !== null && firstAttempt.netScore !== undefined)
@@ -655,7 +655,7 @@ export async function POST(request: NextRequest) {
       const questionsToInsert = body.questions.map((q: any) => {
         let qType = q.questionType || 'sba';
         if (qType === 'mcq') qType = 'true_false';
-        
+
         let correctOpt = (q.correctOption || '').trim().toUpperCase();
         if (qType === 'true_false' && correctOpt.length !== 5) {
           correctOpt = correctOpt.padEnd(5, 'F').slice(0, 5);

@@ -6,9 +6,8 @@ import { useEffect, useState } from "react";
 import TeacherSidebar from "@/components/Teacher/TeacherSidebar";
 import TeacherHeader from "../../../components/Teacher/TeacherHeader";
 import styles from "./TeacherDashboard.module.css";
-import { Loader2, LayoutDashboard, BookOpen, Users, Video, FileText, MoreHorizontal } from "lucide-react";
+import {  LayoutDashboard, BookOpen, Video, MoreHorizontal } from "lucide-react";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
 import Loader from "@/components/UI/Loader";
 
 function TeacherDashboardLayoutContent({
@@ -101,14 +100,14 @@ function TeacherDashboardLayoutContent({
                 totalCourses={0}
             />
             {isSidebarExpanded && (
-                <div 
-                    className={styles.sidebarBackdrop} 
-                    onClick={() => setIsSidebarExpanded(false)} 
+                <div
+                    className={styles.sidebarBackdrop}
+                    onClick={() => setIsSidebarExpanded(false)}
                 />
             )}
-            
+
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
-                <TeacherHeader 
+                <TeacherHeader
                     title={pageTitle}
                     user={user}
                     onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}

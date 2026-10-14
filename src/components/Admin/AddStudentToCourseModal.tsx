@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import styles from "./AdminModal.module.css";
 import customStyles from "./AddStudentToCourseModal.module.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap } from "lucide-react";
+import { X, Search, User, Mail, Phone, BookOpen, UserPlus, GraduationCap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useModal } from "@/hooks/useModal";
 
@@ -31,22 +31,22 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
     useModal(isOpen, onClose);
     const { session, role } = useAuth();
     const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
-    
+
     // Data states
     const [students, setStudents] = useState<Student[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
     const [loadingData, setLoadingData] = useState(false);
-    
+
     // Form states
     const [selectedCourse, setSelectedCourse] = useState("");
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    
+
     // New student form states
     const [newStudentEmail, setNewStudentEmail] = useState("");
     const [newStudentName, setNewStudentName] = useState("");
     const [newStudentPhone, setNewStudentPhone] = useState("");
-    
+
     // UI states
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -55,7 +55,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
         setLoadingData(true);
         try {
             const token = localStorage.getItem("auth_token");
-            
+
             const apiPrefix = role === "admin" ? "/api/admin" : "/api/teacher";
             // Fetch students
             const studentsRes = await fetch(`${apiPrefix}/students`, {
@@ -65,7 +65,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                 const studentsData = await studentsRes.json();
                 setStudents(studentsData.students || []);
             }
-            
+
             // Fetch courses
             const coursesRes = await fetch("/api/courses/dynamic");
             if (coursesRes.ok) {
@@ -83,7 +83,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
         if (isOpen && session) {
             fetchData();
         }
-    }, [isOpen, session]);
+    }, [fetchData, isOpen, session]);
 
     const showMessage = (msg: { type: 'success' | 'error'; text: string }) => {
         setMessage(msg);
@@ -92,7 +92,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
         }, 5000);
     };
 
-    const filteredStudents = students.filter(s => 
+    const filteredStudents = students.filter(s =>
         s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.phone && s.phone.includes(searchQuery))
@@ -119,7 +119,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
             const token = localStorage.getItem("auth_token");
             const isNewStudent = activeTab === "new";
             const apiPrefix = role === "admin" ? "/api/admin" : "/api/teacher";
-            
+
             if (isNewStudent) {
                 if (!newStudentEmail || !newStudentName) {
                     showMessage({ type: 'error', text: 'Email and full name are required for new students.' });
@@ -156,7 +156,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                     setLoading(false);
                     return;
                 }
-                const promises = selectedStudents.map(studentId => 
+                const promises = selectedStudents.map(studentId =>
                     fetch(`${apiPrefix}/enrollments`, {
                         method: "POST",
                         headers: {
@@ -170,10 +170,10 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                         }),
                     }).then(res => res.json().then(data => ({ ok: res.ok, data })))
                 );
-                
+
                 const results = await Promise.all(promises);
                 const failed = results.filter(r => !r.ok);
-                
+
                 if (failed.length === results.length) {
                     showMessage({ type: 'error', text: failed[0]?.data?.error || "Failed to enroll selected students." });
                 } else if (failed.length > 0) {
@@ -210,7 +210,7 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div 
+                <motion.div
                     className={styles.overlay}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -309,15 +309,15 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                                                 <div
                                                     key={student.id}
                                                     className={`${customStyles.studentCard} ${selectedStudents.includes(student.id) ? customStyles.selectedCard : ""}`}
-                                                    onClick={() => setSelectedStudents(prev => 
+                                                    onClick={() => setSelectedStudents(prev =>
                                                         prev.includes(student.id) ? prev.filter(id => id !== student.id) : [...prev, student.id]
                                                     )}
                                                 >
                                                     <div className={customStyles.studentInfo}>
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={selectedStudents.includes(student.id)} 
-                                                            readOnly 
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedStudents.includes(student.id)}
+                                                            readOnly
                                                             className={customStyles.checkbox}
                                                         />
                                                         <div className={customStyles.studentAvatar}>
@@ -384,15 +384,15 @@ export default function AddStudentToCourseModal({ isOpen, onClose, onSuccess }: 
                                 </div>
                             )}
 
-                            <button 
-                                className={styles.submitBtn} 
-                                type="submit" 
+                            <button
+                                className={styles.submitBtn}
+                                type="submit"
                                 disabled={loading || !selectedCourse || (activeTab === "existing" ? selectedStudents.length === 0 : (!newStudentEmail || !newStudentName))}
                             >
-                                {loading 
-                                    ? "Enrolling..." 
-                                    : activeTab === "new" 
-                                        ? "Register & Enroll Student" 
+                                {loading
+                                    ? "Enrolling..."
+                                    : activeTab === "new"
+                                        ? "Register & Enroll Student"
                                         : `Enroll Selected (${selectedStudents.length})`
                                 }
                             </button>

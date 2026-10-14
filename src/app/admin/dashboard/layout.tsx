@@ -7,16 +7,12 @@ import AdminSidebar from "@/components/Admin/AdminSidebar";
 import AdminHeader from "@/components/Admin/AdminHeader";
 import styles from "./AdminDashboard.module.css";
 import {
-    BarChart3,
+
     CreditCard,
     GraduationCap,
     Inbox,
     LayoutDashboard,
-    LayoutGrid,
-    Loader2,
     MoreHorizontal,
-    Smartphone,
-    TicketPercent,
     Users,
 } from "lucide-react";
 import Loader from "@/components/UI/Loader";
@@ -103,14 +99,14 @@ function AdminDashboardLayoutContent({
                 onToggleExpand={() => setIsSidebarExpanded(!isSidebarExpanded)}
             />
             {isSidebarExpanded && (
-                <div 
-                    className={styles.sidebarBackdrop} 
-                    onClick={() => setIsSidebarExpanded(false)} 
+                <div
+                    className={styles.sidebarBackdrop}
+                    onClick={() => setIsSidebarExpanded(false)}
                 />
             )}
-            
+
             <main className={`${styles.mainContent} ${!isSidebarExpanded ? styles.mainContentCollapsed : ''}`}>
-                <AdminHeader 
+                <AdminHeader
                     title={pageTitle}
                     user={user}
                     onToggleSidebar={() => setIsSidebarExpanded(!isSidebarExpanded)}

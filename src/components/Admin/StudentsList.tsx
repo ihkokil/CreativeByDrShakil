@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Loader from "@/components/UI/Loader";
-import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Search, Edit, Trash2, GraduationCap, X, User, Mail, Phone, FileText, ImagePlus, Send } from "lucide-react";
 import dashStyles from "@/app/admin/dashboard/AdminDashboard.module.css";
@@ -29,12 +28,12 @@ export default function StudentsList() {
     const [deleteStudent, setDeleteStudent] = useState<StudentProfile | null>(null);
 
     // Form states
-    const [formData, setFormData] = useState({ 
-        fullName: '', 
-        email: '', 
-        phone: '', 
-        bmdcNumber: '', 
-        profileImage: '' 
+    const [formData, setFormData] = useState({
+        fullName: '',
+        email: '',
+        phone: '',
+        bmdcNumber: '',
+        profileImage: ''
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -96,8 +95,8 @@ export default function StudentsList() {
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     };
 
-    const filteredStudents = students.filter(s => 
-        s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredStudents = students.filter(s =>
+        s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -113,7 +112,7 @@ export default function StudentsList() {
                 body: JSON.stringify(formData)
             });
             const data = await res.json();
-            
+
             if (res.ok) {
                 showMessage({ type: 'success', text: data.message || 'Student added and invitation sent.' });
                 setTimeout(() => {
@@ -124,10 +123,10 @@ export default function StudentsList() {
             } else {
                 showMessage({ type: 'error', text: data.error || 'Failed to add student.' });
             }
-        } catch (err) {
+        } catch {
             showMessage({ type: 'error', text: 'Network error. Please try again.' });
-        } finally { 
-            setIsSubmitting(false); 
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -154,10 +153,10 @@ export default function StudentsList() {
             } else {
                 showMessage({ type: 'error', text: data.error || 'Failed to update student.' });
             }
-        } catch (err) {
+        } catch {
             showMessage({ type: 'error', text: 'Network error. Please try again.' });
-        } finally { 
-            setIsSubmitting(false); 
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -183,17 +182,17 @@ export default function StudentsList() {
             <div className={localStyles.header}>
                 <div className={localStyles.searchBar}>
                     <Search size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Search students by name or email..." 
+                    <input
+                        type="text"
+                        placeholder="Search students by name or email..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <button className={dashStyles.primaryBtn} onClick={() => { 
-                    setFormData({ fullName: '', email: '', phone: '', bmdcNumber: '', profileImage: '' }); 
+                <button className={dashStyles.primaryBtn} onClick={() => {
+                    setFormData({ fullName: '', email: '', phone: '', bmdcNumber: '', profileImage: '' });
                     setMessage(null);
-                    setIsAddOpen(true); 
+                    setIsAddOpen(true);
                 }}>
                     <GraduationCap size={16} /> New Student
                 </button>
@@ -219,7 +218,7 @@ export default function StudentsList() {
                                     <p>{student.email || "No email"}</p>
                                 </div>
                             </div>
-                            
+
                             <div className={dashStyles.cardContent}>
                                 <div className={dashStyles.academicInfo}>
                                     <p style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -357,7 +356,7 @@ export default function StudentsList() {
                                     <input required type="text" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className={localStyles.input} style={{ paddingLeft: '40px', width: '100%' }} />
                                 </div>
                             </div>
-                            
+
                             <div className={localStyles.row}>
                                 <div className={`${localStyles.formGroup} ${localStyles.halfWidth}`}>
                                     <label>Phone</label>

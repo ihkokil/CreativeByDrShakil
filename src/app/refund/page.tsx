@@ -18,7 +18,7 @@ export default function RefundPolicy() {
                     <h1 className={styles.title}>Refund Policy</h1>
                     <p className={styles.subtitle}>Effective Date: {new Date().toLocaleDateString()}</p>
                 </div>
-                
+
                 <div className={styles.content}>
                     <section className={styles.section}>
                         <h2 className={styles.sectionTitle}>1. Digital Content Nature</h2>
@@ -28,7 +28,7 @@ export default function RefundPolicy() {
                     </section>
 
                     <section className={styles.section}>
-                        <h2 className={styles.sectionTitle}>2. General "No Refund" Policy</h2>
+                        <h2 className={styles.sectionTitle}>2. General &quot;No Refund&quot; Policy</h2>
                         <p className={styles.text}>
                             Because our products are digital and intellectual property is immediately consumed upon access, <strong>we generally do not offer refunds</strong> once a course has been purchased and access has been granted to your account.
                         </p>

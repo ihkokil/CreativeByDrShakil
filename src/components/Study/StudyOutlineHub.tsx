@@ -15,10 +15,8 @@ import {
     FolderOpen,
     ChevronDown,
     Sparkles,
-    Clock,
     BookOpen,
     CheckCheck,
-    ListFilter,
     ChevronsUpDown,
     Download,
 } from "lucide-react";

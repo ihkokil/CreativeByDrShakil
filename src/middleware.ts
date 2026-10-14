@@ -120,7 +120,7 @@ export async function middleware(request: NextRequest) {
 
     // Success, continue with the request
     return NextResponse.next();
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Unauthorized or token expired.' }, { status: 401 });
   }
 }

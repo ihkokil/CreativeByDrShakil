@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { X, Check } from "lucide-react";
 import Loader from "@/components/UI/Loader";
-import { useAuth } from "@/context/AuthContext";
 import styles from "./StudentRulesModal.module.css";
 import { motion } from "framer-motion";
 import { formatDateInputGMT6 } from "@/lib/date-format";
@@ -118,7 +117,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
     };
 
     return (
-        <motion.div 
+        <motion.div
             className={styles.overlay}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -272,7 +271,7 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                     <div className={styles.dateInputsGrid}>
                                         <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2' }}>
                                             <label>Select Batch:</label>
-                                            <select 
+                                            <select
                                                 value={selectedBatchId}
                                                 onChange={(e) => {
                                                     const bId = e.target.value;
@@ -308,15 +307,15 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                         {(() => {
                                             const selBatch = batches.find(b => b.id === selectedBatchId);
                                             const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
-                                            const displayDate = isCustom 
-                                                ? startDate 
+                                            const displayDate = isCustom
+                                                ? startDate
                                                 : (selBatch?.startDate ? formatDateInputGMT6(selBatch.startDate) : startDate);
 
                                             return (
                                                 <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2', marginTop: '12px' }}>
                                                     <label>{isCustom ? 'Custom Enrollment Date (Required):' : 'Enrollment Start Date (Set by Batch):'}</label>
-                                                    <input 
-                                                        type="date" 
+                                                    <input
+                                                        type="date"
                                                         value={displayDate}
                                                         disabled={!isCustom}
                                                         onChange={(e) => setStartDate(e.target.value)}
@@ -347,8 +346,8 @@ export default function StudentRulesModal({ courseId, userId, userIds, studentNa
                                     <div className={styles.dateInputsGrid}>
                                         <div className={styles.dateInputGroup} style={{ gridColumn: 'span 2' }}>
                                             <label>Custom Enrollment Date (Required):</label>
-                                            <input 
-                                                type="date" 
+                                            <input
+                                                type="date"
                                                 value={startDate}
                                                 onChange={(e) => setStartDate(e.target.value)}
                                             />

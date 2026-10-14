@@ -81,7 +81,7 @@ export default function ProfileTab() {
             } else {
                 setMessage({ type: "error", text: data.error || "Failed to upload image." });
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "Failed to upload image." });
         }
     };
@@ -115,7 +115,7 @@ export default function ProfileTab() {
                 setMessage({ type: "success", text: "Profile updated successfully." });
                 await refreshSession();
             }
-        } catch (err) {
+        } catch {
             setMessage({ type: "error", text: "An error occurred while saving profile." });
         } finally {
             setSaving(false);

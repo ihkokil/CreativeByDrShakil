@@ -13,7 +13,6 @@ import {
   Play,
   Shield,
   Zap,
-  Shuffle,
   RotateCcw,
   Trophy,
   FileText,
@@ -63,7 +62,7 @@ export default function QuizDetailPage() {
       try {
         const res = await fetch(`/api/quiz/${quizId}`, { cache: 'no-store' });
         const data = await res.json();
-        
+
         if (!res.ok) {
           if (res.status === 403) {
             router.push(returnUrl || '/dashboard/quizzes');
@@ -71,7 +70,7 @@ export default function QuizDetailPage() {
           }
           throw new Error(data.error || 'Failed to load quiz');
         }
-        
+
         setQuiz({
           ...data.quiz,
           attempt: data.attempt,
@@ -96,13 +95,13 @@ export default function QuizDetailPage() {
         method: 'POST',
       });
       const data = await res.json();
-      
+
       const targetAttemptId = data.attemptId;
       if (!res.ok && !targetAttemptId) {
         throw new Error(data.error || 'Failed to start quiz');
       }
-      
-      const targetUrl = returnUrl 
+
+      const targetUrl = returnUrl
         ? `/dashboard/quizzes/${quizId}/attempt/${targetAttemptId}?returnUrl=${encodeURIComponent(returnUrl)}`
         : `/dashboard/quizzes/${quizId}/attempt/${targetAttemptId}`;
       router.push(targetUrl);
@@ -115,7 +114,7 @@ export default function QuizDetailPage() {
 
   const handleContinueQuiz = () => {
     if (quiz?.attempt?.id) {
-      const targetUrl = returnUrl 
+      const targetUrl = returnUrl
         ? `/dashboard/quizzes/${quizId}/attempt/${quiz.attempt.id}?returnUrl=${encodeURIComponent(returnUrl)}`
         : `/dashboard/quizzes/${quizId}/attempt/${quiz.attempt.id}`;
       router.push(targetUrl);
@@ -170,12 +169,12 @@ export default function QuizDetailPage() {
 
   const isInProgress = quiz.attempt?.status === 'in_progress';
   const isCompleted = quiz.attempt?.status === 'submitted' || quiz.attempt?.status === 'auto_submitted';
-  
+
   const canStart = !isInProgress && (
     !quiz.attempt || (
       quiz.allowMultipleAttempts && (
-        !quiz.maxAttempts || 
-        quiz.maxAttempts === 0 || 
+        !quiz.maxAttempts ||
+        quiz.maxAttempts === 0 ||
         (quiz.attempt?.attemptNumber ?? 0) < quiz.maxAttempts
       )
     )
@@ -206,7 +205,7 @@ export default function QuizDetailPage() {
           <ChevronLeft className={styles.backIcon} />
           {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
         </Link>
-        
+
         <div className={styles.quizTitle}>
           <h1>{quiz.title}</h1>
           {quiz.category && (
@@ -242,7 +241,7 @@ export default function QuizDetailPage() {
                 <span className={styles.ruleValue}>{formatDuration(quiz.durationMinutes)}</span>
               </div>
             </div>
-            
+
             <div className={styles.ruleCard}>
               <div className={styles.ruleIcon}><HelpCircle className={styles.ruleIconSvg} /></div>
               <div className={styles.ruleContent}>
@@ -250,7 +249,7 @@ export default function QuizDetailPage() {
                 <span className={styles.ruleValue}>{quiz.numQuestionsToServe} questions</span>
               </div>
             </div>
-            
+
             <div className={styles.ruleCard}>
               <div className={styles.ruleIcon}><CheckCircle className={styles.ruleIconSvg} /></div>
               <div className={styles.ruleContent}>
@@ -258,7 +257,7 @@ export default function QuizDetailPage() {
                 <span className={styles.ruleValue}>{totalMarks} marks</span>
               </div>
             </div>
-            
+
             <div className={`${styles.ruleCard} ${styles.ruleCardSpan2}`}>
               <div className={styles.ruleIcon}>
                 {sbaNegative > 0 || tfNegative > 0 ? <XCircle className={styles.ruleIconSvg} /> : <Shield className={styles.ruleIconSvg} />}
@@ -288,8 +287,8 @@ export default function QuizDetailPage() {
               <div className={styles.ruleContent}>
                 <span className={styles.ruleLabel}>Ranking Method</span>
                 <span className={styles.ruleValue}>
-                  {getPositionTypeLabel(quiz.positionType)} ({quiz.allowMultipleAttempts 
-                    ? (quiz.maxAttempts && quiz.maxAttempts > 0 ? `Max ${quiz.maxAttempts} attempts` : 'Unlimited attempts') 
+                  {getPositionTypeLabel(quiz.positionType)} ({quiz.allowMultipleAttempts
+                    ? (quiz.maxAttempts && quiz.maxAttempts > 0 ? `Max ${quiz.maxAttempts} attempts` : 'Unlimited attempts')
                     : 'Single attempt'})
                 </span>
               </div>
@@ -346,18 +345,18 @@ export default function QuizDetailPage() {
             <ChevronLeft className={styles.btnIcon} />
             {returnUrl ? 'Back to Course Study' : 'Back to Quizzes'}
           </Link>
-          
+
           {isInProgress && (
             <button onClick={handleContinueQuiz} className={styles.continueBtn}>
               <Play className={styles.btnIcon} />
               Continue Quiz
             </button>
           )}
-          
+
           {(isCompleted || (quiz.allAttempts && quiz.allAttempts.length > 0)) && (
             <>
-              <Link 
-                href={`/dashboard/quizzes/${quizId}/result?attempt=${quiz.attempt?.id || quiz.allAttempts?.[0]?.id}&tab=answers${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`} 
+              <Link
+                href={`/dashboard/quizzes/${quizId}/result?attempt=${quiz.attempt?.id || quiz.allAttempts?.[0]?.id}&tab=answers${returnUrl ? `&returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                 className={styles.secondaryBtn}
                 title="View question keys and medical explanations"
               >
@@ -365,7 +364,7 @@ export default function QuizDetailPage() {
                 Review Answers
               </Link>
 
-              <Link 
+              <Link
                 href={`/dashboard/quizzes/${quizId}/leaderboard${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                 className={styles.secondaryBtn}
                 title="View quiz leaderboard and student rankings"
@@ -374,7 +373,7 @@ export default function QuizDetailPage() {
                 Leaderboard
               </Link>
 
-              <Link 
+              <Link
                 href={`/dashboard/quizzes/${quizId}/attempts${returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ''}`}
                 className={styles.secondaryBtn}
                 title="View all your past attempts"
@@ -384,7 +383,7 @@ export default function QuizDetailPage() {
               </Link>
             </>
           )}
-          
+
           {canStart && (
             <button onClick={handleStartQuiz} disabled={starting} className={styles.primaryBtn}>
               {starting ? (

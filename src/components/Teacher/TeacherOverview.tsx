@@ -1,16 +1,15 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { 
-    BookOpen, 
-    Plus, 
-    Video, 
-    ArrowUpRight, 
-    Users, 
-    CheckCircle, 
-    Sparkles, 
-    Layers, 
-    FileQuestion 
+import {
+    BookOpen,
+    Plus,
+    Video,
+    ArrowUpRight,
+    Users,
+    CheckCircle,
+    Sparkles,
+    Layers,
+    FileQuestion
 } from "lucide-react";
 import styles from "./TeacherOverview.module.css";
 import { useRouter } from "next/navigation";

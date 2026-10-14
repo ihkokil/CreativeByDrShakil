@@ -9,20 +9,16 @@ import {
   Tablet,
   Lock,
   Unlock,
-  AlertCircle,
   Search,
   UserCheck,
   ShieldAlert,
   Trash2,
-  Settings2,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   ChevronUp,
   LogOut,
-  Globe,
   Activity,
-  Radio,
   Wifi,
   RefreshCw,
   RotateCcw,
@@ -31,15 +27,11 @@ import {
   Layers,
   Sliders,
   X,
-  Filter,
-  Sparkles,
-  CheckCircle2,
-  Shield,
   BookOpen,
 } from 'lucide-react';
 import SessionDetailsModal from '@/components/Admin/SessionDetailsModal';
 import ConfirmModal from '@/components/Admin/ConfirmModal';
-import { formatDateGMT6, formatDateTimeGMT6 } from '@/lib/date-format';
+import { formatDateGMT6 } from '@/lib/date-format';
 
 interface SessionData {
   id: string;
@@ -280,7 +272,7 @@ export default function UsersManager() {
     } else {
       fetchUsers(currentPage, debouncedSearch, sortBy, 'search');
     }
-  }, [currentPage, debouncedSearch, sortBy]);
+  }, [currentPage, debouncedSearch, fetchUsers, sortBy]);
 
   // Real-time live presence polling every 12 seconds
   useEffect(() => {

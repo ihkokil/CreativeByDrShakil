@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, AlertTriangle, RotateCcw, Trash2, Lock, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { X, AlertTriangle, RotateCcw, Trash2, Lock, ShieldAlert } from "lucide-react";
 import { useModal } from "@/hooks/useModal";
 
 export type ConfirmVariant = 'danger' | 'warning' | 'info' | 'primary';

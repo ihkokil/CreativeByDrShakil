@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .from('Course')
       .select('id, title, status, price, createdAt, updatedAt, curriculumJson')
       .order('updatedAt', { ascending: false });
-      
+
     const courses = rawCourses || [];
 
     const courseIds = courses.map((c: any) => c.id);
@@ -52,10 +52,10 @@ export async function GET(request: NextRequest) {
     const publishedCourses = (courses || []).filter((c: any) => c.status === 'published').length;
 
     // Get progress rows for all approved courses to calculate average progress
-    const progressResponse = courseIds.length > 0 
+    const progressResponse = courseIds.length > 0
       ? await supabase.from('LessonProgress').select('courseId, userId').in('courseId', courseIds)
       : { data: [] };
-      
+
     const progressRows = progressResponse.data || [];
 
     // Per-course stats
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
         let parsed: any[] = [];
         try {
           parsed = c.curriculumJson ? parseCurriculumJson(c.curriculumJson) : [];
-        } catch (e) {}
+        } catch {}
         const hydrated = await populateMediaVaultNodes(parsed, supabase);
         return {
           ...c,
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       const course = hydratedCourses.find((c: any) => c.id === cs.id);
       const totalLessons = course ? countLessons(course.hydratedCurriculum) : 0;
       const maxPossibleCompleted = cs.enrollments * totalLessons;
-      
+
       const actualCompleted = progressRows.filter((p: any) => p.courseId === cs.id).length;
       const avgProgress = maxPossibleCompleted > 0 ? Math.round((actualCompleted / maxPossibleCompleted) * 100) : 0;
 
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
       return b.avgProgress - a.avgProgress;
     });
 
-    const aggregateProgress = totalPossibleLessonsForAll > 0 
+    const aggregateProgress = totalPossibleLessonsForAll > 0
       ? Math.round((totalCompletedLessonsForAll / totalPossibleLessonsForAll) * 100)
       : 0;
 

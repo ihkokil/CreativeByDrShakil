@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { MonitorPlay, FileText, PlayCircle, CheckCircle2, Smartphone, Video, Users, Stethoscope } from "lucide-react";
+import { MonitorPlay, CheckCircle2, Smartphone, Video, Stethoscope } from "lucide-react";
 import styles from "./CourseSidebar.module.css";
 import { Course } from "@/constants/courses";
 
@@ -14,10 +14,10 @@ interface Props {
   onEnroll: () => void;
 }
 
-export default function CourseSidebar({ 
-  course, 
-  progressLoading, 
-  userEnrolled, 
+export default function CourseSidebar({
+  course,
+  progressLoading,
+  userEnrolled,
   courseStarted,
   onEnterCourse,
   onEnroll
@@ -33,7 +33,7 @@ export default function CourseSidebar({
           unoptimized
         />
       </div>
-      
+
       <div className={styles.content}>
         <div className={styles.priceRow}>
           {course.originalPrice && (

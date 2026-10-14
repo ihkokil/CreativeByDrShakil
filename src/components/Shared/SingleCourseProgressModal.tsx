@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Loader from "@/components/UI/Loader";
-import { 
+import {
   X, Folder, Calendar, Settings, XCircle, Mail, Phone, FileText, Users
 } from 'lucide-react';
 import styles from './SingleCourseProgressModal.module.css';
@@ -62,11 +62,11 @@ export default function SingleCourseProgressModal({
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         const result = await res.json();
-        
+
         if (!res.ok) {
           throw new Error(result.error || 'Failed to fetch course details');
         }
-        
+
         if (isMounted) {
           setData(result);
         }
@@ -103,8 +103,8 @@ export default function SingleCourseProgressModal({
 
   const renderFolder = (node: BuilderNode) => {
     let statusText = 'Available';
-    let isLocked = !!node.locked;
-    
+    const isLocked = !!node.locked;
+
     if (isLocked) {
       if (node.availableAt) {
         statusText = `Available on ${formatDateGMT6(node.availableAt)}`;
@@ -148,8 +148,8 @@ export default function SingleCourseProgressModal({
 
   return (
     <div className={styles.overlay}>
-      <motion.div 
-        className={styles.modal} 
+      <motion.div
+        className={styles.modal}
         onClick={e => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -162,7 +162,7 @@ export default function SingleCourseProgressModal({
             ) : (
               <div className={styles.studentAvatar}>{getInitials(student.fullName)}</div>
             )}
-            
+
             <div className={styles.studentInfoCol}>
               <h2 className={styles.studentName}>{student.fullName}</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
@@ -180,7 +180,7 @@ export default function SingleCourseProgressModal({
                   </span>
                 )}
               </div>
-              
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <div className={styles.courseBadge}>
                   <Folder size={14} />
@@ -201,7 +201,7 @@ export default function SingleCourseProgressModal({
               </div>
             </div>
           </div>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', zIndex: 1 }}>
             <button className={styles.closeBtn} onClick={onClose}><X size={18} /></button>
             {!loading && !error && progressStats.total > 0 && (

@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import LoaderComponent from "@/components/UI/Loader";
-import Confetti from "react-confetti";
 import styles from "./CreateCourseStep3.module.css";
 import { formatDisplayDate } from "@/lib/date-format";
 

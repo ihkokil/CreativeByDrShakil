@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
-import { 
-    BookOpen, 
+import {
+    BookOpen,
     ArrowRight,
     PlayCircle,
     UserCog,
@@ -36,7 +36,7 @@ export default function StudentOverview({
     enrolledCourses,
     onTabChange,
 }: StudentOverviewProps) {
-    
+
     const containerVariants: Variants = {
         hidden: { opacity: 0 },
         visible: {
@@ -60,7 +60,7 @@ export default function StudentOverview({
     };
 
     return (
-        <motion.div 
+        <motion.div
             className={styles.bentoGrid}
             variants={containerVariants}
             initial="hidden"
@@ -76,14 +76,14 @@ export default function StudentOverview({
                         </h2>
                     </div>
                 </div>
-                
+
                 <div className={styles.progressContainer}>
                     <div className={styles.progressLabel}>
                         <span style={{ fontSize: '0.9rem' }}>Average Completion</span>
                         <span style={{ fontSize: '0.9rem' }}>{completionPercent}%</span>
                     </div>
                     <div className={styles.progressBar}>
-                        <motion.div 
+                        <motion.div
                             className={styles.progressFill}
                             initial={{ width: 0 }}
                             animate={{ width: `${completionPercent}%` }}
@@ -154,7 +154,7 @@ export default function StudentOverview({
                         ))
                     ) : (
                         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '20px' }}>
-                            You haven't enrolled in any courses yet.
+                            You haven&apos;t enrolled in any courses yet.
                         </p>
                     )}
                 </div>

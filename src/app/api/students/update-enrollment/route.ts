@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
 import { requireTeacherPayload } from '@/lib/route-auth';
 import { ensureCustomBatch, applyStudentScheduleRule } from '@/lib/enrollment';
 import type { Database } from '@/types/supabase';

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Loader from "@/components/UI/Loader";
-import { AlertCircle, ArrowRight, CheckCircle2, Send, X, Mail, Phone, Clock, ExternalLink } from 'lucide-react';
+import {  ArrowRight, CheckCircle2, Send, X, Mail, Phone, Clock, ExternalLink } from 'lucide-react';
 import styles from './ContactRequestsManager.module.css';
 import { useModal } from '@/hooks/useModal';
 import { formatDateTimeGMT6 } from '@/lib/date-format';
@@ -64,7 +64,7 @@ export default function ContactRequestModal({
       setStatusDraft(submission.status);
       setReplyDraft(submission.adminReply || '');
     }
-  }, [submission?.id, submission?.updatedAt, submission?.adminReply, submission?.adminReplySentAt, submission?.status]);
+  }, [submission.id, submission.updatedAt, submission.adminReply, submission.adminReplySentAt, submission.status, submission]);
 
   if (!isOpen || !submission) {
     return null;

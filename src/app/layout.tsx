@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { headers } from "next/headers";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
@@ -33,7 +32,6 @@ export const metadata: Metadata = {
         ],
         apple: "/apple-touch-icon.png",
     },
-    manifest: "/site.webmanifest",
     openGraph: {
         type: "website",
         locale: "en_US",

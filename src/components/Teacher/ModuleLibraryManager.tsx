@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Loader from "@/components/UI/Loader";
 import styles from "./ModuleLibraryManager.module.css";
-import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud, ClipboardList, Search, CheckSquare, PlusCircle, ArrowLeft, ExternalLink, AlertCircle, Check } from "lucide-react";
+import { Folder, FolderOpen, PlayCircle, Plus, Edit2, Trash2, Video, FileText, ChevronDown, ChevronRight, X, ArrowUp, ArrowDown, GripVertical, UploadCloud, ClipboardList, Search, PlusCircle, ArrowLeft, ExternalLink, AlertCircle } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import AlertModal from "@/components/UI/AlertModal";
@@ -157,11 +157,11 @@ const LibraryItem = ({ node, depth, onDelete, onEdit, onMove, siblingIds, dragNo
                     <div
                         className={styles.dragHandle}
                         draggable
-                        onDragStart={(e) => { 
-                            e.stopPropagation(); 
+                        onDragStart={(e) => {
+                            e.stopPropagation();
                             e.dataTransfer.effectAllowed = 'move';
                             e.dataTransfer.setData('text/plain', node.id);
-                            onDragStart(node.id); 
+                            onDragStart(node.id);
                         }}
                         onDragEnd={(e) => { e.stopPropagation(); onDragEnd(); }}
                         title="Drag to reorder"
@@ -419,18 +419,18 @@ export default function ModuleLibraryManager() {
 
 
     const handleAddFolderClick = (parentId?: string) => { setActiveParentId(parentId || null); setIsFolderModalOpen(true); };
-    const handleAddVideoClick = (parentId: string) => { 
-        setActiveParentId(parentId); 
+    const handleAddVideoClick = (parentId: string) => {
+        setActiveParentId(parentId);
         setVideoType('youtube');
         setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null); setUploadProgress(0);
-        setIsVideoModalOpen(true); 
+        setIsVideoModalOpen(true);
     };
-    const handleAddDocClick = (parentId: string) => { 
-        setActiveParentId(parentId); 
+    const handleAddDocClick = (parentId: string) => {
+        setActiveParentId(parentId);
         setVideoType('document');
         setVideoTitle(''); setVideoUrl(''); setVideoDuration(''); setVideoFile(null); setUploadProgress(0);
         setDocAttachments([]);
-        setIsDocModalOpen(true); 
+        setIsDocModalOpen(true);
     };
     const handleOpenQuizModal = async (targetFolderId: string, folderTitle: string) => {
         setActiveParentId(targetFolderId);
@@ -640,18 +640,18 @@ export default function ModuleLibraryManager() {
 
     const handleMoveItem = async (id: string, direction: 'up' | 'down') => {
         try {
-            const res = await fetch('/api/teacher/video-library/reorder', { 
-                method: 'POST', 
-                headers: getAuthHeaders(), 
-                body: JSON.stringify({ id, direction }) 
+            const res = await fetch('/api/teacher/video-library/reorder', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id, direction })
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.error || "Failed to reorder.");
             }
             await fetchLibrary();
-        } catch (err: any) { 
-            showAlert(err.message || 'Failed to move item.', 'error'); 
+        } catch (err: any) {
+            showAlert(err.message || 'Failed to move item.', 'error');
         }
     };
 
@@ -709,14 +709,14 @@ export default function ModuleLibraryManager() {
         try {
             const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: folderTitle.trim(), type: 'folder', parentId: activeParentId || null }) });
             if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to create folder.'); }
-            setFolderTitle(""); 
-            setIsFolderModalOpen(false); 
+            setFolderTitle("");
+            setIsFolderModalOpen(false);
             showAlert('Folder created successfully.', 'success');
             await fetchLibrary();
-        } catch (err: any) { 
-            showAlert(err.message || 'Failed to create folder.', 'error'); 
-        } finally { 
-            setIsSubmitting(false); 
+        } catch (err: any) {
+            showAlert(err.message || 'Failed to create folder.', 'error');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -724,17 +724,17 @@ export default function ModuleLibraryManager() {
         e.preventDefault();
         if (!videoTitle.trim() || !activeParentId || isSubmitting) return;
 
-        if (videoType === 'youtube' && !videoUrl.trim()) { 
-            showAlert('YouTube URL is required.', 'warning'); 
-            return; 
+        if (videoType === 'youtube' && !videoUrl.trim()) {
+            showAlert('YouTube URL is required.', 'warning');
+            return;
         }
-        if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) { 
-            showAlert('Please upload a video file or provide a direct URL.', 'warning'); 
-            return; 
+        if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) {
+            showAlert('Please upload a video file or provide a direct URL.', 'warning');
+            return;
         }
-        if (videoType === 'document' && docAttachments.length === 0) { 
-            showAlert('Please add at least one document attachment.', 'warning'); 
-            return; 
+        if (videoType === 'document' && docAttachments.length === 0) {
+            showAlert('Please add at least one document attachment.', 'warning');
+            return;
         }
 
         setIsSubmitting(true);
@@ -769,14 +769,14 @@ export default function ModuleLibraryManager() {
             const res = await fetch('/api/teacher/video-library', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ title: videoTitle.trim(), type: videoType, url: resolvedVideoUrl, attachments: finalAttachments, duration: videoDuration.trim() || null, parentId: activeParentId }) });
             if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to add module.'); }
 
-            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setDocAttachments([]); setIsVideoModalOpen(false); setIsDocModalOpen(false); 
+            setVideoTitle(""); setVideoUrl(""); setVideoDuration(""); setVideoFile(null); setDocAttachments([]); setIsVideoModalOpen(false); setIsDocModalOpen(false);
             showAlert('Module added successfully.', 'success');
             await fetchLibrary();
-        } catch (err: any) { 
-            showAlert(err.message || 'Failed to add module.', 'error'); 
-        } finally { 
-            setUploadingVideo(false); 
-            setIsSubmitting(false); 
+        } catch (err: any) {
+            showAlert(err.message || 'Failed to add module.', 'error');
+        } finally {
+            setUploadingVideo(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -825,14 +825,14 @@ export default function ModuleLibraryManager() {
             const res = await fetch(`/api/teacher/video-library/${editingNode.id}`, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body) });
             if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to update.'); }
 
-            setIsEditModalOpen(false); setEditingNode(null); 
+            setIsEditModalOpen(false); setEditingNode(null);
             showAlert('Item updated successfully.', 'success');
             await fetchLibrary();
-        } catch (err: any) { 
-            showAlert(err.message || 'Failed to update item.', 'error'); 
-        } finally { 
-            setUploadingVideo(false); 
-            setIsSubmitting(false); 
+        } catch (err: any) {
+            showAlert(err.message || 'Failed to update item.', 'error');
+        } finally {
+            setUploadingVideo(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -965,7 +965,7 @@ export default function ModuleLibraryManager() {
                             <ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /> Back
                         </button>
                         <h3 className={styles.activeRootTitle}>{activeRootNode?.title}</h3>
-                        
+
                         <div className={styles.toolbar}>
                             {String(activeRootNode?.title || '').trim().toLowerCase() === 'all resources' ? (
                                 <button className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
@@ -1056,29 +1056,29 @@ export default function ModuleLibraryManager() {
                                     </div>
 
                                     <div className={styles.rootIconWrapper} style={node.type === 'quiz' ? { background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' } : undefined}>
-                                        {node.type === 'folder' 
+                                        {node.type === 'folder'
                                             ? (String(node.title).trim().toLowerCase() === 'all quizes' || String(node.title).trim().toLowerCase() === 'all quizzes'
                                                 ? <ClipboardList size={28} style={{ color: '#8b5cf6' }} />
                                                 : (String(node.title).trim().toLowerCase() === 'all resources'
                                                     ? <FileText size={28} style={{ color: '#3b82f6' }} />
                                                     : <FolderOpen size={28} />))
-                                            : (node.type === 'document' 
-                                                ? <FileText size={28} /> 
-                                                : (node.type === 'quiz' 
-                                                    ? <ClipboardList size={28} style={{ color: '#8b5cf6' }} /> 
+                                            : (node.type === 'document'
+                                                ? <FileText size={28} />
+                                                : (node.type === 'quiz'
+                                                    ? <ClipboardList size={28} style={{ color: '#8b5cf6' }} />
                                                     : <PlayCircle size={28} />))}
                                     </div>
                                     <div>
                                         <h3 className={styles.rootTitle}>{node.title}</h3>
                                         <span className={styles.rootMeta}>
-                                            {node.type === 'folder' 
+                                            {node.type === 'folder'
                                                 ? (String(node.title).trim().toLowerCase() === 'all quizes' || String(node.title).trim().toLowerCase() === 'all quizzes'
                                                     ? `${node.children?.length || 0} quizzes inside`
                                                     : (String(node.title).trim().toLowerCase() === 'all resources'
                                                         ? `${node.children?.length || 0} documents inside`
                                                         : `${node.children?.length || 0} items inside`))
-                                                : node.type === 'document' 
-                                                    ? 'Document' 
+                                                : node.type === 'document'
+                                                    ? 'Document'
                                                     : node.type === 'quiz'
                                                         ? (node.duration ? `Quiz • ${node.duration}` : 'Quiz')
                                                         : (node.duration ? `Duration: ${node.duration}` : 'Video')}
@@ -1096,8 +1096,8 @@ export default function ModuleLibraryManager() {
                         {path.map((node, i) => (
                             <span key={node.id} className={styles.breadcrumbSegment}>
                                 <ChevronRight size={13} className={styles.breadcrumbSep} />
-                                <button 
-                                    className={`${styles.breadcrumbLink} ${i === path.length - 1 ? styles.active : ''}`} 
+                                <button
+                                    className={`${styles.breadcrumbLink} ${i === path.length - 1 ? styles.active : ''}`}
                                     onClick={() => handleBreadcrumbClick(i)}
                                     title={node.title}
                                 >
@@ -1109,9 +1109,9 @@ export default function ModuleLibraryManager() {
 
                     <div className={styles.activeViewHeader}>
                         <div className={styles.headerLeft}>
-                            <button 
+                            <button
                                 type="button"
-                                className={styles.backBtn} 
+                                className={styles.backBtn}
                                 onClick={() => handleBreadcrumbClick(path.length - 2)}
                                 title="Go back to parent folder"
                             >
@@ -1127,7 +1127,7 @@ export default function ModuleLibraryManager() {
                                 </span>
                             </div>
                         </div>
-                        
+
                         <div className={styles.toolbar}>
                             {String(activeRootNode?.title || '').trim().toLowerCase() === 'all resources' ? (
                                 <button type="button" className={styles.toolbarBtn} onClick={() => handleAddDocClick(activeRootId!)} title="Add Document">
@@ -1238,7 +1238,7 @@ export default function ModuleLibraryManager() {
                                     ) : (
                                         <>
                                             <label>Upload Video File</label>
-                                            <div 
+                                            <div
                                                 className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
                                                 onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                                                 onDragLeave={() => setIsDragging(false)}
@@ -1255,7 +1255,7 @@ export default function ModuleLibraryManager() {
                                                 <p>{videoFile ? videoFile.name : "Drag & Drop video file here, or click to select"}</p>
                                                 <small className={styles.fieldHint}>Supported: MP4, WEBM, MOV, MKV (max 1GB)</small>
                                             </div>
-                                            
+
                                             {uploadingVideo && uploadProgress > 0 && (
                                                 <div className={styles.progressContainer}>
                                                     <div className={styles.progressBar} style={{ width: `${uploadProgress}%` }}></div>
@@ -1290,7 +1290,7 @@ export default function ModuleLibraryManager() {
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>Add Documents</label>
-                                    <div 
+                                    <div
                                         className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
                                         onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                                         onDragLeave={() => setIsDragging(false)}
@@ -1314,7 +1314,7 @@ export default function ModuleLibraryManager() {
                                         <p>Drag & Drop documents here, or click to select multiple</p>
                                         <small className={styles.fieldHint}>Supported: PDF, DOC, DOCX, PPT, PPTX, ZIP (max 500MB)</small>
                                     </div>
-                                    
+
                                     {docAttachments.length > 0 && (
                                         <div className={styles.docList}>
                                             {docAttachments.map((att, idx) => (
@@ -1381,7 +1381,7 @@ export default function ModuleLibraryManager() {
                                         {videoType === 'self-hosted' && (
                                             <div className={styles.formGroup}>
                                                 <label>Replace File (Optional)</label>
-                                                <div 
+                                                <div
                                                     className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
                                                     onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                                                     onDragLeave={() => setIsDragging(false)}
@@ -1411,7 +1411,7 @@ export default function ModuleLibraryManager() {
                                         {videoType === 'document' && (
                                             <div className={styles.formGroup}>
                                                 <label>Manage Documents</label>
-                                                <div 
+                                                <div
                                                     className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ''}`}
                                                     onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
                                                     onDragLeave={() => setIsDragging(false)}
@@ -1587,11 +1587,11 @@ export default function ModuleLibraryManager() {
 
                     return (
                         <div className={styles.modalOverlay} onClick={() => setIsEditQuizModalOpen(false)}>
-                            <motion.div 
-                                className={`${styles.modal} ${styles.editQuizModal}`} 
-                                initial={{ opacity: 0, y: 20 }} 
-                                animate={{ opacity: 1, y: 0 }} 
-                                exit={{ opacity: 0, y: 20 }} 
+                            <motion.div
+                                className={`${styles.modal} ${styles.editQuizModal}`}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
                                 onClick={e => e.stopPropagation()}
                             >
                                 <div className={styles.modalHeader}>
@@ -1739,9 +1739,9 @@ export default function ModuleLibraryManager() {
                                     </button>
 
                                     <div className={styles.quizModalActions}>
-                                        <button 
+                                        <button
                                             type="button"
-                                            className={styles.cancelBtn} 
+                                            className={styles.cancelBtn}
                                             onClick={() => {
                                                 setIsEditQuizModalOpen(false);
                                                 setQuizEditNode(null);

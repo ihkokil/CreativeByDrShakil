@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import styles from "../../batches.module.css";
 import Loader from "@/components/UI/Loader";
-import { ArrowLeft, UserPlus, Users, Calendar, Trash2, Search, Rocket, Zap, CalendarDays, Mail, Phone } from "lucide-react";
+import {  UserPlus, Users, Calendar, Trash2, Search, Rocket, Zap, CalendarDays, Mail, Phone } from "lucide-react";
 import { formatDateGMT6 } from "@/lib/date-format";
 import EnrollStudentModal from "@/components/Teacher/EnrollStudentModal";
 import ConfirmModal from "@/components/UI/ConfirmModal";
@@ -24,13 +24,13 @@ export default function BatchStudentsPage() {
   const params = useParams();
   const courseId = params.courseId as string;
   const batchId = params.batchId as string;
-  
+
   const [students, setStudents] = useState<Student[]>([]);
   const [batchInfo, setBatchInfo] = useState<any>(null);
   const [courseTitle, setCourseTitle] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "date">("date");
 
@@ -78,15 +78,15 @@ export default function BatchStudentsPage() {
 
   useEffect(() => {
     fetchBatchStudents();
-  }, [courseId, batchId]);
+  }, [courseId, batchId, fetchBatchStudents]);
 
-  const fetchBatchStudents = async () => {
+  const fetchBatchStudents = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/teacher/batches/${courseId}/${batchId}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch batch students");
-      
+
       setBatchInfo(data.batch);
       setCourseTitle(data.course?.title || "Course");
       setStudents(data.students || []);
@@ -95,7 +95,7 @@ export default function BatchStudentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   const handleRemoveStudent = (orderId: string, studentName: string) => {
     showConfirm({
@@ -131,16 +131,16 @@ export default function BatchStudentsPage() {
   const isStartToday = nameLower.includes('start today') || nameLower.includes('custom');
   const isAllUnlocked = nameLower.includes('all unlocked') || nameLower.includes('instant');
 
-  const displayBatchTitle = isStartToday 
-    ? 'Start Today Batch' 
-    : isAllUnlocked 
-    ? 'All Unlocked Batch' 
+  const displayBatchTitle = isStartToday
+    ? 'Start Today Batch'
+    : isAllUnlocked
+    ? 'All Unlocked Batch'
     : batchName;
 
   const filteredAndSortedStudents = useMemo(() => {
     return students
-      .filter(s => 
-        s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      .filter(s =>
+        s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.phone && s.phone.includes(searchQuery))
       )
@@ -181,14 +181,14 @@ export default function BatchStudentsPage() {
               {isStartToday && "Students in this batch start their learning schedule from their enrollment date."}
               {isAllUnlocked && "Students in this batch have instant, unrestricted access to all course modules."}
               {!isStartToday && !isAllUnlocked && (
-                batchInfo?.startDate 
+                batchInfo?.startDate
                   ? `Scheduled cohort starting on ${formatDateGMT6(batchInfo.startDate)}${batchInfo.endDate ? ` and ending ${formatDateGMT6(batchInfo.endDate)}` : ''}.`
                   : `Fixed calendar cohort for ${courseTitle}.`
               )}
             </p>
           </div>
 
-          <button 
+          <button
             type="button"
             className={styles.primaryActionBtn}
             onClick={() => setIsEnrollModalOpen(true)}
@@ -226,9 +226,9 @@ export default function BatchStudentsPage() {
       <div className={styles.controlsBar}>
         <div className={styles.searchWrapper}>
           <Search size={16} className={styles.searchIcon} />
-          <input 
-            type="text" 
-            placeholder="Search students by name, email, or phone..." 
+          <input
+            type="text"
+            placeholder="Search students by name, email, or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
@@ -236,8 +236,8 @@ export default function BatchStudentsPage() {
         </div>
 
         <div className={styles.actionGroup}>
-          <select 
-            value={sortBy} 
+          <select
+            value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             className={styles.selectBox}
           >
@@ -303,7 +303,7 @@ export default function BatchStudentsPage() {
                     </span>
                   </td>
                   <td style={{ textAlign: "right" }}>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => handleRemoveStudent(student.orderId, student.fullName)}
                       className={styles.deleteBtn}

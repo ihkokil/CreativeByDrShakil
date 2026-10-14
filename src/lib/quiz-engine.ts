@@ -103,7 +103,7 @@ export function getScoringRules(quiz: QuizSettings | null | undefined) {
   let sbaNegative = quiz?.sbaNegative !== undefined && quiz?.sbaNegative !== null
     ? Number(quiz.sbaNegative)
     : 0;
-  
+
   if (sbaNegative === 0 && quiz?.allowNegativeMarking && quiz?.negativeValue) {
     sbaNegative = Number(quiz.negativeValue);
   }
@@ -401,7 +401,7 @@ export async function gradeAndPersistAttempt(
   const mappings = mappingsRes.data || [];
   const answers = answersRes.data || [];
 
-  let questionIds = mappings.map((m: any) => m.questionId);
+  const questionIds = mappings.map((m: any) => m.questionId);
   let mappedQuestions: QuestionData[] = [];
 
   if (questionIds.length > 0) {

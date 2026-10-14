@@ -5,7 +5,7 @@ import styles from "./EnrollStudentModal.module.css";
 import Loader from "@/components/UI/Loader";
 import { motion, AnimatePresence } from "framer-motion";
 import { useModal } from '@/hooks/useModal';
-import { X, Search, User, Mail, Phone, BookOpen, Check, UserPlus, GraduationCap, Users } from "lucide-react";
+import { X, Search, User, Mail, Phone, UserPlus, GraduationCap } from "lucide-react";
 import { formatDateInputGMT6 } from "@/lib/date-format";
 
 interface Student {
@@ -23,26 +23,26 @@ interface Props {
     onSuccess: () => void;
 }
 
-export default function EnrollStudentModal({ 
-    courseId, 
+export default function EnrollStudentModal({
+    courseId,
     batchId,
-    isOpen, 
-    onClose, 
-    onSuccess 
+    isOpen,
+    onClose,
+    onSuccess
 }: Props) {
     useModal(isOpen, onClose);
     const [activeTab, setActiveTab] = useState<"existing" | "new">("existing");
-    
+
     // Data states
     const [students, setStudents] = useState<Student[]>([]);
     const [batches, setBatches] = useState<{id: string, name: string, startDate: string}[]>([]);
-    
+
     // Form states
     const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
     const [selectedBatchId, setSelectedBatchId] = useState<string>(batchId || "");
     const [customDate, setCustomDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState("");
-    
+
     // New student form states
     const [newStudentEmail, setNewStudentEmail] = useState("");
     const [newStudentName, setNewStudentName] = useState("");
@@ -55,7 +55,7 @@ export default function EnrollStudentModal({
     // Fetch existing students initially and when search query changes
     useEffect(() => {
         if (!isOpen || activeTab !== "existing") return;
-        
+
         const delayDebounceFn = setTimeout(async () => {
             try {
                 const token = localStorage.getItem("auth_token");
@@ -107,7 +107,7 @@ export default function EnrollStudentModal({
         try {
             const token = localStorage.getItem("auth_token");
             const isNewStudent = activeTab === "new";
-            
+
             const requestBody = isNewStudent ? {
                 courseId,
                 batchId: selectedBatchId || undefined,
@@ -151,14 +151,14 @@ export default function EnrollStudentModal({
                 showMessage({ type: 'error', text: data.error || "Failed to enroll student." });
             } else {
                 showMessage({ type: 'success', text: data.message || "Student enrolled successfully!" });
-                
+
                 // Reset form
                 setSelectedStudents([]);
                 setNewStudentEmail("");
                 setNewStudentName("");
                 setNewStudentPhone("");
                 setSearchQuery("");
-                
+
                 setTimeout(() => {
                     onSuccess();
                 }, 2000);
@@ -186,7 +186,7 @@ export default function EnrollStudentModal({
     useModal(isOpen, handleClose);
 
     // Filter students client-side if we already loaded them
-    const filteredStudents = students.filter(s => 
+    const filteredStudents = students.filter(s =>
         s.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.phone && s.phone.includes(searchQuery))
@@ -195,7 +195,7 @@ export default function EnrollStudentModal({
     return (
         <AnimatePresence>
             {isOpen && (
-                <motion.div 
+                <motion.div
                     className={styles.overlay}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -250,7 +250,7 @@ export default function EnrollStudentModal({
                                         <label className={styles.fieldLabel}>
                                             Select Batch (Optional)
                                         </label>
-                                        <select 
+                                        <select
                                             className={styles.selectInput}
                                             value={selectedBatchId}
                                             onChange={(e) => {
@@ -287,8 +287,8 @@ export default function EnrollStudentModal({
                                     {(() => {
                                         const selBatch = batches.find(b => b.id === selectedBatchId);
                                         const isCustom = !selectedBatchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
-                                        const dateVal = isCustom 
-                                            ? customDate 
+                                        const dateVal = isCustom
+                                            ? customDate
                                             : (selBatch?.startDate ? formatDateInputGMT6(selBatch.startDate) : customDate);
 
                                         return (
@@ -296,19 +296,19 @@ export default function EnrollStudentModal({
                                                 <label className={styles.fieldLabel}>
                                                     {isCustom ? 'Enrollment Start Date' : 'Start Date (Set by Batch)'}
                                                 </label>
-                                                <input 
+                                                <input
                                                     type="date"
                                                     className={styles.selectInput}
                                                     value={dateVal}
                                                     disabled={!isCustom}
                                                     onChange={(e) => setCustomDate(e.target.value)}
-                                                    style={{ 
-                                                        width: '100%', 
-                                                        padding: '10px', 
-                                                        borderRadius: '8px', 
-                                                        border: '1px solid rgba(255,255,255,0.1)', 
-                                                        background: 'rgba(0,0,0,0.2)', 
-                                                        color: 'var(--text-color)', 
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '10px',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid rgba(255,255,255,0.1)',
+                                                        background: 'rgba(0,0,0,0.2)',
+                                                        color: 'var(--text-color)',
                                                         colorScheme: 'dark',
                                                         opacity: !isCustom ? 0.6 : 1,
                                                         cursor: !isCustom ? 'not-allowed' : 'auto'
@@ -359,7 +359,7 @@ export default function EnrollStudentModal({
                                                         className={`${styles.studentCard} ${selectedStudents.includes(student.id) ? styles.selectedCard : ""}`}
                                                         style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px', cursor: 'pointer', margin: 0, border: selectedStudents.includes(student.id) ? '1px solid var(--primary)' : '1px solid var(--glass-border)' }}
                                                     >
-                                                        <input 
+                                                        <input
                                                             type="checkbox"
                                                             checked={selectedStudents.includes(student.id)}
                                                             onChange={(e) => {
@@ -437,9 +437,9 @@ export default function EnrollStudentModal({
                                 </div>
                             )}
 
-                            <button 
-                                className={styles.submitBtn} 
-                                type="submit" 
+                            <button
+                                className={styles.submitBtn}
+                                type="submit"
                                 disabled={loading || (activeTab === "existing" && selectedStudents.length === 0) || (activeTab === "new" && (!newStudentEmail || !newStudentName))}
                             >
                                 {loading ? (

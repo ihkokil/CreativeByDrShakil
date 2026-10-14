@@ -2,14 +2,13 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import styles from "./Dashboard.module.css";
 import Loader from "@/components/UI/Loader";
 import { formatDateTextGMT6, formatDateTimeGMT6, getExpiryDateGMT6 } from "@/lib/date-format";
 import {
-    LayoutDashboard,
+
     UserCog,
-    TrendingUp,
     BookOpen,
     ArrowRight,
     Loader2,
@@ -24,7 +23,7 @@ import Link from "next/link";
 import Image from "next/image";
 import StudentOverview from "@/components/Student/StudentOverview";
 import profileStyles from "./ProfileTab.module.css";
-import { Camera, Mail, Stethoscope, Save, Trash2, KeyRound, Lock, ShieldCheck, Clock } from "lucide-react";
+import { Camera, Mail, Stethoscope, Save, Trash2 } from "lucide-react";
 import PasswordManager from "@/components/Shared/PasswordManager";
 import ImageCropper from "@/components/Shared/ImageCropper";
 
@@ -153,7 +152,7 @@ function StudentDashboardContent() {
         } else {
           setError(d.error || "Could not load dashboard data.");
         }
-      } catch (err) {
+      } catch {
         setError("Network error when loading dashboard.");
       } finally {
         setFetching(false);
@@ -208,7 +207,7 @@ function StudentDashboardContent() {
       } else {
         setProfileMessage({ type: "error", text: data.error || "Failed to upload image." });
       }
-    } catch (err) {
+    } catch {
       setProfileMessage({ type: "error", text: "Failed to upload image." });
     }
   };
@@ -272,7 +271,7 @@ function StudentDashboardContent() {
 
       {activeTab === "overview" && data && (
         <div className={styles.stack}>
-          <StudentOverview 
+          <StudentOverview
             courseCount={data.studyStats.activeCourses}
             completionPercent={data.studyStats.averageProgress}
             completedLessons={data.studyStats.completedLessons}
@@ -511,8 +510,8 @@ function StudentDashboardContent() {
               <h2>Profile Settings</h2>
               <p>Manage your medical credentials and personal identity</p>
             </div>
-            <button 
-              className={`${profileStyles.editButton} ${editingProfile ? profileStyles.active : ""}`} 
+            <button
+              className={`${profileStyles.editButton} ${editingProfile ? profileStyles.active : ""}`}
               onClick={() => setEditingProfile(!editingProfile)}
             >
               <UserCog size={18} />
@@ -525,12 +524,12 @@ function StudentDashboardContent() {
               <div className={profileStyles.avatarWrapper}>
                 <div className={profileStyles.avatar}>
                   {profileForm.profileImage ? (
-                    <Image 
-                      src={profileForm.profileImage} 
-                      alt={profileForm.fullName || "Profile"} 
-                      fill 
-                      className={profileStyles.avatarImage} 
-                      unoptimized 
+                    <Image
+                      src={profileForm.profileImage}
+                      alt={profileForm.fullName || "Profile"}
+                      fill
+                      className={profileStyles.avatarImage}
+                      unoptimized
                     />
                   ) : (
                     <span>{(profileForm.fullName || data.profile.fullName).slice(0, 2).toUpperCase()}</span>
@@ -545,8 +544,8 @@ function StudentDashboardContent() {
                     Update Photo
                     <input type="file" accept="image/*" onChange={handleProfileImageSelect} />
                   </label>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={profileStyles.removeBtn}
                     onClick={() => setProfileForm(prev => ({ ...prev, profileImage: null }))}
                     title="Remove Photo"
@@ -558,7 +557,7 @@ function StudentDashboardContent() {
 
               <h3 className={profileStyles.userName}>{profileForm.fullName || data.profile.fullName}</h3>
               <p className={profileStyles.userEmail}>{data.profile.email}</p>
-              
+
               <div className={profileStyles.roleBadge}>
                 {data.profile.role.toUpperCase()}
               </div>
@@ -581,7 +580,7 @@ function StudentDashboardContent() {
                   <UserCog size={20} className={profileStyles.sectionIcon} />
                   <h3>Personal Information</h3>
                 </div>
-                
+
                 <form className={profileStyles.profileForm} onSubmit={handleSaveProfile}>
                   <div className={profileStyles.formGrid}>
                     <div className={profileStyles.formGroup}>

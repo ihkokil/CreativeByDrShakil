@@ -4,26 +4,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useCallback, useState, Suspense } from "react";
 import {
-    LayoutDashboard,
+
     Users,
-    Settings,
     UserPlus,
-    BookOpen,
-    GraduationCap,
-    Shield,
     Edit,
     Trash2,
     MailCheck,
-    Loader2,
-    LayoutGrid,
-    Smartphone,
-    Inbox,
-    BarChart3,
-    CreditCard,
-    CheckCircle,
-    Clock,
-    AlertCircle,
-    Search
+    CreditCard
 } from 'lucide-react';
 import PasswordManager from "@/components/Shared/PasswordManager";
 import AddTeacherModal from "@/components/Admin/AddTeacherModal";
@@ -82,9 +69,9 @@ function AdminDashboardContent() {
     const [isAddTeacherOpen, setIsAddTeacherOpen] = useState(false);
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
-    
+
     const activeTab = (searchParams.get("tab") as "overview" | "users" | "students" | "teachers" | "enrollments" | "payments" | "support" | "settings" | "security" | "profile") || "overview";
-    
+
     const setActiveTab = (tab: string) => {
         if (tab === "overview") {
             router.push("/admin/dashboard");
@@ -141,7 +128,7 @@ function AdminDashboardContent() {
                 const d = (await response.json()) as any;
                 alert(d?.error || "Failed to update teacher status.");
             }
-        } catch (err) {
+        } catch {
             alert("Network error.");
         }
     };
@@ -215,7 +202,7 @@ function AdminDashboardContent() {
                 const d = (await response.json()) as any;
                 alert(d?.error || "Failed to send reset link.");
             }
-        } catch (err) {
+        } catch {
             alert("Network error.");
         } finally {
             setIsSendingReset(false);
@@ -225,7 +212,7 @@ function AdminDashboardContent() {
 
     const handleOrderDecision = async (orderId: string, decision: 'approve' | 'reject') => {
         if (!confirm(`Are you sure you want to ${decision} this payment?`)) return;
-        
+
         try {
             const token = localStorage.getItem("auth_token");
             const response = await fetch(`/api/admin/orders/${orderId}/decision`, {
@@ -240,7 +227,7 @@ function AdminDashboardContent() {
                 const d = (await response.json()) as any;
                 alert(d?.error || `Failed to ${decision} payment.`);
             }
-        } catch (err) {
+        } catch {
             alert("Network error.");
         }
     };
@@ -291,7 +278,7 @@ function AdminDashboardContent() {
             fetchOrders(paymentStatus);
         }
     }, [user, role, activeTab, paymentStatus, fetchEnrollments, fetchCoursesList, fetchOrders]);
-    
+
     if (loading || !user) {
         return <Loader text="Authenticating Admin..." />;
     }
@@ -313,7 +300,7 @@ function AdminDashboardContent() {
                     {statsLoading ? (
                         <div className={styles.loader}>Aggregating platform metrics...</div>
                     ) : (
-                        <AdminOverview 
+                        <AdminOverview
                             teacherCount={stats?.teacherCount || 0}
                             studentCount={stats?.studentCount || 0}
                             courseCount={stats?.courseCount || 0}
@@ -373,7 +360,7 @@ function AdminDashboardContent() {
                                             <p>{teacher.email}</p>
                                         </div>
                                     </div>
-                                    
+
                                     <div className={styles.cardContent}>
                                         <div className={styles.academicInfo}>
                                             {(teacher.designation || teacher.institution) ? (
@@ -387,9 +374,9 @@ function AdminDashboardContent() {
                                                 <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
                                             </div>
                                             <div className={styles.cardActions}>
-                                                <button 
-                                                    className={`${styles.actionBtn} ${teacher.canManagePayments ? styles.success : ''}`} 
-                                                    onClick={() => toggleSpecialTeacher(teacher)} 
+                                                <button
+                                                    className={`${styles.actionBtn} ${teacher.canManagePayments ? styles.success : ''}`}
+                                                    onClick={() => toggleSpecialTeacher(teacher)}
                                                     title={teacher.canManagePayments ? "Revoke Payment Access" : "Grant Payment Access"}
                                                 >
                                                     <CreditCard size={16} />

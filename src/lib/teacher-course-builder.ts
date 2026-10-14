@@ -187,7 +187,7 @@ export function ensureGroupInheritance(nodes: BuilderCurriculumNode[]): BuilderC
   return nodes.map((mainTopic) => {
     // The top-level topic gets the group.
     const groupId = mainTopic.releaseGroupId || `group_${slugify(mainTopic.title)}_${mainTopic.id.slice(-6)}`;
-    
+
     // All children inherit this group, overriding their own.
     const children = (mainTopic.children || []).map((child) => setReleaseGroupToSubtree(child, groupId));
 
@@ -570,7 +570,7 @@ const getPreviousTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
   }
 
   const dhaka = new Date(safeDate.getTime() + 6 * 60 * 60 * 1000);
-  const day = dhaka.getUTCDay(); 
+  const day = dhaka.getUTCDay();
   const diff = (day - safeTarget + 7) % 7;
   dhaka.setUTCDate(dhaka.getUTCDate() - diff);
   return new Date(Date.UTC(
@@ -595,7 +595,7 @@ const getNextTargetDayDhaka = (date: Date, targetDay: number = 5): Date => {
   }
 
   const dhaka = new Date(safeDate.getTime() + 6 * 60 * 60 * 1000);
-  const day = dhaka.getUTCDay(); 
+  const day = dhaka.getUTCDay();
   const diff = (safeTarget - day + 7) % 7;
   dhaka.setUTCDate(dhaka.getUTCDate() + (diff === 0 ? 7 : diff));
   return new Date(Date.UTC(
@@ -661,7 +661,7 @@ export function computeReleaseGroupDates(
   if (mode === 'circular') {
     const N = groups.length;
     if (N === 0) return dates;
-    
+
     let targetDay = 5; // Friday default
     let selectedDays: any = config.releaseDaysOfWeek;
     if (typeof selectedDays === 'string') {
@@ -678,29 +678,29 @@ export function computeReleaseGroupDates(
         targetDay = parsedNum;
       }
     }
-    
+
     // Global start date: June 12, 2026 16:00 UTC (10:00 PM GMT+6)
     const GLOBAL_START_DATE = new Date(Date.UTC(2026, 5, 12, 16, 0, 0));
     const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    
+
     const startSnapped = getPreviousTargetDayDhaka(startDate, targetDay);
     const globalSnapped = getPreviousTargetDayDhaka(GLOBAL_START_DATE, targetDay);
-    
+
     const diffMs = startSnapped.getTime() - globalSnapped.getTime();
     let weeksSinceGlobalStart = Math.round(diffMs / ONE_WEEK_MS);
     if (Number.isNaN(weeksSinceGlobalStart) || weeksSinceGlobalStart < 0) weeksSinceGlobalStart = 0;
-    
+
     // Determine the rotation offset — which module index should come first
     // for this student based on which week they joined relative to the global cycle.
     const rotationOffset = weeksSinceGlobalStart % N;
-    
+
     groups.forEach((group, i) => {
       // How many weeks after the student's start week does group i unlock?
       let weeksAfterStart = i - rotationOffset;
       if (weeksAfterStart < 0) weeksAfterStart += N;
-      
+
       const unlockDate = new Date(startSnapped.getTime() + weeksAfterStart * ONE_WEEK_MS);
-      
+
       dates[group.id] = unlockDate.toISOString();
     });
   }
@@ -746,7 +746,7 @@ export function computeReleaseGroupDates(
         return;
       }
 
-      let targetCount = group.index;
+      const targetCount = group.index;
       let count = 0;
       const currentCheckDate = new Date(startDate);
 

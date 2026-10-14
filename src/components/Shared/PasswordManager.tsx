@@ -2,17 +2,16 @@
 
 import Loader from "@/components/UI/Loader";
 import { useState } from "react";
-import { 
-  KeyRound, 
-  ShieldCheck, 
-  Lock, 
-  RefreshCcw, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  KeyRound,
+  ShieldCheck,
+  Lock,
+  RefreshCcw,
+  AlertCircle,
+  CheckCircle2,
   ShieldAlert,
   Smartphone
 } from "lucide-react";
-import { motion, AnimatePresence } from 'framer-motion';
 import styles from "./PasswordManager.module.css";
 
 export default function PasswordManager() {
@@ -56,7 +55,7 @@ export default function PasswordManager() {
         setMessage({ type: "success", text: "Password updated successfully." });
         setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "An unexpected error occurred." });
     } finally {
       setLoading(false);
@@ -178,7 +177,7 @@ export default function PasswordManager() {
           </form>
         </div>
       </div>
-      
+
     </div>
   );
 }

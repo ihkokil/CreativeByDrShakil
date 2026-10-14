@@ -13,9 +13,7 @@ import {
   Clock,
   CheckCircle2,
   ChevronRight,
-  MessageSquare,
   AlertCircle,
-  Eye,
 } from 'lucide-react';
 import ContactRequestModal from './ContactRequestModal';
 import { formatDateTimeGMT6 } from '@/lib/date-format';
@@ -66,7 +64,7 @@ export default function ContactRequestsManager() {
 
   const token = session?.access_token;
 
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = useCallback(async () => {
     setLoading(true);
     setMessage(null);
 
@@ -87,13 +85,13 @@ export default function ContactRequestsManager() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   useEffect(() => {
     if (token) {
       fetchSubmissions();
     }
-  }, [token]);
+  }, [fetchSubmissions, token]);
 
   const counts = useMemo(() => {
     return submissions.reduce<Record<string, number>>(
@@ -156,7 +154,7 @@ export default function ContactRequestsManager() {
       }
 
       setMessage({ type: 'success', text: 'Contact request updated and response email sent!' });
-      
+
       const updatedItem = data.submission;
       setSubmissions((current) =>
         current.map((sub) => (sub.id === selectedSubmission.id ? { ...sub, ...updatedItem } : sub))

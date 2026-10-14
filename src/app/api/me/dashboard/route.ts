@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
 import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
@@ -47,7 +46,7 @@ export async function GET(request: NextRequest) {
     const coursesPromise = orderCourseIds.length > 0
       ? supabase.from('Course').select('id, slug, title, imageUrl, duration, status, curriculumJson').in('id', orderCourseIds)
       : Promise.resolve({ data: [] });
-      
+
     const paymentsPromise = orderIds.length > 0
       ? supabase.from('Payment').select('id, orderId, status, transactionId, phoneNumber, submittedAt, approvedAt').in('orderId', orderIds)
       : Promise.resolve({ data: [] });
@@ -91,7 +90,7 @@ export async function GET(request: NextRequest) {
     });
 
     let enrolledCourses: any[] = [];
-    
+
     if (isAdmin) {
       const { data: allPublishedCourses = [] } = await supabase
         .from('Course')
@@ -140,7 +139,7 @@ export async function GET(request: NextRequest) {
     }
 
     const courseIds = enrolledCourses.map((c) => c.courseId);
-    
+
     const progressRes = courseIds.length
       ? await scopedToUser(
           supabase.from('LessonProgress').select('courseId, lessonNodeId'),
@@ -221,7 +220,7 @@ export async function GET(request: NextRequest) {
     const completedQuizIds = new Set(completedAttempts.map((a: any) => a.quizId));
     const completedCount = completedQuizIds.size;
     const availableCount = (publishedQuizzes || []).filter((q: any) => !completedQuizIds.has(q.id)).length;
-    const averageScore = completedAttempts.length > 0 
+    const averageScore = completedAttempts.length > 0
       ? Number((completedAttempts.reduce((sum: number, a: any) => sum + (Number(a.netScore) || 0), 0) / completedAttempts.length).toFixed(1))
       : 0;
 

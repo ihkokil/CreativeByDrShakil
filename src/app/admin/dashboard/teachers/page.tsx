@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState, Suspense } from "react";
 import {
-    Users,
+
     UserPlus,
     Edit,
     Trash2,
@@ -35,7 +35,7 @@ function TeachersPageContent() {
     const [editTeacherData, setEditTeacherData] = useState<TeacherProfile | null>(null);
     const [deleteTeacherData, setDeleteTeacherData] = useState<TeacherProfile | null>(null);
     const [resetConfirmTarget, setResetConfirmTarget] = useState<{id: string; email: string; full_name: string} | null>(null);
-    
+
     const [teachers, setTeachers] = useState<TeacherProfile[]>([]);
     const [teachersLoading, setTeachersLoading] = useState(true);
     const [isSendingReset, setIsSendingReset] = useState(false);
@@ -78,7 +78,7 @@ function TeachersPageContent() {
                 const d = (await response.json()) as any;
                 alert(d?.error || "Failed to update teacher status.");
             }
-        } catch (err) {
+        } catch {
             alert("Network error.");
         }
     };
@@ -106,7 +106,7 @@ function TeachersPageContent() {
                 const d = (await response.json()) as any;
                 alert(d?.error || "Failed to send reset link.");
             }
-        } catch (err) {
+        } catch {
             alert("Network error.");
         } finally {
             setIsSendingReset(false);
@@ -150,7 +150,7 @@ function TeachersPageContent() {
                                     <p>{teacher.email}</p>
                                 </div>
                             </div>
-                            
+
                             <div className={styles.cardContent}>
                                 <div className={styles.academicInfo}>
                                     {(teacher.designation || teacher.institution) ? (
@@ -164,9 +164,9 @@ function TeachersPageContent() {
                                         <span className={styles.rolePill} style={{width: "max-content"}}>{teacher.role}</span>
                                     </div>
                                     <div className={styles.cardActions}>
-                                        <button 
-                                            className={`${styles.actionBtn} ${teacher.canManagePayments ? styles.success : ''}`} 
-                                            onClick={() => toggleSpecialTeacher(teacher)} 
+                                        <button
+                                            className={`${styles.actionBtn} ${teacher.canManagePayments ? styles.success : ''}`}
+                                            onClick={() => toggleSpecialTeacher(teacher)}
                                             title={teacher.canManagePayments ? "Revoke Payment Access" : "Grant Payment Access"}
                                         >
                                             <CreditCard size={16} />

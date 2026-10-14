@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import styles from "../batches.module.css";
 import Loader from "@/components/UI/Loader";
-import { Layers, Calendar, ArrowLeft, Plus, Users, ArrowRight, Search, Zap, Rocket, CalendarDays, Lock, X, Pencil, Trash2 } from "lucide-react";
+import { Layers, Calendar, Plus, Users, ArrowRight, Search, Zap, Rocket, CalendarDays, Lock, X, Pencil, Trash2 } from "lucide-react";
 import { formatDateGMT6, formatDateInputGMT6 } from "@/lib/date-format";
 import { motion, AnimatePresence } from "framer-motion";
 import { useModalLock } from "@/hooks/useModalLock";
@@ -22,13 +22,13 @@ interface Batch {
 export default function CourseBatchesPage() {
   const params = useParams();
   const courseId = params.courseId as string;
-  
+
   const [batches, setBatches] = useState<Batch[]>([]);
   const [courseTitle, setCourseTitle] = useState("");
   const [isLinear, setIsLinear] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "students" | "name">("date");
 
@@ -48,7 +48,7 @@ export default function CourseBatchesPage() {
   // Delete Batch Modal state
   const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   useModalLock(isModalOpen || isEditModalOpen || Boolean(batchToDelete), () => {
     setIsModalOpen(false);
     setIsEditModalOpen(false);
@@ -57,15 +57,15 @@ export default function CourseBatchesPage() {
 
   useEffect(() => {
     fetchBatches();
-  }, [courseId]);
+  }, [courseId, fetchBatches]);
 
-  const fetchBatches = async () => {
+  const fetchBatches = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/teacher/batches/${courseId}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to fetch batches");
-      
+
       setBatches(data.batches || []);
       setCourseTitle(data.course?.title || "Course Batches");
       setIsLinear(Boolean(data.isLinear));
@@ -74,7 +74,7 @@ export default function CourseBatchesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   const handleCreateBatch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +83,7 @@ export default function CourseBatchesPage() {
       return;
     }
     setIsSubmitting(true);
-    
+
     try {
       const res = await fetch(`/api/teacher/batches/${courseId}`, {
         method: "POST",
@@ -95,7 +95,7 @@ export default function CourseBatchesPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create batch");
-      
+
       setIsModalOpen(false);
       setNewBatchName("");
       setNewBatchStartDate(formatDateInputGMT6(new Date()));
@@ -192,10 +192,10 @@ export default function CourseBatchesPage() {
         const pB = getBatchPriority(b.name);
         // Start Today and All Unlocked always stay pinned at the top
         if (pA !== pB) return pA - pB;
-        
+
         if (sortBy === "students") return b.studentCount - a.studentCount;
         if (sortBy === "name") return a.name.localeCompare(b.name);
-        
+
         // Default: date added descending
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a.startDate ? new Date(a.startDate).getTime() : 0);
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b.startDate ? new Date(b.startDate).getTime() : 0);
@@ -232,14 +232,14 @@ export default function CourseBatchesPage() {
               {courseTitle} — Batches
             </h1>
             <p className={styles.pageSubtitle}>
-              {isLinear 
+              {isLinear
                 ? "Linear Course: Students can be enrolled into Start Today Batch (custom enrollment start date) or All Unlocked Batch."
                 : "Manage scheduled cohorts, Start Today self-paced enrollments, and instant unlock access for this course."}
             </p>
           </div>
 
           {!isLinear ? (
-            <button 
+            <button
               type="button"
               className={styles.primaryActionBtn}
               onClick={() => setIsModalOpen(true)}
@@ -280,9 +280,9 @@ export default function CourseBatchesPage() {
       <div className={styles.controlsBar}>
         <div className={styles.searchWrapper}>
           <Search size={16} className={styles.searchIcon} />
-          <input 
-            type="text" 
-            placeholder="Search batches..." 
+          <input
+            type="text"
+            placeholder="Search batches..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className={styles.searchInput}
@@ -290,8 +290,8 @@ export default function CourseBatchesPage() {
         </div>
 
         <div className={styles.actionGroup}>
-          <select 
-            value={sortBy} 
+          <select
+            value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
             className={styles.selectBox}
           >
@@ -320,8 +320,8 @@ export default function CourseBatchesPage() {
             let iconClass = styles.batchIconScheduled;
             let tagClass = styles.batchTypeScheduled;
             let tagLabel = 'Scheduled Cohort';
-            let desc = batch.startDate 
-              ? `Starts on ${formatDateGMT6(batch.startDate)}${batch.endDate ? ` • Ends ${formatDateGMT6(batch.endDate)}` : ''}` 
+            let desc = batch.startDate
+              ? `Starts on ${formatDateGMT6(batch.startDate)}${batch.endDate ? ` • Ends ${formatDateGMT6(batch.endDate)}` : ''}`
               : 'Fixed calendar schedule cohort.';
 
             if (isStartToday) {
@@ -421,7 +421,7 @@ export default function CourseBatchesPage() {
       <AnimatePresence>
         {isModalOpen && (
           <div className={styles.drawerOverlay} data-drawer="true" onClick={() => setIsModalOpen(false)}>
-            <motion.div 
+            <motion.div
               className={styles.drawerContent}
               initial={{ opacity: 0, x: '100%' }}
               animate={{ opacity: 1, x: 0 }}
@@ -449,24 +449,24 @@ export default function CourseBatchesPage() {
               <form onSubmit={handleCreateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Batch Name</label>
-                  <input 
-                    type="text" 
-                    value={newBatchName} 
-                    onChange={(e) => setNewBatchName(e.target.value)} 
+                  <input
+                    type="text"
+                    value={newBatchName}
+                    onChange={(e) => setNewBatchName(e.target.value)}
                     placeholder="e.g. Batch #73 or Fall 2026"
                     className={styles.formInput}
-                    required 
+                    required
                   />
                 </div>
 
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Start Date</label>
-                  <input 
-                    type="date" 
-                    value={newBatchStartDate} 
-                    onChange={(e) => setNewBatchStartDate(e.target.value)} 
+                  <input
+                    type="date"
+                    value={newBatchStartDate}
+                    onChange={(e) => setNewBatchStartDate(e.target.value)}
                     className={styles.formInput}
-                    required 
+                    required
                   />
                 </div>
 
@@ -492,7 +492,7 @@ export default function CourseBatchesPage() {
       <AnimatePresence>
         {isEditModalOpen && editingBatch && (
           <div className={styles.drawerOverlay} data-drawer="true" onClick={() => setIsEditModalOpen(false)}>
-            <motion.div 
+            <motion.div
               className={styles.drawerContent}
               initial={{ opacity: 0, x: '100%' }}
               animate={{ opacity: 1, x: 0 }}
@@ -520,24 +520,24 @@ export default function CourseBatchesPage() {
               <form onSubmit={handleUpdateBatch} style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Batch Name</label>
-                  <input 
-                    type="text" 
-                    value={editBatchName} 
-                    onChange={(e) => setEditBatchName(e.target.value)} 
+                  <input
+                    type="text"
+                    value={editBatchName}
+                    onChange={(e) => setEditBatchName(e.target.value)}
                     placeholder="e.g. Batch #73"
                     className={styles.formInput}
-                    required 
+                    required
                   />
                 </div>
 
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Start Date</label>
-                  <input 
-                    type="date" 
-                    value={editBatchStartDate} 
-                    onChange={(e) => setEditBatchStartDate(e.target.value)} 
+                  <input
+                    type="date"
+                    value={editBatchStartDate}
+                    onChange={(e) => setEditBatchStartDate(e.target.value)}
                     className={styles.formInput}
-                    required 
+                    required
                   />
                 </div>
 
@@ -563,7 +563,7 @@ export default function CourseBatchesPage() {
       <AnimatePresence>
         {batchToDelete && (
           <div className={styles.drawerOverlay} data-drawer="true" onClick={() => setBatchToDelete(null)}>
-            <motion.div 
+            <motion.div
               className={styles.drawerContent}
               style={{ maxWidth: 440 }}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -596,9 +596,9 @@ export default function CourseBatchesPage() {
                 <button type="button" onClick={() => setBatchToDelete(null)} className={styles.cancelBtn}>
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  disabled={isDeleting} 
+                <button
+                  type="button"
+                  disabled={isDeleting}
                   onClick={handleDeleteBatch}
                   className={styles.primaryActionBtn}
                   style={{ background: '#ef4444', borderColor: '#ef4444' }}

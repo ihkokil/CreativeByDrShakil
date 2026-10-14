@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
-import { extractCookieToken } from '@/lib/auth-server';
 import { getAuthPayload } from '@/lib/route-auth';
 import {
   annotateCurriculumAvailability,
@@ -70,7 +69,7 @@ export async function GET(
           .maybeSingle();
         studentBatch = batch;
       }
-      
+
       const isSpecialBatch = studentBatch?.name && (
         studentBatch.name.toLowerCase().includes('instant') ||
         studentBatch.name.toLowerCase().includes('all unlocked') ||
@@ -154,8 +153,8 @@ export async function GET(
     extractQuizIds(populatedCurriculum);
 
     const quizIds = Array.from(allReferencedQuizIds);
-    let quizMap = new Map<string, any>();
-    let completedQuizIds = new Set<string>();
+    const quizMap = new Map<string, any>();
+    const completedQuizIds = new Set<string>();
 
     if (quizIds.length > 0) {
       const [{ data: quizData = [] }, { data: userAttempts = [] }] = await Promise.all([
@@ -221,7 +220,7 @@ export async function GET(
 
     // Compute release dates
     let effectiveReleaseMode = course.releaseMode || 'custom_batch';
-    let releaseStart = isAdmin 
+    let releaseStart = isAdmin
       ? (course.releaseStartAt || course.courseStartDate || null)
       : (enrolledAt || course.releaseStartAt || course.courseStartDate || new Date().toISOString());
 
@@ -355,7 +354,7 @@ export async function GET(
       return titleLower !== 'all resources' && titleLower !== 'all quizzes' && titleLower !== 'all quizes';
     });
 
-    let topVirtualNodes: any[] = [];
+    const topVirtualNodes: any[] = [];
     if (allResourcesNode) {
       const hasDocs = Array.isArray(allResourcesNode.children) && allResourcesNode.children.length > 0;
       if (hasDocs) {

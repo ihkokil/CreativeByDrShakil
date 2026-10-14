@@ -14,11 +14,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const { courseId } = await params;
     const supabase = getSupabaseAdmin();
-    
+
     // Verify course access
-    let courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
+    const courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
     const { data: course, error: courseError } = await courseQuery;
-    
+
     if (courseError) throw courseError;
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .select('*, orders:Order(id)')
       .eq('courseId', courseId)
       .order('createdAt', { ascending: true });
-      
+
     if (batchError) throw batchError;
 
     // Helper to get priority: 0 for Start Today, 1 for All Unlocked, 2 for others
@@ -90,11 +90,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const supabase = getSupabaseAdmin();
-    
+
     // Verify course access
-    let courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
+    const courseQuery = supabase.from('Course').select('id, title, teacherId, releaseMode').eq('id', courseId).limit(1).maybeSingle();
     const { data: course, error: courseError } = await courseQuery;
-    
+
     if (courseError) throw courseError;
     if (!course) {
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     };
 
     const { error: insertError } = await (supabase as any).from('Batch').insert(newBatch as any);
-    
+
     if (insertError) throw insertError;
 
     return NextResponse.json({ success: true, batch: newBatch });

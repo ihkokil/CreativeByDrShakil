@@ -14,7 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense } from "react";
 import Loader from "@/components/UI/Loader";
 import styles from "./page.module.css";
 

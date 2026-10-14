@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Loader from "@/components/UI/Loader"
-import { Wallet, Save, CheckCircle2 } from "lucide-react";
+import {  CheckCircle2 } from "lucide-react";
 import styles from './BkashSettings.module.css'
 
 interface BkashConfig {
@@ -59,7 +59,7 @@ export default function BkashSettings() {
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to save' })
       }
-    } catch (err) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to save settings' })
     } finally {
       setSaving(false)

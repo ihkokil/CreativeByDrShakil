@@ -2,12 +2,10 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { 
-  Search, Edit2, Trash2, GraduationCap, X, 
-  User, Mail, Phone, FileText, ImagePlus, Send, Calendar,
-  ChevronDown, Filter, Eye, BookPlus, Trash, CalendarClock,
-  ChevronLeft, ChevronRight, Users, BookOpen, Clock, Download,
-  Settings, RefreshCw, Plus
+import {
+  Search, Edit2, Trash2, GraduationCap, X,
+  User, Mail, Phone, FileText, ImagePlus, Send, Calendar, Eye, BookPlus, Trash, CalendarClock,
+  ChevronLeft, ChevronRight, Users, BookOpen, Clock, Download, RefreshCw, Plus
 } from 'lucide-react';
 
 import styles from './StudentsManager.module.css';
@@ -44,10 +42,10 @@ interface StudentProfile {
   enrolledCourses: EnrolledCourse[];
 }
 
-function StudentProgramsCell({ 
-  student, 
-  onCourseClick 
-}: { 
+function StudentProgramsCell({
+  student,
+  onCourseClick
+}: {
   student: StudentProfile;
   onCourseClick?: (courseId: string) => void;
 }) {
@@ -70,17 +68,17 @@ function StudentProgramsCell({
           else if (daysLeft <= 14) isExpiringSoon = true;
         }
 
-        const dotClass = isExpired 
-          ? styles.dot_expired 
-          : isExpiringSoon 
-            ? styles.dot_expiring 
+        const dotClass = isExpired
+          ? styles.dot_expired
+          : isExpiringSoon
+            ? styles.dot_expiring
             : styles.dot_active;
 
         const dateTooltip = `Course: ${c.courseTitle}\nBatch: ${c.batchName || 'Standard / None'}\nEnrolled: ${c.enrolledAt ? formatDateGMT6(c.enrolledAt) : '—'}\nExpires: ${c.expiresAt ? formatDateGMT6(c.expiresAt) : '—'}`;
 
         return (
-          <div 
-            key={c.courseId} 
+          <div
+            key={c.courseId}
             className={styles.courseCardBadge}
             onClick={(e) => {
               e.stopPropagation();
@@ -123,17 +121,17 @@ export default function StudentsManager() {
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enrolled' | 'unenrolled'>('all');
   const [sortBy, setSortBy] = useState('newest');
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
-  
+
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchCourseId, setBatchCourseId] = useState<string>('');
@@ -219,12 +217,12 @@ export default function StudentsManager() {
   };
 
   // Form states for Add/Edit
-  const [formData, setFormData] = useState({ 
-    fullName: '', 
-    email: '', 
-    phone: '', 
-    bmdcNumber: '', 
-    profileImage: '' 
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    bmdcNumber: '',
+    profileImage: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formMessage, setFormMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -356,7 +354,7 @@ export default function StudentsManager() {
 
   // Filtered & Sorted Students
   const filteredStudents = useMemo(() => {
-    let result = students.filter(s => {
+    const result = students.filter(s => {
       // 1. Search Query
       const q = searchQuery.toLowerCase().trim();
       if (q) {
@@ -483,7 +481,7 @@ export default function StudentsManager() {
       showAlert('Please select a course to enroll.', 'warning');
       return;
     }
-    
+
     setIsSubmitting(true);
     try {
       const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : token;
@@ -512,7 +510,7 @@ export default function StudentsManager() {
       } else {
         showAlert(data.error || 'Failed to enroll students.', 'error');
       }
-    } catch (err) {
+    } catch {
       showAlert('Network error while processing batch enrollment.', 'error');
     } finally {
       setIsSubmitting(false);
@@ -597,7 +595,7 @@ export default function StudentsManager() {
             const data = await res.json();
             showAlert(data.error || 'Failed to revoke enrollment.', 'error');
           }
-        } catch (err) {
+        } catch {
           showAlert('Network error while revoking enrollment.', 'error');
         }
       }
@@ -664,7 +662,7 @@ export default function StudentsManager() {
             const data = await res.json();
             showAlert(data.error || 'Failed to delete student.', 'error');
           }
-        } catch (err) {
+        } catch {
           showAlert('Network error while deleting student.', 'error');
         }
       }
@@ -683,7 +681,7 @@ export default function StudentsManager() {
         body: JSON.stringify(formData)
       });
       const data = await res.json();
-      
+
       if (res.ok) {
         setFormMessage({ type: 'success', text: data.message || 'Student added and invitation sent.' });
         setTimeout(() => {
@@ -694,10 +692,10 @@ export default function StudentsManager() {
       } else {
         setFormMessage({ type: 'error', text: data.error || 'Failed to add student.' });
       }
-    } catch (err) {
+    } catch {
       setFormMessage({ type: 'error', text: 'Network error. Please try again.' });
-    } finally { 
-      setIsSubmitting(false); 
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -720,8 +718,8 @@ export default function StudentsManager() {
       const res = await fetch('/api/admin/students/manage', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
-        body: JSON.stringify({ 
-          id: editStudent.id, 
+        body: JSON.stringify({
+          id: editStudent.id,
           ...formData,
           email: emailTrimmed,
         })
@@ -729,7 +727,7 @@ export default function StudentsManager() {
       const data = await res.json();
 
       if (res.ok) {
-        let enrollmentErrors: string[] = [];
+        const enrollmentErrors: string[] = [];
 
         for (const course of courses) {
           const editState = editEnrollments[course.id];
@@ -750,7 +748,7 @@ export default function StudentsManager() {
                 }),
               });
               if (!resEnroll.ok) enrollmentErrors.push(`Failed to enroll in ${course.title}`);
-            } catch (err) {
+            } catch {
               enrollmentErrors.push(`Network error for ${course.title}`);
             }
           } else if (!editState.selected && editState.isExisting) {
@@ -766,7 +764,7 @@ export default function StudentsManager() {
                   body: JSON.stringify({ orderId: enrollment.orderId }),
                 });
                 if (!resRevoke.ok) enrollmentErrors.push(`Failed to revoke ${course.title}`);
-              } catch (err) {
+              } catch {
                 enrollmentErrors.push(`Network error for ${course.title}`);
               }
             }
@@ -783,10 +781,10 @@ export default function StudentsManager() {
       } else {
         setFormMessage({ type: 'error', text: data.error || 'Failed to update student.' });
       }
-    } catch (err) {
+    } catch {
       setFormMessage({ type: 'error', text: 'Network error. Please try again.' });
-    } finally { 
-      setIsSubmitting(false); 
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -850,18 +848,18 @@ export default function StudentsManager() {
         <div className={styles.toolbarTop}>
           <form className={styles.searchBox} onSubmit={(e) => e.preventDefault()}>
             <Search size={18} className={styles.searchIcon} />
-            <input 
-              type="text" 
-              placeholder="Search by name, email, phone, or BM&DC..." 
+            <input
+              type="text"
+              placeholder="Search by name, email, phone, or BM&DC..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}
               aria-label="Search students"
             />
             {searchQuery && (
-              <button 
-                type="button" 
-                className={styles.clearSearchBtn} 
+              <button
+                type="button"
+                className={styles.clearSearchBtn}
                 onClick={() => setSearchQuery('')}
                 aria-label="Clear search"
               >
@@ -871,7 +869,7 @@ export default function StudentsManager() {
           </form>
 
           <div className={styles.toolbarActions}>
-            <select 
+            <select
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
               className={styles.filterSelect}
@@ -897,22 +895,22 @@ export default function StudentsManager() {
               <option value="courses_desc">Sort: Most Enrolled</option>
             </select>
 
-            <button 
-              type="button" 
-              className={styles.exportBtn} 
+            <button
+              type="button"
+              className={styles.exportBtn}
               onClick={handleExportCSV}
               title="Export roster to CSV"
             >
               <Download size={15} /> Export CSV
             </button>
 
-            <button 
-              type="button" 
-              className={styles.newStudentBtn} 
-              onClick={() => { 
-                setFormData({ fullName: '', email: '', phone: '', bmdcNumber: '', profileImage: '' }); 
+            <button
+              type="button"
+              className={styles.newStudentBtn}
+              onClick={() => {
+                setFormData({ fullName: '', email: '', phone: '', bmdcNumber: '', profileImage: '' });
                 setFormMessage(null);
-                setIsAddOpen(true); 
+                setIsAddOpen(true);
               }}
             >
               <Plus size={16} /> New Student
@@ -923,21 +921,21 @@ export default function StudentsManager() {
         {/* Quick Filter Segment Chips */}
         <div className={styles.chipsRow}>
           <div className={styles.segmentChips}>
-            <button 
+            <button
               type="button"
               className={`${styles.segmentChip} ${statusFilter === 'all' ? styles.active : ''}`}
               onClick={() => setStatusFilter('all')}
             >
               All Students ({stats.total})
             </button>
-            <button 
+            <button
               type="button"
               className={`${styles.segmentChip} ${statusFilter === 'enrolled' ? styles.active : ''}`}
               onClick={() => setStatusFilter('enrolled')}
             >
               🟢 Active Enrolled ({stats.enrolled})
             </button>
-            <button 
+            <button
               type="button"
               className={`${styles.segmentChip} ${statusFilter === 'unenrolled' ? styles.active : ''}`}
               onClick={() => setStatusFilter('unenrolled')}
@@ -966,7 +964,7 @@ export default function StudentsManager() {
               <thead>
                 <tr>
                   <th style={{ width: '44px', textAlign: 'center' }}>
-                    <input 
+                    <input
                       type="checkbox"
                       className={styles.checkbox}
                       checked={selectedIds.size === filteredStudents.length && filteredStudents.length > 0}
@@ -984,23 +982,23 @@ export default function StudentsManager() {
                   const isSelected = selectedIds.has(student.id);
 
                   return (
-                    <tr 
-                      key={student.id} 
+                    <tr
+                      key={student.id}
                       className={isSelected ? styles.selectedRow : ''}
                       onClick={() => {
                         setAutoExpandCourseId(null);
                         setSelectedStudentForDetails(student);
                       }}
                     >
-                      <td 
+                      <td
                         className={styles.selectCell}
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          handleToggleSelect(student.id); 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleSelect(student.id);
                         }}
                       >
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           className={styles.checkbox}
                           checked={isSelected}
                           readOnly
@@ -1036,8 +1034,8 @@ export default function StudentsManager() {
                         </div>
                       </td>
                       <td className={styles.programsCell}>
-                        <StudentProgramsCell 
-                          student={student} 
+                        <StudentProgramsCell
+                          student={student}
                           onCourseClick={(courseId) => {
                             const course = student.enrolledCourses.find(c => c.courseId === courseId);
                             if (course) {
@@ -1056,17 +1054,17 @@ export default function StudentsManager() {
                       </td>
                       <td className={styles.actionsCell} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.actionGroup}>
-                          <button 
+                          <button
                             type="button"
                             className={styles.actionBtnPill}
-                            onClick={() => { 
-                              setFormData({ 
-                                fullName: student.fullName, 
-                                email: student.email, 
-                                phone: student.phone || '', 
-                                bmdcNumber: student.bmdcNumber || '', 
-                                profileImage: student.profileImage || '' 
-                              }); 
+                            onClick={() => {
+                              setFormData({
+                                fullName: student.fullName,
+                                email: student.email,
+                                phone: student.phone || '',
+                                bmdcNumber: student.bmdcNumber || '',
+                                profileImage: student.profileImage || ''
+                              });
                               const initialEnrollments: Record<string, { selected: boolean, date: string, isExisting: boolean }> = {};
                               student.enrolledCourses.forEach(c => {
                                 initialEnrollments[c.courseId] = {
@@ -1076,15 +1074,15 @@ export default function StudentsManager() {
                                 };
                               });
                               setEditEnrollments(initialEnrollments);
-                              setEditStudent(student); 
-                              setFormMessage(null); 
-                            }} 
+                              setEditStudent(student);
+                              setFormMessage(null);
+                            }}
                             title="Edit Student Profile"
                           >
                             <Edit2 size={13} /> Edit
                           </button>
 
-                          <button 
+                          <button
                             type="button"
                             className={styles.actionBtnPill}
                             onClick={() => {
@@ -1156,14 +1154,14 @@ export default function StudentsManager() {
                   </button>
                 </div>
                 <div className={styles.batchActions}>
-                  <button 
+                  <button
                     type="button"
                     className={`${styles.batchActionBtn} ${styles.primary}`}
                     onClick={() => { setShowEnrollPanel(!showEnrollPanel); setShowRemovePanel(false); setShowDatePanel(false); }}
                   >
                     <BookPlus size={15} /> Bulk Enroll
                   </button>
-                  <button 
+                  <button
                     type="button"
                     className={styles.batchActionBtn}
                     onClick={() => {
@@ -1186,7 +1184,7 @@ export default function StudentsManager() {
                   >
                     <CalendarClock size={15} /> Change Rules
                   </button>
-                  <button 
+                  <button
                     type="button"
                     className={`${styles.batchActionBtn} ${styles.danger}`}
                     onClick={() => { setShowRemovePanel(!showRemovePanel); setShowEnrollPanel(false); setShowDatePanel(false); }}
@@ -1210,7 +1208,7 @@ export default function StudentsManager() {
                   <div className={styles.enrollPanelBody}>
                     <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldCourse}`}>
                       <label>Target Course</label>
-                      <select 
+                      <select
                         value={batchCourseId}
                         onChange={(e) => {
                           setBatchCourseId(e.target.value);
@@ -1226,7 +1224,7 @@ export default function StudentsManager() {
 
                     <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldBatch}`}>
                       <label>Target Batch / Cohort</label>
-                      <select 
+                      <select
                         value={batchId}
                         onChange={(e) => {
                           const bId = e.target.value;
@@ -1260,15 +1258,15 @@ export default function StudentsManager() {
                     {(() => {
                       const selBatch = courseBatches.find(b => b.id === batchId);
                       const isCustom = !batchId || selBatch?.name.toLowerCase().includes('start today') || selBatch?.name.toLowerCase().includes('custom');
-                      const dateVal = isCustom 
-                        ? batchEnrollDate 
+                      const dateVal = isCustom
+                        ? batchEnrollDate
                         : (selBatch?.startDate ? formatDateInputGMT6(selBatch.startDate) : batchEnrollDate);
 
                       return (
                         <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldDate}`}>
                           <label>{isCustom ? 'Enrollment Date' : 'Date (Batch Fixed)'}</label>
-                          <input 
-                            type="date" 
+                          <input
+                            type="date"
                             value={dateVal}
                             disabled={!isCustom}
                             onChange={(e) => setBatchEnrollDate(e.target.value)}
@@ -1286,7 +1284,7 @@ export default function StudentsManager() {
 
                     <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldAction}`}>
                       <label className={styles.enrollPanelActionLabel}>Action</label>
-                      <button 
+                      <button
                         type="button"
                         className={`${styles.batchActionBtn} ${styles.primary}`}
                         onClick={handleBatchEnrollSubmit}
@@ -1313,7 +1311,7 @@ export default function StudentsManager() {
                   <div className={styles.enrollPanelBody}>
                     <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldCourse}`}>
                       <label>Select Course to Remove From</label>
-                      <select 
+                      <select
                         value={removeCourseId}
                         onChange={(e) => setRemoveCourseId(e.target.value)}
                       >
@@ -1325,7 +1323,7 @@ export default function StudentsManager() {
                     </div>
                     <div className={`${styles.enrollPanelField} ${styles.enrollPanelFieldAction}`}>
                       <label className={styles.enrollPanelActionLabel}>Action</label>
-                      <button 
+                      <button
                         type="button"
                         className={`${styles.batchActionBtn} ${styles.danger}`}
                         onClick={handleBatchRemove}
@@ -1352,8 +1350,8 @@ export default function StudentsManager() {
               : "Your student directory is currently empty."}
           </p>
           {(searchQuery || courseFilter || statusFilter !== 'all') && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={styles.resetBtn}
               onClick={() => {
                 setSearchQuery('');
@@ -1420,10 +1418,10 @@ export default function StudentsManager() {
             });
           }}
           onEditRules={() => {
-            setEditingRulesFor({ 
-              courseId: selectedSingleCourse.courseId, 
+            setEditingRulesFor({
+              courseId: selectedSingleCourse.courseId,
               userId: selectedSingleCourse.student.id,
-              studentName: selectedSingleCourse.student.fullName 
+              studentName: selectedSingleCourse.student.fullName
             });
           }}
           onRevoke={() => {
@@ -1449,16 +1447,16 @@ export default function StudentsManager() {
                   Update access schedule for this course.
                 </p>
               </div>
-              <button 
-                type="button" 
-                onClick={() => setEditingEnrollment(null)} 
+              <button
+                type="button"
+                onClick={() => setEditingEnrollment(null)}
                 className={styles.closeBtn}
                 aria-label="Close dialog"
               >
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSaveEnrollmentDate} className={styles.modalBody}>
               <div style={{
                 background: 'var(--surface-soft)',
@@ -1488,8 +1486,8 @@ export default function StudentsManager() {
                   <Calendar size={14} style={{ color: 'var(--primary)' }} />
                   Enrollment Date (Start)
                 </label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   required
                   className={styles.input}
                   value={editingEnrollment.enrolledAt}
@@ -1501,8 +1499,8 @@ export default function StudentsManager() {
                       d.setFullYear(d.getFullYear() + 1);
                       newExpiry = formatDateInputGMT6(d);
                     }
-                    setEditingEnrollment({ 
-                      ...editingEnrollment, 
+                    setEditingEnrollment({
+                      ...editingEnrollment,
                       enrolledAt: newStart,
                       expiresAt: newExpiry
                     });
@@ -1515,8 +1513,8 @@ export default function StudentsManager() {
                   <Clock size={14} style={{ color: 'var(--text-muted)' }} />
                   Expiration Date (Default: 1 year from start)
                 </label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   className={styles.input}
                   value={editingEnrollment.expiresAt || ''}
                   onChange={(e) => setEditingEnrollment({ ...editingEnrollment, expiresAt: e.target.value })}
@@ -1524,19 +1522,19 @@ export default function StudentsManager() {
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px', justifyContent: 'flex-end' }}>
-                <button 
-                  type="button" 
-                  className={styles.actionBtnPill} 
-                  style={{ minHeight: '44px', padding: '0 20px', fontSize: '0.9rem' }} 
+                <button
+                  type="button"
+                  className={styles.actionBtnPill}
+                  style={{ minHeight: '44px', padding: '0 20px', fontSize: '0.9rem' }}
                   onClick={() => setEditingEnrollment(null)}
                   disabled={isSubmitting}
                 >
                   Cancel
                 </button>
-                <button 
-                  type="submit" 
-                  className={styles.newStudentBtn} 
-                  style={{ minHeight: '44px', padding: '0 24px', fontSize: '0.9rem' }} 
+                <button
+                  type="submit"
+                  className={styles.newStudentBtn}
+                  style={{ minHeight: '44px', padding: '0 24px', fontSize: '0.9rem' }}
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
@@ -1678,7 +1676,7 @@ export default function StudentsManager() {
                   <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className={styles.input} placeholder="student@example.com" style={{ paddingLeft: '40px', width: '100%' }} />
                 </div>
               </div>
-              
+
               <div className={styles.row}>
                 <div className={`${styles.formGroup} ${styles.halfWidth}`}>
                   <label>Phone Number</label>
@@ -1701,13 +1699,13 @@ export default function StudentsManager() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto', paddingRight: '8px' }}>
                   {courses.map(course => {
                     const state = editEnrollments[course.id] || { selected: false, date: formatDateInputGMT6(new Date()), isExisting: false };
-                    
+
                     return (
                       <div key={course.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '12px', background: 'var(--surface-soft)', border: '1px solid var(--glass-border)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className={styles.checkbox}
                               checked={state.selected}
                               onChange={(e) => {
@@ -1725,7 +1723,7 @@ export default function StudentsManager() {
                             </span>
                           )}
                         </div>
-                        
+
                         {state.selected && !state.isExisting && (
                           <div style={{ paddingLeft: '28px' }}>
                             <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Enrollment Start Date</label>
@@ -1744,7 +1742,7 @@ export default function StudentsManager() {
                             />
                           </div>
                         )}
-                        
+
                         {!state.selected && state.isExisting && (
                           <div style={{ paddingLeft: '28px', fontSize: '0.8rem', color: 'var(--error)', fontWeight: 500 }}>
                             Will be revoked upon saving

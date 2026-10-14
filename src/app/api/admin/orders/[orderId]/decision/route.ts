@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requirePaymentManager } from '@/lib/admin-auth';
-import { ensureCourseEnrollment } from '@/lib/enrollment';
 import { sendTelegramEnrollmentNotification } from '@/lib/telegram';
 
 export async function GET(

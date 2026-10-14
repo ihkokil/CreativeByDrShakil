@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
           p_user_id: userId,
           p_banned_by_label: `Teacher (${payload.email})`
         });
-      } catch (rpcErr) {
+      } catch {
         // Fallback handled by direct updates above
       }
     } else {

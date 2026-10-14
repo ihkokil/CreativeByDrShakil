@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { requireTeacherPayload } from '@/lib/route-auth';
-import { parseCurriculumJson, BuilderCurriculumNode, createNodeId } from '@/lib/teacher-course-builder';
+import { parseCurriculumJson, BuilderCurriculumNode } from '@/lib/teacher-course-builder';
 import { cleanupCourseCurriculumNode } from '@/lib/curriculum-cleanup';
 
 function findNodeById(nodes: BuilderCurriculumNode[], nodeId: string): BuilderCurriculumNode | null {

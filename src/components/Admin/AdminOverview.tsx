@@ -1,19 +1,17 @@
 "use client";
 
-import { 
-    Users, 
-    BookOpen, 
-    UserPlus, 
-    ArrowUpRight, 
-    MonitorIcon, 
-    Inbox, 
-    ShieldCheck, 
-    Briefcase, 
-    CreditCard, 
-    Sparkles, 
-    Settings, 
-    GraduationCap, 
-    Layers 
+import {
+    Users,
+    BookOpen,
+    UserPlus,
+    MonitorIcon,
+    Inbox,
+    ShieldCheck,
+    Briefcase,
+    CreditCard,
+    Sparkles,
+    Settings,
+    GraduationCap
 } from "lucide-react";
 import styles from "@/components/Teacher/TeacherOverview.module.css";
 

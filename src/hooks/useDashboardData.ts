@@ -23,7 +23,7 @@ export function useDashboardData() {
                 } else {
                     setError(d.error || "Could not load dashboard data.");
                 }
-            } catch (err) {
+            } catch {
                 setError("Network error when loading dashboard.");
             } finally {
                 setFetching(false);

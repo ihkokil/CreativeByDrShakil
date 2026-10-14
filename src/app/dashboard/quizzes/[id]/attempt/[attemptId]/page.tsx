@@ -10,12 +10,7 @@ import {
   XCircle,
   HelpCircle,
   ChevronLeft,
-  Save,
-  Lock,
-  RotateCcw,
-  Shuffle,
   Check,
-  X,
   Send,
 } from 'lucide-react';
 import styles from './page.module.css';
@@ -55,7 +50,7 @@ export default function QuizTakePage() {
   const quizId = params.id as string;
   const attemptId = params.attemptId as string;
   const returnUrl = searchParams ? searchParams.get('returnUrl') : null;
-  
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [attempt, setAttempt] = useState<Attempt | null>(null);
@@ -68,7 +63,7 @@ export default function QuizTakePage() {
   const [submitting, setSubmitting] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [tabWarningShown, setTabWarningShown] = useState(false);
-  
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const startedAtRef = useRef<number>(Date.now());
@@ -79,14 +74,14 @@ export default function QuizTakePage() {
       try {
         const res = await fetch(`/api/quiz/${quizId}/attempt/${attemptId}`, { cache: 'no-store' });
         const data = await res.json();
-        
+
         if (!res.ok) {
           throw new Error(data.error || 'Failed to load quiz');
         }
-        
+
         setAttempt(data.attempt);
         setQuestions(data.questions || []);
-        
+
         // Initialize answers
         const initialAnswers: Record<string, Answer> = {};
         data.questions?.forEach((q: Question) => {
@@ -98,7 +93,7 @@ export default function QuizTakePage() {
             saved: false,
           };
         });
-        
+
         if (data.existingAnswers) {
           data.existingAnswers.forEach((ans: any) => {
             if (initialAnswers[ans.questionId]) {
@@ -112,9 +107,9 @@ export default function QuizTakePage() {
             }
           });
         }
-        
+
         setAnswers(initialAnswers);
-        
+
         // Calculate time remaining
         if (data.attempt.durationMinutes === 0) {
           setTimeRemaining(Infinity);
@@ -122,12 +117,12 @@ export default function QuizTakePage() {
         } else {
           const startedAtStr = data.attempt.startedAt;
           const startedAt = new Date(
-            startedAtStr.endsWith('Z') || startedAtStr.includes('+') 
-              ? startedAtStr 
+            startedAtStr.endsWith('Z') || startedAtStr.includes('+')
+              ? startedAtStr
               : startedAtStr + 'Z'
           );
           startedAtRef.current = startedAt.getTime();
-          
+
           if (data.attempt.timeRemaining !== undefined && data.attempt.timeRemaining !== null && data.attempt.timeRemaining > 0) {
             setTimeRemaining(data.attempt.timeRemaining);
           } else {
@@ -137,7 +132,7 @@ export default function QuizTakePage() {
             setTimeRemaining(remaining);
           }
         }
-        
+
         // Check if already submitted
         if (data.attempt.status !== 'in_progress') {
           setShowResults(true);
@@ -151,14 +146,14 @@ export default function QuizTakePage() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [quizId, attemptId]);
 
   // Timer
   useEffect(() => {
     if (showResults || timeRemaining === null || timeRemaining === Infinity || timeRemaining <= 0) return;
-    
+
     timerRef.current = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev === null || prev === Infinity) return prev;
@@ -170,11 +165,11 @@ export default function QuizTakePage() {
         return newTime;
       });
     }, 1000);
-    
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timeRemaining, showResults]);
+  }, [timeRemaining, showResults, handleAutoSubmit]);
 
   // Warn before unload
   useEffect(() => {
@@ -185,7 +180,7 @@ export default function QuizTakePage() {
         return e.returnValue;
       }
     };
-    
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [showResults, autoSubmitted]);
@@ -195,16 +190,16 @@ export default function QuizTakePage() {
     const unsavedAnswers = Object.entries(answers)
       .filter(([_, ans]) => ans.selectedOption && !ans.saved)
       .map(([questionId, ans]) => ({ questionId, selectedOption: ans.selectedOption }));
-    
+
     if (unsavedAnswers.length === 0) return;
-    
+
     try {
       const res = await fetch(`/api/quiz/attempt/${attemptId}/save-answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: unsavedAnswers }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
@@ -213,7 +208,7 @@ export default function QuizTakePage() {
               .filter((r: any) => r.saved)
               .map((r: any) => r.questionId)
           );
-          
+
           setAnswers(prev => {
             const updated = { ...prev };
             unsavedAnswers.forEach(({ questionId }) => {
@@ -248,7 +243,7 @@ export default function QuizTakePage() {
         }, 3000);
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -264,7 +259,7 @@ export default function QuizTakePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: [{ questionId, selectedOption }] }),
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
@@ -340,16 +335,16 @@ export default function QuizTakePage() {
 
   const handleAnswerSelect = (questionId: string, optionLetter: string, mcqSelection?: 'T' | 'F') => {
     if (showResults) return;
-    
+
     const q = questions.find(item => item.id === questionId);
     if (!q) return;
-    
+
     let newSelectedForSave: string | null = null;
     const isTF = q.questionType === 'true_false' || q.questionType === 'mcq';
 
     setAnswers(prev => {
       const current = prev[questionId];
-      
+
       if (isTF) {
         const optionCount = 5;
         const idx = optionLetter.charCodeAt(0) - 65; // A=0, B=1, C=2, D=3, E=4
@@ -385,7 +380,7 @@ export default function QuizTakePage() {
         };
       }
     });
-    
+
     // Immediately persist to server
     setTimeout(() => {
       if (newSelectedForSave !== undefined) {
@@ -398,14 +393,14 @@ export default function QuizTakePage() {
     if (showResults) return;
     setSubmitting(true);
     setAutoSubmitted(true);
-    
+
     try {
       await saveAnswers();
       const res = await fetch(`/api/quiz/attempt/${attemptId}/auto-submit`, { method: 'POST' });
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Auto-submit failed');
-      
+
       setShowResults(true);
       const resultsMap = data.results?.questionResults || data.results?.answers;
       if (resultsMap) {
@@ -447,14 +442,14 @@ export default function QuizTakePage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     setShowSubmitConfirm(false);
-    
+
     try {
       await saveAnswers();
       const res = await fetch(`/api/quiz/attempt/${attemptId}/submit`, { method: 'POST' });
       const data = await res.json();
-      
+
       if (!res.ok) throw new Error(data.error || 'Submit failed');
-      
+
       setShowResults(true);
       const resultsMap = data.results?.questionResults || data.results?.answers;
       if (resultsMap) {
@@ -468,7 +463,7 @@ export default function QuizTakePage() {
           return updated;
         });
       }
-      
+
       const targetUrl = returnUrl
         ? `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}&returnUrl=${encodeURIComponent(returnUrl)}`
         : `/dashboard/quizzes/${quizId}/result?attempt=${attemptId}`;
@@ -634,11 +629,11 @@ export default function QuizTakePage() {
                       const originalIdx = option.letter.charCodeAt(0) - 65;
                       const isT = currentStr[originalIdx] === 'T';
                       const isF = currentStr[originalIdx] === 'F';
-                      
+
                       const correctStr = q.correctOption || 'F'.repeat(q.options.length || 5);
                       const isCorrectT = correctStr[originalIdx] === 'T';
                       const isCorrectF = correctStr[originalIdx] === 'F';
-                      
+
                       let optionClass = styles.mcqMatrixRow;
                       if (showResults) {
                         if ((isT && isCorrectT) || (isF && isCorrectF)) {
@@ -647,7 +642,7 @@ export default function QuizTakePage() {
                            optionClass += ` ${styles.optionIncorrect}`;
                         }
                       }
-                      
+
                       return (
                         <div key={`${q.id}-${option.letter}`} className={optionClass}>
                           <div className={styles.mcqMatrixLabel}>
@@ -680,7 +675,7 @@ export default function QuizTakePage() {
                                 <span>False</span>
                               </button>
                             </div>
-                            
+
                             {showResults && (
                               <div className={styles.mcqMatrixResult}>
                                 {((isT && isCorrectT) || (isF && isCorrectF)) ? (
@@ -709,10 +704,10 @@ export default function QuizTakePage() {
                       const displayLetter = String.fromCharCode(65 + optIdx);
                       const answer = answers[q.id];
                       const isSelected = answer?.selectedOption === option.letter;
-                      
+
                       let optionClass = styles.optionCard;
                       if (isSelected && !showResults) optionClass += ` ${styles.optionSelected}`;
-                      
+
                       if (showResults) {
                         if (option.letter === q.correctOption) {
                           optionClass += ` ${styles.optionCorrect}`;
@@ -720,7 +715,7 @@ export default function QuizTakePage() {
                           optionClass += ` ${styles.optionIncorrect}`;
                         }
                       }
-                      
+
                       return (
                         <button
                           key={`${q.id}-${option.letter}`}
@@ -734,19 +729,19 @@ export default function QuizTakePage() {
                         >
                           <span className={styles.optionLetter}>{displayLetter}</span>
                           <span className={styles.optionText}>{option.text}</span>
-                          
+
                           {isSelected && !showResults && (
                             <span className={styles.optionCheck}>
                               <CheckCircle className={styles.checkIcon} />
                             </span>
                           )}
-                          
+
                           {showResults && option.letter === q.correctOption && (
                             <span className={styles.optionResultIcon}>
                               <CheckCircle className={styles.resultIcon} />
                             </span>
                           )}
-                          
+
                           {showResults && isSelected && option.letter !== q.correctOption && (
                             <span className={styles.optionResultIconError}>
                               <XCircle className={styles.resultIcon} />
@@ -779,13 +774,13 @@ export default function QuizTakePage() {
                   <CheckCircle size={22} className={answeredCount === totalQuestions ? styles.statusIconComplete : styles.statusIconPending} />
                   <div>
                     <h3 className={styles.bottomSummaryTitle}>
-                      {answeredCount === totalQuestions 
-                        ? 'All questions answered!' 
+                      {answeredCount === totalQuestions
+                        ? 'All questions answered!'
                         : `${answeredCount} of ${totalQuestions} questions answered`}
                     </h3>
                     <p className={styles.bottomSummarySubtitle}>
-                      {unansweredCount > 0 
-                        ? `You have ${unansweredCount} unanswered question${unansweredCount > 1 ? 's' : ''}. You can review them above or submit your quiz now.` 
+                      {unansweredCount > 0
+                        ? `You have ${unansweredCount} unanswered question${unansweredCount > 1 ? 's' : ''}. You can review them above or submit your quiz now.`
                         : 'You are ready to submit and calculate your results.'}
                     </p>
                   </div>
@@ -808,8 +803,8 @@ export default function QuizTakePage() {
           {/* Submit Confirmation Modal */}
           {showSubmitConfirm && (
             <div className={styles.modalOverlay} onClick={() => setShowSubmitConfirm(false)}>
-              <div 
-                className={styles.modal} 
+              <div
+                className={styles.modal}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="submit-modal-title"
@@ -904,7 +899,7 @@ export default function QuizTakePage() {
                         type="button"
                         onClick={() => scrollToQuestion(q.id, idx)}
                         className={`
-                          ${styles.paletteNumBtn} 
+                          ${styles.paletteNumBtn}
                           ${isAnswered ? styles.paletteNumAnswered : styles.paletteNumUnanswered}
                           ${isCurrent ? styles.paletteNumCurrent : ''}
                         `}

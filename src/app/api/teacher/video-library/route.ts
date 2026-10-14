@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         if (!authCheck.ok) return authCheck.response;
 
         const supabase = getSupabaseAdmin();
-        
+
         let { data: nodes = [], error } = await supabase
             .from('VideoLibraryNode')
             .select('id, title, type, url, duration, parentId, attachments, sortOrder')
@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
               .eq('id', parentId)
               .limit(1)
               .maybeSingle();
-              
+
             if (!parent) {
                 return NextResponse.json({ error: 'Parent node not found.' }, { status: 404 });
             }
@@ -358,10 +358,10 @@ export async function POST(request: NextRequest) {
         // If trying to add a video/document directly in a root course folder, auto-create wrapper folder
         const isParentRootCourseFolder = parentNode && parentNode.parentId === null;
         if (isParentRootCourseFolder && type !== 'folder') {
-            let queryFolder = supabase.from('VideoLibraryNode').select('sortOrder').eq('parentId', parentId).order('sortOrder', { ascending: false }).limit(1);
+            const queryFolder = supabase.from('VideoLibraryNode').select('sortOrder').eq('parentId', parentId).order('sortOrder', { ascending: false }).limit(1);
             const { data: folderOrderRes } = await queryFolder.maybeSingle();
             const wrapperOrder = ((folderOrderRes as any)?.sortOrder ?? -1) + 1;
-            
+
             const wrapperFolderId = crypto.randomUUID();
 
             await supabase.from('VideoLibraryNode').insert({
@@ -383,7 +383,7 @@ export async function POST(request: NextRequest) {
         } else {
             query = query.is('parentId', null);
         }
-        
+
         const { data: result } = await query.maybeSingle();
         const nextOrder = ((result as any)?.sortOrder ?? -1) + 1;
 

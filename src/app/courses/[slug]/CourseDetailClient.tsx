@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import {  useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
 import { CheckoutModal } from "@/components/Checkout/CheckoutModal";
@@ -20,11 +20,8 @@ import CourseStats from "@/components/Course/CourseStats";
 import CourseSidebar from "@/components/Course/CourseSidebar";
 import CourseInstructors from "@/components/Course/CourseInstructors";
 
-import { 
-    CheckCircle2, 
-    PlayCircle, 
-    ChevronDown, 
-    ChevronUp,
+import {
+    CheckCircle2,
     Layout
 } from "lucide-react";
 
@@ -93,7 +90,7 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
                 const headers: Record<string, string> = {};
                 if (token) headers["Authorization"] = `Bearer ${token}`;
 
-                const dashRes = await fetch("/api/me/dashboard", { 
+                const dashRes = await fetch("/api/me/dashboard", {
                     headers,
                     cache: 'no-store'
                 });
@@ -103,14 +100,14 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
                     const enrolled = dashData.enrolledCourses?.some((c: any) => c.courseSlug === courseSlug);
                     setUserEnrolled(enrolled);
                     if (enrolled) {
-                        const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`, { 
+                        const progRes = await fetch(`/api/study/courses/${courseSlug}/progress`, {
                             headers,
-                            cache: 'no-store' 
+                            cache: 'no-store'
                         });
                         if (progRes.ok) {
                             const progData = await progRes.json();
                             setCourseStarted(Array.isArray(progData.progress?.completedLessonIds) && progData.progress.completedLessonIds.length > 0);
-                            
+
                             if (Array.isArray(progData.curriculum) && progData.curriculum.length > 0) {
                                 setDynamicCurriculum(progData.curriculum);
                             }
@@ -231,12 +228,12 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
     return (
         <main className={styles.main}>
             <Navbar />
-            
+
             <CourseHero course={displayCourse} />
 
             <div className={styles.container}>
                 <div className={styles.leftContent}>
-                    
+
                     <CourseStats course={displayCourse} />
 
                     {/* Overview */}
@@ -276,7 +273,7 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
                             <h2 className={styles.sectionTitle}>Course Curriculum</h2>
                             <CourseLessonList
                                 hasAccess={userEnrolled}
-                                curriculum={displayCourse.curriculum.flatMap(module => 
+                                curriculum={displayCourse.curriculum.flatMap(module =>
                                     module.lessons.map(lesson => ({
                                         id: lesson.title,
                                         title: lesson.title,
@@ -296,7 +293,7 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
                 </div>
 
                 <div className={styles.sidebarWrapper}>
-                    <CourseSidebar 
+                    <CourseSidebar
                         course={displayCourse}
                         progressLoading={progressLoading}
                         userEnrolled={userEnrolled}
@@ -327,9 +324,9 @@ export default function CourseDetailClient({ initialCourse, initialTeachers, ini
                 onClose={() => setIsCheckoutOpen(false)}
             />
 
-            <AuthModal 
-                isOpen={isAuthOpen} 
-                onClose={() => setIsAuthOpen(false)} 
+            <AuthModal
+                isOpen={isAuthOpen}
+                onClose={() => setIsAuthOpen(false)}
                 defaultMode={authMode}
                 onSuccess={() => {
                     setIsAuthOpen(false);

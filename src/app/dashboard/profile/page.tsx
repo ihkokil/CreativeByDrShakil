@@ -42,31 +42,31 @@ export default function ProfilePage() {
     const handleProfileImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-    
+
         if (!file.type.startsWith("image/")) {
           setProfileMessage({ type: "error", text: "Please choose a valid image file." });
           return;
         }
-    
+
         if (file.size > 5 * 1024 * 1024) {
           setProfileMessage({ type: "error", text: "Original image must be 5MB or smaller." });
           return;
         }
-    
+
         const reader = new FileReader();
         reader.onload = () => {
             setCropImageSrc(reader.result as string);
         };
         reader.readAsDataURL(file);
     };
-    
+
     const handleCropComplete = async (croppedBlob: Blob) => {
         setCropImageSrc(null);
         setProfileMessage({ type: "success", text: "Optimizing and uploading profile image..." });
         const formData = new FormData();
         formData.append("file", croppedBlob, "profile.webp");
         formData.append("folder", "profiles");
-    
+
         try {
           const token = localStorage.getItem("auth_token");
           const res = await fetch("/api/upload", {
@@ -81,7 +81,7 @@ export default function ProfilePage() {
           } else {
             setProfileMessage({ type: "error", text: resData.error || "Failed to upload image." });
           }
-        } catch (err) {
+        } catch {
           setProfileMessage({ type: "error", text: "Failed to upload image." });
         }
     };
@@ -125,8 +125,8 @@ export default function ProfilePage() {
               <h2>Profile Settings</h2>
               <p>Manage your medical credentials and personal identity</p>
             </div>
-            <button 
-              className={`${profileStyles.editButton} ${editingProfile ? profileStyles.active : ""}`} 
+            <button
+              className={`${profileStyles.editButton} ${editingProfile ? profileStyles.active : ""}`}
               onClick={() => setEditingProfile(!editingProfile)}
             >
               <UserCog size={18} />
@@ -139,12 +139,12 @@ export default function ProfilePage() {
               <div className={profileStyles.avatarWrapper}>
                 <div className={profileStyles.avatar}>
                   {profileForm.profileImage ? (
-                    <Image 
-                      src={profileForm.profileImage} 
-                      alt={profileForm.fullName || "Profile"} 
-                      fill 
-                      className={profileStyles.avatarImage} 
-                      unoptimized 
+                    <Image
+                      src={profileForm.profileImage}
+                      alt={profileForm.fullName || "Profile"}
+                      fill
+                      className={profileStyles.avatarImage}
+                      unoptimized
                     />
                   ) : (
                     <span>{(profileForm.fullName || data.profile.fullName || "").slice(0, 2).toUpperCase()}</span>
@@ -159,8 +159,8 @@ export default function ProfilePage() {
                     Update Photo
                     <input type="file" accept="image/*" onChange={handleProfileImageSelect} />
                   </label>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={profileStyles.removeBtn}
                     onClick={() => setProfileForm(prev => ({ ...prev, profileImage: null }))}
                     title="Remove Photo"
@@ -172,7 +172,7 @@ export default function ProfilePage() {
 
               <h3 className={profileStyles.userName}>{profileForm.fullName || data.profile.fullName}</h3>
               <p className={profileStyles.userEmail}>{data.profile.email}</p>
-              
+
               <div className={profileStyles.roleBadge}>
                 {data.profile.role.toUpperCase()}
               </div>
@@ -195,7 +195,7 @@ export default function ProfilePage() {
                   <UserCog size={20} className={profileStyles.sectionIcon} />
                   <h3>Personal Information</h3>
                 </div>
-                
+
                 <form className={profileStyles.profileForm} onSubmit={handleSaveProfile}>
                   <div className={profileStyles.formGrid}>
                     <div className={profileStyles.formGroup}>
@@ -293,7 +293,7 @@ export default function ProfilePage() {
               </section>
             </main>
           </div>
-          
+
           {cropImageSrc && (
             <ImageCropper
                 imageSrc={cropImageSrc}

@@ -37,7 +37,7 @@ export default function SessionsManager() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const token = useMemo(() => localStorage.getItem('auth_token'), []);
 
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -55,11 +55,11 @@ export default function SessionsManager() {
     } finally {
       setLoading(false);
     }
-  };
+  });
 
   useEffect(() => {
     fetchSessions();
-  }, [token]);
+  }, [fetchSessions, token]);
 
   const handleToggleGlobalAutoLock = async () => {
     try {

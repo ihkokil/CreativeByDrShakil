@@ -12,7 +12,6 @@ import {
   Play,
   Shield,
   Zap,
-  RotateCcw,
 } from "lucide-react";
 import styles from "./StudyQuizPlayer.module.css";
 
@@ -344,8 +343,8 @@ export default function StudyQuizPlayer({ lesson, onComplete }: StudyQuizPlayerP
               <div className={styles.ruleContent}>
                 <span className={styles.ruleLabel}>Ranking</span>
                 <span className={styles.ruleValue}>
-                  {getPositionTypeLabel(quiz.positionType)} ({quiz.allowMultipleAttempts 
-                    ? (quiz.maxAttempts && quiz.maxAttempts > 0 ? `Max ${quiz.maxAttempts} attempts` : 'Unlimited attempts') 
+                  {getPositionTypeLabel(quiz.positionType)} ({quiz.allowMultipleAttempts
+                    ? (quiz.maxAttempts && quiz.maxAttempts > 0 ? `Max ${quiz.maxAttempts} attempts` : 'Unlimited attempts')
                     : 'Single attempt'})
                 </span>
               </div>

@@ -3,7 +3,7 @@
 import styles from "./CourseCard.module.css";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Clock, Star, User } from "lucide-react";
+import { BookOpen, Clock } from "lucide-react";
 import { Course } from "@/constants/courses";
 
 

@@ -5,8 +5,6 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ChevronLeft,
-  ChevronRight,
-  Download,
   BarChart2,
   Trophy,
   User,
@@ -19,12 +17,8 @@ import {
   CheckCircle,
   XCircle,
   HelpCircle,
-  Filter,
   FileText,
   Search,
-  Check,
-  X,
-  Loader2,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -153,7 +147,7 @@ export default function TeacherQuizResultsPage() {
 
   useEffect(() => {
     fetchResults();
-  }, [quizId, attemptParam]);
+  }, [quizId, attemptParam, fetchResults]);
 
   useEffect(() => {
     if (studentParam !== selectedStudentId) {
@@ -168,7 +162,7 @@ export default function TeacherQuizResultsPage() {
     if (tabParam && tabParam !== activeTab) {
       setActiveTab(tabParam as any);
     }
-  }, [studentParam, attemptParam, tabParam]);
+  }, [studentParam, attemptParam, tabParam, selectedStudentId, selectedAttemptId, activeTab, loadStudentAttemptDetails]);
 
   const fetchResults = async () => {
     try {
@@ -205,7 +199,7 @@ export default function TeacherQuizResultsPage() {
     }
   };
 
-  const loadStudentAttemptDetails = async (attId: string) => {
+  const loadStudentAttemptDetails = useCallback(async (attId: string) => {
     setLoadingAttemptData(true);
     try {
       const res = await fetch(`/api/quiz/${quizId}/results?attempt=${attId}`);
@@ -218,7 +212,7 @@ export default function TeacherQuizResultsPage() {
     } finally {
       setLoadingAttemptData(false);
     }
-  };
+  });
 
   const formatTime = (seconds: number | null) => {
     if (!seconds && seconds !== 0) return 'N/A';
@@ -352,8 +346,8 @@ export default function TeacherQuizResultsPage() {
 
   const { quiz, summary, leaderboard, perQuestionAnalytics, attempt } = data;
   const isViewingAttempt = !!attemptParam && !!attempt;
-  const totalMarks = (quiz as any)?.totalMarks !== undefined 
-    ? (quiz as any).totalMarks 
+  const totalMarks = (quiz as any)?.totalMarks !== undefined
+    ? (quiz as any).totalMarks
     : ((quiz?.totalQuestions || 0) * 2);
 
   return (
@@ -580,21 +574,21 @@ export default function TeacherQuizResultsPage() {
                                                   <span className={styles.optionText}>{option.text}</span>
                                                 </div>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                                                  <div style={{ 
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                  <div style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                                    background: isCorrectT ? 'var(--success-color, #10b981)' : ((isT && !isCorrectT) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
-                                                    border: (isT && !isCorrectT) ? '2px solid var(--error-color, #ef4444)' : ((isT && isCorrectT) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
-                                                    color: (isCorrectT || (isT && !isCorrectT)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                                    background: isCorrectT ? 'var(--success-color, #10b981)' : ((isT && !isCorrectT) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'),
+                                                    border: (isT && !isCorrectT) ? '2px solid var(--error-color, #ef4444)' : ((isT && isCorrectT) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'),
+                                                    color: (isCorrectT || (isT && !isCorrectT)) ? 'white' : 'var(--text-muted, #a1a1aa)'
                                                   }}>
                                                     True
                                                   </div>
-                                                  <div style={{ 
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                                  <div style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                     minWidth: '58px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                                    background: isCorrectF ? 'var(--success-color, #10b981)' : ((isF && !isCorrectF) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'), 
-                                                    border: (isF && !isCorrectF) ? '2px solid var(--error-color, #ef4444)' : ((isF && isCorrectF) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'), 
-                                                    color: (isCorrectF || (isF && !isCorrectF)) ? 'white' : 'var(--text-muted, #a1a1aa)' 
+                                                    background: isCorrectF ? 'var(--success-color, #10b981)' : ((isF && !isCorrectF) ? 'var(--error-color, #ef4444)' : 'var(--bg-tertiary, #27272a)'),
+                                                    border: (isF && !isCorrectF) ? '2px solid var(--error-color, #ef4444)' : ((isF && isCorrectF) ? '2px solid var(--success-color, #10b981)' : '1px solid var(--border-color, rgba(255,255,255,0.1))'),
+                                                    color: (isCorrectF || (isF && !isCorrectF)) ? 'white' : 'var(--text-muted, #a1a1aa)'
                                                   }}>
                                                     False
                                                   </div>
@@ -1305,22 +1299,22 @@ export default function TeacherQuizResultsPage() {
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                                 {/* True Pill */}
-                                <div style={{ 
+                                <div style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                                   minWidth: '68px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                  background: isT ? (isCorrectT ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)') : (isCorrectT ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)'), 
-                                  border: isT ? (isCorrectT ? '1px solid #10b981' : '1px solid #ef4444') : (isCorrectT ? '1px dashed rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'), 
-                                  color: isT ? (isCorrectT ? '#10b981' : '#ef4444') : (isCorrectT ? '#10b981' : 'var(--text-muted, #71717a)') 
+                                  background: isT ? (isCorrectT ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)') : (isCorrectT ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)'),
+                                  border: isT ? (isCorrectT ? '1px solid #10b981' : '1px solid #ef4444') : (isCorrectT ? '1px dashed rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'),
+                                  color: isT ? (isCorrectT ? '#10b981' : '#ef4444') : (isCorrectT ? '#10b981' : 'var(--text-muted, #71717a)')
                                 }}>
                                   {isT ? (isCorrectT ? '✓ True' : '✗ True') : (isCorrectT ? '✓ True' : 'True')}
                                 </div>
                                 {/* False Pill */}
-                                <div style={{ 
+                                <div style={{
                                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                                   minWidth: '68px', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                                  background: isF ? (isCorrectF ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)') : (isCorrectF ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)'), 
-                                  border: isF ? (isCorrectF ? '1px solid #10b981' : '1px solid #ef4444') : (isCorrectF ? '1px dashed rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'), 
-                                  color: isF ? (isCorrectF ? '#10b981' : '#ef4444') : (isCorrectF ? '#10b981' : 'var(--text-muted, #71717a)') 
+                                  background: isF ? (isCorrectF ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)') : (isCorrectF ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255, 255, 255, 0.03)'),
+                                  border: isF ? (isCorrectF ? '1px solid #10b981' : '1px solid #ef4444') : (isCorrectF ? '1px dashed rgba(16, 185, 129, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)'),
+                                  color: isF ? (isCorrectF ? '#10b981' : '#ef4444') : (isCorrectF ? '#10b981' : 'var(--text-muted, #71717a)')
                                 }}>
                                   {isF ? (isCorrectF ? '✓ False' : '✗ False') : (isCorrectF ? '✓ False' : 'False')}
                                 </div>

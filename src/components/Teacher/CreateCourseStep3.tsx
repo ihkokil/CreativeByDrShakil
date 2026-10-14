@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, Video, X, Settings2, Repeat, LayoutList, ClipboardList, PlusCircle, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, Plus, Folder, X, Settings2, Repeat, LayoutList, ClipboardList, Check } from "lucide-react";
 import styles from "./CreateCourseStep3.module.css";
 import { getPreviousTargetDay, generateModuleSchedule, generatePreviewSchedule } from "@/lib/module-scheduling";
 import ConfirmModal from "@/components/UI/ConfirmModal";
@@ -14,7 +14,7 @@ export interface StarterItem {
   title: string;
   url?: string;
   quizId?: string;
-  items?: StarterItem[]; 
+  items?: StarterItem[];
 }
 
 export interface StarterMainTopic {
@@ -72,14 +72,14 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [topicOptions, setTopicOptions] = useState<StarterMainTopic[]>([]);
   // Chronological order of selected topics
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
-  
+
   const [courseStartDate, setCourseStartDate] = useState<string>("");
   const [previewDate, setPreviewDate] = useState<string>("");
-  
+
   const [releaseMode, setReleaseMode] = useState<"fixed_interval" | "circular">("fixed_interval");
   const [targetDay, setTargetDay] = useState<number>(5);
 
@@ -142,7 +142,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     };
   };
 
-  const fetchLinkedQuizzes = async () => {
+  const fetchLinkedQuizzes = useCallback(async () => {
     if (!courseId) return;
     try {
       const res = await fetch(`/api/teacher/courses/${courseId}/quizzes`, { headers: getAuthHeaders() });
@@ -153,7 +153,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     } catch (e) {
       console.error("Failed to fetch linked quizzes", e);
     }
-  };
+  });
 
   const handleOpenQuizModal = async (targetNodeId: string | null, targetTitle: string) => {
     setQuizModal({ open: true, targetNodeId, targetTitle });
@@ -224,7 +224,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
             const d = await res.json().catch(() => ({}));
             showAlert(d.error || "Failed to unlink quiz", "error");
           }
-        } catch (e) {
+        } catch {
           showAlert("Network error while unlinking quiz.", "error");
         }
       }
@@ -266,7 +266,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     if (topLevelFolders.length === 0) {
       topLevelFolders = nodes.filter(n => !n.parentId && n.type === "folder" && n.title.trim().toLowerCase() !== "all resources");
     }
-    
+
     return topLevelFolders.map(folder => {
       const subTopics = collectItemsRecursively(nodes, folder.id);
       return {
@@ -295,7 +295,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
           if (loadedMode === 'circular' || loadedMode === 'fixed_interval') {
              setReleaseMode(loadedMode);
           }
-          
+
           let initialTargetDay = 5;
           if (loadedCourseData.course?.releaseDaysOfWeek && loadedCourseData.course.releaseDaysOfWeek.length > 0) {
              initialTargetDay = loadedCourseData.course.releaseDaysOfWeek[0];
@@ -345,18 +345,18 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
         if (loadedCourseData?.course?.curriculumJson) {
           try {
             const curriculum = JSON.parse(loadedCourseData.course.curriculumJson);
-            
+
             let topicsToProcess = curriculum;
             const courseTitle = loadedCourseData?.course?.title || "";
             if (curriculum.length === 1 && curriculum[0].title && curriculum[0].title.trim().toLowerCase() === courseTitle.trim().toLowerCase()) {
                 topicsToProcess = curriculum[0].children || [];
             }
-            
+
             // Reconstruct chronological order from saved JSON
             topicsToProcess.forEach((topicNode: any) => {
               let matchedId = topicNode.mediaVaultFolderId || topicNode.id;
               const normTitle = topicNode.title ? topicNode.title.trim().toLowerCase() : '';
-              
+
               // Fallback: match by title if the ID isn't found in our topic list
               if (!seenIds.has(matchedId)) {
                   const matchedByTitle = allTopics.find(t => t.title.trim().toLowerCase() === normTitle);
@@ -404,7 +404,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
     };
 
     initStep();
-  }, [courseId]);
+  }, [buildHierarchyFromLibraryNodes, courseId, fetchLinkedQuizzes]);
 
   // Recalculate schedule map whenever selected modules or course start date changes
   useEffect(() => {
@@ -438,7 +438,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
 
     const [year, month, day] = previewDate.split("-").map(Number);
     const enrollmentDate = new Date(year, month - 1, day, 12, 0, 0, 0);
-    
+
     const [cy, cm, cd] = courseStartDate.split("-").map(Number);
     const baseCourseDate = new Date(cy, cm - 1, cd, 12, 0, 0, 0);
 
@@ -561,9 +561,9 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
           {topicOptions.map(topic => {
             const isSelected = selectedTopicIds.includes(topic.id);
             const orderIndex = selectedTopicIds.indexOf(topic.id);
-            
+
             return (
-              <div 
+              <div
                 key={topic.id}
                 onClick={() => toggleLibrarySelection(topic.id)}
                 style={{
@@ -582,9 +582,9 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                 </p>
                 {isSelected && (
                   <div style={{
-                    position: 'absolute', top: '16px', right: '16px', 
-                    background: 'var(--primary)', color: 'white', 
-                    width: '24px', height: '24px', borderRadius: '50%', 
+                    position: 'absolute', top: '16px', right: '16px',
+                    background: 'var(--primary)', color: 'white',
+                    width: '24px', height: '24px', borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '0.8rem', fontWeight: 'bold'
                   }}>
@@ -618,7 +618,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
       {error && <div className={styles.errorMessage}>{error}</div>}
 
       <div className={styles.reviewContent}>
-        
+
         {/* Module Selection & Scheduling UI */}
         <div className={styles.contentCard}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
@@ -658,11 +658,11 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                 <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
                   {releaseMode === 'circular' ? <Repeat size={14} /> : <LayoutList size={14} />} Release Mode
                 </label>
-                <div style={{ 
-                  display: "flex", 
-                  background: "rgba(255,255,255,0.03)", 
-                  border: "1px solid rgba(255,255,255,0.1)", 
-                  borderRadius: "8px", 
+                <div style={{
+                  display: "flex",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: "8px",
                   padding: "4px",
                   gap: "4px"
                 }}>
@@ -709,7 +709,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                 <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
                   <Calendar size={14} /> Module Release Day
                 </label>
-                <select 
+                <select
                   value={targetDay}
                   onChange={(e) => {
                     const newDay = Number(e.target.value);
@@ -718,9 +718,9 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                     setCourseStartDate(nextDate);
                     setPreviewDate(nextDate);
                   }}
-                  style={{ 
-                    background: "rgba(255,255,255,0.03)", color: "var(--foreground)", 
-                    border: "1px solid rgba(255,255,255,0.1)", padding: "12px 14px", 
+                  style={{
+                    background: "rgba(255,255,255,0.03)", color: "var(--foreground)",
+                    border: "1px solid rgba(255,255,255,0.1)", padding: "12px 14px",
                     borderRadius: "8px", outline: "none", fontSize: "0.95rem",
                     transition: "border-color 0.2s"
                   }}
@@ -741,9 +741,9 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                 <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
                   <Calendar size={14} /> Course Start Date
                 </label>
-                <div style={{ 
-                  display: "flex", alignItems: "center", gap: "8px", 
-                  background: "rgba(255,255,255,0.03)", padding: "10px 14px", 
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "8px",
+                  background: "rgba(255,255,255,0.03)", padding: "10px 14px",
                   borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)",
                   transition: "border-color 0.2s"
                 }}>
@@ -759,16 +759,16 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
               {releaseMode === 'circular' && (
                 <div style={{ display: "flex", flexDirection: "column", flex: "1", minWidth: "180px", position: "relative" }}>
                   <div style={{
-                    position: "absolute", top: "-12px", right: "0", background: "var(--primary)", 
+                    position: "absolute", top: "-12px", right: "0", background: "var(--primary)",
                     color: "white", fontSize: "0.65rem", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold",
                     letterSpacing: "0.5px", textTransform: "uppercase"
                   }}>Preview Only</div>
                   <label style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontWeight: "600", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
                     <Calendar size={14} /> Simulate Enrollment
                   </label>
-                  <div style={{ 
-                    display: "flex", alignItems: "center", gap: "8px", 
-                    background: "rgba(var(--primary-rgb), 0.05)", padding: "10px 14px", 
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: "8px",
+                    background: "rgba(var(--primary-rgb), 0.05)", padding: "10px 14px",
                     borderRadius: "8px", border: "1px dashed var(--primary)"
                   }}>
                     <input
@@ -783,7 +783,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
               )}
             </div>
           </div>
-          
+
           {releaseMode === 'circular' ? (
             <p className={styles.helperText} style={{ marginBottom: "20px", color: "var(--primary)" }}>
               Previewing circular rotation for a student enrolling on {previewDate ? formatDisplayDate(new Date(Number(previewDate.split('-')[0]), Number(previewDate.split('-')[1]) - 1, Number(previewDate.split('-')[2]))) : ""}
@@ -838,7 +838,7 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
             {/* List of quizzes in All Quizzes */}
             {linkedQuizzes.filter(q => !q.curriculumNodeId).length === 0 ? (
               <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", fontStyle: "italic", padding: "8px 0" }}>
-                No global quizzes added yet. Click "Add Quiz" to attach quizzes here.
+                No global quizzes added yet. Click &quot;Add Quiz&quot; to attach quizzes here.
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
@@ -874,13 +874,13 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {selectedTopicIds.length === 0 ? (
-              <div style={{ 
-                padding: "40px", textAlign: "center", border: "2px dashed var(--glass-border)", 
-                borderRadius: "12px", color: "var(--text-muted)" 
+              <div style={{
+                padding: "40px", textAlign: "center", border: "2px dashed var(--glass-border)",
+                borderRadius: "12px", color: "var(--text-muted)"
               }}>
                 <Folder size={48} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
                 <h3>No modules selected</h3>
-                <p>Click "Add Modules" to select folders from your library.</p>
+                <p>Click &quot;Add Modules&quot; to select folders from your library.</p>
               </div>
             ) : (
               previewSchedule.map((mod, index) => {
@@ -893,14 +893,14 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                 const moduleQuizzes = linkedQuizzes.filter(q => q.curriculumNodeId === mod.id);
 
                 return (
-                  <div key={`${mod.id}-${index}`} style={{ 
+                  <div key={`${mod.id}-${index}`} style={{
                     display: "flex", flexDirection: "column",
                     padding: "16px 20px", border: "1px solid var(--glass-border)", borderRadius: "12px",
                     background: "rgba(0,0,0,0.1)", gap: "12px"
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-                        <div style={{ 
+                        <div style={{
                           width: "180px", color: "var(--primary)", fontWeight: "600", fontSize: "0.95rem",
                           display: "flex", alignItems: "center", gap: "8px"
                         }}>
@@ -927,10 +927,10 @@ function CreateCourseStep3Content({ courseId }: { courseId?: string }) {
                         >
                           <Plus size={14} /> Add Quiz
                         </button>
-                        <button 
+                        <button
                           onClick={() => removeTopic(mod.id)}
-                          style={{ 
-                            background: "transparent", border: "none", color: "var(--text-muted)", 
+                          style={{
+                            background: "transparent", border: "none", color: "var(--text-muted)",
                             cursor: "pointer", padding: "8px", borderRadius: "50%",
                             display: "flex", alignItems: "center", justifyContent: "center"
                           }}

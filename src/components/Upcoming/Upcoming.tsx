@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import styles from "./Upcoming.module.css";
 import { Calendar, UserCheck, PlayCircle } from "lucide-react";
 import { formatDisplayDate } from "@/lib/date-format";
@@ -167,9 +167,9 @@ export default function Upcoming() {
                 onClose={() => setIsCheckoutOpen(false)}
             />
 
-            <AuthModal 
-                isOpen={isAuthOpen} 
-                onClose={() => setIsAuthOpen(false)} 
+            <AuthModal
+                isOpen={isAuthOpen}
+                onClose={() => setIsAuthOpen(false)}
                 defaultMode="login"
                 onSuccess={() => {
                     setIsAuthOpen(false);

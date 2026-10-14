@@ -12,14 +12,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { 
-      courseId, 
+    const {
+      courseId,
       batchId,
-      studentId, 
+      studentId,
       studentIds,
       isNewStudent,
-      email, 
-      fullName, 
+      email,
+      fullName,
       phone,
       bulkEmails
     } = body;
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
-    
+
     // Verify course belongs to this teacher
     const { data: course } = await supabase
       .from('Course')
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       }
 
       const { token: setupToken, tokenHash } = await createTokenPair();
-      const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); 
+      const resetExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
       const tempPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
 
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       }
     } else if (bulkEmails && Array.isArray(bulkEmails) && bulkEmails.length > 0) {
       const normalizedEmails = bulkEmails.map(e => String(e).trim().toLowerCase());
-      
+
       const { data: foundStudents } = await supabase
         .from('User')
         .select('*')
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       // Check if some emails were not found
       const foundEmails = foundStudents.map(s => s.email.toLowerCase());
       const notFoundEmails = normalizedEmails.filter(e => !foundEmails.includes(e));
-      
+
       // We will proceed with enrolling the found ones, and return a message about not found ones.
       (request as any).notFoundEmails = notFoundEmails;
     } else {
@@ -164,14 +164,14 @@ export async function POST(request: NextRequest) {
         .select('*')
         .in('id', ids)
         .eq('role', 'student');
-      
+
       if (!foundStudents || foundStudents.length === 0) {
         return NextResponse.json({ error: 'Students not found.' }, { status: 404 });
       }
       enrolledStudents = foundStudents;
     }
 
-    let successfulEnrollments = [];
+    const successfulEnrollments = [];
 
     for (const student of enrolledStudents) {
       const { data: existingOrder } = await supabase
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       // Allow re-enrolling or moving students to a new batch even if they are already approved
-      
+
       let finalEnrolledAt = new Date().toISOString();
       const isSpecialBatch = batch?.name && (
         batch.name.toLowerCase().includes('instant') ||
@@ -207,12 +207,12 @@ export async function POST(request: NextRequest) {
       let order;
       if (existingOrder) {
         const nowStr = new Date().toISOString();
-        const updateData: any = { 
-          status: 'approved', 
-          totalAmount: 0, 
-          updatedAt: nowStr 
+        const updateData: any = {
+          status: 'approved',
+          totalAmount: 0,
+          updatedAt: nowStr
         };
-        
+
         if (batch) {
           updateData.batchId = batch.id;
           updateData.enrolledAt = finalEnrolledAt;
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
           .from('Order')
           .update(updateData)
           .eq('id', (existingOrder as any).id);
-        
+
         if (updateError) {
           console.error(`Failed to update order for ${student.email}: ${updateError.message}`);
           continue;
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
         const { error: orderInsertError } = await supabase.from('Order')
 // @ts-ignore
 .insert(newOrder as any);
-        
+
         if (orderInsertError) {
           console.error(`Failed to create order for ${student.email}: ${orderInsertError.message}`);
           continue;
@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
     let responseMessage = isNewRegistration
         ? `Student enrolled successfully. A password setup email has been sent to ${enrolledStudents[0].email}.`
         : `${successfulEnrollments.length} student(s) enrolled successfully.`;
-        
+
     const notFoundEmails = (request as any).notFoundEmails;
     if (notFoundEmails && notFoundEmails.length > 0) {
       responseMessage += ` Note: ${notFoundEmails.length} email(s) were not found in the system.`;
@@ -315,7 +315,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
-    
+
     const { data: enrollmentsData = [] } = await supabase
       .from('Order')
       .select('*')
@@ -325,17 +325,17 @@ export async function GET(request: NextRequest) {
 
     const orderUserIds = [...new Set((enrollmentsData || []).map((o: any) => o.userId).filter(Boolean))];
     const orderCourseIds = [...new Set((enrollmentsData || []).map((o: any) => o.courseId).filter(Boolean))];
-    
-    const users = orderUserIds.length > 0 
-      ? await supabase.from('User').select('id, fullName, email, phone').in('id', orderUserIds).then(r => r.data || []) 
+
+    const users = orderUserIds.length > 0
+      ? await supabase.from('User').select('id, fullName, email, phone').in('id', orderUserIds).then(r => r.data || [])
       : [];
     const courses = orderCourseIds.length > 0
       ? await supabase.from('Course').select('id, title, slug, teacherId').in('id', orderCourseIds).then(r => r.data || [])
       : [];
-      
+
     const usersMap = new Map(users.map((u: any) => [u.id, u]));
     const coursesMap = new Map(courses.map((c: any) => [c.id, c]));
-    
+
     // Fetch batch names if batchId is present
     const batchIds = [...new Set((enrollmentsData || []).map((o: any) => o.batchId).filter(Boolean))];
     let batchesMap = new Map();
@@ -344,9 +344,9 @@ export async function GET(request: NextRequest) {
       batchesMap = new Map((batches || []).map((b: any) => [b.id, b]));
     }
 
-    const enrollments = (enrollmentsData || []).map((o: any) => ({ 
-      ...o, 
-      user: usersMap.get(o.userId) || null, 
+    const enrollments = (enrollmentsData || []).map((o: any) => ({
+      ...o,
+      user: usersMap.get(o.userId) || null,
       course: coursesMap.get(o.courseId) || null,
       batchName: o.batchId ? batchesMap.get(o.batchId)?.name : null
     }));
@@ -386,18 +386,18 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
     const { data: existingOrder } = await supabase.from('Order').select('*').eq('id', orderId).limit(1).maybeSingle();
-    
+
     let existingOrderCourse = null;
     if (existingOrder && (existingOrder as any).courseId) {
       const { data } = await supabase.from('Course').select('*').eq('id', (existingOrder as any).courseId).limit(1).maybeSingle();
       existingOrderCourse = data;
     }
     const existingOrderWithCourse = existingOrder ? { ...(existingOrder as any), course: existingOrderCourse } : null;
-    
+
     if (!existingOrderWithCourse) {
         return NextResponse.json({ error: 'Enrollment not found.' }, { status: 404 });
     }
-    
+
     if (payload.role !== 'admin' && existingOrderWithCourse.course?.teacherId !== payload.sub) {
         return NextResponse.json({ error: 'Forbidden: You do not own this course.' }, { status: 403 });
     }
