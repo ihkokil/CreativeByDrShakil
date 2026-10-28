@@ -725,7 +725,7 @@ export default function ModuleLibraryManager() {
         if (!videoTitle.trim() || !activeParentId || isSubmitting) return;
 
         if (videoType === 'youtube' && !videoUrl.trim()) {
-            showAlert('YouTube URL is required.', 'warning');
+            showAlert('YouTube or PipraTube URL is required.', 'warning');
             return;
         }
         if (videoType === 'self-hosted' && !videoUrl.trim() && !videoFile) {
@@ -1224,7 +1224,7 @@ export default function ModuleLibraryManager() {
                                     <div className={styles.formGroup}>
                                         <label>Video Type</label>
                                         <select value={videoType} onChange={e => { const nextType = e.target.value as ContentType; setVideoType(nextType); setVideoFile(null); setVideoUrl(''); }}>
-                                            <option value="youtube">YouTube Embed</option>
+                                            <option value="youtube">YouTube / PipraTube Embed</option>
                                             <option value="self-hosted">Self-Hosted Video</option>
                                         </select>
                                     </div>
@@ -1232,8 +1232,8 @@ export default function ModuleLibraryManager() {
                                 <div className={styles.formGroup}>
                                     {videoType === 'youtube' ? (
                                         <>
-                                            <label>YouTube URL</label>
-                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://..." required />
+                                            <label>YouTube / PipraTube URL</label>
+                                            <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder="https://youtube.com/... or https://pipratube.com/watch/..." required />
                                         </>
                                     ) : (
                                         <>
@@ -1366,7 +1366,7 @@ export default function ModuleLibraryManager() {
                                             <div className={styles.formGroup}>
                                                 <label>Module Type</label>
                                                 <select value={videoType} onChange={e => setVideoType(e.target.value as ContentType)}>
-                                                    <option value="youtube">YouTube Embed</option>
+                                                    <option value="youtube">YouTube / PipraTube Embed</option>
                                                     <option value="self-hosted">Self-Hosted Video</option>
                                                     <option value="document">Document</option>
                                                 </select>
@@ -1374,8 +1374,8 @@ export default function ModuleLibraryManager() {
                                         </div>
                                         {videoType !== 'document' && (
                                             <div className={styles.formGroup}>
-                                                <label>Resource URL</label>
-                                                <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} required={!videoFile} />
+                                                <label>{videoType === 'youtube' ? 'YouTube / PipraTube URL' : 'Resource URL'}</label>
+                                                <input type="url" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} placeholder={videoType === 'youtube' ? 'https://youtube.com/... or https://pipratube.com/watch/...' : 'https://...'} required={!videoFile} />
                                             </div>
                                         )}
                                         {videoType === 'self-hosted' && (

@@ -11,6 +11,9 @@ const nextConfig = {
         'lucide-react',
         '@vidstack/react',
         'vidstack',
+        '@videojs/react',
+        '@videojs/hlsjs-video',
+        'video.js',
         '@supabase/supabase-js',
         'jose',
         'zod',
@@ -41,9 +44,9 @@ const nextConfig = {
             default-src 'self';
             script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com https://static.cloudflareinsights.com;
             style-src 'self' 'unsafe-inline';
-            img-src 'self' blob: data: https://files.creativebydrshakil.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com;
+            img-src 'self' blob: data: https://files.creativebydrshakil.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com https://api.pipratube.com;
             font-src 'self' data:;
-            connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com https://files.creativebydrshakil.com;
+            connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com https://files.creativebydrshakil.com https://api.pipratube.com;
             media-src 'self' blob: data: https://files.creativebydrshakil.com;
             object-src 'none';
             base-uri 'self';

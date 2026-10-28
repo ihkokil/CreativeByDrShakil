@@ -5,8 +5,17 @@
     aspect-ratio: 16 / 9;
     background: #000;
     border-radius: 12px;
-    overflow: hidden;
+    /* Do NOT clip — mobile aspect-ratio height can be < minHeight of the inner player,
+       which would cut off the seek slider / play button. */
+    overflow: visible;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 640px) {
+    .playerContainer {
+        aspect-ratio: 16 / 9;
+        border-radius: 8px;
+    }
 }
 
 /* ─── Mock Video (empty / locked state) ───────────────────── */

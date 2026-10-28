@@ -1,0 +1,244 @@
+@import "@videojs/react/video/skin.css";
+
+/* ==========================================================================
+   Video.js Player Layout & Container
+   ========================================================================== */
+.videojs-player-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  background-color: #000;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.videojs-player-container [data-video-player],
+.videojs-player-container video-player {
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+}
+
+/* ==========================================================================
+   Completely Remove Cast / Remote Playback Button from Player Controls
+   ========================================================================== */
+.media-cast-button,
+button.media-cast-button,
+[data-cast-button],
+[data-cast-state],
+button[aria-label*="cast" i],
+button[aria-label*="Cast"],
+.media-airplay-button,
+[data-airplay-state] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+}
+
+/* Override default skin border-radius to sleek, less-rounded style */
+:root {
+  --media-border-radius: 6px !important;
+}
+
+/* ==========================================================================
+   Video.js Theme & Quality Selector Styling (Matching videojs.org)
+   ========================================================================== */
+.video-js {
+  font-family: inherit;
+  font-size: 10px;
+}
+
+/* Big play button styling - classic centered style with smooth rounded corners */
+.video-js.vjs-big-play-centered .vjs-big-play-button {
+  top: 50% !important;
+  left: 50% !important;
+  margin-top: -0.8em !important;
+  margin-left: -1.5em !important;
+  width: 3em !important;
+  height: 1.6em !important;
+  line-height: 1.6em !important;
+  border-radius: 0.3em !important;
+  background-color: rgba(43, 51, 63, 0.75) !important;
+  border: 0.06666em solid rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(4px);
+  transition: all 0.25s ease-in-out !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.video-js:hover .vjs-big-play-button,
+.video-js .vjs-big-play-button:focus,
+.video-js .vjs-big-play-button:active {
+  background-color: rgba(79, 70, 229, 0.85) !important;
+  border-color: #ffffff !important;
+  transform: scale(1.08);
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+}
+
+/* Control bar styling */
+.video-js .vjs-control-bar {
+  background: linear-gradient(0deg, rgba(10, 10, 15, 0.95) 0%, rgba(10, 10, 15, 0.6) 70%, transparent 100%) !important;
+  height: 44px !important;
+  padding: 0 8px;
+  align-items: center;
+}
+
+/* Progress bar */
+.video-js .vjs-play-progress {
+  background-color: #6366f1 !important;
+}
+
+.video-js .vjs-slider {
+  background-color: rgba(115, 133, 159, 0.35) !important;
+  border-radius: 2px;
+}
+
+.video-js .vjs-load-progress {
+  background: rgba(115, 133, 159, 0.25) !important;
+}
+
+.video-js .vjs-load-progress div {
+  background: rgba(115, 133, 159, 0.4) !important;
+}
+
+/* ==========================================================================
+   HLS Quality Selector Menu & Gear Icon
+   ========================================================================== */
+.vjs-quality-selector .vjs-menu-button {
+  cursor: pointer;
+}
+
+.vjs-quality-selector .vjs-icon-placeholder:before {
+  font-family: VideoJS !important;
+  font-weight: normal;
+  font-style: normal;
+  content: "\f114" !important;
+}
+
+.video-js .vjs-quality-selector .vjs-menu {
+  bottom: 42px;
+  margin-bottom: 4px;
+}
+
+.video-js .vjs-quality-selector .vjs-menu .vjs-menu-content {
+  background-color: rgba(18, 18, 24, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(12px) !important;
+  padding: 6px 0 !important;
+  min-width: 110px;
+  max-height: 18em;
+}
+
+.video-js .vjs-quality-selector .vjs-menu-item {
+  font-size: 1.15em !important;
+  padding: 6px 14px !important;
+  text-transform: none !important;
+  text-align: left !important;
+  font-family: inherit !important;
+  color: #d1d5db !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+}
+
+.video-js .vjs-quality-selector .vjs-menu-item:hover {
+  background-color: rgba(99, 102, 241, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.video-js .vjs-quality-selector .vjs-menu-item.vjs-selected {
+  background-color: rgba(79, 70, 229, 0.85) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* ==========================================================================
+   Settings / Config Menu — Quality & Speed (new @videojs/react skin)
+   ========================================================================== */
+.video-js .media-settings-menu-trigger {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+  padding: 6px !important;
+}
+
+.video-js .media-settings-menu-trigger-icon {
+  color: #ffffff !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.video-js .media-settings-menu-trigger:focus-visible,
+.video-js .media-settings-menu-trigger:hover {
+  background: rgba(99, 102, 241, 0.25) !important;
+  border-color: rgba(99, 102, 241, 0.45) !important;
+}
+
+.video-js .media-menu-popup {
+  background-color: rgba(18, 18, 24, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(14px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(120%) !important;
+  padding: 8px 0 !important;
+  margin-top: 8px !important;
+}
+
+.video-js .media-menu-item,
+.video-js .media-menu-radio-item {
+  font-size: 0.95rem !important;
+  padding: 8px 16px !important;
+  color: #d1d5db !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.video-js .media-menu-item:hover,
+.video-js .media-menu-radio-item:hover {
+  background-color: rgba(99, 102, 241, 0.22) !important;
+  color: #ffffff !important;
+}
+
+.video-js .media-menu-item[aria-checked="true"],
+.video-js .media-menu-item[data-state="checked"],
+.video-js .media-menu-radio-item[aria-checked="true"],
+.video-js .media-menu-radio-item[data-state="checked"] {
+  background-color: rgba(79, 70, 229, 0.85) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Speed / quality value text */
+.video-js .media-menu-item .media-menu-item-label,
+.video-js .media-menu-radio-item .media-menu-item-label {
+  font-size: 0.9rem !important;
+  color: #9ca3af !important;
+}
+
+.video-js .media-menu-item:hover .media-menu-item-label,
+.video-js .media-menu-radio-item:hover .media-menu-item-label {
+  color: #e5e7eb !important;
+}
+

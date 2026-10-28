@@ -606,7 +606,7 @@ export default function TeacherCourseBuilder() {
                                                 <label>Type</label>
                                                 <select value={newNodeType} onChange={(e) => setNewNodeType(e.target.value as any)}>
                                                     <option value="folder">Folder</option>
-                                                    <option value="youtube">YouTube</option>
+                                                    <option value="youtube">YouTube / PipraTube</option>
                                                     <option value="self-hosted">Self-hosted</option>
                                                     <option value="document">Document</option>
                                                 </select>
@@ -620,8 +620,8 @@ export default function TeacherCourseBuilder() {
                                         {newNodeType !== "folder" && (
                                             <div className={styles.formRow}>
                                                 <div className={`${styles.formGroup}`} style={{ gridColumn: "1 / -1" }}>
-                                                    <label>Content URL</label>
-                                                    <input type="url" placeholder="https://..." value={newNodeUrl} onChange={(e) => setNewNodeUrl(e.target.value)} required={newNodeType !== "self-hosted"} />
+                                                    <label>{newNodeType === "youtube" ? "Content URL (YouTube or PipraTube)" : "Content URL"}</label>
+                                                    <input type="url" placeholder={newNodeType === "youtube" ? "https://youtube.com/... or https://pipratube.com/watch/..." : "https://..."} value={newNodeUrl} onChange={(e) => setNewNodeUrl(e.target.value)} required={newNodeType !== "self-hosted"} />
                                                 </div>
                                                 {newNodeType === "self-hosted" && (
                                                     <label className={styles.uploadLabel}>

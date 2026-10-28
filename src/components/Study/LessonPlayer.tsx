@@ -3,7 +3,9 @@
 import { Lock, FileText, Video as VideoIcon } from "lucide-react";
 import VideoWatermark from "@/components/ContentProtection/VideoWatermark";
 import VidstackPlayer from "./VidstackPlayer";
+import VideoPlayer from "@/components/VideoPlayer";
 import StudyQuizPlayer from "./StudyQuizPlayer";
+import { isPipratubeUrl } from "@/lib/pipratube";
 import styles from "./LessonPlayer.module.css";
 
 interface LessonPlayerProps {
@@ -57,8 +59,18 @@ export default function LessonPlayer({
     e.preventDefault();
   };
 
+  const isPipratubeSource = (): boolean => {
+    if (!lesson?.url) return false;
+    const raw = lesson.url.trim();
+    return (
+      (lesson.type || "").toLowerCase() === "pipratube" ||
+      isPipratubeUrl(raw)
+    );
+  };
+
   const isYoutubeSource = (): boolean => {
     if (!lesson?.url) return false;
+    if (isPipratubeSource()) return false;
     const raw = lesson.url.trim();
     return (
       lesson.type === "youtube" ||
@@ -221,10 +233,29 @@ export default function LessonPlayer({
     );
   }
 
+  const isPipratube = isPipratubeSource();
   const playerSrc = getPlayerSrc();
   const posterUrl = getPosterUrl();
   const isYoutube = isYoutubeSource();
 
+  // If PipraTube, render the new Video.JS player (with embedded watermark)
+  if (isPipratube) {
+    return (
+      <div
+        className={styles.playerContainer}
+        onContextMenu={handleContextMenu}
+      >
+        <VideoPlayer
+          src={lesson.url?.trim() || ''}
+          title={lesson.title}
+          autoplay={false}
+          showWatermark={true}
+        />
+      </div>
+    );
+  }
+
+  // Otherwise, render the original VidstackPlayer intact (with watermark)
   return (
     <div
       className={styles.playerContainer}
