@@ -62,12 +62,12 @@ export async function ensureCourseEnrollment(
   }
 
   // Create order for the course
+  // Check for ANY existing order (regardless of status) due to unique constraint on (userId, courseId)
   const { data: existingOrder } = await supabase
     .from('Order')
-    .select('id')
+    .select('id, status')
     .eq('userId', userId)
     .eq('courseId', courseId)
-    .eq('status', 'approved')
     .limit(1)
     .maybeSingle();
     
@@ -90,7 +90,22 @@ export async function ensureCourseEnrollment(
       console.error('[ensureCourseEnrollment] Error inserting order:', error);
       throw new Error(`Failed to insert order: ${error.message}`);
     }
+  } else if (existingOrder.status !== 'approved') {
+    // Update existing order to approved status
+    const { error } = await (supabase.from('Order') as any).update({
+      status: 'approved',
+      batchId,
+      enrolledAt: finalEnrolledAt,
+      expiresAt: finalExpiresAt,
+      updatedAt: new Date().toISOString(),
+    } as any).eq('id', existingOrder.id);
+    
+    if (error) {
+      console.error('[ensureCourseEnrollment] Error updating order:', error);
+      throw new Error(`Failed to update order: ${error.message}`);
+    }
   } else {
+    // Order already exists and is approved - update batch/enrollment dates if needed
     await (supabase.from('Order') as any).update({
       batchId,
       enrolledAt: finalEnrolledAt,

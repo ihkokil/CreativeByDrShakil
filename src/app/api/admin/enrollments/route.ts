@@ -191,41 +191,59 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Pre-check duplicate approved enrollment
-    const { data: existingApproved }: { data: any } = await supabase
+    // Pre-check for ANY existing enrollment (regardless of status) due to unique constraint on (userId, courseId)
+    const { data: existingOrder }: { data: any } = await supabase
       .from('Order')
-      .select('id')
+      .select('id, status')
       .eq('userId', finalStudent.id)
       .eq('courseId', courseId)
-      .eq('status', 'approved')
       .limit(1)
       .maybeSingle();
       
-    if (existingApproved) {
-      if (newlyCreatedUserId) {
-        await supabase.from('User').delete().eq('id', newlyCreatedUserId);
-      }
-      return NextResponse.json({ error: 'Student is already enrolled in this course.' }, { status: 409 });
-    }
-
-    try {
-      await ensureCourseEnrollment(
-        null,
-        finalStudent.id,
-        course.id,
-        course.title,
-        course.slug,
-        true
-      );
-    } catch (enrollErr) {
-      if (newlyCreatedUserId) {
-        try {
+    if (existingOrder) {
+      if (existingOrder.status === 'approved') {
+        if (newlyCreatedUserId) {
           await supabase.from('User').delete().eq('id', newlyCreatedUserId);
-        } catch (cleanupErr) {
-          console.error('[admin/enrollments] Compensation delete failed:', cleanupErr);
         }
+        return NextResponse.json({ error: 'Student is already enrolled in this course.' }, { status: 409 });
       }
-      throw enrollErr;
+      // If order exists with different status, update it to approved
+      const nowStr = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from('Order')
+        .update({
+          status: 'approved',
+          totalAmount: 0,
+          updatedAt: nowStr,
+        })
+        .eq('id', existingOrder.id);
+      
+      if (updateError) {
+        if (newlyCreatedUserId) {
+          await supabase.from('User').delete().eq('id', newlyCreatedUserId);
+        }
+        return NextResponse.json({ error: 'Failed to update existing enrollment.' }, { status: 500 });
+      }
+    } else {
+      try {
+        await ensureCourseEnrollment(
+          null,
+          finalStudent.id,
+          course.id,
+          course.title,
+          course.slug,
+          true
+        );
+      } catch (enrollErr) {
+        if (newlyCreatedUserId) {
+          try {
+            await supabase.from('User').delete().eq('id', newlyCreatedUserId);
+          } catch (cleanupErr) {
+            console.error('[admin/enrollments] Compensation delete failed:', cleanupErr);
+          }
+        }
+        throw enrollErr;
+      }
     }
 
     const { data: finalOrderRow }: { data: any } = await supabase

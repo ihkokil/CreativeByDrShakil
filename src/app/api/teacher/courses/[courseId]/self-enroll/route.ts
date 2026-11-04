@@ -31,13 +31,12 @@ export async function POST(
       return NextResponse.json({ error: 'Course not found.' }, { status: 404 });
     }
 
-    // Check if an approved order already exists
+    // Check if ANY existing order exists (due to unique constraint on userId, courseId)
     const { data: existingOrder } = await supabase
       .from('Order')
       .select('id, status')
       .eq('userId', payload.sub)
       .eq('courseId', course.id)
-      .eq('status', 'approved')
       .limit(1)
       .maybeSingle();
 
@@ -60,7 +59,22 @@ export async function POST(
         });
 
       if (insertError) throw insertError;
+    } else if (existingOrder.status !== 'approved') {
+      // Update existing order to approved status
+      const now = new Date().toISOString();
+      const { error: updateError } = await supabase
+        .from('Order')
+        .update({
+          status: 'approved',
+          totalAmount: 0,
+          enrolledAt: now,
+          updatedAt: now,
+        })
+        .eq('id', existingOrder.id);
+
+      if (updateError) throw updateError;
     }
+    // If existingOrder.status === 'approved', do nothing - already enrolled
 
     return NextResponse.json({
       success: true,
