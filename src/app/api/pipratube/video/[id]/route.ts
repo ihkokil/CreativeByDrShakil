@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { extractPipratubeId } from '@/lib/pipratube';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,9 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    let { id } = await params;
     if (!id) {
       return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
+    }
+
+    const cleanedId = extractPipratubeId(id);
+    if (cleanedId) {
+      id = cleanedId;
     }
 
     const apiUrl = `https://api.pipratube.com/api/videos/${encodeURIComponent(id)}`;
@@ -65,11 +71,31 @@ export async function GET(
       } catch {
         resolvedStreamUrl = rawVideo.hlsUrl;
       }
+    } else if (rawVideo.videoUrl) {
+      // Fallback to direct MP4/original stream when HLS is not yet transcoded or unavailable
+      try {
+        const parsed = new URL(rawVideo.videoUrl);
+        const streamPath = parsed.pathname.replace(/^\/+/, '');
+        const host = parsed.host;
+        const hostParam = host !== 'vz-817815b8-518.b-cdn.net' ? `?host=${encodeURIComponent(host)}` : '';
+        resolvedStreamUrl = `/api/pipratube/stream/${streamPath}${hostParam}`;
+      } catch {
+        resolvedStreamUrl = rawVideo.videoUrl;
+      }
     } else {
-      resolvedStreamUrl = rawVideo.hlsUrl || '';
+      resolvedStreamUrl = '';
     }
 
-    const availableResolutions = ['240p', '360p', '480p', '720p', '1080p'];
+    if (!resolvedStreamUrl) {
+      return NextResponse.json(
+        { error: 'Video stream is not available or still processing on PipraTube' },
+        { status: 404 }
+      );
+    }
+
+    const availableResolutions = hasHls 
+      ? ['240p', '360p', '480p', '720p', '1080p']
+      : (rawVideo.height ? [`${rawVideo.height}p`] : ['Original']);
 
     const videoRecord = {
       id: rawVideo.id,
@@ -82,6 +108,8 @@ export async function GET(
       availableResolutions,
       masterPlaylistUrl: resolvedStreamUrl,
       originalHlsUrl: rawVideo.hlsUrl || '',
+      originalVideoUrl: rawVideo.videoUrl || '',
+      streamType: hasHls ? ('hls' as const) : ('direct' as const),
       resolutions: resolutionLinks,
       createdAt: rawVideo.publishedAt || rawVideo.createdAt || new Date().toISOString(),
       duration: rawVideo.durationSeconds || 0,

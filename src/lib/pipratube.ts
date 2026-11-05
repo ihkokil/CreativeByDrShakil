@@ -22,6 +22,8 @@ export interface VideoRecord {
   durationFormatted?: string;
   pipratubeUrl?: string;
   originalHlsUrl?: string;
+  originalVideoUrl?: string;
+  streamType?: 'hls' | 'direct';
   resolutions?: {
     hls: Record<string, { url: string; directUrl: string }>;
   };

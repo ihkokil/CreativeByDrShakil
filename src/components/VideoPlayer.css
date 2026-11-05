@@ -169,76 +169,167 @@ button[aria-label*="Cast"],
 }
 
 /* ==========================================================================
-   Settings / Config Menu — Quality & Speed (new @videojs/react skin)
+   Settings / Config Menu — Quality & Speed (@videojs/react skin)
    ========================================================================== */
-.video-js .media-settings-menu-trigger {
-  background: rgba(255, 255, 255, 0.10) !important;
-  border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-radius: 8px !important;
-  color: #ffffff !important;
+.videojs-player-container .media-settings-menu-trigger,
+.media-skin .media-settings-menu-trigger,
+.media-settings-menu-trigger {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: var(--media-control-radius, 6px) !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  transition: background-color var(--media-duration, 0.15s), color var(--media-duration, 0.15s) !important;
+}
+
+.videojs-player-container .media-settings-menu-trigger:hover,
+.media-skin .media-settings-menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: none !important;
+}
+
+.videojs-player-container .media-settings-menu-trigger[aria-expanded="true"],
+.videojs-player-container .media-settings-menu-trigger:active,
+.videojs-player-container .media-settings-menu-trigger:focus-visible,
+.media-skin .media-settings-menu-trigger[aria-expanded="true"],
+.media-skin .media-settings-menu-trigger:active,
+.media-skin .media-settings-menu-trigger:focus-visible {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.videojs-player-container .media-menu-popup,
+.media-skin .media-menu-popup,
+.media-menu-popup {
+  background-color: #121218 !important;
+  background: rgba(18, 18, 24, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 50px -6px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+  min-width: 220px !important;
   padding: 6px !important;
+  z-index: 60 !important;
+  color: #f4f4f5 !important;
 }
 
-.video-js .media-settings-menu-trigger-icon {
-  color: #ffffff !important;
-  width: 18px !important;
-  height: 18px !important;
+.videojs-player-container .media-menu-content,
+.media-skin .media-menu-content,
+.media-menu-content {
+  min-width: 208px !important;
+  padding: 2px !important;
 }
 
-.video-js .media-settings-menu-trigger:focus-visible,
-.video-js .media-settings-menu-trigger:hover {
-  background: rgba(99, 102, 241, 0.25) !important;
-  border-color: rgba(99, 102, 241, 0.45) !important;
-}
-
-.video-js .media-menu-popup {
-  background-color: rgba(18, 18, 24, 0.96) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 14px 34px -6px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
-  backdrop-filter: blur(14px) saturate(120%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(120%) !important;
-  padding: 8px 0 !important;
-  margin-top: 8px !important;
-}
-
-.video-js .media-menu-item,
-.video-js .media-menu-radio-item {
-  font-size: 0.95rem !important;
-  padding: 8px 16px !important;
-  color: #d1d5db !important;
+.videojs-player-container .media-menu-trigger-item,
+.videojs-player-container .media-menu-item,
+.videojs-player-container .media-menu-radio-item,
+.videojs-player-container .media-menu-back-item,
+.media-skin .media-menu-trigger-item,
+.media-skin .media-menu-item,
+.media-skin .media-menu-radio-item,
+.media-skin .media-menu-back-item {
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  padding: 9px 12px !important;
+  color: #e4e4e7 !important;
+  border-radius: 6px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 10px !important;
+  gap: 12px !important;
   cursor: pointer !important;
   transition: all 0.15s ease !important;
+  text-decoration: none !important;
+  outline: none !important;
+  margin: 1px 0 !important;
 }
 
-.video-js .media-menu-item:hover,
-.video-js .media-menu-radio-item:hover {
-  background-color: rgba(99, 102, 241, 0.22) !important;
+.videojs-player-container .media-menu-trigger-item:hover,
+.videojs-player-container .media-menu-item:hover,
+.videojs-player-container .media-menu-radio-item:hover,
+.videojs-player-container .media-menu-back-item:hover,
+.media-skin .media-menu-trigger-item:hover,
+.media-skin .media-menu-item:hover,
+.media-skin .media-menu-radio-item:hover,
+.media-skin .media-menu-back-item:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
   color: #ffffff !important;
 }
 
-.video-js .media-menu-item[aria-checked="true"],
-.video-js .media-menu-item[data-state="checked"],
-.video-js .media-menu-radio-item[aria-checked="true"],
-.video-js .media-menu-radio-item[data-state="checked"] {
-  background-color: rgba(79, 70, 229, 0.85) !important;
-  color: #ffffff !important;
+.videojs-player-container .media-menu-back-item,
+.media-skin .media-menu-back-item {
+  font-weight: 600 !important;
+  color: #f4f4f5 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0 !important;
+  margin-bottom: 4px !important;
+  padding-bottom: 8px !important;
+}
+
+.videojs-player-container .media-menu-radio-item[aria-checked="true"],
+.media-skin .media-menu-radio-item[aria-checked="true"] {
+  background-color: rgba(99, 102, 241, 0.25) !important;
+  color: #a5b4fc !important;
   font-weight: 600 !important;
 }
 
-/* Speed / quality value text */
-.video-js .media-menu-item .media-menu-item-label,
-.video-js .media-menu-radio-item .media-menu-item-label {
-  font-size: 0.9rem !important;
-  color: #9ca3af !important;
+.videojs-player-container .media-menu-hint,
+.videojs-player-container .media-menu-hint-label,
+.media-skin .media-menu-hint,
+.media-skin .media-menu-hint-label {
+  font-size: 0.825rem !important;
+  color: #a1a1aa !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
 }
 
-.video-js .media-menu-item:hover .media-menu-item-label,
-.video-js .media-menu-radio-item:hover .media-menu-item-label {
-  color: #e5e7eb !important;
+.videojs-player-container .media-menu-separator,
+.media-skin .media-menu-separator {
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  margin: 4px 0 !important;
+}
+
+.videojs-player-container .media-menu-badge,
+.media-skin .media-menu-badge,
+.media-menu-badge {
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  background: rgba(99, 102, 241, 0.3) !important;
+  color: #a5b4fc !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+  margin-left: 6px !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* ==========================================================================
+   Quality Submenu: Reverse order so higher resolutions are on top, lower on bottom
+   ========================================================================== */
+.videojs-player-container .media-menu-radio-group:has([data-rendition]),
+.videojs-player-container [role="group"][aria-label*="Quality" i],
+.media-skin .media-menu-radio-group:has([data-rendition]),
+.media-skin [role="group"][aria-label*="Quality" i],
+.media-menu-radio-group:has([data-rendition]),
+[role="group"][aria-label*="Quality" i] {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+}
+
+/* Ensure Auto option stays pinned at the very top of the Quality list */
+.videojs-player-container .media-menu-radio-item[data-rendition="auto"],
+.videojs-player-container .media-menu-radio-item[value="auto"],
+.media-skin .media-menu-radio-item[data-rendition="auto"],
+.media-skin .media-menu-radio-item[value="auto"],
+.media-menu-radio-item[data-rendition="auto"],
+.media-menu-radio-item[value="auto"] {
+  order: 9999 !important;
 }
 

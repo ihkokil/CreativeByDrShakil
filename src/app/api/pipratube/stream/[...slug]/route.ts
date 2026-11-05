@@ -58,9 +58,15 @@ async function handleStreamProxy(
       });
     }
 
-    const ext = '.' + (relativePath.split('.').pop()?.toLowerCase() || '');
-    const detectedContentType =
+    const cleanPath = relativePath.split('?')[0].toLowerCase();
+    const ext = '.' + (cleanPath.split('.').pop() || '');
+    let detectedContentType =
       MIME_TYPES[ext] || upstreamRes.headers.get('content-type') || 'application/octet-stream';
+
+    // If it's the original video or an mp4, guarantee video/mp4 MIME type
+    if (cleanPath.endsWith('/original') || cleanPath.endsWith('original') || cleanPath.endsWith('.mp4')) {
+      detectedContentType = 'video/mp4';
+    }
 
     const responseHeaders = new Headers();
     responseHeaders.set('Content-Type', detectedContentType);

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import '@videojs/react/video/skin.css';
 import './VideoPlayer.css';
-import { VideoPlayer, VideoSkin } from '@videojs/react/video';
+import { VideoPlayer, VideoSkin, Video } from '@videojs/react/video';
 import { HlsJsVideo } from '@videojs/react/media/hlsjs-video';
 import { useMedia } from '@videojs/react';
 import Hls from 'hls.js';
@@ -108,8 +108,7 @@ export default function CustomVideoPlayer({
   const [activePoster, setActivePoster] = useState<string | undefined>(poster);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(0);
+  const [retryNonce, setRetryNonce] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -152,7 +151,8 @@ export default function CustomVideoPlayer({
           setError(null);
           const res = await fetch(`/api/pipratube/video/${encodeURIComponent(targetId)}`);
           if (!res.ok) {
-            throw new Error(`Failed to load PipraTube video (HTTP ${res.status})`);
+            const errData = await res.json().catch(() => null);
+            throw new Error(errData?.error || `Failed to load PipraTube video (HTTP ${res.status})`);
           }
           const data = await res.json();
           if (!data.success || !data.video?.masterPlaylistUrl) {
@@ -197,35 +197,12 @@ export default function CustomVideoPlayer({
     return () => {
       isMounted = false;
     };
-  }, [src, poster]);
+  }, [src, poster, retryNonce]);
 
-  // Track video progress for timestamp display
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime);
-    };
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration);
-    };
-
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-
-    return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-    };
-  }, [videoRef]);
-
-  const formatTime = (seconds: number): string => {
-    if (!isFinite(seconds) || seconds < 0) return '0:00';
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
+  const isHls = Boolean(
+    activeStreamUrl &&
+      (activeStreamUrl.includes('.m3u8') || activeStreamUrl.includes('/hls/'))
+  );
 
   const hlsSource = useMemo(() => {
     return {
@@ -257,7 +234,7 @@ export default function CustomVideoPlayer({
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#09090b', color: '#f87171', padding: '20px', textAlign: 'center', zIndex: 10, gap: '12px' }}>
           <p style={{ fontSize: '0.9rem', margin: 0 }}>{error}</p>
           <button
-            onClick={() => setActiveStreamUrl(src)}
+            onClick={() => setRetryNonce((c) => c + 1)}
             style={{ padding: '6px 14px', borderRadius: '6px', background: '#27272a', color: '#f4f4f5', border: '1px solid #3f3f46', cursor: 'pointer', fontSize: '0.8rem' }}
           >
             Retry
@@ -267,53 +244,50 @@ export default function CustomVideoPlayer({
 
       {activeStreamUrl && !isLoading && (
         <VideoPlayer title={title} poster={activePoster}>
-          <HlsEngineBridge videoRef={videoRef} />
-          <VideoSkin
-            style={
-              {
-                '--media-border-radius': '6px',
-              } as React.CSSProperties
-            }
-          >
-            <HlsJsVideo
-              ref={videoRef}
-              key={activeStreamUrl}
-              src={activeStreamUrl}
-              source={hlsSource}
-              poster={activePoster}
-              playsInline
-              autoPlay={autoplay}
-              crossOrigin="anonymous"
-              disableRemotePlayback
-            />
-          </VideoSkin>
+          {isHls ? (
+            <>
+              <HlsEngineBridge videoRef={videoRef} />
+              <VideoSkin
+                style={
+                  {
+                    '--media-border-radius': '6px',
+                  } as React.CSSProperties
+                }
+              >
+                <HlsJsVideo
+                  ref={videoRef}
+                  key={activeStreamUrl}
+                  src={activeStreamUrl}
+                  source={hlsSource}
+                  poster={activePoster}
+                  playsInline
+                  autoPlay={autoplay}
+                  crossOrigin="anonymous"
+                  disableRemotePlayback
+                />
+              </VideoSkin>
+            </>
+          ) : (
+            <VideoSkin
+              style={
+                {
+                  '--media-border-radius': '6px',
+                } as React.CSSProperties
+              }
+            >
+              <Video
+                ref={videoRef}
+                key={activeStreamUrl}
+                src={activeStreamUrl}
+                poster={activePoster}
+                playsInline
+                autoPlay={autoplay}
+                crossOrigin="anonymous"
+                disableRemotePlayback
+              />
+            </VideoSkin>
+          )}
         </VideoPlayer>
-      )}
-
-      {/* Timestamp overlay — rendered AFTER VideoPlayer so it paints on top of the video element */}
-      {activeStreamUrl && !isLoading && duration > 0 && (
-        <div style={{
-          position: 'absolute',
-          bottom: 10,
-          left: 12,
-          zIndex: 35,
-          pointerEvents: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4,
-          background: 'rgba(0, 0, 0, 0.55)',
-          backdropFilter: 'blur(6px)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          borderRadius: 6,
-          padding: '3px 9px',
-          color: '#ffffff',
-          fontSize: '0.78rem',
-          fontWeight: 600,
-          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-          textShadow: '0 1px 0 rgba(0,0,0,0.6)',
-        }}>
-          <span>{formatTime(currentTime)}</span>
-        </div>
       )}
 
       {/* Watermark overlay on the Video.JS player */}
