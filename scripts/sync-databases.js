@@ -78,11 +78,26 @@ function sortVideoLibraryNodesByDepth(rows) {
 }
 
 async function fetchTableData(table) {
-  const { data, error } = await sourceClient.from(table).select('*');
-  if (error) {
-    throw new Error(`Error fetching ${table}: ${error.message}`);
+  let allRows = [];
+  let from = 0;
+  const batchSize = 1000;
+  while (true) {
+    const { data, error } = await sourceClient
+      .from(table)
+      .select('*')
+      .range(from, from + batchSize - 1);
+    if (error) {
+      throw new Error(`Error fetching ${table}: ${error.message}`);
+    }
+    if (data && data.length > 0) {
+      allRows.push(...data);
+      if (data.length < batchSize) break;
+      from += batchSize;
+    } else {
+      break;
+    }
   }
-  return data || [];
+  return allRows;
 }
 
 async function sync() {
