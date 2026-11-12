@@ -97,6 +97,140 @@ function HlsEngineBridge({
   return null;
 }
 
+/**
+ * Handles screen orientation on mobile devices:
+ * 1. Automatically requests screen.orientation.lock('landscape') when entering fullscreen (Android Chrome, Samsung Internet, Edge, etc.)
+ * 2. Unlocks orientation when exiting fullscreen
+ * 3. Fallback for iOS / devices with system orientation lock: applies data-portrait-fullscreen so CSS rotates 90deg to fill the screen
+ * 4. Fallback for iPhone Safari: invokes webkitEnterFullscreen on video element if container fullscreen is unsupported
+ */
+function useFullscreenOrientation(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  videoRef: React.RefObject<HTMLVideoElement | null>
+) {
+  useEffect(() => {
+    const lockLandscape = async () => {
+      try {
+        const orientation = window.screen?.orientation as any;
+        if (orientation && typeof orientation.lock === 'function') {
+          await orientation.lock('landscape');
+        } else if ((window.screen as any)?.lockOrientation) {
+          (window.screen as any).lockOrientation('landscape');
+        } else if ((window.screen as any)?.mozLockOrientation) {
+          (window.screen as any).mozLockOrientation('landscape');
+        } else if ((window.screen as any)?.msLockOrientation) {
+          (window.screen as any).msLockOrientation('landscape');
+        }
+      } catch {
+        // Ignored if unsupported or user has system orientation lock
+      }
+    };
+
+    const unlockOrientation = () => {
+      try {
+        const orientation = window.screen?.orientation as any;
+        if (orientation && typeof orientation.unlock === 'function') {
+          orientation.unlock();
+        } else if ((window.screen as any)?.unlockOrientation) {
+          (window.screen as any).unlockOrientation();
+        } else if ((window.screen as any)?.mozUnlockOrientation) {
+          (window.screen as any).mozUnlockOrientation();
+        } else if ((window.screen as any)?.msUnlockOrientation) {
+          (window.screen as any).msUnlockOrientation();
+        }
+      } catch {
+        // Ignored
+      }
+    };
+
+    const updateOrientationState = () => {
+      const fsElement =
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement ||
+        (document as any).msFullscreenElement;
+
+      const isFs = Boolean(fsElement);
+      const isPortrait = window.innerHeight > window.innerWidth;
+
+      if (isFs) {
+        lockLandscape();
+        if (isPortrait) {
+          if (fsElement) fsElement.setAttribute('data-portrait-fullscreen', 'true');
+          if (containerRef.current) containerRef.current.setAttribute('data-portrait-fullscreen', 'true');
+        } else {
+          if (fsElement) fsElement.removeAttribute('data-portrait-fullscreen');
+          if (containerRef.current) containerRef.current.removeAttribute('data-portrait-fullscreen');
+        }
+      } else {
+        unlockOrientation();
+        if (fsElement) fsElement.removeAttribute('data-portrait-fullscreen');
+        if (containerRef.current) containerRef.current.removeAttribute('data-portrait-fullscreen');
+        document.querySelectorAll('[data-portrait-fullscreen="true"]').forEach((el) => {
+          el.removeAttribute('data-portrait-fullscreen');
+        });
+      }
+    };
+
+    const handlePointerUp = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const fsButton = target.closest(
+        '.media-fullscreen-button, [data-fullscreen-button], button[aria-label*="fullscreen" i]'
+      );
+      if (fsButton) {
+        const isFs = Boolean(
+          document.fullscreenElement ||
+          (document as any).webkitFullscreenElement
+        );
+        if (!isFs) {
+          lockLandscape();
+
+          // iPhone fallback: on iPhone Safari, container requestFullscreen is unsupported; invoke webkitEnterFullscreen on <video>
+          const isIPhone = /iPhone|iPod/i.test(navigator.userAgent);
+          if (
+            isIPhone &&
+            videoRef.current &&
+            typeof (videoRef.current as any).webkitEnterFullscreen === 'function' &&
+            !document.fullscreenEnabled &&
+            !(document as any).webkitFullscreenEnabled
+          ) {
+            try {
+              (videoRef.current as any).webkitEnterFullscreen();
+            } catch {
+              // Ignore
+            }
+          }
+        }
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('click', handlePointerUp, { capture: true });
+    }
+
+    document.addEventListener('fullscreenchange', updateOrientationState);
+    document.addEventListener('webkitfullscreenchange', updateOrientationState);
+    document.addEventListener('mozfullscreenchange', updateOrientationState);
+    document.addEventListener('MSFullscreenChange', updateOrientationState);
+    window.addEventListener('resize', updateOrientationState);
+    window.addEventListener('orientationchange', updateOrientationState);
+
+    return () => {
+      if (container) {
+        container.removeEventListener('click', handlePointerUp, { capture: true });
+      }
+      document.removeEventListener('fullscreenchange', updateOrientationState);
+      document.removeEventListener('webkitfullscreenchange', updateOrientationState);
+      document.removeEventListener('mozfullscreenchange', updateOrientationState);
+      document.removeEventListener('MSFullscreenChange', updateOrientationState);
+      window.removeEventListener('resize', updateOrientationState);
+      window.removeEventListener('orientationchange', updateOrientationState);
+    };
+  }, [containerRef, videoRef]);
+}
+
 export default function CustomVideoPlayer({
   src,
   poster,
@@ -109,7 +243,10 @@ export default function CustomVideoPlayer({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useFullscreenOrientation(containerRef, videoRef);
 
   useEffect(() => {
     let isMounted = true;
@@ -221,6 +358,7 @@ export default function CustomVideoPlayer({
 
   return (
     <div
+      ref={containerRef}
       className="videojs-player-container w-full h-full overflow-hidden rounded-lg shadow-2xl bg-black ring-1 ring-zinc-800/80 aspect-video flex items-center justify-center relative"
       style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#000' }}
     >
@@ -265,6 +403,11 @@ export default function CustomVideoPlayer({
                   crossOrigin="anonymous"
                   disableRemotePlayback
                 />
+                {showWatermark && (
+                  <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 25 }}>
+                    <VideoWatermark />
+                  </div>
+                )}
               </VideoSkin>
             </>
           ) : (
@@ -285,12 +428,17 @@ export default function CustomVideoPlayer({
                 crossOrigin="anonymous"
                 disableRemotePlayback
               />
+              {showWatermark && (
+                <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 25 }}>
+                  <VideoWatermark />
+                </div>
+              )}
             </VideoSkin>
           )}
         </VideoPlayer>
       )}
 
-      {/* Watermark overlay on the Video.JS player */}
+      {/* Watermark overlay on the Video.JS player (for pre-load / non-fullscreen fallback) */}
       {showWatermark && (
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 25 }}>
           <VideoWatermark />
