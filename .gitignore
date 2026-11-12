@@ -63,6 +63,9 @@ scratch_db.cjs
 .agents/
 skills-lock.json
 
+# Documentation
+docs/
+
 scripts/seed-mass-students.ts
 scripts/update-specific-enrollment.ts
 public/streams/*
