@@ -687,6 +687,11 @@
   .toolbar {
     flex-direction: column;
   }
+  .searchBox {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
   .filters {
     width: 100%;
     flex-direction: column;

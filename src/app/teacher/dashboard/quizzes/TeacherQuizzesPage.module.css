@@ -1080,6 +1080,7 @@
   }
 
   .searchForm {
+    flex: none;
     min-width: 0;
     width: 100%;
   }

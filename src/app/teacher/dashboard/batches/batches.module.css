@@ -812,14 +812,20 @@
   .controlsBar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+    padding: 12px 14px;
   }
 
   .searchWrapper {
+    flex: none;
+    width: 100%;
     max-width: 100%;
+    min-width: 0;
   }
 
   .searchInput {
     font-size: 16px;
+    height: 44px;
     min-height: 44px;
   }
 
@@ -828,6 +834,22 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+    width: 100%;
+  }
+
+  .selectBox {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .viewToggle {
+    min-height: 44px;
+    display: flex;
+  }
+
+  .toggleBtn {
+    flex: 1;
+    min-height: 44px;
   }
 
   .actionBtn,

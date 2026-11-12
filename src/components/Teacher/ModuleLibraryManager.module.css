@@ -287,6 +287,12 @@
         padding: 14px 16px;
     }
 
+    .headerLeft {
+        flex: none;
+        width: 100%;
+        min-width: 0;
+    }
+
     .toolbar {
         width: 100%;
         display: grid;
