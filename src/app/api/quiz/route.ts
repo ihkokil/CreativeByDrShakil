@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || '';
     const categoryId = searchParams.get('categoryId') || '';
     const courseIdFilter = searchParams.get('courseId') || '';
+    const moduleFilter = searchParams.get('module') || '';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
@@ -189,44 +190,35 @@ export async function GET(request: NextRequest) {
         indexNodes(annotated);
       }
 
-      // Fetch VideoLibraryNode structure for mapping subfolders
-      const { data: vaultNodes = [] } = await supabase
-        .from('VideoLibraryNode')
-        .select('id, parentId, title, type');
-      const vaultMap = new Map((vaultNodes || []).map((vn: any) => [vn.id, vn]));
-
-      // Query published quizzes
+      // Fetch VideoLibraryNode structure and published quizzes in parallel
       let quizQuery = supabase
         .from('Quiz')
-        .select('*', { count: 'exact' })
+        .select('*')
         .in('id', linkedQuizIds)
         .eq('status', 'published');
-
-      if (search) {
-        quizQuery = quizQuery.ilike('title', `%${search}%`);
-      }
 
       if (categoryId) {
         quizQuery = quizQuery.eq('categoryId', categoryId);
       }
 
-      const { data: dbQuizzes = [], count: totalCount, error: qErr } = await quizQuery
-        .order(orderColumn, { ascending: sortOrder === 'asc' })
-        .range(offset, offset + limit - 1);
+      const [{ data: vaultNodes = [] }, { data: dbQuizzes = [], error: qErr }] = await Promise.all([
+        supabase.from('VideoLibraryNode').select('id, parentId, title, type'),
+        quizQuery.order(orderColumn, { ascending: sortOrder === 'asc' }),
+      ]);
 
       if (qErr) throw qErr;
 
-      const quizIds = (dbQuizzes || []).map((q: any) => q.id);
-      const [{ data: questions = [] }, { data: attempts = [] }, { data: allSubmittedAttempts = [] }] = await Promise.all([
-        quizIds.length > 0 ? supabase.from('Question').select('quizId, id').in('quizId', quizIds) : Promise.resolve({ data: [] }),
-        quizIds.length > 0 ? supabase.from('QuizAttempt').select('id, quizId, status, netScore, percentageScore, attemptNumber, submittedAt, timeTakenSeconds').eq('studentId', payload.sub).in('quizId', quizIds) : Promise.resolve({ data: [] }),
-        quizIds.length > 0 ? supabase.from('QuizAttempt').select('quizId, studentId, netScore, percentageScore, attemptNumber, timeTakenSeconds, submittedAt, status').in('quizId', quizIds) : Promise.resolve({ data: [] }),
-      ]);
+      const vaultMap = new Map((vaultNodes || []).map((vn: any) => [vn.id, vn]));
+      const allQuizIds = (dbQuizzes || []).map((q: any) => q.id);
 
-      const questionsMap = new Map<string, number>();
-      for (const q of questions || []) {
-        questionsMap.set((q as any).quizId, (questionsMap.get((q as any).quizId) || 0) + 1);
-      }
+      // Fetch user attempts across all linked quizzes first so status/module filtering is accurate before pagination
+      const { data: attempts = [] } = allQuizIds.length > 0
+        ? await supabase
+            .from('QuizAttempt')
+            .select('id, quizId, status, netScore, percentageScore, attemptNumber, submittedAt, timeTakenSeconds')
+            .eq('studentId', payload.sub)
+            .in('quizId', allQuizIds)
+        : { data: [] };
 
       const attemptsMap = new Map<string, any[]>();
       for (const a of attempts || []) {
@@ -235,14 +227,12 @@ export async function GET(request: NextRequest) {
         attemptsMap.get(qId)!.push(a);
       }
 
-      const allAttemptsMap = new Map<string, any[]>();
-      for (const a of allSubmittedAttempts || []) {
-        const qId = (a as any).quizId;
-        if (!allAttemptsMap.has(qId)) allAttemptsMap.set(qId, []);
-        allAttemptsMap.get(qId)!.push(a);
-      }
+      const isCompletedStatus = (st: string) => {
+        const s = (st || '').toLowerCase().trim();
+        return s === 'submitted' || s === 'auto_submitted' || s === 'completed';
+      };
 
-      let result = (dbQuizzes || []).map((q: any) => {
+      const prelimQuizzes = (dbQuizzes || []).map((q: any) => {
         const link = (courseQuizLinks || []).find((cq: any) => cq.quizId === q.id);
         const course = link ? courseMap.get(link.courseId) : null;
         let isLocked = false;
@@ -283,11 +273,6 @@ export async function GET(request: NextRequest) {
         }
 
         const userAttempts = attemptsMap.get(q.id) || [];
-        const isCompletedStatus = (st: string) => {
-          const s = (st || '').toLowerCase().trim();
-          return s === 'submitted' || s === 'auto_submitted' || s === 'completed';
-        };
-
         const completedAttempts = userAttempts.filter((a: any) => isCompletedStatus(a.status));
         const inProgressAttempt = userAttempts.find((a: any) => (a.status || '').toLowerCase().trim() === 'in_progress');
 
@@ -297,6 +282,78 @@ export async function GET(request: NextRequest) {
         } else if (completedAttempts.length > 0 || userAttempts.length > 0) {
           quizStatus = 'Completed';
         }
+
+        return {
+          rawQuiz: q,
+          link,
+          course,
+          moduleName,
+          isLocked,
+          availableAt,
+          quizStatus,
+          userAttempts,
+          completedAttempts,
+        };
+      });
+
+      // Collect unique available modules for dropdown filter
+      const availableModules = Array.from(
+        new Set(prelimQuizzes.map(item => item.moduleName).filter(Boolean))
+      ).sort((a, b) => a.localeCompare(b));
+
+      // Apply search, module, and status filters BEFORE pagination
+      const searchLower = search.trim().toLowerCase();
+      const filteredPrelim = prelimQuizzes.filter(item => {
+        if (searchLower) {
+          const titleMatch = (item.rawQuiz.title || '').toLowerCase().includes(searchLower);
+          const moduleMatch = (item.moduleName || '').toLowerCase().includes(searchLower);
+          if (!titleMatch && !moduleMatch) return false;
+        }
+        if (moduleFilter && item.moduleName !== moduleFilter) {
+          return false;
+        }
+        if (status) {
+          if (status === 'locked' && !item.isLocked) return false;
+          if ((status === 'available' || status === 'not_attempted') && (item.isLocked || item.quizStatus !== 'Not Attempted')) return false;
+          if (status === 'in_progress' && (item.isLocked || item.quizStatus !== 'In Progress')) return false;
+          if (status === 'completed' && (item.isLocked || item.quizStatus !== 'Completed')) return false;
+        }
+        return true;
+      });
+
+      const filteredTotal = filteredPrelim.length;
+      const paginatedPrelim = filteredPrelim.slice(offset, offset + limit);
+      const pageQuizIds = paginatedPrelim.map(item => item.rawQuiz.id);
+
+      const [{ data: questions = [] }, { data: allSubmittedAttempts = [] }] = await Promise.all([
+        pageQuizIds.length > 0 ? supabase.from('Question').select('quizId, id').in('quizId', pageQuizIds) : Promise.resolve({ data: [] }),
+        pageQuizIds.length > 0 ? supabase.from('QuizAttempt').select('quizId, studentId, netScore, percentageScore, attemptNumber, timeTakenSeconds, submittedAt, status').in('quizId', pageQuizIds) : Promise.resolve({ data: [] }),
+      ]);
+
+      const questionsMap = new Map<string, number>();
+      for (const q of questions || []) {
+        questionsMap.set((q as any).quizId, (questionsMap.get((q as any).quizId) || 0) + 1);
+      }
+
+      const allAttemptsMap = new Map<string, any[]>();
+      for (const a of allSubmittedAttempts || []) {
+        const qId = (a as any).quizId;
+        if (!allAttemptsMap.has(qId)) allAttemptsMap.set(qId, []);
+        allAttemptsMap.get(qId)!.push(a);
+      }
+
+      const result = paginatedPrelim.map(item => {
+        const {
+          rawQuiz: q,
+          link,
+          course,
+          moduleName,
+          isLocked,
+          availableAt,
+          quizStatus,
+          userAttempts,
+          completedAttempts,
+        } = item;
 
         // Use completed attempts or userAttempts with scores
         const attemptsToScore = completedAttempts.length > 0 ? completedAttempts : userAttempts;
@@ -403,22 +460,11 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      if (status) {
-        if (status === 'locked') {
-          result = result.filter(q => q.isLocked);
-        } else if (status === 'available' || status === 'not_attempted') {
-          result = result.filter(q => !q.isLocked && q.status === 'Not Attempted');
-        } else if (status === 'in_progress') {
-          result = result.filter(q => !q.isLocked && q.status === 'In Progress');
-        } else if (status === 'completed') {
-          result = result.filter(q => !q.isLocked && q.status === 'Completed');
-        }
-      }
-
       return NextResponse.json({
         quizzes: result,
         courses: allCoursesList,
-        pagination: { page, limit, total: totalCount || 0, totalPages: Math.ceil((totalCount || 0) / limit) },
+        modules: availableModules,
+        pagination: { page, limit, total: filteredTotal, totalPages: Math.ceil(filteredTotal / limit) },
       });
     }
 

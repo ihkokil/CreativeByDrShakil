@@ -12,6 +12,8 @@ import {
   ChevronLeft,
   Check,
   Send,
+  LayoutGrid,
+  X,
 } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -63,9 +65,12 @@ export default function QuizTakePage() {
   const [submitting, setSubmitting] = useState(false);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [tabWarningShown, setTabWarningShown] = useState(false);
+  const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const perQuestionSaveTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const handleAutoSubmitRef = useRef<() => Promise<void>>(async () => { });
   const startedAtRef = useRef<number>(Date.now());
 
   // Load quiz attempt data
@@ -233,16 +238,20 @@ export default function QuizTakePage() {
     }
   }, [showResults, attemptId, saveAnswers, quizId, returnUrl, router]);
 
-  // Timer
   useEffect(() => {
-    if (showResults || timeRemaining === null || timeRemaining === Infinity || timeRemaining <= 0) return;
+    handleAutoSubmitRef.current = handleAutoSubmit;
+  }, [handleAutoSubmit]);
+
+  // Stable 1-second timer interval (does not recreate every second or on answer selection)
+  useEffect(() => {
+    if (showResults || loading || !attempt) return;
 
     timerRef.current = setInterval(() => {
       setTimeRemaining(prev => {
         if (prev === null || prev === Infinity) return prev;
         const newTime = prev - 1;
         if (newTime <= 0) {
-          handleAutoSubmit();
+          handleAutoSubmitRef.current();
           return 0;
         }
         return newTime;
@@ -252,7 +261,7 @@ export default function QuizTakePage() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timeRemaining, showResults, handleAutoSubmit]);
+  }, [showResults, loading, attempt?.id]);
 
   // Warn before unload
   useEffect(() => {
@@ -308,7 +317,7 @@ export default function QuizTakePage() {
         const data = await res.json();
         if (data.success) {
           setAnswers(prev => {
-            if (prev[questionId]) {
+            if (prev[questionId] && prev[questionId].selectedOption === selectedOption) {
               return {
                 ...prev,
                 [questionId]: { ...prev[questionId], saved: true },
@@ -323,6 +332,14 @@ export default function QuizTakePage() {
     }
   }, [attemptId]);
 
+  // Clean up per-question save timers on unmount
+  useEffect(() => {
+    const timers = perQuestionSaveTimersRef.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
+  }, []);
+
   // Debounced save (backup for any missed immediate saves)
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -332,16 +349,17 @@ export default function QuizTakePage() {
     };
   }, [answers, saveAnswers]);
 
-  // Keyboard dismissal for modal
+  // Keyboard dismissal for modal and mobile palette drawer
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showSubmitConfirm) {
-        setShowSubmitConfirm(false);
+      if (e.key === 'Escape') {
+        if (showSubmitConfirm) setShowSubmitConfirm(false);
+        if (mobilePaletteOpen) setMobilePaletteOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSubmitConfirm]);
+  }, [showSubmitConfirm, mobilePaletteOpen]);
 
   // Track currently active question in viewport
   useEffect(() => {
@@ -371,6 +389,7 @@ export default function QuizTakePage() {
 
   const scrollToQuestion = (questionId: string, index: number) => {
     setCurrentQuestionIndex(index);
+    setMobilePaletteOpen(false);
     const element = document.getElementById(`question-${questionId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -425,12 +444,15 @@ export default function QuizTakePage() {
       }
     });
 
-    // Immediately persist to server
-    setTimeout(() => {
+    // Debounce per-question save (220ms) to coalesce rapid 5-stem T/F taps while keeping UI instant
+    if (perQuestionSaveTimersRef.current[questionId]) {
+      clearTimeout(perQuestionSaveTimersRef.current[questionId]);
+    }
+    perQuestionSaveTimersRef.current[questionId] = setTimeout(() => {
       if (newSelectedForSave !== undefined) {
         saveAnswerImmediately(questionId, newSelectedForSave || '');
       }
-    }, 0);
+    }, 220);
   };
 
 
@@ -483,33 +505,6 @@ export default function QuizTakePage() {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // Set active question index on scroll
-  useEffect(() => {
-    if (questions.length === 0) return;
-
-    const observerOptions = {
-      root: null,
-      rootMargin: '-20% 0px -60% 0px',
-      threshold: 0,
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const index = parseInt(entry.target.getAttribute('data-index') || '0');
-          setCurrentQuestionIndex(index);
-        }
-      });
-    }, observerOptions);
-
-    questions.forEach((q) => {
-      const el = document.getElementById(`question-${q.id}`);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [questions]);
 
   const answeredCount = Object.values(answers).filter(a => a.selectedOption).length;
   const totalQuestions = questions.length;
@@ -639,9 +634,9 @@ export default function QuizTakePage() {
                       let optionClass = styles.mcqMatrixRow;
                       if (showResults) {
                         if ((isT && isCorrectT) || (isF && isCorrectF)) {
-                           optionClass += ` ${styles.optionCorrect}`;
+                          optionClass += ` ${styles.optionCorrect}`;
                         } else if (isT || isF) {
-                           optionClass += ` ${styles.optionIncorrect}`;
+                          optionClass += ` ${styles.optionIncorrect}`;
                         }
                       }
 
@@ -856,74 +851,113 @@ export default function QuizTakePage() {
           )}
         </section>
 
+        {/* Mobile Floating Question Map Trigger & Backdrop */}
+        {!showResults && (
+          <>
+            <button
+              type="button"
+              className={styles.mobilePaletteFab}
+              onClick={() => setMobilePaletteOpen(true)}
+              aria-label="Open Question Map"
+            >
+              <LayoutGrid size={17} />
+              <span>Question Map ({answeredCount}/{totalQuestions})</span>
+            </button>
+
+            {mobilePaletteOpen && (
+              <div
+                className={styles.mobilePaletteBackdrop}
+                onClick={() => setMobilePaletteOpen(false)}
+                aria-hidden="true"
+              />
+            )}
+          </>
+        )}
+
         {/* Sidebar Question Palette / Tracker */}
         {!showResults && (
-          <aside className={styles.paletteSidebar} aria-label="Question Navigation Column">
+          <aside
+            className={`${styles.paletteSidebar} ${mobilePaletteOpen ? styles.paletteSidebarOpen : ''}`}
+            aria-label="Question Navigation Column"
+          >
             {/* Header */}
-              <div className={styles.paletteHeader}>
+            <div className={styles.paletteHeader}>
+              <div className={styles.paletteHeaderTitleWrap}>
                 <h3 className={styles.paletteMainTitle}>Question Palette</h3>
                 <span className={styles.paletteTotalBadge}>{totalQuestions} Qs</span>
               </div>
+              <button
+                type="button"
+                className={styles.mobilePaletteCloseBtn}
+                onClick={() => setMobilePaletteOpen(false)}
+                aria-label="Close Question Palette"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
-              {/* Stats Counter Cards */}
-              <div className={styles.paletteStatsGrid}>
-                <div className={styles.paletteStatCardAnswered}>
-                  <span className={styles.paletteStatLabel}>ANSWERED</span>
-                  <span className={styles.paletteStatValue}>{answeredCount}</span>
-                </div>
-                <div className={styles.paletteStatCardUnanswered}>
-                  <span className={styles.paletteStatLabel}>UNANSWERED</span>
-                  <span className={styles.paletteStatValue}>{unansweredCount}</span>
-                </div>
+            {/* Stats Counter Cards */}
+            <div className={styles.paletteStatsGrid}>
+              <div className={styles.paletteStatCardAnswered}>
+                <span className={styles.paletteStatLabel}>ANSWERED</span>
+                <span className={styles.paletteStatValue}>{answeredCount}</span>
+              </div>
+              <div className={styles.paletteStatCardUnanswered}>
+                <span className={styles.paletteStatLabel}>UNANSWERED</span>
+                <span className={styles.paletteStatValue}>{unansweredCount}</span>
+              </div>
+            </div>
+
+            {/* Legend & Number Matrix */}
+            <div className={styles.paletteMatrixSection}>
+              <div className={styles.paletteMatrixHeader}>
+                <span className={styles.paletteMatrixTitle}>Jump to Question:</span>
+                <span className={styles.paletteLegend}>
+                  <span className={styles.paletteLegendDot} /> Answered
+                </span>
               </div>
 
-              {/* Legend & Number Matrix */}
-              <div className={styles.paletteMatrixSection}>
-                <div className={styles.paletteMatrixHeader}>
-                  <span className={styles.paletteMatrixTitle}>Jump to Question:</span>
-                  <span className={styles.paletteLegend}>
-                    <span className={styles.paletteLegendDot} /> Answered
-                  </span>
-                </div>
+              <div className={styles.paletteMatrixGrid}>
+                {questions.map((q, idx) => {
+                  const isTF = q.questionType === 'true_false' || q.questionType === 'mcq';
+                  const currentAns = answers[q.id]?.selectedOption;
+                  const isAnswered = isTF
+                    ? Boolean(currentAns && currentAns.length === 5 && !currentAns.includes('-'))
+                    : Boolean(currentAns);
+                  const isCurrent = currentQuestionIndex === idx;
 
-                <div className={styles.paletteMatrixGrid}>
-                  {questions.map((q, idx) => {
-                    const isTF = q.questionType === 'true_false' || q.questionType === 'mcq';
-                    const currentAns = answers[q.id]?.selectedOption;
-                    const isAnswered = isTF
-                      ? Boolean(currentAns && currentAns.length === 5 && !currentAns.includes('-'))
-                      : Boolean(currentAns);
-                    const isCurrent = currentQuestionIndex === idx;
-
-                    return (
-                      <button
-                        key={`palette-${q.id}`}
-                        type="button"
-                        onClick={() => scrollToQuestion(q.id, idx)}
-                        className={`
+                  return (
+                    <button
+                      key={`palette-${q.id}`}
+                      type="button"
+                      onClick={() => scrollToQuestion(q.id, idx)}
+                      className={`
                           ${styles.paletteNumBtn}
                           ${isAnswered ? styles.paletteNumAnswered : styles.paletteNumUnanswered}
                           ${isCurrent ? styles.paletteNumCurrent : ''}
                         `}
-                        aria-label={`Jump to Question ${idx + 1}`}
-                      >
-                        {idx + 1}
-                      </button>
-                    );
-                  })}
-                </div>
+                      aria-label={`Jump to Question ${idx + 1}`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* Sidebar Submit Button */}
-              <button
-                type="button"
-                onClick={() => setShowSubmitConfirm(true)}
-                disabled={submitting}
-                className={styles.paletteSubmitBtn}
-              >
-                <Send size={16} />
-                <span>{submitting ? 'Submitting...' : 'Submit Online Exam'}</span>
-              </button>
+            {/* Sidebar Submit Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setMobilePaletteOpen(false);
+                setShowSubmitConfirm(true);
+              }}
+              disabled={submitting}
+              className={styles.paletteSubmitBtn}
+            >
+              <Send size={16} />
+              <span>{submitting ? 'Submitting...' : 'Submit Online Exam'}</span>
+            </button>
           </aside>
         )}
       </main>

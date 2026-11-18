@@ -19,6 +19,8 @@ import {
     CheckCheck,
     ChevronsUpDown,
     Download,
+    Search,
+    X,
 } from "lucide-react";
 import styles from "./StudyOutlineHub.module.css";
 import { CurriculumNode } from "@/components/Course/CourseCurriculum";
@@ -104,6 +106,7 @@ export default function StudyOutlineHub({
     courseSlug: _courseSlug,
 }: Props) {
     const [filter, setFilter] = useState<FilterType>('all');
+    const [searchQuery, setSearchQuery] = useState('');
     const [expandedModuleIds, setExpandedModuleIds] = useState<Set<string>>(new Set());
 
     const completedSet = useMemo(() => new Set(completedLessonIds), [completedLessonIds]);
@@ -227,6 +230,52 @@ export default function StudyOutlineHub({
         }
     };
 
+    // Switch content filter and auto-expand matching unlocked modules
+    const handleFilterChange = (newFilter: FilterType) => {
+        setFilter(newFilter);
+        if (newFilter === 'all' && !searchQuery.trim()) {
+            setExpandedModuleIds(new Set());
+        } else {
+            const matchingUnlockedIds = modules
+                .filter(m => !m.locked && m.breakdown.items.some(item => newFilter === 'all' || getLessonType(item) === newFilter))
+                .map(m => m.id);
+            setExpandedModuleIds(new Set(matchingUnlockedIds));
+        }
+    };
+
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    const filteredModules = useMemo(() => {
+        return modules
+            .map(mod => {
+                const moduleTitleMatches = normalizedSearch !== '' && mod.title.toLowerCase().includes(normalizedSearch);
+
+                const displayItems = mod.breakdown.items.filter(item => {
+                    const typeMatch = filter === 'all' || getLessonType(item) === filter;
+                    if (!typeMatch) return false;
+                    if (!normalizedSearch) return true;
+                    // If the item title matches, include it; if none of the items match by title, include all type-matched items when module title matches
+                    return item.title.toLowerCase().includes(normalizedSearch);
+                });
+
+                const fallbackModuleItems = moduleTitleMatches && displayItems.length === 0
+                    ? mod.breakdown.items.filter(item => filter === 'all' || getLessonType(item) === filter)
+                    : displayItems;
+
+                const shouldShowModule =
+                    normalizedSearch !== ''
+                        ? (fallbackModuleItems.length > 0 || (moduleTitleMatches && filter === 'all'))
+                        : (filter === 'all' || fallbackModuleItems.length > 0);
+
+                return {
+                    mod,
+                    displayItems: fallbackModuleItems,
+                    shouldShowModule,
+                };
+            })
+            .filter(entry => entry.shouldShowModule);
+    }, [modules, filter, normalizedSearch]);
+
     return (
         <div className={styles.container}>
             {/* Top Navigation */}
@@ -339,250 +388,281 @@ export default function StudyOutlineHub({
                 </div>
             )}
 
-            {/* Filter Bar & Controls */}
-            <div className={styles.filterBar}>
-                <div className={styles.filterPills}>
-                    <button
-                        className={`${styles.filterPill} ${filter === 'all' ? styles.filterPillActive : ''}`}
-                        onClick={() => setFilter('all')}
-                    >
-                        All ({filterCounts.all})
-                    </button>
-                    <button
-                        className={`${styles.filterPill} ${filter === 'video' ? styles.filterPillActive : ''}`}
-                        onClick={() => setFilter('video')}
-                    >
-                        <PlayCircle size={14} />
-                        Videos ({filterCounts.video})
-                    </button>
-                    {filterCounts.document > 0 && (
+            {/* Search, Filter Bar & Controls */}
+            <div className={styles.controlsSection}>
+                <div className={styles.searchWrapper}>
+                    <Search size={16} className={styles.searchIcon} />
+                    <input
+                        type="text"
+                        placeholder="Search modules, video lectures, documents, or quizzes..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={styles.searchInput}
+                        aria-label="Search course curriculum"
+                    />
+                    {searchQuery && (
                         <button
-                            className={`${styles.filterPill} ${filter === 'document' ? styles.filterPillActive : ''}`}
-                            onClick={() => setFilter('document')}
+                            type="button"
+                            className={styles.searchClearBtn}
+                            onClick={() => setSearchQuery('')}
+                            aria-label="Clear search"
                         >
-                            <FileText size={14} />
-                            Documents ({filterCounts.document})
-                        </button>
-                    )}
-                    {filterCounts.quiz > 0 && (
-                        <button
-                            className={`${styles.filterPill} ${filter === 'quiz' ? styles.filterPillActive : ''}`}
-                            onClick={() => setFilter('quiz')}
-                        >
-                            <HelpCircle size={14} />
-                            Quizzes ({filterCounts.quiz})
+                            <X size={15} />
                         </button>
                     )}
                 </div>
 
-                <button className={styles.toggleAllBtn} onClick={toggleAll}>
-                    <ChevronsUpDown size={15} />
-                    <span>{expandedModuleIds.size > 0 ? 'Collapse All' : 'Expand All'}</span>
-                </button>
+                <div className={styles.filterBar}>
+                    <div className={styles.filterPills}>
+                        <button
+                            className={`${styles.filterPill} ${filter === 'all' ? styles.filterPillActive : ''}`}
+                            onClick={() => handleFilterChange('all')}
+                        >
+                            All ({filterCounts.all})
+                        </button>
+                        <button
+                            className={`${styles.filterPill} ${filter === 'video' ? styles.filterPillActive : ''}`}
+                            onClick={() => handleFilterChange('video')}
+                        >
+                            <PlayCircle size={14} />
+                            Videos ({filterCounts.video})
+                        </button>
+                        {filterCounts.document > 0 && (
+                            <button
+                                className={`${styles.filterPill} ${filter === 'document' ? styles.filterPillActive : ''}`}
+                                onClick={() => handleFilterChange('document')}
+                            >
+                                <FileText size={14} />
+                                Documents ({filterCounts.document})
+                            </button>
+                        )}
+                        {filterCounts.quiz > 0 && (
+                            <button
+                                className={`${styles.filterPill} ${filter === 'quiz' ? styles.filterPillActive : ''}`}
+                                onClick={() => handleFilterChange('quiz')}
+                            >
+                                <HelpCircle size={14} />
+                                Quizzes ({filterCounts.quiz})
+                            </button>
+                        )}
+                    </div>
+
+                    <button className={styles.toggleAllBtn} onClick={toggleAll}>
+                        <ChevronsUpDown size={15} />
+                        <span>{expandedModuleIds.size > 0 ? 'Collapse All' : 'Expand All'}</span>
+                    </button>
+                </div>
             </div>
 
             {/* Collapsed by Default Accordion Modules List */}
             <div className={styles.modulesList}>
-                {modules.map((mod) => {
-                    const isExpanded = expandedModuleIds.has(mod.id);
-                    const moduleCompletedItems = mod.breakdown.items.filter(item => completedSet.has(item.id)).length;
-                    const isModuleComplete = mod.breakdown.total > 0 && moduleCompletedItems === mod.breakdown.total;
-
-                    // Filter items inside module if filter active
-                    const displayItems = mod.breakdown.items.filter(item => {
-                        if (filter === 'all') return true;
-                        return getLessonType(item) === filter;
-                    });
-
-                    // If filter is active and module has no matching items, we can still show or dim it
-                    if (filter !== 'all' && displayItems.length === 0) {
-                        return null;
-                    }
-
-                    return (
-                        <div
-                            key={mod.id}
-                            className={`${styles.moduleCard} ${isExpanded ? styles.moduleCardActive : ''} ${mod.locked ? styles.moduleCardLocked : ''}`}
+                {filteredModules.length === 0 ? (
+                    <div className={styles.noMatchCard}>
+                        <Search size={28} className={styles.noMatchIcon} />
+                        <h3>No matching curriculum items found</h3>
+                        <p>
+                            We couldn&apos;t find any modules, lectures, or quizzes matching
+                            {searchQuery ? ` "${searchQuery.trim()}"` : ' the active filter'}.
+                        </p>
+                        <button
+                            type="button"
+                            className={styles.resetSearchBtn}
+                            onClick={() => {
+                                setSearchQuery('');
+                                handleFilterChange('all');
+                            }}
                         >
-                            <button
-                                className={styles.moduleHeader}
-                                onClick={() => toggleModule(mod.id, mod.locked)}
-                                aria-expanded={isExpanded}
-                                disabled={mod.locked}
+                            Reset Search & Filters
+                        </button>
+                    </div>
+                ) : (
+                    filteredModules.map(({ mod, displayItems }) => {
+                        const isExpanded = !mod.locked && (expandedModuleIds.has(mod.id) || normalizedSearch !== '');
+                        const moduleCompletedItems = mod.breakdown.items.filter(item => completedSet.has(item.id)).length;
+                        const isModuleComplete = mod.breakdown.total > 0 && moduleCompletedItems === mod.breakdown.total;
+
+                        return (
+                            <div
+                                key={mod.id}
+                                className={`${styles.moduleCard} ${isExpanded ? styles.moduleCardActive : ''} ${mod.locked ? styles.moduleCardLocked : ''}`}
                             >
-                                <div className={styles.moduleHeaderLeft}>
-                                    <div
-                                        className={`${styles.folderStatusIcon} ${
-                                            isModuleComplete
+                                <button
+                                    className={styles.moduleHeader}
+                                    onClick={() => toggleModule(mod.id, mod.locked)}
+                                    aria-expanded={isExpanded}
+                                    disabled={mod.locked}
+                                >
+                                    <div className={styles.moduleHeaderLeft}>
+                                        <div
+                                            className={`${styles.folderStatusIcon} ${isModuleComplete
                                                 ? styles.folderStatusDone
                                                 : mod.locked
-                                                ? styles.folderStatusLocked
-                                                : ''
-                                        }`}
-                                    >
-                                        {mod.locked ? (
-                                            <Lock size={18} />
-                                        ) : isModuleComplete ? (
-                                            <CheckCheck size={18} />
-                                        ) : isExpanded ? (
-                                            <FolderOpen size={18} />
-                                        ) : (
-                                            <Folder size={18} />
-                                        )}
-                                    </div>
-
-                                    <div className={styles.moduleHeaderText}>
-                                        <h3 className={styles.moduleTitle}>
-                                            {mod.title}
-                                        </h3>
-                                        <div className={styles.moduleSubtitle}>
-                                            {mod.breakdown.videos > 0 && <span>{mod.breakdown.videos} Videos</span>}
-                                            {mod.breakdown.docs > 0 && <span>• {mod.breakdown.docs} Documents</span>}
-                                            {mod.breakdown.quizzes > 0 && <span>• {mod.breakdown.quizzes} Quizzes</span>}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className={styles.moduleHeaderRight}>
-                                    {mod.locked ? (
-                                        <span className={styles.moduleBadgeLocked}>
-                                            <Lock size={12} />
-                                            {mod.availableAt ? `Available ${formatDisplayDate(mod.availableAt)}` : 'Locked'}
-                                        </span>
-                                    ) : isModuleComplete ? (
-                                        <span className={styles.moduleBadgeCompleted}>
-                                            <CheckCircle2 size={13} />
-                                            Completed
-                                        </span>
-                                    ) : (
-                                        <span className={styles.moduleBadgeProgress}>
-                                            {moduleCompletedItems}/{mod.breakdown.total} Done
-                                        </span>
-                                    )}
-
-                                    {!mod.locked && (
-                                        <ChevronDown
-                                            size={18}
-                                            className={`${styles.chevronIcon} ${isExpanded ? styles.chevronRotated : ''}`}
-                                        />
-                                    )}
-                                </div>
-                            </button>
-
-                            {/* Accordion Content */}
-                            <AnimatePresence initial={false}>
-                                {isExpanded && !mod.locked && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.22, ease: "easeInOut" }}
-                                    >
-                                        <div className={styles.moduleLessonsBody}>
-                                            {displayItems.length === 0 ? (
-                                                <div className={styles.emptyState}>
-                                                    No items matching the selected filter in this module.
-                                                </div>
+                                                    ? styles.folderStatusLocked
+                                                    : ''
+                                                }`}
+                                        >
+                                            {mod.locked ? (
+                                                <Lock size={18} />
+                                            ) : isModuleComplete ? (
+                                                <CheckCheck size={18} />
+                                            ) : isExpanded ? (
+                                                <FolderOpen size={18} />
                                             ) : (
-                                                displayItems.map((item) => {
-                                                    const itemType = getLessonType(item);
-                                                    const isDone = completedSet.has(item.id);
-                                                    const isActive = item.id === activeLessonId;
-
-                                                    return (
-                                                        <div
-                                                            key={item.id}
-                                                            className={`${styles.lessonRow} ${isActive ? styles.lessonRowActive : ''} ${item.locked ? styles.lessonRowLocked : ''}`}
-                                                            onClick={() => !item.locked && onSelectLesson(item)}
-                                                        >
-                                                            <div className={styles.lessonRowLeft}>
-                                                                <div
-                                                                    className={`${styles.lessonTypeIcon} ${
-                                                                        itemType === 'quiz'
-                                                                            ? styles.lessonTypeIconQuiz
-                                                                            : itemType === 'document'
-                                                                            ? styles.lessonTypeIconDoc
-                                                                            : styles.lessonTypeIconPlay
-                                                                    }`}
-                                                                >
-                                                                    {itemType === 'quiz' ? (
-                                                                        <HelpCircle size={15} />
-                                                                    ) : itemType === 'document' ? (
-                                                                        <FileText size={15} />
-                                                                    ) : (
-                                                                        <PlayCircle size={15} />
-                                                                    )}
-                                                                </div>
-
-                                                                <div className={styles.lessonTitleMeta}>
-                                                                    <span className={styles.lessonTitleText}>
-                                                                        {item.title}
-                                                                    </span>
-                                                                    <div className={styles.lessonSubMeta}>
-                                                                        <span>
-                                                                            {itemType === 'quiz'
-                                                                                ? 'Quiz'
-                                                                                : itemType === 'document'
-                                                                                ? 'Document'
-                                                                                : 'Video'}
-                                                                        </span>
-                                                                        {item.duration && (
-                                                                            <>
-                                                                                <span>•</span>
-                                                                                <span>{item.duration}</span>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className={styles.lessonRowRight}>
-                                                                {isDone && (
-                                                                    <CheckCircle2 size={18} className={styles.completedCheck} />
-                                                                )}
-
-                                                                <button
-                                                                    className={`${styles.playLessonBtn} ${isActive ? styles.playLessonBtnActive : ''}`}
-                                                                    disabled={item.locked}
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        onSelectLesson(item);
-                                                                    }}
-                                                                >
-                                                                    {itemType === 'document' ? (
-                                                                        <>
-                                                                            <Download size={13} />
-                                                                            <span>Download</span>
-                                                                        </>
-                                                                    ) : itemType === 'quiz' ? (
-                                                                        <>
-                                                                            <HelpCircle size={13} />
-                                                                            <span>{isDone ? 'Review' : 'Start'}</span>
-                                                                        </>
-                                                                    ) : isDone ? (
-                                                                        <>
-                                                                            <Play size={13} fill="currentColor" />
-                                                                            <span>Rewatch</span>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Play size={13} fill="currentColor" />
-                                                                            <span>Start</span>
-                                                                        </>
-                                                                    )}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })
+                                                <Folder size={18} />
                                             )}
                                         </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    );
-                })}
+
+                                        <div className={styles.moduleHeaderText}>
+                                            <h3 className={styles.moduleTitle}>
+                                                {mod.title}
+                                            </h3>
+                                            <div className={styles.moduleSubtitle}>
+                                                {mod.breakdown.videos > 0 && <span>{mod.breakdown.videos} Videos</span>}
+                                                {mod.breakdown.docs > 0 && <span>• {mod.breakdown.docs} Documents</span>}
+                                                {mod.breakdown.quizzes > 0 && <span>• {mod.breakdown.quizzes} Quizzes</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.moduleHeaderRight}>
+                                        {mod.locked ? (
+                                            <span className={styles.moduleBadgeLocked}>
+                                                <Lock size={12} />
+                                                {mod.availableAt ? `Available ${formatDisplayDate(mod.availableAt)}` : 'Locked'}
+                                            </span>
+                                        ) : isModuleComplete ? (
+                                            <span className={styles.moduleBadgeCompleted}>
+                                                <CheckCircle2 size={13} />
+                                                Completed
+                                            </span>
+                                        ) : (
+                                            <span className={styles.moduleBadgeProgress}>
+                                                {moduleCompletedItems}/{mod.breakdown.total} Done
+                                            </span>
+                                        )}
+
+                                        {!mod.locked && (
+                                            <ChevronDown
+                                                size={18}
+                                                className={`${styles.chevronIcon} ${isExpanded ? styles.chevronRotated : ''}`}
+                                            />
+                                        )}
+                                    </div>
+                                </button>
+
+                                {/* Accordion Content */}
+                                <AnimatePresence initial={false}>
+                                    {isExpanded && !mod.locked && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.22, ease: "easeInOut" }}
+                                        >
+                                            <div className={styles.moduleLessonsBody}>
+                                                {displayItems.length === 0 ? (
+                                                    <div className={styles.emptyState}>
+                                                        No items matching the selected filter in this module.
+                                                    </div>
+                                                ) : (
+                                                    displayItems.map((item) => {
+                                                        const itemType = getLessonType(item);
+                                                        const isDone = completedSet.has(item.id);
+                                                        const isActive = item.id === activeLessonId;
+
+                                                        return (
+                                                            <div
+                                                                key={item.id}
+                                                                className={`${styles.lessonRow} ${isActive ? styles.lessonRowActive : ''} ${item.locked ? styles.lessonRowLocked : ''}`}
+                                                                onClick={() => !item.locked && onSelectLesson(item)}
+                                                            >
+                                                                <div className={styles.lessonRowLeft}>
+                                                                    <div
+                                                                        className={`${styles.lessonTypeIcon} ${itemType === 'quiz'
+                                                                            ? styles.lessonTypeIconQuiz
+                                                                            : itemType === 'document'
+                                                                                ? styles.lessonTypeIconDoc
+                                                                                : styles.lessonTypeIconPlay
+                                                                            }`}
+                                                                    >
+                                                                        {itemType === 'quiz' ? (
+                                                                            <HelpCircle size={15} />
+                                                                        ) : itemType === 'document' ? (
+                                                                            <FileText size={15} />
+                                                                        ) : (
+                                                                            <PlayCircle size={15} />
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className={styles.lessonTitleMeta}>
+                                                                        <span className={styles.lessonTitleText}>
+                                                                            {item.title}
+                                                                        </span>
+                                                                        <div className={styles.lessonSubMeta}>
+                                                                            <span>
+                                                                                {itemType === 'quiz'
+                                                                                    ? 'Quiz'
+                                                                                    : itemType === 'document'
+                                                                                        ? 'Document'
+                                                                                        : 'Video'}
+                                                                            </span>
+                                                                            {item.duration && (
+                                                                                <>
+                                                                                    <span>•</span>
+                                                                                    <span>{item.duration}</span>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className={styles.lessonRowRight}>
+                                                                    {isDone && (
+                                                                        <CheckCircle2 size={18} className={styles.completedCheck} />
+                                                                    )}
+
+                                                                    <button
+                                                                        className={`${styles.playLessonBtn} ${isActive ? styles.playLessonBtnActive : ''}`}
+                                                                        disabled={item.locked}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            onSelectLesson(item);
+                                                                        }}
+                                                                    >
+                                                                        {itemType === 'document' ? (
+                                                                            <>
+                                                                                <Download size={13} />
+                                                                                <span>Download</span>
+                                                                            </>
+                                                                        ) : itemType === 'quiz' ? (
+                                                                            <>
+                                                                                <HelpCircle size={13} />
+                                                                                <span>{isDone ? 'Review' : 'Start'}</span>
+                                                                            </>
+                                                                        ) : isDone ? (
+                                                                            <>
+                                                                                <Play size={13} fill="currentColor" />
+                                                                                <span>Rewatch</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Play size={13} fill="currentColor" />
+                                                                                <span>Start</span>
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        );
+                    }))}
             </div>
         </div>
     );

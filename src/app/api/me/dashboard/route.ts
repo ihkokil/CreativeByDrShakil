@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/db';
 import { getAuthPayload } from '@/lib/route-auth';
 import { collectVideoNodes, parseCurriculumJson } from '@/lib/teacher-course-builder';
-import { populateMediaVaultNodes } from '@/lib/media-vault-populator';
+import { populateMediaVaultNodesBatch } from '@/lib/media-vault-populator';
 import { parseDbDate } from '@/lib/date-format';
 import { scopedToUser, scopedToStudent } from '@/lib/db-helpers';
 
@@ -19,12 +19,32 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    const { data: user, error: userError } = await supabase
-      .from('User')
-      .select('id, email, phone, role, fullName, profileImage, bmdcNumber, designation, institution, degrees, createdAt')
-      .eq('id', payload.sub)
-      .limit(1)
-      .maybeSingle();
+    // Run independent initial queries in parallel using payload.sub
+    const [
+      { data: user, error: userError },
+      { data: rawOrders = [] },
+      { data: publishedQuizzes = [] },
+      { data: rawAttempts = [] },
+    ] = await Promise.all([
+      supabase
+        .from('User')
+        .select('id, email, phone, role, fullName, profileImage, bmdcNumber, designation, institution, degrees, createdAt')
+        .eq('id', payload.sub)
+        .limit(1)
+        .maybeSingle(),
+      scopedToUser(
+        supabase.from('Order').select('*'),
+        payload.sub
+      ).order('createdAt', { ascending: false }),
+      supabase
+        .from('Quiz')
+        .select('id, title')
+        .eq('status', 'published'),
+      scopedToStudent(
+        supabase.from('QuizAttempt').select('*'),
+        payload.sub
+      ).order('submittedAt', { ascending: false }),
+    ]);
 
     if (userError) throw userError;
 
@@ -34,11 +54,6 @@ export async function GET(request: NextRequest) {
 
     const isAdmin = (user as any).role === 'admin' || (user as any).role === 'teacher';
     const oneYearAgo = new Date(Date.now() - ONE_YEAR_MS);
-
-    const { data: rawOrders = [] } = await scopedToUser(
-      supabase.from('Order').select('*'),
-      (user as any).id
-    ).order('createdAt', { ascending: false });
 
     const orderCourseIds = (rawOrders || []).map((o: any) => o.courseId);
     const orderIds = (rawOrders || []).map((o: any) => o.id);
@@ -97,10 +112,12 @@ export async function GET(request: NextRequest) {
         .select('*')
         .eq('status', 'published');
 
-      enrolledCourses = await Promise.all((allPublishedCourses || []).map(async (course: any) => {
-        const rawCurriculum = parseCurriculumJson(course.curriculumJson);
-        const curriculum = await populateMediaVaultNodes(rawCurriculum);
-        const lessonNodes = collectVideoNodes(curriculum);
+      const coursesArr = allPublishedCourses || [];
+      const rawCurricula = coursesArr.map((course: any) => parseCurriculumJson(course.curriculumJson));
+      const populatedCurricula = await populateMediaVaultNodesBatch(rawCurricula, supabase);
+
+      enrolledCourses = coursesArr.map((course: any, idx: number) => {
+        const lessonNodes = collectVideoNodes(populatedCurricula[idx]);
         return {
           orderId: `admin-${course.id}`,
           courseId: course.id,
@@ -109,22 +126,24 @@ export async function GET(request: NextRequest) {
           imageUrl: course.imageUrl,
           duration: course.duration,
           enrolledAt: course.createdAt,
-          lessonNodes // Store for progress calculation
+          lessonNodes,
         };
-      }));
+      });
     } else {
       const approvedOrders = orders.filter((order: any) => {
-        if (order.status !== 'approved') return false;
+        if (order.status !== 'approved' || !order.course) return false;
         if (order.expiresAt) {
           const parsedExpiry = parseDbDate(order.expiresAt);
           return parsedExpiry ? parsedExpiry >= new Date() : false;
         }
         return new Date(order.updatedAt) >= oneYearAgo;
       });
-      enrolledCourses = await Promise.all(approvedOrders.map(async (order: any) => {
-        const rawCurriculum = parseCurriculumJson(order.course.curriculumJson);
-        const curriculum = await populateMediaVaultNodes(rawCurriculum);
-        const lessonNodes = collectVideoNodes(curriculum);
+
+      const rawCurricula = approvedOrders.map((order: any) => parseCurriculumJson(order.course.curriculumJson));
+      const populatedCurricula = await populateMediaVaultNodesBatch(rawCurricula, supabase);
+
+      enrolledCourses = approvedOrders.map((order: any, idx: number) => {
+        const lessonNodes = collectVideoNodes(populatedCurricula[idx]);
         return {
           orderId: order.id,
           courseId: order.course.id,
@@ -133,9 +152,9 @@ export async function GET(request: NextRequest) {
           imageUrl: order.course.imageUrl,
           duration: order.course.duration,
           enrolledAt: order.enrolledAt || order.updatedAt,
-          lessonNodes
+          lessonNodes,
         };
-      }));
+      });
     }
 
     const courseIds = enrolledCourses.map((c) => c.courseId);
@@ -191,25 +210,23 @@ export async function GET(request: NextRequest) {
       totalPurchases: orders.length,
     };
 
-    // Quiz Stats
-    const { data: publishedQuizzes = [] } = await supabase
-      .from('Quiz')
-      .select('id, title')
-      .eq('status', 'published');
+    // Quiz Stats (using pre-fetched publishedQuizzes and rawAttempts)
+    const quizzesMap = new Map<string, any>((publishedQuizzes || []).map((q: any) => [q.id, q]));
+    const missingAttemptQuizIds = Array.from(
+      new Set<string>(
+        ((rawAttempts as any[]) || [])
+          .map((a: any) => a.quizId)
+          .filter((id: string) => id && !quizzesMap.has(id))
+      )
+    );
 
-    const { data: rawAttempts = [] } = await scopedToStudent(
-      supabase.from('QuizAttempt').select('*'),
-      (user as any).id
-    ).order('submittedAt', { ascending: false });
-
-    const attemptQuizIds = Array.from(new Set<string>((rawAttempts as any[] || []).map((a: any) => a.quizId)));
-
-    const quizzesRes = attemptQuizIds.length > 0
-      ? await supabase.from('Quiz').select('id, title').in('id', attemptQuizIds)
-      : { data: [] };
-    const quizzesList = quizzesRes.data || [];
-
-    const quizzesMap = new Map(quizzesList.map((q: any) => [q.id, q]));
+    if (missingAttemptQuizIds.length > 0) {
+      const { data: extraQuizzes = [] } = await supabase
+        .from('Quiz')
+        .select('id, title')
+        .in('id', missingAttemptQuizIds);
+      (extraQuizzes || []).forEach((q: any) => quizzesMap.set(q.id, q));
+    }
 
     const studentAttempts = (rawAttempts || []).map((a: any) => ({
       ...a,

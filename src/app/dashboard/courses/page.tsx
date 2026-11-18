@@ -49,6 +49,15 @@ export default function CoursesPage() {
               </div>
               <h3>No courses yet</h3>
               <p>Your learning journey starts here. Enroll in a course to begin.</p>
+              <Link
+                href="/courses"
+                className={styles.courseCardAction}
+                style={{ width: 'auto', minWidth: '180px', minHeight: '44px', padding: '10px 22px', marginTop: '8px' }}
+              >
+                <BookOpen size={15} />
+                Explore Courses
+                <ArrowRight size={15} />
+              </Link>
             </div>
           ) : (
             <div className={styles.coursesGrid}>

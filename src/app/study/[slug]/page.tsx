@@ -141,7 +141,8 @@ export default function StudyCoursePage() {
         return () => {
             cancelled = true;
         };
-    }, [lessonParam, slug]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slug]);
 
     // Keep activeLesson in sync with URL searchParams if slug is already loaded
     useEffect(() => {
@@ -209,14 +210,21 @@ export default function StudyCoursePage() {
         }
     }, [slug, router]);
 
-    // Mark current lesson complete
+    // Mark current lesson complete (with optimistic UI update)
     const handleMarkComplete = useCallback(async () => {
         if (!slug || !activeLesson || activeLesson.locked || activeLesson.type === "folder") {
             return;
         }
 
+        const targetLessonId = activeLesson.id;
+        const alreadyCompleted = completedLessonIds.includes(targetLessonId);
+
         setMarkingComplete(true);
         setProgressError(null);
+        if (!alreadyCompleted) {
+            setCompletedLessonIds((prev) => Array.from(new Set([...prev, targetLessonId])));
+        }
+
         try {
             const token = localStorage.getItem("auth_token");
             const response = await fetch(`/api/study/courses/${slug}/progress`, {
@@ -225,7 +233,7 @@ export default function StudyCoursePage() {
                     "Content-Type": "application/json",
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
-                body: JSON.stringify({ lessonNodeId: activeLesson.id }),
+                body: JSON.stringify({ lessonNodeId: targetLessonId }),
             });
 
             const data = await response.json();
@@ -234,14 +242,17 @@ export default function StudyCoursePage() {
             }
 
             if (data.success) {
-                setCompletedLessonIds((prev) => Array.from(new Set([...prev, activeLesson.id])));
+                setCompletedLessonIds((prev) => Array.from(new Set([...prev, targetLessonId])));
             }
         } catch (err: any) {
+            if (!alreadyCompleted) {
+                setCompletedLessonIds((prev) => prev.filter((id) => id !== targetLessonId));
+            }
             setProgressError(err.message || "Could not update progress right now.");
         } finally {
             setMarkingComplete(false);
         }
-    }, [slug, activeLesson]);
+    }, [slug, activeLesson, completedLessonIds]);
 
     if (loading) {
         return <Loader text="Loading study workspace..." />;

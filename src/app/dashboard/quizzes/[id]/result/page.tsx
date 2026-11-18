@@ -101,6 +101,10 @@ export default function QuizResultPage() {
   // Leaderboard Search
   const [leaderboardSearch, setLeaderboardSearch] = useState('');
 
+  // Answer Review Search & Status Filter
+  const [reviewSearch, setReviewSearch] = useState('');
+  const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'partial' | 'wrong' | 'skipped'>('all');
+
   const handleRetakeQuiz = async () => {
     if (!data) return;
     setRetaking(true);
@@ -372,6 +376,27 @@ export default function QuizResultPage() {
   const viewTitleNote = isSearching
     ? `Showing ${displayedLeaderboard.length} of ${leaderboard.length} participants matching "${leaderboardSearch.trim()}"`
     : `Showing ${displayedLeaderboard.length} participants around your rank (Rank #${currentUserEntry?.rank || attempt.rank || '—'} of ${leaderboard.length})`;
+
+  const normalizedReviewSearch = reviewSearch.trim().toLowerCase();
+  const filteredQuestionsReview = questionsReview
+    .map((question, index) => ({ question, originalNumber: index + 1 }))
+    .filter(({ question, originalNumber }) => {
+      if (!question) return false;
+      if (reviewFilter === 'correct' && !question.isCorrect) return false;
+      if (reviewFilter === 'partial' && !question.isPartial) return false;
+      if (reviewFilter === 'wrong' && (question.isCorrect || question.isPartial || question.isSkipped)) return false;
+      if (reviewFilter === 'skipped' && !question.isSkipped) return false;
+
+      if (!normalizedReviewSearch) return true;
+      const qNumLabel = `q${originalNumber}`;
+      if (qNumLabel === normalizedReviewSearch || String(originalNumber) === normalizedReviewSearch) return true;
+      if ((question.questionText || '').toLowerCase().includes(normalizedReviewSearch)) return true;
+      if ((question.explanation || '').toLowerCase().includes(normalizedReviewSearch)) return true;
+      if (Array.isArray(question.options) && question.options.some(o => (o.text || '').toLowerCase().includes(normalizedReviewSearch))) {
+        return true;
+      }
+      return false;
+    });
 
   return (
     <div className={styles.container}>
@@ -853,29 +878,94 @@ export default function QuizResultPage() {
               </div>
             </div>
             <div className={styles.reviewStats}>
-                    <span className={`${styles.reviewStat} ${styles.reviewStatSuccess}`}>
+                    <button
+                      type="button"
+                      onClick={() => setReviewFilter('all')}
+                      className={`${styles.reviewStat} ${styles.reviewStatBtn} ${reviewFilter === 'all' ? styles.reviewStatActive : ''}`}
+                    >
+                      All ({questionsReview.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewFilter(prev => prev === 'correct' ? 'all' : 'correct')}
+                      className={`${styles.reviewStat} ${styles.reviewStatSuccess} ${styles.reviewStatBtn} ${reviewFilter === 'correct' ? styles.reviewStatActive : ''}`}
+                    >
                       <CheckCircle className={styles.reviewIcon} /> {actualCorrectCount} Correct
-                    </span>
+                    </button>
                     {actualPartialCount > 0 && (
-                      <span className={`${styles.reviewStat} ${styles.reviewStatWarning}`}>
+                      <button
+                        type="button"
+                        onClick={() => setReviewFilter(prev => prev === 'partial' ? 'all' : 'partial')}
+                        className={`${styles.reviewStat} ${styles.reviewStatWarning} ${styles.reviewStatBtn} ${reviewFilter === 'partial' ? styles.reviewStatActive : ''}`}
+                      >
                         <CheckCircle className={styles.reviewIcon} /> {actualPartialCount} Partial
-                      </span>
+                      </button>
                     )}
-                    <span className={`${styles.reviewStat} ${styles.reviewStatError}`}>
+                    <button
+                      type="button"
+                      onClick={() => setReviewFilter(prev => prev === 'wrong' ? 'all' : 'wrong')}
+                      className={`${styles.reviewStat} ${styles.reviewStatError} ${styles.reviewStatBtn} ${reviewFilter === 'wrong' ? styles.reviewStatActive : ''}`}
+                    >
                       <XCircle className={styles.reviewIcon} /> {actualWrongCount} Wrong
-                    </span>
-                    <span className={`${styles.reviewStat} ${styles.reviewStatMuted}`}>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReviewFilter(prev => prev === 'skipped' ? 'all' : 'skipped')}
+                      className={`${styles.reviewStat} ${styles.reviewStatMuted} ${styles.reviewStatBtn} ${reviewFilter === 'skipped' ? styles.reviewStatActive : ''}`}
+                    >
                       <HelpCircle className={styles.reviewIcon} /> {actualSkippedCount} Skipped
-                    </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Question Search & Filter Bar */}
+                <div className={styles.leaderboardToolbar} style={{ marginBottom: '20px' }}>
+                  <div className={styles.searchBox}>
+                    <Search className={styles.searchIcon} size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search questions by keyword, Q number (e.g. Q12), option, or explanation..."
+                      value={reviewSearch}
+                      onChange={(e) => setReviewSearch(e.target.value)}
+                      className={styles.searchInput}
+                      aria-label="Search review questions"
+                    />
+                    {reviewSearch && (
+                      <button
+                        type="button"
+                        className={styles.searchClearBtn}
+                        onClick={() => setReviewSearch('')}
+                        aria-label="Clear question search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div className={styles.reviewList}>
-                  {questionsReview.map((question, index) => (
+                  {filteredQuestionsReview.length === 0 ? (
+                    <div className={styles.emptyLeaderboard}>
+                      <HelpCircle className={styles.emptyIcon} />
+                      <p>No questions match your current filter or search query.</p>
+                      <button
+                        type="button"
+                        className={styles.secondaryBtn}
+                        style={{ marginTop: '12px' }}
+                        onClick={() => {
+                          setReviewFilter('all');
+                          setReviewSearch('');
+                        }}
+                      >
+                        Reset Filters
+                      </button>
+                    </div>
+                  ) : (
+                    filteredQuestionsReview.map(({ question, originalNumber }) => (
                     <article key={question.questionId} className={`${styles.reviewCard} pdf-question-card ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
                       <div className={styles.reviewCardHeader}>
                         <div className={styles.reviewQuestionInfo}>
-                          <span className={styles.reviewNumber}>Q{index + 1}</span>
+                          <span className={styles.reviewNumber}>Q{originalNumber}</span>
                           <span className={`${styles.reviewStatus} ${question.isSkipped ? styles.skipped : question.isPartial ? styles.partial : question.isCorrect ? styles.correct : styles.incorrect}`}>
                             {question.isSkipped ? '— Skipped' : question.isPartial ? '◐ Partial' : question.isCorrect ? '✓ Correct' : '✗ Incorrect'}
                           </span>
@@ -998,7 +1088,7 @@ export default function QuizResultPage() {
                         </div>
                       )}
                     </article>
-                  ))}
+                  )))}
                 </div>
 
             {/* Bottom Actions repeated for convenient navigation */}

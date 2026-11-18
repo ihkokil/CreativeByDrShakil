@@ -190,6 +190,9 @@
 
     .backToOutlineBtn {
         padding: 8px 10px;
+        min-height: 44px;
+        min-width: 44px;
+        justify-content: center;
     }
 
     .backBtnText {
@@ -197,7 +200,9 @@
     }
 
     .breadcrumbArea {
-        font-size: 0.82rem;
+        font-size: 0.85rem;
+        flex: 1;
+        min-width: 0;
     }
 
     .moduleBreadcrumb,
@@ -206,7 +211,8 @@
     }
 
     .lessonBreadcrumb {
-        max-width: 140px;
+        display: block;
+        width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -218,6 +224,9 @@
 
     .drawerToggleBtn {
         padding: 8px 10px;
+        min-height: 44px;
+        min-width: 44px;
+        justify-content: center;
     }
 
     .drawerBtnText {
@@ -230,13 +239,13 @@
 
     .bottomCompleteBtn {
         display: inline-flex !important;
-        padding: 8px 12px;
-        font-size: 0.82rem;
-        min-height: 40px;
+        padding: 8px 14px;
+        font-size: 0.84rem;
+        min-height: 44px;
         border-radius: 10px;
         white-space: nowrap;
-        flex: 1.15;
-        max-width: 140px;
+        flex: 1.25;
+        max-width: 155px;
         justify-content: center;
     }
 
@@ -251,12 +260,12 @@
 
     .navActionBtn {
         padding: 8px 12px;
-        font-size: 0.82rem;
-        min-height: 40px;
+        font-size: 0.84rem;
+        min-height: 44px;
         border-radius: 10px;
         white-space: nowrap;
         flex: 1;
-        max-width: 95px;
+        max-width: 105px;
         justify-content: center;
     }
 
@@ -451,12 +460,14 @@
     right: 0;
     bottom: 0;
     width: 360px;
-    background: #0d0d12;
+    background: var(--card-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border-left: 1px solid var(--glass-border);
     z-index: 35;
     display: flex;
     flex-direction: column;
-    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.28);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transform: translateZ(0);
@@ -475,7 +486,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--glass-border);
 }
 
@@ -491,8 +502,10 @@
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 6px;
-    border-radius: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;

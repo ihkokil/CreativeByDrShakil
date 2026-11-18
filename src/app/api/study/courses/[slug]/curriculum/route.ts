@@ -42,20 +42,61 @@ export async function GET(
     // For admin and teachers, show everything without restrictions
     const isAdmin = payload.role === 'admin' || payload.role === 'teacher';
 
+    // Run independent course-scoped queries in parallel
+    const [
+      orderRes,
+      rootFolderRes,
+      courseQuizzesRes,
+      overrideRowsRes,
+      progressRowsRes,
+    ] = await Promise.all([
+      !isAdmin
+        ? supabase
+            .from('Order')
+            .select('enrolledAt, updatedAt, batchId')
+            .eq('userId', payload.sub)
+            .eq('courseId', course.id)
+            .eq('status', 'approved')
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from('VideoLibraryNode')
+        .select('id')
+        .is('parentId', null)
+        .ilike('title', course.title)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('CourseQuiz')
+        .select('id, quizId, curriculumNodeId, sortOrder')
+        .eq('courseId', course.id)
+        .order('sortOrder', { ascending: true }),
+      !isAdmin
+        ? supabase
+            .from('StudentModuleAvailability')
+            .select('lessonNodeId, availabilityMode, availableAt')
+            .eq('courseId', course.id)
+            .eq('userId', payload.sub)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from('LessonProgress')
+        .select('lessonNodeId')
+        .eq('userId', payload.sub)
+        .eq('courseId', course.id),
+    ]);
+
+    const order: any = orderRes.data;
+    const rootFolder: any = rootFolderRes.data;
+    const courseQuizzes: any[] = courseQuizzesRes.data || [];
+    const overrideRows: any[] = overrideRowsRes.data || [];
+    const progressRows: any[] = progressRowsRes.data || [];
+
     // Get the student's enrollment
     let enrolledAt: string | null = null;
     let studentBatch: any = null;
 
     if (!isAdmin) {
-      const { data: order }: { data: any } = await supabase
-        .from('Order')
-        .select('enrolledAt, updatedAt, batchId')
-        .eq('userId', payload.sub)
-        .eq('courseId', course.id)
-        .eq('status', 'approved')
-        .limit(1)
-        .maybeSingle();
-
       if (!order) {
         return NextResponse.json({ error: 'You are not enrolled in this course.' }, { status: 403 });
       }
@@ -88,15 +129,6 @@ export async function GET(
 
     const rawCurriculum = parseCurriculumJson(course.curriculumJson);
 
-    // Fetch the "All Resources" folder from the Media Vault for this course
-    const { data: rootFolder } = await supabase
-      .from('VideoLibraryNode')
-      .select('id')
-      .is('parentId', null)
-      .ilike('title', course.title)
-      .limit(1)
-      .maybeSingle();
-
     if (rootFolder) {
       const { data: allResFolder } = await supabase
         .from('VideoLibraryNode')
@@ -123,13 +155,6 @@ export async function GET(
 
     // Populate media vault children first so all vault nodes and folders are present
     const populatedCurriculum = await populateMediaVaultNodes(rawCurriculum);
-
-    // Fetch course quizzes
-    const { data: courseQuizzes = [] } = await supabase
-      .from('CourseQuiz')
-      .select('id, quizId, curriculumNodeId, sortOrder')
-      .eq('courseId', course.id)
-      .order('sortOrder', { ascending: true });
 
     // Collect all quiz IDs referenced across courseQuizzes and populatedCurriculum
     const allReferencedQuizIds = new Set<string>((courseQuizzes || []).map((cq: any) => cq.quizId));
@@ -265,21 +290,14 @@ export async function GET(
       releaseGroupDates,
     });
 
-    // Fetch student-specific overrides
-    let overrides: any[] = [];
-    if (!isAdmin) {
-      const { data: overrideRows = [] } = await supabase
-        .from('StudentModuleAvailability')
-        .select('lessonNodeId, availabilityMode, availableAt')
-        .eq('courseId', course.id)
-        .eq('userId', payload.sub);
-
-      overrides = (overrideRows || []).map((row: any) => ({
-        lessonNodeId: row.lessonNodeId,
-        availabilityMode: row.availabilityMode,
-        availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
-      }));
-    }
+    // Map student-specific overrides fetched in initial Promise.all
+    const overrides = !isAdmin
+      ? (overrideRows || []).map((row: any) => ({
+          lessonNodeId: row.lessonNodeId,
+          availabilityMode: row.availabilityMode,
+          availableAt: row.availableAt ? new Date(row.availableAt).toISOString() : null,
+        }))
+      : [];
 
     const annotatedCurriculum = annotateCurriculumAvailability(
       curriculum,
@@ -287,13 +305,6 @@ export async function GET(
       new Date(),
       overrides
     );
-
-    // Get progress
-    const { data: progressRows = [] } = await supabase
-      .from('LessonProgress')
-      .select('lessonNodeId')
-      .eq('userId', payload.sub)
-      .eq('courseId', course.id);
 
     const completedIds = new Set((progressRows || []).map((r: any) => r.lessonNodeId));
 

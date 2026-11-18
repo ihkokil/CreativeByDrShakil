@@ -17,7 +17,7 @@
   --warning-light: var(--warning-surface, rgba(245, 158, 11, 0.12));
   --info-color: #0284c7;
   --info-light: var(--info-surface, rgba(14, 165, 233, 0.12));
-  
+
   max-width: 1000px;
   width: 100%;
   margin: 0 auto;
@@ -39,11 +39,25 @@
 }
 
 /* Explicit Color Utility Classes for CSS Modules */
-.colorSuccess { color: var(--success-color) !important; }
-.colorWarning { color: var(--warning-color) !important; }
-.colorError { color: var(--error-color) !important; }
-.colorInfo { color: var(--info-color) !important; }
-.colorMuted { color: var(--text-muted) !important; }
+.colorSuccess {
+  color: var(--success-color) !important;
+}
+
+.colorWarning {
+  color: var(--warning-color) !important;
+}
+
+.colorError {
+  color: var(--error-color) !important;
+}
+
+.colorInfo {
+  color: var(--info-color) !important;
+}
+
+.colorMuted {
+  color: var(--text-muted) !important;
+}
 
 .loading {
   display: flex;
@@ -65,7 +79,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .errorState {
@@ -134,7 +150,7 @@
   font-size: 13.5px;
   font-weight: 600;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .backLink:hover {
@@ -435,10 +451,13 @@
 }
 
 @keyframes pulseDot {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.35;
     transform: scale(0.75);
@@ -478,7 +497,7 @@
   border: 1px solid var(--border-color);
   border-radius: 14px;
   padding: 24px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
 }
 
@@ -506,7 +525,7 @@
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .scoreInner {
@@ -518,7 +537,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
   text-align: center;
 }
 
@@ -767,9 +786,20 @@
 }
 
 @keyframes livePulse {
-  0% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 768px) {
@@ -1022,18 +1052,62 @@
 .reviewStat {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
+  gap: 6px;
+  padding: 6px 14px;
+  min-height: 36px;
   border-radius: 20px;
   font-size: 12.5px;
   font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
 }
 
-.reviewStatSuccess { background: var(--success-light); color: var(--success-color); border: 1px solid rgba(5, 150, 105, 0.25); }
-.reviewStatError { background: var(--error-light); color: var(--error-color); border: 1px solid rgba(220, 38, 38, 0.25); }
-.reviewStatWarning { background: var(--warning-light); color: var(--warning-color); border: 1px solid rgba(217, 119, 6, 0.25); }
-.reviewStatInfo { background: var(--info-light); color: var(--info-color); border: 1px solid rgba(2, 132, 199, 0.25); }
-.reviewStatMuted { background: var(--bg-tertiary); color: var(--text-muted); border: 1px solid var(--border-color); }
+.reviewStatBtn {
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.18s ease;
+}
+
+.reviewStatBtn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.reviewStatActive {
+  box-shadow: 0 0 0 2px var(--primary-color), 0 4px 12px rgba(237, 28, 40, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+.reviewStatSuccess {
+  background: var(--success-light);
+  color: var(--success-color);
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.reviewStatError {
+  background: var(--error-light);
+  color: var(--error-color);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.reviewStatWarning {
+  background: var(--warning-light);
+  color: var(--warning-color);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.reviewStatInfo {
+  background: var(--info-light);
+  color: var(--info-color);
+  border: 1px solid rgba(2, 132, 199, 0.25);
+}
+
+.reviewStatMuted {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
 
 .reviewIcon {
   width: 15px;
@@ -2151,27 +2225,27 @@
   .container {
     padding: 16px 12px 40px;
   }
-  
+
   .quizTitle {
     font-size: 20px;
   }
-  
+
   .scoreCircle {
     width: 130px;
     height: 130px;
   }
-  
+
   .scoreValue {
     font-size: 26px;
   }
-  
+
   .scoreCardTop {
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 20px;
   }
-  
+
   .quizHeader {
     align-items: center;
     text-align: center;
@@ -2180,7 +2254,7 @@
   .quizMeta {
     justify-content: center;
   }
-  
+
   .detailRow {
     flex-wrap: wrap;
     gap: 12px;
@@ -2189,31 +2263,49 @@
   .detailItem {
     min-width: 40%;
   }
-  
+
   .detailDivider {
     display: none;
   }
-  
+
   .tabNav {
     flex-wrap: wrap;
   }
-  
+
   .tabBtn {
     flex: 1;
     min-width: 0;
     justify-content: center;
     padding: 9px 12px;
+    min-height: 44px;
     font-size: 13px;
   }
-  
-  .actions {
-    flex-direction: column;
+
+  .reviewStat {
+    min-height: 40px;
+    padding: 8px 14px;
   }
-  
-  .downloadBtn,
-  .secondaryBtn,
-  .retakeBtn {
+
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .secondaryBtn {
     width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .retakeBtn,
+  .downloadBtn {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
   }
 }
 
@@ -2331,19 +2423,19 @@
   .userPillCorrect,
   .userPillWrong,
   .userPillSkipped {
-    font-size: 11px;
-    padding: 3px 7px;
+    font-size: 12px;
+    padding: 4px 8px;
     gap: 4px;
-    border-radius: 5px;
+    border-radius: 6px;
   }
 
   .keyPill,
   .keyPillTrue,
   .keyPillFalse {
-    font-size: 11px;
-    padding: 3px 7px;
+    font-size: 12px;
+    padding: 4px 8px;
     gap: 4px;
-    border-radius: 5px;
+    border-radius: 6px;
   }
 
   .outcomeBadgeWrapper {
@@ -2353,9 +2445,9 @@
   .tfOutcomeSuccess,
   .tfOutcomeDanger,
   .tfOutcomeMuted {
-    font-size: 10.5px;
-    padding: 2px 6px;
-    border-radius: 5px;
+    font-size: 11.5px;
+    padding: 3px 7px;
+    border-radius: 6px;
   }
 
   .sbaReviewRow {
@@ -2380,7 +2472,7 @@
     margin-top: 2px;
     width: 24px;
     height: 24px;
-    font-size: 11.5px;
+    font-size: 12px;
     border-radius: 5px;
   }
 
@@ -2405,10 +2497,10 @@
   .sbaBadgeSuccess,
   .sbaBadgeDanger,
   .sbaBadgeKey {
-    font-size: 11px;
-    padding: 3px 7px;
+    font-size: 12px;
+    padding: 4px 8px;
     gap: 4px;
-    border-radius: 5px;
+    border-radius: 6px;
   }
 
   .fullLeaderboardHeaderBtn {
@@ -2430,10 +2522,16 @@
 }
 
 @media print {
-  .header, .tabNav, .actions, .backLink, .sectionCardOverview, .sectionCardLeaderboard {
+
+  .header,
+  .tabNav,
+  .actions,
+  .backLink,
+  .sectionCardOverview,
+  .sectionCardLeaderboard {
     display: none !important;
   }
-  
+
   .container {
     max-width: 100% !important;
     padding: 0 !important;
@@ -2443,8 +2541,10 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  
-  .scoreCard, .summaryCard, .reviewCard {
+
+  .scoreCard,
+  .summaryCard,
+  .reviewCard {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }

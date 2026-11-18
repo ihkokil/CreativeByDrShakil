@@ -37,6 +37,7 @@
   margin: 0 auto;
   padding: 0 16px;
   min-height: 100vh;
+  min-height: 100dvh;
   background: transparent;
   position: relative;
   box-sizing: border-box;
@@ -62,7 +63,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .errorState {
@@ -141,8 +144,15 @@
 }
 
 @keyframes slideDown {
-  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .warningIcon {
@@ -292,8 +302,15 @@
 }
 
 @keyframes pulseWarning {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.03); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.03);
+  }
 }
 
 .topBarRight {
@@ -310,7 +327,8 @@
   justify-content: center;
   gap: 6px;
   padding: 0 16px;
-  height: 36px;
+  min-height: 38px;
+  height: 38px;
   background: #059669;
   color: #ffffff;
   border: none;
@@ -340,9 +358,9 @@
 @media (max-width: 960px) {
   .topBar {
     top: max(8px, env(safe-area-inset-top, 8px));
-    height: 44px;
-    padding: 0 6px 0 10px;
-    gap: 4px;
+    height: 48px;
+    padding: 0 6px 0 12px;
+    gap: 6px;
     width: calc(100% - 16px);
   }
 
@@ -352,16 +370,16 @@
 
   .progressTextMobile {
     display: inline;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
   }
 
   .progressBarTrack {
-    width: 36px;
+    width: 38px;
     height: 5px;
   }
 
   .topBarTimer {
-    padding: 4px 10px;
+    padding: 5px 11px;
     font-size: 0.82rem;
     gap: 5px;
   }
@@ -372,17 +390,18 @@
   }
 
   .topBarSubmitBtn {
-    padding: 0 12px;
-    font-size: 0.78rem;
-    height: 34px;
+    padding: 0 14px;
+    font-size: 0.8rem;
+    min-height: 38px;
+    height: 38px;
     gap: 4px;
   }
 }
 
 @media (max-width: 380px) {
   .topBar {
-    height: 42px;
-    padding: 0 4px 0 8px;
+    height: 46px;
+    padding: 0 5px 0 10px;
   }
 
   .progressBarTrack {
@@ -390,7 +409,7 @@
   }
 
   .topBarTimer {
-    padding: 3px 8px;
+    padding: 4px 9px;
     font-size: 0.78rem;
     gap: 4px;
   }
@@ -401,9 +420,10 @@
   }
 
   .topBarSubmitBtn {
-    padding: 0 10px;
-    font-size: 0.75rem;
-    height: 32px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+    min-height: 36px;
+    height: 36px;
   }
 }
 
@@ -421,6 +441,7 @@
   gap: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .bottomSummaryInfo {
@@ -463,6 +484,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-height: 46px;
   padding: 14px 28px;
   background: #059669;
   color: #ffffff;
@@ -475,6 +497,8 @@
   white-space: nowrap;
   box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
   flex-shrink: 0;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bottomSubmitBtn:hover:not(:disabled) {
@@ -494,6 +518,7 @@
     align-items: stretch;
     padding: 20px;
   }
+
   .bottomSubmitBtn {
     width: 100%;
     justify-content: center;
@@ -547,8 +572,15 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .questionCard.questionCurrent {
@@ -826,7 +858,7 @@
 }
 
 .mcqBtn {
-  min-height: 40px;
+  min-height: 44px;
   width: 100%;
   padding: 8px 14px;
   border-radius: 8px;
@@ -845,6 +877,8 @@
   gap: 8px;
   font-family: inherit;
   box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mcqBtn:hover:not(:disabled) {
@@ -997,8 +1031,15 @@
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal h3 {
@@ -1133,18 +1174,18 @@
     max-width: 100%;
     overflow: hidden;
   }
-  
+
   .questionTitle {
     font-size: 15px;
   }
-  
+
   .optionCard {
     padding: 12px 14px;
     min-height: 44px;
     box-sizing: border-box;
     max-width: 100%;
   }
-  
+
   .optionLetter {
     width: 26px;
     height: 26px;
@@ -1227,12 +1268,12 @@
     padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
     max-height: min(calc(100vh - 24px), calc(100dvh - 24px));
   }
-  
+
   .modalActions {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .modalCancel,
   .modalConfirm {
     width: 100%;
@@ -1243,12 +1284,31 @@
 /* ═══════════════════════════════════════════════════════════════
    Question Palette / Tracker Sidebar (Slim & Compact)
    ═══════════════════════════════════════════════════════════════ */
+.mobilePaletteFab {
+  display: none;
+}
+
+.mobilePaletteBackdrop {
+  display: none;
+}
+
+.mobilePaletteCloseBtn {
+  display: none;
+}
+
+.paletteHeaderTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .paletteSidebar {
   position: fixed;
   top: 76px;
   right: max(16px, calc(50% - 630px + 16px));
-  width: 220px;
+  width: 228px;
   max-height: calc(100vh - 96px);
+  max-height: calc(100dvh - 96px);
   background: var(--card-bg, #16161a);
   border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
   border-radius: 14px;
@@ -1256,7 +1316,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   box-sizing: border-box;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -1280,7 +1340,7 @@
 }
 
 .paletteMainTitle {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-color);
   margin: 0;
@@ -1288,12 +1348,12 @@
 }
 
 .paletteTotalBadge {
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 700;
   background: var(--bg-tertiary);
   color: var(--text-color);
-  padding: 2px 6px;
-  border-radius: 5px;
+  padding: 2px 7px;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
   white-space: nowrap;
 }
@@ -1311,7 +1371,7 @@
   border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   box-sizing: border-box;
 }
 
@@ -1321,9 +1381,9 @@
 }
 
 .paletteStatCardAnswered .paletteStatLabel {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  color: #2563eb;
+  color: #3b82f6;
   letter-spacing: 0.04em;
 }
 
@@ -1331,7 +1391,7 @@
   font-size: 1.05rem;
   font-weight: 800;
   line-height: 1.15;
-  color: #2563eb;
+  color: #3b82f6;
 }
 
 .paletteStatCardUnanswered {
@@ -1340,7 +1400,7 @@
 }
 
 .paletteStatCardUnanswered .paletteStatLabel {
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-muted);
   letter-spacing: 0.04em;
@@ -1365,7 +1425,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 4px;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   flex-wrap: wrap;
   padding: 0 2px;
 }
@@ -1379,15 +1439,15 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #2563eb;
+  color: #3b82f6;
   font-weight: 600;
-  font-size: 0.64rem;
+  font-size: 0.72rem;
 }
 
 .paletteLegendDot {
-  width: 5px;
-  height: 5px;
-  background: #2563eb;
+  width: 6px;
+  height: 6px;
+  background: #3b82f6;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -1395,7 +1455,7 @@
 .paletteMatrixGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  gap: 5px;
   max-height: none;
   overflow: visible;
   padding: 1px;
@@ -1413,18 +1473,20 @@
 
 /* ─── Question Number Tiles ─── */
 .paletteNumBtn {
-  height: 27px;
+  height: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
-  font-weight: 600;
-  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 6px;
   cursor: pointer;
   border: 1px solid transparent;
   transition: all 0.15s ease;
   padding: 0;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 }
 
@@ -1461,20 +1523,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 6px;
   width: 100%;
-  padding: 8px 10px;
+  min-height: 44px;
+  padding: 10px 12px;
   background: #2563eb;
   color: #ffffff;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 700;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
   margin-top: 2px;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .paletteSubmitBtn:hover:not(:disabled) {
@@ -1488,13 +1552,13 @@
   cursor: not-allowed;
 }
 
-/* ─── Responsive Adjustments (Mobile Only) ─── */
+/* ─── Responsive Adjustments (Mobile & Tablet Bottom-Sheet Question Map Drawer) ─── */
 @media (max-width: 960px) {
   .mainContent {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 68px 4px 36px;
+    padding: 68px 4px 88px;
   }
 
   .questionContent {
@@ -1503,19 +1567,89 @@
     max-width: 100%;
   }
 
+  .mobilePaletteFab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    min-height: 46px;
+    padding: 0 18px;
+    background: var(--card-bg, rgba(18, 18, 22, 0.96));
+    color: var(--text-color);
+    border: 1px solid rgba(59, 130, 246, 0.45);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(59, 130, 246, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 1100;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobilePaletteBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1200;
+  }
+
+  .mobilePaletteCloseBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    background: var(--bg-tertiary);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   .paletteSidebar {
-    order: 2;
-    position: static;
+    position: fixed;
     top: auto;
-    right: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
-    max-height: none;
-    margin-top: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-height: 82vh;
+    max-height: 82dvh;
+    margin-top: 0;
+    padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.55);
+    z-index: 1250;
+    transform: translateY(105%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .paletteSidebarOpen {
+    transform: translateY(0);
   }
 
   .paletteMatrixGrid {
-    grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 8px;
     max-height: none;
+  }
+
+  .paletteNumBtn {
+    height: 44px;
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 0.85rem;
+    border-radius: 8px;
   }
 }

@@ -66,11 +66,13 @@ interface Quiz {
 export default function QuizzesPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
+  const [availableModules, setAvailableModules] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
+  const [moduleFilter, setModuleFilter] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'duration' | 'alphabetical'>('newest');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -107,6 +109,7 @@ export default function QuizzesPage() {
 
         if (statusFilter) params.set('status', statusFilter);
         if (courseFilter) params.set('courseId', courseFilter);
+        if (moduleFilter) params.set('module', moduleFilter);
 
         const res = await fetch(`/api/quiz?${params.toString()}`);
         const data = await res.json();
@@ -117,6 +120,9 @@ export default function QuizzesPage() {
           setQuizzes(data.quizzes || []);
           if (data.courses && Array.isArray(data.courses) && data.courses.length > 0) {
             setAvailableCourses(data.courses);
+          }
+          if (data.modules && Array.isArray(data.modules)) {
+            setAvailableModules(data.modules);
           }
           setTotalCount(data.pagination?.total || 0);
           setTotalPages(data.pagination?.totalPages || 1);
@@ -130,7 +136,7 @@ export default function QuizzesPage() {
 
     fetchQuizzes();
     return () => { cancelled = true; };
-  }, [debouncedSearch, statusFilter, courseFilter, sortBy, page, limit]);
+  }, [debouncedSearch, statusFilter, courseFilter, moduleFilter, sortBy, page, limit]);
 
   // PDF Generation Hook
   useEffect(() => {
@@ -319,7 +325,7 @@ export default function QuizzesPage() {
           <Search className={styles.searchIcon} />
           <input
             type="text"
-            placeholder="Search quizzes by title..."
+            placeholder="Search quizzes by title or module..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className={styles.searchInput}
@@ -331,13 +337,27 @@ export default function QuizzesPage() {
           {uniqueCourses.length >= 1 && (
             <select
               value={courseFilter}
-              onChange={(e) => { setCourseFilter(e.target.value); setPage(1); }}
+              onChange={(e) => { setCourseFilter(e.target.value); setModuleFilter(''); setPage(1); }}
               className={styles.filterSelect}
               aria-label="Filter by course"
             >
               <option value="">All Enrolled Courses</option>
               {uniqueCourses.map(course => (
                 <option key={course.id} value={course.id}>{course.title}</option>
+              ))}
+            </select>
+          )}
+
+          {availableModules.length > 1 && (
+            <select
+              value={moduleFilter}
+              onChange={(e) => { setModuleFilter(e.target.value); setPage(1); }}
+              className={styles.filterSelect}
+              aria-label="Filter by module"
+            >
+              <option value="">All Modules</option>
+              {availableModules.map(mod => (
+                <option key={mod} value={mod}>{mod}</option>
               ))}
             </select>
           )}
@@ -429,7 +449,7 @@ export default function QuizzesPage() {
                           </Link>
                         )}
 
-                        {quiz.description && (
+                        {quiz.description && !quiz.description.startsWith('Course:') && (
                           <p className={styles.quizDesc}>{quiz.description}</p>
                         )}
 
