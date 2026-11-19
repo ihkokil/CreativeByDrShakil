@@ -40,17 +40,17 @@
 
 @media (max-width: 768px) {
     .watermarkText {
-        padding: 2px 6px;
-        border-radius: 4px;
-        gap: 0px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        gap: 2px;
     }
     
     .name {
-        font-size: 0.48rem;
-        letter-spacing: 0.1px;
+        font-size: 0.65rem;
+        letter-spacing: 0.2px;
     }
 
     .email {
-        font-size: 0.38rem;
+        font-size: 0.58rem;
     }
 }

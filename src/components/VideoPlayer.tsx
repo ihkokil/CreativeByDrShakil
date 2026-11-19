@@ -248,6 +248,73 @@ export default function CustomVideoPlayer({
 
   useFullscreenOrientation(containerRef, videoRef);
 
+  // Resume playback position & persist playback speed across video lessons
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !activeStreamUrl) return;
+
+    const storageKey = `cbds_video_pos_${encodeURIComponent(src || activeStreamUrl)}`;
+    let hasResumed = false;
+
+    try {
+      const savedSpeed = localStorage.getItem('preferred_playback_speed');
+      if (savedSpeed) {
+        const rate = parseFloat(savedSpeed);
+        if (!isNaN(rate) && rate >= 0.5 && rate <= 2.5) {
+          video.playbackRate = rate;
+        }
+      }
+    } catch {}
+
+    const handleLoadedMetadata = () => {
+      if (hasResumed) return;
+      try {
+        const savedPos = localStorage.getItem(storageKey);
+        if (savedPos) {
+          const pos = parseFloat(savedPos);
+          if (!isNaN(pos) && pos > 5 && video.duration && pos < video.duration - 10) {
+            video.currentTime = pos;
+            hasResumed = true;
+          }
+        }
+      } catch {}
+    };
+
+    let lastSaveTime = 0;
+    const handleTimeUpdate = () => {
+      const now = Date.now();
+      if (now - lastSaveTime < 2500) return;
+      lastSaveTime = now;
+      try {
+        if (video.duration && video.currentTime >= video.duration - 10) {
+          localStorage.removeItem(storageKey);
+        } else if (video.currentTime > 5) {
+          localStorage.setItem(storageKey, String(Math.floor(video.currentTime)));
+        }
+      } catch {}
+    };
+
+    const handleRateChange = () => {
+      try {
+        if (video.playbackRate) {
+          localStorage.setItem('preferred_playback_speed', String(video.playbackRate));
+        }
+      } catch {}
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('canplay', handleLoadedMetadata);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('ratechange', handleRateChange);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('canplay', handleLoadedMetadata);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('ratechange', handleRateChange);
+    };
+  }, [activeStreamUrl, src]);
+
   useEffect(() => {
     let isMounted = true;
 

@@ -48,8 +48,56 @@ export default function VidstackPlayer({
   // Setting autoPlay=true on YouTube embeds causes Vidstack state desync (shows pause icon while YT stays paused).
   const shouldAutoPlay = type === 'youtube' ? false : (isMobile ? false : autoplay);
 
-  // For YouTube sources, Vidstack expects "youtube/{videoId}" format
   const resolvedSrc = type === 'youtube' ? `youtube/${src}` : src;
+  const storageKey = `cbds_vidstack_pos_${encodeURIComponent(resolvedSrc)}`;
+  const hasResumedRef = useRef(false);
+  const lastSaveTimeRef = useRef(0);
+
+  const handleCanPlay = () => {
+    if (hasResumedRef.current || !playerRef.current) return;
+    try {
+      const savedSpeed = localStorage.getItem('preferred_playback_speed');
+      if (savedSpeed) {
+        const rate = parseFloat(savedSpeed);
+        if (!isNaN(rate) && rate >= 0.5 && rate <= 2.5) {
+          playerRef.current.playbackRate = rate;
+        }
+      }
+      const savedPos = localStorage.getItem(storageKey);
+      if (savedPos) {
+        const pos = parseFloat(savedPos);
+        const duration = playerRef.current.duration;
+        if (!isNaN(pos) && pos > 5 && (!duration || pos < duration - 10)) {
+          playerRef.current.currentTime = pos;
+          hasResumedRef.current = true;
+        }
+      }
+    } catch {}
+  };
+
+  const handleTimeUpdate = (detail: any) => {
+    const now = Date.now();
+    if (now - lastSaveTimeRef.current < 2500) return;
+    lastSaveTimeRef.current = now;
+    const currentTime = detail?.currentTime ?? playerRef.current?.currentTime;
+    const duration = detail?.duration ?? playerRef.current?.duration;
+    try {
+      if (duration && currentTime >= duration - 10) {
+        localStorage.removeItem(storageKey);
+      } else if (currentTime > 5) {
+        localStorage.setItem(storageKey, String(Math.floor(currentTime)));
+      }
+    } catch {}
+  };
+
+  const handleRateChange = (detail: any) => {
+    const rate = detail?.playbackRate ?? playerRef.current?.playbackRate;
+    try {
+      if (rate) {
+        localStorage.setItem('preferred_playback_speed', String(rate));
+      }
+    } catch {}
+  };
 
   const handleAutoPlayFail = () => {
     // If autoplay fails, force player state back to paused so UI syncs with iframe
@@ -71,6 +119,9 @@ export default function VidstackPlayer({
         poster={poster}
         autoPlay={shouldAutoPlay}
         onAutoPlayFail={handleAutoPlayFail}
+        onCanPlay={handleCanPlay}
+        onTimeUpdate={handleTimeUpdate}
+        onRateChange={handleRateChange}
         playsInline
         crossOrigin={type === 'youtube' ? undefined : true}
         viewType="video"

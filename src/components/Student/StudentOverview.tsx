@@ -93,9 +93,19 @@ export default function StudentOverview({
                 </div>
 
                 <div className={styles.nextLesson}>
-                    <button onClick={() => onTabChange("courses")} className={styles.viewAllBtn} style={{ width: 'auto', marginTop: 0 }}>
-                        <PlayCircle size={18} /> Continue Studying
-                    </button>
+                    {enrolledCourses.length > 0 && enrolledCourses[0].courseSlug ? (
+                        <Link
+                            href={`/study/${enrolledCourses[0].courseSlug}`}
+                            className={styles.viewAllBtn}
+                            style={{ width: 'auto', marginTop: 0, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                        >
+                            <PlayCircle size={18} /> Continue Studying
+                        </Link>
+                    ) : (
+                        <button onClick={() => onTabChange("courses")} className={styles.viewAllBtn} style={{ width: 'auto', marginTop: 0 }}>
+                            <PlayCircle size={18} /> Continue Studying
+                        </button>
+                    )}
                 </div>
             </motion.div>
 

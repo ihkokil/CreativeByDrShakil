@@ -21,7 +21,10 @@ function LoginContent() {
     useEffect(() => {
         if (!authLoading && user) {
             const userRole = role || user.role || "student";
-            if (userRole === "admin") {
+            const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect");
+            if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
+                router.replace(returnUrl);
+            } else if (userRole === "admin") {
                 router.replace("/admin/dashboard");
             } else if (userRole === "teacher") {
                 router.replace("/teacher/dashboard");
@@ -29,7 +32,7 @@ function LoginContent() {
                 router.replace("/dashboard/courses");
             }
         }
-    }, [user, authLoading, role, router]);
+    }, [user, authLoading, role, router, searchParams]);
 
     const [step, setStep] = useState<PageStep>("email");
     const [email, setEmail] = useState("");
@@ -114,7 +117,9 @@ function LoginContent() {
                         text: "Account does not exist. We sent a verification code to your email. Redirecting to register...",
                     });
                     setTimeout(() => {
-                        router.push(`/register?email=${encodeURIComponent(resolved)}&otpSent=true`);
+                        const returnParam = searchParams.get("returnUrl") || searchParams.get("redirect");
+                        const returnQuery = returnParam ? `&returnUrl=${encodeURIComponent(returnParam)}` : "";
+                        router.push(`/register?email=${encodeURIComponent(resolved)}&otpSent=true${returnQuery}`);
                     }, 1500);
                 }
             }
@@ -181,7 +186,10 @@ function LoginContent() {
                 setMessage({ type: "success", text: "Successfully logged in!" });
 
                 const userRole = data.user?.role || "student";
-                if (userRole === "admin") {
+                const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect");
+                if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
+                    router.push(returnUrl);
+                } else if (userRole === "admin") {
                     router.push("/admin/dashboard");
                 } else if (userRole === "teacher") {
                     router.push("/teacher/dashboard");

@@ -23,36 +23,48 @@ export default function VideoWatermark() {
     useEffect(() => {
         const container = containerRef.current;
         const text = textRef.current;
-        if (!container || !text) return;
+        if (!container || !text || !user) return;
+
+        let isRunning = true;
 
         const animate = () => {
+            if (!isRunning) return;
+
             const cw = container.offsetWidth;
             const ch = container.offsetHeight;
             const tw = text.offsetWidth;
             const th = text.offsetHeight;
 
-            pos.current.x += vel.current.vx;
-            pos.current.y += vel.current.vy;
+            if (cw > 50 && ch > 50 && tw > 0 && th > 0) {
+                pos.current.x += vel.current.vx;
+                pos.current.y += vel.current.vy;
 
-            // Bounce off edges
-            if (pos.current.x + tw >= cw || pos.current.x <= 0) {
-                vel.current.vx *= -1;
-                pos.current.x = Math.max(0, Math.min(pos.current.x, cw - tw));
-            }
-            if (pos.current.y + th >= ch || pos.current.y <= 0) {
-                vel.current.vy *= -1;
-                pos.current.y = Math.max(0, Math.min(pos.current.y, ch - th));
-            }
+                // Bounce off edges with safe boundaries
+                const maxX = Math.max(0, cw - tw);
+                const maxY = Math.max(0, ch - th);
 
-            text.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`;
+                if (pos.current.x >= maxX || pos.current.x <= 0) {
+                    vel.current.vx *= -1;
+                    pos.current.x = Math.max(0, Math.min(pos.current.x, maxX));
+                }
+                if (pos.current.y >= maxY || pos.current.y <= 0) {
+                    vel.current.vy *= -1;
+                    pos.current.y = Math.max(0, Math.min(pos.current.y, maxY));
+                }
+
+                text.style.transform = `translate(${pos.current.x}px, ${pos.current.y}px)`;
+            }
 
             animRef.current = requestAnimationFrame(animate);
         };
 
         animRef.current = requestAnimationFrame(animate);
 
-        return () => cancelAnimationFrame(animRef.current);
-    }, []);
+        return () => {
+            isRunning = false;
+            cancelAnimationFrame(animRef.current);
+        };
+    }, [user]);
 
     if (!user) return null;
 

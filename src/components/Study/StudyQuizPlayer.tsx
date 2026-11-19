@@ -12,6 +12,7 @@ import {
   Play,
   Shield,
   Zap,
+  Trophy,
 } from "lucide-react";
 import styles from "./StudyQuizPlayer.module.css";
 
@@ -385,6 +386,15 @@ export default function StudyQuizPlayer({ lesson, onComplete: _onComplete }: Stu
         </section>
 
         <footer className={styles.actions}>
+          <Link
+            href={`/dashboard/quizzes/${quizId}/leaderboard?returnUrl=${encodeURIComponent(returnUrl)}`}
+            className={styles.secondaryBtn}
+            title="View student rankings and leaderboard"
+          >
+            <Trophy className={styles.btnIcon} />
+            Leaderboard
+          </Link>
+
           {isCompleted && (
             <Link
               href={`/dashboard/quizzes/${quizId}/result?attempt=${quiz.attempt?.id}&returnUrl=${encodeURIComponent(returnUrl)}`}

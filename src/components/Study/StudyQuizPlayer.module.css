@@ -290,6 +290,7 @@
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: 10px;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .warningIcon {
@@ -339,7 +340,8 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px 28px;
+  min-height: 44px;
+  padding: 12px 24px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
@@ -347,7 +349,9 @@
   transition: all 0.2s;
   border: none;
   text-decoration: none;
-  min-width: 160px;
+  min-width: 140px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .primaryBtn {

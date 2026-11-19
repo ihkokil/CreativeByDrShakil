@@ -139,19 +139,23 @@ export async function POST(
 
     // Create question mappings with optional option shuffling (default to true unless explicitly false)
     const optionLetters = ['A', 'B', 'C', 'D', 'E'];
-    for (let i = 0; i < selectedQuestions.length; i++) {
-      const q = selectedQuestions[i] as any;
+    const mappingsToInsert = selectedQuestions.map((q: any, i: number) => {
       const optionOrder = quiz.shuffleOptions !== false ? shuffleArray([...optionLetters]) : [...optionLetters];
-
-      await supabase.from('QuizQuestionMapping')
-// @ts-ignore
-.insert({
+      return {
         id: nanoid(),
         attemptId,
         questionId: q.id,
         displayOrder: i + 1,
         optionOrder: JSON.stringify(optionOrder),
-      } as any);
+      };
+    });
+
+    if (mappingsToInsert.length > 0) {
+      const { error: mappingError } = await supabase
+        .from('QuizQuestionMapping')
+        // @ts-ignore
+        .insert(mappingsToInsert as any);
+      if (mappingError) throw mappingError;
     }
 
     return NextResponse.json({

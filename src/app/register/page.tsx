@@ -20,7 +20,10 @@ function RegisterContent() {
     useEffect(() => {
         if (!authLoading && user) {
             const userRole = role || user.role || "student";
-            if (userRole === "admin") {
+            const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect");
+            if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
+                router.replace(returnUrl);
+            } else if (userRole === "admin") {
                 router.replace("/admin/dashboard");
             } else if (userRole === "teacher") {
                 router.replace("/teacher/dashboard");
@@ -28,7 +31,7 @@ function RegisterContent() {
                 router.replace("/dashboard/courses");
             }
         }
-    }, [user, authLoading, role, router]);
+    }, [user, authLoading, role, router, searchParams]);
 
     const [step, setStep] = useState<PageStep>("email");
     const [email, setEmail] = useState("");
@@ -115,7 +118,9 @@ function RegisterContent() {
                     text: "An account with this email already exists. Redirecting to login...",
                 });
                 setTimeout(() => {
-                    router.push(`/login?email=${encodeURIComponent(resolved)}`);
+                    const returnParam = searchParams.get("returnUrl") || searchParams.get("redirect");
+                    const returnQuery = returnParam ? `&returnUrl=${encodeURIComponent(returnParam)}` : "";
+                    router.push(`/login?email=${encodeURIComponent(resolved)}${returnQuery}`);
                 }, 1500);
             } else {
                 const otpResponse = await fetch("/api/auth/send-otp", {
@@ -251,8 +256,11 @@ function RegisterContent() {
                 setMessage({ type: "success", text: "Account created and logged in!" });
 
                 const userRole = data.user?.role || "student";
+                const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect");
                 setTimeout(() => {
-                    if (userRole === "admin") {
+                    if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
+                        router.push(returnUrl);
+                    } else if (userRole === "admin") {
                         router.push("/admin/dashboard");
                     } else if (userRole === "teacher") {
                         router.push("/teacher/dashboard");
