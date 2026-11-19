@@ -7,9 +7,6 @@ on:
       - production
     tags:
       - 'v*'
-    paths:
-      - 'android/**'
-      - '.github/workflows/build-android.yml'
 
 permissions:
   contents: write
