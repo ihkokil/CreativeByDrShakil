@@ -437,13 +437,6 @@ export default function CustomVideoPlayer({
           )}
         </VideoPlayer>
       )}
-
-      {/* Watermark overlay on the Video.JS player (for pre-load / non-fullscreen fallback) */}
-      {showWatermark && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 25 }}>
-          <VideoWatermark />
-        </div>
-      )}
     </div>
   );
 }
