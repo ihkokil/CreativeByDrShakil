@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Offline | Creative By Dr. Shakil</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: #0a0a0c;
+      background-image: radial-gradient(circle at 50% 25%, rgba(237, 28, 40, 0.14), transparent 60%);
+      color: #f4f4f5;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .card {
+      max-width: 380px;
+      width: 100%;
+      background: rgba(20, 20, 26, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 22px;
+      padding: 36px 24px;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+    }
+    .logo-wrap {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 20px;
+      border-radius: 20px;
+      background: rgba(237, 28, 40, 0.12);
+      border: 1px solid rgba(237, 28, 40, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-wrap svg {
+      width: 42px;
+      height: 42px;
+      color: #ed1c28;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    p {
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: #a1a1aa;
+      margin-bottom: 26px;
+    }
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      background: #ed1c28;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 8px 24px rgba(237, 28, 40, 0.35);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+    .retry-btn:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+    .status {
+      margin-top: 16px;
+      font-size: 0.78rem;
+      color: #71717a;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+    </div>
+    <h1>No Internet Connection</h1>
+    <p>Please check your Wi-Fi or mobile data connection to continue watching lectures and taking quizzes on <strong>Creative By Dr. Shakil</strong>.</p>
+    <button type="button" class="retry-btn" onclick="retryNow()">
+      <span>Retry Connection</span>
+    </button>
+    <div class="status" id="status-text">Waiting for network...</div>
+  </div>
+  <script>
+    function retryNow() {
+      var st = document.getElementById('status-text');
+      if (st) st.textContent = 'Reconnecting...';
+      if (window.AndroidBridge && typeof window.AndroidBridge.retryConnection === 'function') {
+        window.AndroidBridge.retryConnection();
+      } else {
+        window.location.replace('https://creativebydrshakil.com');
+      }
+    }
+    window.addEventListener('online', function() {
+      retryNow();
+    });
+  </script>
+</body>
+</html>

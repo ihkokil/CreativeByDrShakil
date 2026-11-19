@@ -10,7 +10,7 @@ import MobileBottomNavWrapper from "@/components/Navbar/MobileBottomNavWrapper";
 const outfit = Outfit({ subsets: ["latin"], display: 'swap', adjustFontFallback: false });
 
 export const viewport: Viewport = {
-    themeColor: "#ffffff",
+    themeColor: "#0a0a0c",
     minimumScale: 1,
     initialScale: 1,
     width: "device-width",
@@ -19,6 +19,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://creativebydrshakil.com'),
+    manifest: "/site.webmanifest",
     title: {
         default: "Creative By Dr. Shakil | Medical Education Simplified",
         template: "%s | Creative By Dr. Shakil"

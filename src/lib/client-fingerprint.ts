@@ -205,18 +205,19 @@ export function getDeviceCategory(
   screenWidth: number,
   screenHeight: number
 ): 'mobile' | 'tablet' | 'desktop' {
-  if (typeof navigator !== 'undefined' && 'userAgentData' in navigator && (navigator as any).userAgentData) {
-    return (navigator as any).userAgentData.mobile ? 'mobile' : 'desktop';
-  }
   const ua = userAgent.toLowerCase();
 
   // iPad desktop mode
   const isIPad = (ua.includes('macintosh') || ua.includes('macintel') || ua.includes('ipad')) && maxTouchPoints > 1;
   if (isIPad) return 'tablet';
 
-  // Other tablets (Android tablet, etc.)
+  // Other tablets (Android tablet, etc.) — checked before userAgentData.mobile so tablets aren't misclassified as desktop
   const isTabletUA = /ipad|tablet|playbook|silk/i.test(ua) || (ua.includes('android') && !ua.includes('mobile'));
   if (isTabletUA) return 'tablet';
+
+  if (typeof navigator !== 'undefined' && 'userAgentData' in navigator && (navigator as any).userAgentData) {
+    if ((navigator as any).userAgentData.mobile) return 'mobile';
+  }
 
   // Touch screen + screen dimensions
   const isTouch = maxTouchPoints > 0 || 'ontouchstart' in (typeof window !== 'undefined' ? window : {});

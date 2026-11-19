@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.creativebydrshakil.app",
+      "sha256_cert_fingerprints": [
+        "3A:B0:2A:57:C4:32:EB:F1:AC:69:A2:03:A2:F0:8F:CF:B4:98:91:3E:AD:F7:A0:6A:2B:E0:DB:AB:A0:6E:92:B7"
+      ]
+    }
+  }
+]

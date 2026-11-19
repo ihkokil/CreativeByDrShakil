@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="oled_bg">#0A0A0C</color>
+    <color name="brand_crimson">#ED1C28</color>
+    <color name="ic_launcher_background">#0A0A0C</color>
+</resources>

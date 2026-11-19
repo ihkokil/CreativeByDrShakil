@@ -73,3 +73,13 @@ Basic Questions/
 scripts/seed-mass-students.ts
 scripts/update-specific-enrollment.ts
 public/streams/*
+
+# Android Build Outputs & Private Signing Keys
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/keystore.properties
+*.jks
+*.keystore
+release-builds/
