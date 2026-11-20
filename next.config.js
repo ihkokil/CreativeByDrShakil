@@ -46,7 +46,8 @@ const nextConfig = {
             style-src 'self' 'unsafe-inline';
             img-src 'self' blob: data: https://files.creativebydrshakil.com https://lh3.googleusercontent.com https://img.youtube.com https://i.ytimg.com https://api.pipratube.com;
             font-src 'self' data:;
-            connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com https://files.creativebydrshakil.com https://api.pipratube.com;
+            connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.cloudflareinsights.com https://files.creativebydrshakil.com https://api.pipratube.com https://www.youtube.com https://*.youtube.com https://*.googlevideo.com https://*.google.com;
+            worker-src 'self' blob:;
             media-src 'self' blob: data: https://files.creativebydrshakil.com;
             object-src 'none';
             base-uri 'self';

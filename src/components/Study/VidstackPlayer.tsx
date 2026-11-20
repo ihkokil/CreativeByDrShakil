@@ -54,7 +54,7 @@ export default function VidstackPlayer({
   const lastSaveTimeRef = useRef(0);
 
   const handleCanPlay = () => {
-    if (hasResumedRef.current || !playerRef.current) return;
+    if (!playerRef.current) return;
     try {
       const savedSpeed = localStorage.getItem('preferred_playback_speed');
       if (savedSpeed) {
@@ -63,6 +63,26 @@ export default function VidstackPlayer({
           playerRef.current.playbackRate = rate;
         }
       }
+      // For non-YouTube direct videos, restoring position on canplay is safe
+      if (type !== 'youtube' && !hasResumedRef.current) {
+        const savedPos = localStorage.getItem(storageKey);
+        if (savedPos) {
+          const pos = parseFloat(savedPos);
+          const duration = playerRef.current.duration;
+          if (!isNaN(pos) && pos > 5 && (!duration || pos < duration - 10)) {
+            playerRef.current.currentTime = pos;
+            hasResumedRef.current = true;
+          }
+        }
+      }
+    } catch {}
+  };
+
+  // For YouTube embeds, only restore timestamp once user gesture triggers play.
+  // Calling seekTo before initial user gesture puts YouTube in an infinite BUFFERING state.
+  const handlePlay = () => {
+    if (hasResumedRef.current || !playerRef.current) return;
+    try {
       const savedPos = localStorage.getItem(storageKey);
       if (savedPos) {
         const pos = parseFloat(savedPos);
@@ -73,6 +93,14 @@ export default function VidstackPlayer({
         }
       }
     } catch {}
+  };
+
+  const handleSeeked = () => {
+    // If student scrubs/taps the sleek slider while YouTube is paused/cued,
+    // trigger playback so YouTube accepts the seek without stalling
+    if (type === 'youtube' && playerRef.current?.paused) {
+      playerRef.current.play().catch(() => {});
+    }
   };
 
   const handleTimeUpdate = (detail: any) => {
@@ -120,6 +148,8 @@ export default function VidstackPlayer({
         autoPlay={shouldAutoPlay}
         onAutoPlayFail={handleAutoPlayFail}
         onCanPlay={handleCanPlay}
+        onPlay={handlePlay}
+        onSeeked={handleSeeked}
         onTimeUpdate={handleTimeUpdate}
         onRateChange={handleRateChange}
         playsInline

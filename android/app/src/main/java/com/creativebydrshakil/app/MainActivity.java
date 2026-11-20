@@ -198,8 +198,17 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (request == null) return false;
                 Uri uri = request.getUrl();
                 if (uri == null) return false;
+
+                // CRITICAL FIX: Only evaluate external app/browser launch for the main frame.
+                // Sub-frame navigations (such as YouTube embeds, iframes, player APIs) must be allowed
+                // to load naturally inside the WebView without being intercepted or killed.
+                if (!request.isForMainFrame()) {
+                    return false;
+                }
+
                 String scheme = uri.getScheme() != null ? uri.getScheme().toLowerCase() : "";
                 String host = uri.getHost() != null ? uri.getHost().toLowerCase() : "";
 
