@@ -415,9 +415,9 @@ export default function CustomVideoPlayer({
       capRenditionToPlayerSize: false,
       engine: {
         hlsJs: {
-          maxBufferLength: 8,
-          maxMaxBufferLength: 16,
-          backBufferLength: 0,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          backBufferLength: 30,
         },
       },
     };

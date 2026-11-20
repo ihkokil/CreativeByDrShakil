@@ -10,6 +10,7 @@ const publicPaths = [
   '/api/telegram',
   '/api/courses',
   '/api/teachers',
+  '/api/pipratube',
 ];
 
 // Guest-only auth pages that logged-in users should not access

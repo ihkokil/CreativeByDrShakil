@@ -73,6 +73,7 @@ button[aria-label*="Cast"],
   border-radius: 0.3em !important;
   background-color: rgba(43, 51, 63, 0.75) !important;
   border: 0.06666em solid rgba(255, 255, 255, 0.75) !important;
+  -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   transition: all 0.25s ease-in-out !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -137,6 +138,7 @@ button[aria-label*="Cast"],
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
   border-radius: 8px !important;
   box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   backdrop-filter: blur(12px) !important;
   padding: 6px 0 !important;
   min-width: 110px;

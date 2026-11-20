@@ -75,8 +75,40 @@ async function handleStreamProxy(
     responseHeaders.set('Access-Control-Allow-Headers', '*');
     responseHeaders.set('Accept-Ranges', 'bytes');
 
+    // CRITICAL FIX: For HLS playlists (.m3u8), fetch() in Node/V8 automatically decompresses
+    // compressed responses (brotli/gzip). The upstream 'content-length' header reflects the
+    // COMPRESSED byte count (e.g. 1.4 KB instead of 41 KB), which caused browsers to truncate
+    // 1-2 hour playlists down to only ~40 seconds! We must read the full text for .m3u8,
+    // delete the mismatched Content-Length header, and forward the complete playlist.
+    if (ext === '.m3u8') {
+      let text = await upstreamRes.text();
+      // If a non-default CDN host was specified, preserve ?host= on relative m3u8 and ts lines
+      if (hostParam) {
+        const encodedHost = encodeURIComponent(targetHost);
+        text = text.replace(/^(?!#)(\S+\.(?:m3u8|ts|mp4|m4s))(\s*)$/gm, `$1?host=${encodedHost}$2`);
+      }
+
+      responseHeaders.set('Content-Type', 'application/vnd.apple.mpegurl');
+      responseHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      responseHeaders.delete('Content-Length');
+
+      if (isHead) {
+        return new NextResponse(null, {
+          status: upstreamRes.status,
+          headers: responseHeaders,
+        });
+      }
+
+      return new NextResponse(text, {
+        status: upstreamRes.status,
+        headers: responseHeaders,
+      });
+    }
+
+    // For media segments (.ts / .mp4), only forward Content-Length if the stream was NOT decompressed
+    const contentEncoding = upstreamRes.headers.get('content-encoding');
     const contentLength = upstreamRes.headers.get('content-length');
-    if (contentLength) {
+    if (contentLength && (!contentEncoding || contentEncoding === 'identity')) {
       responseHeaders.set('Content-Length', contentLength);
     }
 
@@ -85,9 +117,7 @@ async function handleStreamProxy(
       responseHeaders.set('Content-Range', contentRange);
     }
 
-    if (ext === '.m3u8') {
-      responseHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    } else if (ext === '.ts') {
+    if (ext === '.ts') {
       responseHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
     } else {
       responseHeaders.set('Cache-Control', 'public, max-age=86400');
